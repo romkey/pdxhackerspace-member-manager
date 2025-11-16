@@ -68,6 +68,9 @@
       <% end %>
       <%= yield %>
     </main>
+    <footer class="container py-4 text-center text-muted small">
+      Version: <%= AppVersion.current %>
+    </footer>
   </body>
   <script>
     (function() {

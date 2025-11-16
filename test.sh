@@ -1,0 +1,1 @@
+curl -v "https://api-m.sandbox.paypal.com/v1/oauth2/token" -u "AQ9BakttLtcnzIsvvraIP50RYGzAj0q19ULdpAqaogyvG7jnkiyS_MO6VqRRb9m1DWANp9luLImAEXtg:EDoxNowjpQgYFiSyOd0lA3TiCNuZZHbSR42hWOa7sOS94Nzc0YHjW6wYjrBZdd7AhKRFTu8QiqOIWMcp"  -H "Accept: application/json" -H "Accept-Language: en_US" -H "Content-Type: application/x-www-form-urlencoded" -d "grant_type=client_credentials"
