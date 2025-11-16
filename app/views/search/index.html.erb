@@ -1,0 +1,201 @@
+<div class="mb-4">
+  <%= form_with url: search_path, method: :get, local: true, class: "d-flex gap-2" do |f| %>
+    <%= f.search_field :q, value: @q, class: "form-control", placeholder: "Search…" %>
+    <%= f.submit "Search", class: "btn btn-primary" %>
+  <% end %>
+</div>
+
+<% if @q.blank? %>
+  <p class="text-muted">Enter a name or email to search users, sheet entries, Slack users, and payments.</p>
+  <% return %>
+<% end %>
+
+<% if @users.present? %>
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <h2 class="h6 mb-3">Users (<%= @users.size %>)</h2>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="bg-body-tertiary">
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Email</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @users.each do |u| %>
+              <tr>
+                <td class="fw-semibold"><%= link_to u.display_name, user_path(u) %></td>
+                <td>
+                  <% if u.email.present? %>
+                    <%= mail_to u.email %>
+                  <% else %>
+                    <span class="text-muted fst-italic">Not provided</span>
+                  <% end %>
+                </td>
+                <td>
+                  <span class="badge text-bg-<%= u.active? ? 'success' : 'secondary' %>">
+                    <%= u.active? ? "Active" : "Inactive" %>
+                  </span>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<% if @sheet_entries.present? %>
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <h2 class="h6 mb-3">Sheet Entries (<%= @sheet_entries.size %>)</h2>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="bg-body-tertiary">
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Email</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @sheet_entries.each do |e| %>
+              <tr>
+                <td class="fw-semibold"><%= link_to e.name, sheet_entry_path(e) %></td>
+                <td>
+                  <% if e.email.present? %>
+                    <%= mail_to e.email %>
+                  <% else %>
+                    <span class="text-muted fst-italic">Not provided</span>
+                  <% end %>
+                </td>
+                <td><%= e.status.presence || content_tag(:span, "Inactive", class: "text-muted") %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<% if @slack_users.present? %>
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <h2 class="h6 mb-3">Slack Users (<%= @slack_users.size %>)</h2>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="bg-body-tertiary">
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Email</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @slack_users.each do |s| %>
+              <tr>
+                <td class="fw-semibold"><%= link_to s.display_name, slack_user_path(s) %></td>
+                <td>
+                  <% if s.email.present? %>
+                    <%= mail_to s.email %>
+                  <% else %>
+                    <span class="text-muted fst-italic">Not provided</span>
+                  <% end %>
+                </td>
+                <td>
+                  <% status_badge = s.deleted? ? 'secondary' : 'success' %>
+                  <span class="badge text-bg-<%= status_badge %>"><%= s.deleted? ? "Deleted" : "Active" %></span>
+                  <% if s.is_bot? %>
+                    <span class="badge text-bg-warning ms-1">Bot</span>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<% if @paypal_payments.present? %>
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <h2 class="h6 mb-3">PayPal Payments (<%= @paypal_payments.size %>)</h2>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="bg-body-tertiary">
+            <tr>
+              <th scope="col">Transaction</th>
+              <th scope="col">Payer</th>
+              <th scope="col">Email</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @paypal_payments.each do |p| %>
+              <tr>
+                <td class="fw-semibold"><%= link_to p.paypal_id, paypal_payment_path(p) %></td>
+                <td><%= p.payer_name.presence || content_tag(:span, "—", class: "text-muted") %></td>
+                <td>
+                  <% if p.payer_email.present? %>
+                    <%= mail_to p.payer_email %>
+                  <% else %>
+                    <span class="text-muted fst-italic">Not provided</span>
+                  <% end %>
+                </td>
+                <td><span class="badge text-bg-secondary"><%= p.status.presence || "Unknown" %></span></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<% if @recharge_payments.present? %>
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <h2 class="h6 mb-3">Recharge Payments (<%= @recharge_payments.size %>)</h2>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="bg-body-tertiary">
+            <tr>
+              <th scope="col">Charge</th>
+              <th scope="col">Customer</th>
+              <th scope="col">Email</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @recharge_payments.each do |r| %>
+              <tr>
+                <td class="fw-semibold"><%= link_to r.recharge_id, recharge_payment_path(r) %></td>
+                <td><%= r.customer_name.presence || content_tag(:span, "—", class: "text-muted") %></td>
+                <td>
+                  <% if r.customer_email.present? %>
+                    <%= mail_to r.customer_email %>
+                  <% else %>
+                    <span class="text-muted fst-italic">Not provided</span>
+                  <% end %>
+                </td>
+                <td><span class="badge text-bg-secondary"><%= r.status.presence || "Unknown" %></span></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<% if @users.blank? && @sheet_entries.blank? && @slack_users.blank? && @paypal_payments.blank? && @recharge_payments.blank? %>
+  <p class="text-muted">No results.</p>
+<% end %>
+
+

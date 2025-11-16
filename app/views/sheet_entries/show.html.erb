@@ -1,0 +1,70 @@
+<div class="mb-4">
+  <%= link_to "&larr; Back to sheet entries".html_safe, sheet_entries_path, class: "text-decoration-none" %>
+</div>
+
+<%= render "paypal_payments/payment_history", payments: @payments %>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <h1 class="h4 mb-3"><%= @sheet_entry.name %></h1>
+
+    <dl class="row mb-0">
+      <dt class="col-sm-3 text-secondary">Email</dt>
+      <dd class="col-sm-9">
+        <% if @sheet_entry.email.present? %>
+          <%= mail_to @sheet_entry.email %>
+        <% else %>
+          <span class="text-muted fst-italic">Not provided</span>
+        <% end %>
+      </dd>
+
+      <dt class="col-sm-3 text-secondary">Status</dt>
+      <dd class="col-sm-9"><%= @sheet_entry.status.presence || "—" %></dd>
+
+      <dt class="col-sm-3 text-secondary">Dirty</dt>
+      <dd class="col-sm-9"><%= @sheet_entry.dirty.presence || "—" %></dd>
+
+      <dt class="col-sm-3 text-secondary">Twitter</dt>
+      <dd class="col-sm-9"><%= @sheet_entry.twitter.presence || "—" %></dd>
+
+      <dt class="col-sm-3 text-secondary">Alias</dt>
+      <dd class="col-sm-9"><%= @sheet_entry.alias_name.presence || "—" %></dd>
+
+      <dt class="col-sm-3 text-secondary">Date added</dt>
+      <dd class="col-sm-9">
+        <%= @sheet_entry.date_added ? l(@sheet_entry.date_added.to_date, format: :long) : "Unknown" %>
+      </dd>
+
+      <dt class="col-sm-3 text-secondary">Payment</dt>
+      <dd class="col-sm-9"><%= @sheet_entry.payment.presence || "—" %></dd>
+
+      <dt class="col-sm-3 text-secondary">PayPal name</dt>
+      <dd class="col-sm-9"><%= @sheet_entry.paypal_name.presence || "—" %></dd>
+
+      <dt class="col-sm-3 text-secondary">Notes</dt>
+      <dd class="col-sm-9"><%= simple_format(@sheet_entry.notes.presence || "—") %></dd>
+
+      <dt class="col-sm-3 text-secondary">Access</dt>
+      <dd class="col-sm-9">
+        <% if @sheet_entry.access_permissions.any? %>
+          <ul class="list-unstyled mb-0">
+            <% @sheet_entry.access_permissions.each do |permission| %>
+              <li>• <%= permission %></li>
+            <% end %>
+          </ul>
+        <% else %>
+          <span class="text-muted fst-italic">None recorded</span>
+        <% end %>
+      </dd>
+
+      <dt class="col-sm-3 text-secondary">Last synced</dt>
+      <dd class="col-sm-9"><%= @sheet_entry.last_synced_at ? l(@sheet_entry.last_synced_at, format: :long) : "Never" %></dd>
+
+      <dt class="col-sm-3 text-secondary">Raw data</dt>
+      <dd class="col-sm-9">
+        <pre class="bg-light rounded p-3"><code><%= JSON.pretty_generate(@sheet_entry.raw_attributes) %></code></pre>
+      </dd>
+    </dl>
+  </div>
+</div>
+

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html data-bs-theme="light">
+  <head>
+    <title>MemberManager</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+  </head>
+
+  <body class="bg-body min-vh-100">
+    <nav class="navbar navbar-expand-lg bg-body border-bottom shadow-sm">
+      <div class="container">
+        <a class="navbar-brand fw-semibold" href="<%= root_path %>">
+          MemberManager
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="mainNav">
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+            <% if user_signed_in? %>
+              <li class="nav-item">
+                <%= link_to "Users", users_path, class: "nav-link #{current_page?(users_path) ? 'active' : ''}" %>
+              </li>
+              <li class="nav-item">
+                <%= link_to "Slack Users", slack_users_path, class: "nav-link #{current_page?(slack_users_path) ? 'active' : ''}" %>
+              </li>
+              <li class="nav-item">
+                <%= link_to "Sheet Entries", sheet_entries_path, class: "nav-link #{current_page?(sheet_entries_path) ? 'active' : ''}" %>
+              </li>
+              <li class="nav-item">
+                <%= link_to "PayPal Payments", paypal_payments_path, class: "nav-link #{current_page?(paypal_payments_path) ? 'active' : ''}" %>
+              </li>
+              <li class="nav-item">
+                <%= link_to "Recharge Payments", recharge_payments_path, class: "nav-link #{current_page?(recharge_payments_path) ? 'active' : ''}" %>
+              </li>
+              <li class="nav-item">
+                <%= link_to "Journal", journals_path, class: "nav-link #{current_page?(journals_path) ? 'active' : ''}" %>
+              </li>
+            <% end %>
+          </ul>
+          <div class="d-flex gap-3 align-items-center">
+            <%= form_with url: search_path, method: :get, local: true, class: "d-flex" do |f| %>
+              <input type="search" name="q" value="<%= params[:q] %>" class="form-control form-control-sm me-2" placeholder="Search…" aria-label="Search">
+            <% end %>
+            <% if user_signed_in? %>
+              <span class="text-muted small">Signed in as <%= current_user.display_name %></span>
+              <%= button_to "Sign out", logout_path, method: :delete, class: "btn btn-outline-secondary btn-sm" %>
+            <% else %>
+              <%= link_to "Sign in", login_path, class: "btn btn-primary btn-sm" %>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <main class="container py-4">
+      <% flash.each do |type, message| %>
+        <% next if message.blank? %>
+        <div class="alert alert-<%= bootstrap_class_for(type) %> alert-dismissible fade show" role="alert">
+          <%= message %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      <% end %>
+      <%= yield %>
+    </main>
+  </body>
+  <script>
+    (function() {
+      function applyTheme() {
+        var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var theme = prefersDark ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-bs-theme', theme);
+      }
+      applyTheme();
+      if (window.matchMedia) {
+        var mql = window.matchMedia('(prefers-color-scheme: dark)');
+        if (mql.addEventListener) {
+          mql.addEventListener('change', applyTheme);
+        } else if (mql.addListener) {
+          // Safari <14
+          mql.addListener(applyTheme);
+        }
+      }
+    })();
+  </script>
+</html>

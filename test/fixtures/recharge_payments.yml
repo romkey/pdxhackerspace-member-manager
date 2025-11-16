@@ -1,0 +1,16 @@
+recharge_payment:
+  recharge_id: RC-100
+  status: success
+  amount: 30.00
+  currency: USD
+  processed_at: 2025-11-13 09:00:00
+  charge_type: renewal
+  customer_email: user1@example.com
+  customer_name: Example User One
+  user: one
+  sheet_entry: member_list_entry
+  raw_attributes:
+    id: RC-100
+    status: success
+  last_synced_at: 2025-11-15 09:10:00
+

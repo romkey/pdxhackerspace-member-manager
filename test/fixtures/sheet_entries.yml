@@ -1,0 +1,62 @@
+member_list_entry:
+  name: Example User One
+  dirty: ""
+  status: Owner
+  twitter: sample
+  alias_name: Sample Alias
+  email: user1@example.com
+  date_added: 2024-01-01 00:00:00
+  payment: Stripe
+  paypal_name: Sample Paypal
+  notes: Sample note
+  rfid: Yes
+  laser: No
+  sewing_machine: Yes
+  serger:
+  embroidery_machine:
+  dremel:
+  ender:
+  prusa:
+  laminator:
+  shaper:
+  general_shop: Yes
+  event_host:
+  vinyl_cutter:
+  mpcnc_marlin:
+  longmill:
+  raw_attributes:
+    name: Example User One
+    status: Owner
+  last_synced_at: 2025-11-15 06:00:00
+
+name_only_entry:
+  name: Example User Two
+  dirty: ""
+  status: Member
+  twitter:
+  alias_name:
+  email:
+  date_added:
+  payment:
+  paypal_name:
+  notes:
+  rfid:
+  laser:
+  sewing_machine:
+  serger:
+  embroidery_machine:
+  dremel:
+  ender:
+  prusa:
+  laminator:
+  shaper:
+  general_shop:
+  event_host:
+  vinyl_cutter:
+  mpcnc_marlin:
+  longmill:
+  raw_attributes:
+    name: Example User Two
+    status: Member
+  last_synced_at: 2025-11-15 06:05:00
+

@@ -1,0 +1,19 @@
+sample_payment:
+  paypal_id: PAY-123
+  status: COMPLETED
+  amount: 42.50
+  currency: USD
+  transaction_time: 2025-11-14 12:00:00
+  transaction_type: T0001
+  payer_email: donor@example.com
+  payer_name: Sample Donor
+  payer_id: PAYER123
+  user: one
+  sheet_entry: member_list_entry
+  raw_attributes:
+    transaction_info:
+      transaction_id: PAY-123
+    payer_info:
+      email_address: donor@example.com
+  last_synced_at: 2025-11-15 08:20:00
+

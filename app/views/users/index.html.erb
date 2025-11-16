@@ -1,0 +1,54 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">Users</h1>
+    <p class="text-muted mb-0">Synced from Authentik group.</p>
+    <p class="text-muted mb-0">
+      <strong><%= @user_count %></strong> members —
+      <strong><%= @active_count %></strong> active,
+      <strong><%= @inactive_count %></strong> inactive
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= button_to "Sync now", sync_users_path, method: :post, class: "btn btn-primary", data: { turbo: false } %>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="table-responsive">
+    <table class="table mb-0 align-middle">
+      <thead class="bg-body-tertiary">
+        <tr>
+          <th scope="col">Name</th>
+          <th scope="col">Email</th>
+          <th scope="col">Status</th>
+          <th scope="col">Last synced</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @users.each do |user| %>
+          <tr>
+            <td class="fw-semibold">
+              <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
+            </td>
+            <td>
+              <% if user.email.present? %>
+                <%= mail_to user.email %>
+              <% else %>
+                <span class="text-muted fst-italic">Not provided</span>
+              <% end %>
+            </td>
+            <td>
+              <% badge_class = user.active? ? "success" : "secondary" %>
+              <span class="badge text-bg-<%= badge_class %>">
+                <%= user.active? ? "Active" : "Inactive" %>
+              </span>
+            </td>
+            <td><%= user.last_synced_at ? l(user.last_synced_at, format: :long) : "n/a" %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+

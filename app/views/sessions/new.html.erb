@@ -1,0 +1,50 @@
+<div class="row justify-content-center py-5">
+  <div class="col-12 col-md-7 col-lg-5">
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-4">
+        <h1 class="h4 mb-3 text-center">Sign in</h1>
+
+        <% if local_auth_enabled? %>
+          <%= form_with url: local_login_path, scope: :session, data: { turbo: false }, class: "mb-4" do |form| %>
+            <div class="mb-3">
+              <%= form.label :email, class: "form-label" %>
+              <%= form.email_field :email, class: "form-control", autofocus: true, required: true %>
+            </div>
+            <div class="mb-3">
+              <div class="d-flex justify-content-between">
+                <%= form.label :password, class: "form-label" %>
+                <span class="text-muted small">Test accounts only</span>
+              </div>
+              <%= form.password_field :password, class: "form-control", required: true %>
+            </div>
+            <%= form.submit "Sign in locally", class: "btn btn-primary w-100" %>
+          <% end %>
+        <% end %>
+
+        <% if authentik_enabled? %>
+          <div class="text-center">
+            <p class="text-muted mb-2">or</p>
+            <%= link_to "Continue with Authentik", "/auth/authentik", class: "btn btn-outline-secondary w-100" %>
+          </div>
+        <% elsif !local_auth_enabled? %>
+          <p class="text-danger text-center mb-0">
+            No authentication methods are currently configured.
+          </p>
+        <% end %>
+
+        <hr class="my-4">
+
+        <div>
+          <h2 class="h6 text-center mb-3">Sign in via RFID</h2>
+          <%= form_with url: rfid_login_path, scope: :rfid, data: { turbo: false } do |form| %>
+            <div class="input-group">
+              <%= form.text_field :token, class: "form-control", placeholder: "Scan or enter RFID", autocomplete: "off" %>
+              <button class="btn btn-outline-primary" type="submit">Sign in</button>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

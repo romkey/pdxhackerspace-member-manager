@@ -1,0 +1,37 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  authentik_id: authentik-user-1
+  email: user1@example.com
+  full_name: Example User One
+  active: true
+  last_synced_at: 2025-11-14 10:03:05
+  authentik_attributes:
+    department: Engineering
+    rfid: ABC123
+
+two:
+  authentik_id: authentik-user-2
+  email: user2@example.com
+  full_name: Example User Two
+  active: true
+  last_synced_at: 2025-11-14 10:03:05
+  authentik_attributes:
+    department: Finance
+
+three:
+  authentik_id: authentik-user-3
+  email: beta@example.com
+  full_name:
+  active: true
+  last_synced_at: 2025-11-14 10:05:05
+  authentik_attributes: {}
+
+no_email:
+  authentik_id: authentik-user-4
+  email:
+  full_name: No Email User
+  active: true
+  last_synced_at: 2025-11-15 00:00:00
+  authentik_attributes:
+    location: Remote

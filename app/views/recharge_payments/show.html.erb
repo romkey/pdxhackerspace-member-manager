@@ -1,0 +1,45 @@
+<div class="mb-4">
+  <%= link_to "&larr; Back to Recharge payments".html_safe, recharge_payments_path, class: "text-decoration-none" %>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <h1 class="h4 mb-3">Charge <%= @payment.recharge_id %></h1>
+
+    <dl class="row mb-0">
+      <dt class="col-sm-3 text-secondary">Status</dt>
+      <dd class="col-sm-9"><span class="badge text-bg-secondary"><%= @payment.status.presence || "Unknown" %></span></dd>
+
+      <dt class="col-sm-3 text-secondary">Amount</dt>
+      <dd class="col-sm-9"><%= @payment.amount_with_currency || "—" %></dd>
+
+      <dt class="col-sm-3 text-secondary">Charge type</dt>
+      <dd class="col-sm-9"><%= @payment.charge_type.presence || "—" %></dd>
+
+      <dt class="col-sm-3 text-secondary">Processed</dt>
+      <dd class="col-sm-9"><%= @payment.processed_at ? l(@payment.processed_at, format: :long) : "Unknown" %></dd>
+
+      <dt class="col-sm-3 text-secondary">Customer</dt>
+      <dd class="col-sm-9">
+        <% if @payment.customer_name.present? %>
+          <div><%= @payment.customer_name %></div>
+        <% end %>
+        <% if @payment.customer_email.present? %>
+          <div><%= mail_to @payment.customer_email %></div>
+        <% end %>
+        <% if @payment.customer_name.blank? && @payment.customer_email.blank? %>
+          <span class="text-muted fst-italic">Not provided</span>
+        <% end %>
+      </dd>
+
+      <dt class="col-sm-3 text-secondary">Last synced</dt>
+      <dd class="col-sm-9"><%= @payment.last_synced_at ? l(@payment.last_synced_at, format: :long) : "Unknown" %></dd>
+
+      <dt class="col-sm-3 text-secondary">Raw data</dt>
+      <dd class="col-sm-9">
+        <pre class="bg-light rounded p-3"><code><%= JSON.pretty_generate(@payment.raw_attributes) %></code></pre>
+      </dd>
+    </dl>
+  </div>
+</div>
+

@@ -1,0 +1,43 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">Journal</h1>
+    <p class="text-muted mb-0"><strong><%= @journals.count %></strong> entries</p>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="table-responsive">
+    <table class="table mb-0 align-middle">
+      <thead class="bg-body-tertiary">
+        <tr>
+          <th scope="col">When</th>
+          <th scope="col">User</th>
+          <th scope="col">Action</th>
+          <th scope="col">By</th>
+          <th scope="col">Changes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @journals.each do |j| %>
+          <tr>
+            <td><%= l(j.changed_at, format: :long) %></td>
+            <td><%= link_to j.user.display_name, user_path(j.user) %></td>
+            <td><span class="badge text-bg-secondary"><%= j.action %></span></td>
+            <td>
+              <% if j.actor_user.present? %>
+                <%= link_to j.actor_user.display_name, user_path(j.actor_user) %>
+              <% else %>
+                <span class="text-muted fst-italic">System</span>
+              <% end %>
+            </td>
+            <td>
+              <%= render_change_rows(j.changes_json) %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+

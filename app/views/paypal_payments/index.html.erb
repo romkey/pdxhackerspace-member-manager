@@ -1,0 +1,47 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">PayPal Payments</h1>
+    <p class="text-muted mb-0">
+      <strong><%= @payment_count %></strong> records —
+      Total <strong><%= number_to_currency(@total_amount || 0, unit: "") %> USD</strong>
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= button_to "Sync now", sync_paypal_payments_path, method: :post, class: "btn btn-primary", data: { turbo: false } %>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="table-responsive">
+    <table class="table mb-0 align-middle">
+      <thead class="bg-body-tertiary">
+        <tr>
+          <th scope="col">Transaction</th>
+          <th scope="col">Status</th>
+          <th scope="col">Amount</th>
+          <th scope="col">Payer</th>
+          <th scope="col">Time</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @payments.each do |payment| %>
+          <tr>
+            <td class="fw-semibold"><%= link_to payment.paypal_id, paypal_payment_path(payment) %></td>
+            <td><span class="badge text-bg-secondary"><%= payment.status.presence || "Unknown" %></span></td>
+            <td><%= payment.amount_with_currency || "—" %></td>
+            <td>
+              <% if payment.payer_name.present? %>
+                <div><%= payment.payer_name %></div>
+              <% end %>
+              <% if payment.payer_email.present? %>
+                <div class="text-muted small"><%= payment.payer_email %></div>
+              <% end %>
+            </td>
+            <td><%= payment.transaction_time ? l(payment.transaction_time, format: :long) : "n/a" %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
+

@@ -1,0 +1,7 @@
+active_admin:
+  email: admin@example.com
+  full_name: Test Admin
+  password_digest: <%= BCrypt::Password.create("localpassword123") %>
+  active: true
+  admin: true
+  last_signed_in_at:

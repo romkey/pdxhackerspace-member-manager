@@ -1,0 +1,53 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">Sheet Entries</h1>
+    <p class="text-muted mb-0">
+      <strong><%= @entry_count %></strong> rows —
+      <strong><%= @with_email_count %></strong> have an email address,
+      <strong><%= @shared_email_count %></strong> share Authentik emails,
+      <strong><%= @shared_name_count %></strong> share Authentik names —
+      <strong><%= @paying_count %></strong> paying,
+      <strong><%= @sponsored_count %></strong> sponsored,
+      <strong><%= @inactive_count %></strong> inactive
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= button_to "Sync now", sync_sheet_entries_path, method: :post, class: "btn btn-primary", data: { turbo: false } %>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="table-responsive">
+    <table class="table mb-0 align-middle">
+      <thead class="bg-body-tertiary">
+        <tr>
+          <th scope="col">Name</th>
+          <th scope="col">Email</th>
+          <th scope="col">Status</th>
+          <th scope="col">Payment</th>
+          <th scope="col">Access</th>
+          <th scope="col">Last synced</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @sheet_entries.each do |entry| %>
+          <tr>
+            <td class="fw-semibold"><%= link_to entry.name, sheet_entry_path(entry) %></td>
+            <td><%= entry.email ? mail_to(entry.email) : content_tag(:span, "Not provided", class: "text-muted fst-italic") %></td>
+            <td><%= entry.status.presence || content_tag(:span, "Inactive", class: "text-muted") %></td>
+            <td><%= entry.payment.presence || content_tag(:span, "—", class: "text-muted") %></td>
+            <td>
+              <% if entry.access_permissions.any? %>
+                <span class="badge text-bg-info text-wrap"><%= entry.access_permissions.join(", ") %></span>
+              <% else %>
+                <span class="text-muted fst-italic">None recorded</span>
+              <% end %>
+            </td>
+            <td><%= entry.last_synced_at ? l(entry.last_synced_at, format: :long) : "Never" %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
+

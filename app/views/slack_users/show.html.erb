@@ -1,0 +1,60 @@
+<div class="mb-4">
+  <%= link_to "&larr; Back to Slack users".html_safe, slack_users_path, class: "text-decoration-none" %>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <h1 class="h4 mb-3"><%= @slack_user.display_name %></h1>
+    <dl class="row mb-0">
+      <dt class="col-sm-3 text-secondary">Slack ID</dt>
+      <dd class="col-sm-9"><%= @slack_user.slack_id %></dd>
+
+      <dt class="col-sm-3 text-secondary">Team ID</dt>
+      <dd class="col-sm-9"><%= @slack_user.team_id.presence || "—" %></dd>
+
+      <dt class="col-sm-3 text-secondary">Email</dt>
+      <dd class="col-sm-9">
+        <% if @slack_user.email.present? %>
+          <%= mail_to @slack_user.email %>
+        <% else %>
+          <span class="text-muted fst-italic">Not provided</span>
+        <% end %>
+      </dd>
+
+      <dt class="col-sm-3 text-secondary">Real name</dt>
+      <dd class="col-sm-9"><%= @slack_user.real_name.presence || "—" %></dd>
+
+      <dt class="col-sm-3 text-secondary">Username</dt>
+      <dd class="col-sm-9"><%= @slack_user.username.presence || "—" %></dd>
+
+      <dt class="col-sm-3 text-secondary">Display name</dt>
+      <dd class="col-sm-9"><%= @slack_user.display_name.presence || "—" %></dd>
+
+      <dt class="col-sm-3 text-secondary">Title</dt>
+      <dd class="col-sm-9"><%= @slack_user.title.presence || "—" %></dd>
+
+      <dt class="col-sm-3 text-secondary">Phone</dt>
+      <dd class="col-sm-9"><%= @slack_user.phone.presence || "—" %></dd>
+
+      <dt class="col-sm-3 text-secondary">Timezone</dt>
+      <dd class="col-sm-9"><%= @slack_user.tz.presence || "—" %></dd>
+
+      <dt class="col-sm-3 text-secondary">Flags</dt>
+      <dd class="col-sm-9">
+        <span class="badge text-bg-<%= @slack_user.is_admin? ? 'success' : 'secondary' %>">Admin</span>
+        <span class="badge text-bg-<%= @slack_user.is_owner? ? 'success' : 'secondary' %>">Owner</span>
+        <span class="badge text-bg-<%= @slack_user.is_bot? ? 'warning' : 'secondary' %>">Bot</span>
+        <span class="badge text-bg-<%= @slack_user.deleted? ? 'secondary' : 'success' %>">Status</span>
+      </dd>
+
+      <dt class="col-sm-3 text-secondary">Last synced</dt>
+      <dd class="col-sm-9"><%= @slack_user.last_synced_at ? l(@slack_user.last_synced_at, format: :long) : "Never" %></dd>
+
+      <dt class="col-sm-3 text-secondary">Attributes</dt>
+      <dd class="col-sm-9">
+        <pre class="bg-light rounded p-3"><code><%= JSON.pretty_generate(@slack_user.raw_attributes) %></code></pre>
+      </dd>
+    </dl>
+  </div>
+</div>
+
