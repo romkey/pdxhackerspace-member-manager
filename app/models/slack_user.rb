@@ -1,4 +1,5 @@
 class SlackUser < ApplicationRecord
+  belongs_to :user, optional: true
   validates :slack_id, presence: true, uniqueness: true
   validates :email,
             allow_blank: true,

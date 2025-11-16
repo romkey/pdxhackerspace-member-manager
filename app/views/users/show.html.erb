@@ -1,6 +1,134 @@
-<div class="mb-4">
-  <%= link_to "&larr; Back to users".html_safe, users_path, class: "text-decoration-none" %>
+<div class="mb-4 d-flex justify-content-between align-items-center">
+  <div class="d-flex gap-2 align-items-center">
+    <% if @previous_user %>
+      <%= link_to user_path(@previous_user), class: "btn btn-outline-secondary", title: "Previous: #{@previous_user.display_name}" do %>
+        <i class="bi bi-chevron-left"></i> Previous
+      <% end %>
+    <% else %>
+      <span class="btn btn-outline-secondary disabled" title="First user">
+        <i class="bi bi-chevron-left"></i> Previous
+      </span>
+    <% end %>
+    
+    <% if @next_user %>
+      <%= link_to user_path(@next_user), class: "btn btn-outline-secondary", title: "Next: #{@next_user.display_name}" do %>
+        Next <i class="bi bi-chevron-right"></i>
+      <% end %>
+    <% else %>
+      <span class="btn btn-outline-secondary disabled" title="Last user">
+        Next <i class="bi bi-chevron-right"></i>
+      </span>
+    <% end %>
+  </div>
+  
+  <div>
+    <%= link_to "&larr; Back to users".html_safe, users_path, class: "text-decoration-none" %>
+  </div>
 </div>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div></div>
+  <div>
+    <%= link_to "Edit user", edit_user_path(@user), class: "btn btn-outline-secondary" %>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <h1 class="h4 mb-3"><%= @user.display_name %></h1>
+    <dl class="row mb-0">
+      <dt class="col-sm-3 text-secondary">Authentik ID</dt>
+      <dd class="col-sm-9"><%= @user.authentik_id %></dd>
+
+      <dt class="col-sm-3 text-secondary">Email</dt>
+      <dd class="col-sm-9">
+        <% if @user.email.present? %>
+          <%= mail_to @user.email %>
+        <% else %>
+          <span class="text-muted fst-italic">Not provided</span>
+        <% end %>
+      </dd>
+
+      <dt class="col-sm-3 text-secondary">Extra emails</dt>
+      <dd class="col-sm-9">
+        <% if @user.extra_emails.present? && @user.extra_emails.any? %>
+          <% @user.extra_emails.each do |email| %>
+            <%= mail_to email %><br>
+          <% end %>
+        <% else %>
+          <span class="text-muted fst-italic">None</span>
+        <% end %>
+      </dd>
+
+      <dt class="col-sm-3 text-secondary">Full name</dt>
+      <dd class="col-sm-9"><%= @user.full_name.presence || content_tag(:span, "Not provided", class: "text-muted fst-italic") %></dd>
+
+      <dt class="col-sm-3 text-secondary">Slack</dt>
+      <dd class="col-sm-9">
+        <% if @user.slack_handle.present? %>
+          <% if @user.slack_id.present? && @user.slack_user&.team_id.present? %>
+            <% slack_url = "slack://user?team=#{@user.slack_user.team_id}&id=#{@user.slack_id}" %>
+            <%= link_to "@#{@user.slack_handle}", slack_url, target: "_blank", rel: "noopener", class: "text-decoration-none" %>
+            <span class="text-muted small ms-2">(ID: <%= @user.slack_id %>)</span>
+          <% else %>
+            <span>@<%= @user.slack_handle %></span>
+            <% if @user.slack_id.present? %>
+              <span class="text-muted small ms-2">(ID: <%= @user.slack_id %>)</span>
+            <% end %>
+          <% end %>
+        <% else %>
+          <span class="text-muted fst-italic">Not linked</span>
+        <% end %>
+      </dd>
+
+      <dt class="col-sm-3 text-secondary">Status</dt>
+      <dd class="col-sm-9">
+        <span class="badge text-bg-<%= @user.active? ? 'success' : 'secondary' %>">
+          <%= @user.active? ? "Active" : "Inactive" %>
+        </span>
+        <% member_status = (@user.authentik_attributes || {})["memberStatus"] %>
+        <% if member_status.present? %>
+          <span class="badge text-bg-info ms-2"><%= member_status %></span>
+        <% end %>
+      </dd>
+
+      <dt class="col-sm-3 text-secondary">Trained on</dt>
+      <dd class="col-sm-9">
+        <% trained_on = (@user.authentik_attributes || {})["trained_on"] %>
+        <% if trained_on.present? && trained_on.is_a?(Array) && trained_on.any? %>
+          <% trained_on.each do |item| %>
+            <span class="badge text-bg-primary me-1 mb-1"><%= item %></span>
+          <% end %>
+        <% else %>
+          <span class="text-muted fst-italic">None recorded</span>
+        <% end %>
+      </dd>
+
+      <dt class="col-sm-3 text-secondary">Last synced</dt>
+      <dd class="col-sm-9">
+        <%= @user.last_synced_at ? l(@user.last_synced_at, format: :long) : content_tag(:span, "Never", class: "text-muted fst-italic") %>
+      </dd>
+
+      <dt class="col-sm-3 text-secondary">Created</dt>
+      <dd class="col-sm-9"><%= l(@user.created_at, format: :long) %></dd>
+
+      <dt class="col-sm-3 text-secondary">Updated</dt>
+      <dd class="col-sm-9"><%= l(@user.updated_at, format: :long) %></dd>
+
+      <dt class="col-sm-3 text-secondary">Notes</dt>
+      <dd class="col-sm-9">
+        <% notes = (@user.authentik_attributes || {})["notes"] %>
+        <% if notes.present? %>
+          <%= simple_format(notes) %>
+        <% else %>
+          <span class="text-muted fst-italic">None</span>
+        <% end %>
+      </dd>
+    </dl>
+  </div>
+</div>
+
+<%= render "paypal_payments/payment_history", payments: @payments %>
 
 <div class="card shadow-sm border-0 mt-4">
   <div class="card-body">
@@ -37,69 +165,6 @@
     <% else %>
       <p class="text-muted mb-0">No journal entries yet.</p>
     <% end %>
-  </div>
-</div>
-
-<%= render "paypal_payments/payment_history", payments: @payments %>
-
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <div></div>
-  <div>
-    <%= link_to "Edit user", edit_user_path(@user), class: "btn btn-outline-secondary" %>
-  </div>
-</div>
-
-<div class="card shadow-sm border-0">
-  <div class="card-body">
-    <h1 class="h4 mb-3"><%= @user.display_name %></h1>
-    <dl class="row mb-0">
-      <dt class="col-sm-3 text-secondary">Authentik ID</dt>
-      <dd class="col-sm-9"><%= @user.authentik_id %></dd>
-
-      <dt class="col-sm-3 text-secondary">Email</dt>
-      <dd class="col-sm-9">
-        <% if @user.email.present? %>
-          <%= mail_to @user.email %>
-        <% else %>
-          <span class="text-muted fst-italic">Not provided</span>
-        <% end %>
-      </dd>
-
-      <dt class="col-sm-3 text-secondary">Full name</dt>
-      <dd class="col-sm-9"><%= @user.full_name.presence || content_tag(:span, "Not provided", class: "text-muted fst-italic") %></dd>
-
-      <dt class="col-sm-3 text-secondary">Status</dt>
-      <dd class="col-sm-9">
-        <span class="badge text-bg-<%= @user.active? ? 'success' : 'secondary' %>">
-          <%= @user.active? ? "Active" : "Inactive" %>
-        </span>
-        <% member_status = (@user.authentik_attributes || {})["memberStatus"] %>
-        <% if member_status.present? %>
-          <span class="badge text-bg-info ms-2"><%= member_status %></span>
-        <% end %>
-      </dd>
-
-      <dt class="col-sm-3 text-secondary">Last synced</dt>
-      <dd class="col-sm-9">
-        <%= @user.last_synced_at ? l(@user.last_synced_at, format: :long) : content_tag(:span, "Never", class: "text-muted fst-italic") %>
-      </dd>
-
-      <dt class="col-sm-3 text-secondary">Created</dt>
-      <dd class="col-sm-9"><%= l(@user.created_at, format: :long) %></dd>
-
-      <dt class="col-sm-3 text-secondary">Updated</dt>
-      <dd class="col-sm-9"><%= l(@user.updated_at, format: :long) %></dd>
-
-      <dt class="col-sm-3 text-secondary">Notes</dt>
-      <dd class="col-sm-9">
-        <% notes = (@user.authentik_attributes || {})["notes"] %>
-        <% if notes.present? %>
-          <%= simple_format(notes) %>
-        <% else %>
-          <span class="text-muted fst-italic">None</span>
-        <% end %>
-      </dd>
-    </dl>
   </div>
 </div>
 

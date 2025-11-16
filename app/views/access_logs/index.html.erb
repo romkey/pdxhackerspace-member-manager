@@ -1,0 +1,60 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">Access Logs</h1>
+    <p class="text-muted mb-0">
+      <strong><%= @access_logs.count %></strong> log entries
+    </p>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="table-responsive">
+    <table class="table mb-0 align-middle">
+      <thead class="bg-body-tertiary">
+        <tr>
+          <th scope="col">Timestamp</th>
+          <th scope="col">User</th>
+          <th scope="col">Location</th>
+          <th scope="col">Action</th>
+          <th scope="col">Raw Text</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if @access_logs.any? %>
+          <% @access_logs.each do |log| %>
+            <tr>
+              <td>
+                <% if log.logged_at.present? %>
+                  <%= l(log.logged_at, format: :long) %>
+                <% else %>
+                  <span class="text-muted fst-italic">Not set</span>
+                <% end %>
+              </td>
+              <td>
+                <% if log.user.present? %>
+                  <%= link_to log.user.display_name, user_path(log.user), class: "text-decoration-none" %>
+                <% else %>
+                  <span class="text-muted fst-italic">Unknown</span>
+                <% end %>
+              </td>
+              <td><%= log.location.presence || content_tag(:span, "—", class: "text-muted") %></td>
+              <td><%= log.action.presence || content_tag(:span, "—", class: "text-muted") %></td>
+              <td>
+                <% if log.raw_text.present? %>
+                  <code class="small"><%= truncate(log.raw_text, length: 100) %></code>
+                <% else %>
+                  <span class="text-muted fst-italic">—</span>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        <% else %>
+          <tr>
+            <td colspan="5" class="text-center text-muted py-4">No access logs found.</td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
+

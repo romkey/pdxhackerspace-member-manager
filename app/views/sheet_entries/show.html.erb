@@ -1,5 +1,29 @@
-<div class="mb-4">
-  <%= link_to "&larr; Back to sheet entries".html_safe, sheet_entries_path, class: "text-decoration-none" %>
+<div class="mb-4 d-flex justify-content-between align-items-center">
+  <div class="d-flex gap-2 align-items-center">
+    <% if @previous_sheet_entry %>
+      <%= link_to sheet_entry_path(@previous_sheet_entry), class: "btn btn-outline-secondary", title: "Previous: #{@previous_sheet_entry.name}" do %>
+        <i class="bi bi-chevron-left"></i> Previous
+      <% end %>
+    <% else %>
+      <span class="btn btn-outline-secondary disabled" title="First entry">
+        <i class="bi bi-chevron-left"></i> Previous
+      </span>
+    <% end %>
+    
+    <% if @next_sheet_entry %>
+      <%= link_to sheet_entry_path(@next_sheet_entry), class: "btn btn-outline-secondary", title: "Next: #{@next_sheet_entry.name}" do %>
+        Next <i class="bi bi-chevron-right"></i>
+      <% end %>
+    <% else %>
+      <span class="btn btn-outline-secondary disabled" title="Last entry">
+        Next <i class="bi bi-chevron-right"></i>
+      </span>
+    <% end %>
+  </div>
+  
+  <div>
+    <%= link_to "&larr; Back to sheet entries".html_safe, sheet_entries_path, class: "text-decoration-none" %>
+  </div>
 </div>
 
 <%= render "paypal_payments/payment_history", payments: @payments %>

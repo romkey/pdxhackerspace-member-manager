@@ -10,9 +10,21 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_11_15_101500) do
+ActiveRecord::Schema[7.1].define(version: 2025_11_16_202111) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "access_logs", force: :cascade do |t|
+    t.bigint "user_id"
+    t.string "location"
+    t.string "action"
+    t.text "raw_text"
+    t.datetime "logged_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["logged_at"], name: "index_access_logs_on_logged_at"
+    t.index ["user_id"], name: "index_access_logs_on_user_id"
+  end
 
   create_table "journals", force: :cascade do |t|
     t.bigint "user_id", null: false
@@ -112,8 +124,10 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_15_101500) do
     t.datetime "last_synced_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id"
     t.index ["email"], name: "index_sheet_entries_on_email"
     t.index ["name"], name: "index_sheet_entries_on_name"
+    t.index ["user_id"], name: "index_sheet_entries_on_user_id"
   end
 
   create_table "slack_users", force: :cascade do |t|
@@ -134,9 +148,11 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_15_101500) do
     t.datetime "last_synced_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id"
     t.index ["email"], name: "index_slack_users_on_email", unique: true, where: "(email IS NOT NULL)"
     t.index ["raw_attributes"], name: "index_slack_users_on_raw_attributes", using: :gin
     t.index ["slack_id"], name: "index_slack_users_on_slack_id", unique: true
+    t.index ["user_id"], name: "index_slack_users_on_user_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -148,15 +164,21 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_15_101500) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.jsonb "authentik_attributes", default: {}, null: false
+    t.string "extra_emails", default: [], array: true
+    t.string "slack_id"
+    t.string "slack_handle"
     t.index ["authentik_attributes"], name: "index_users_on_authentik_attributes", using: :gin
     t.index ["authentik_id"], name: "index_users_on_authentik_id", unique: true
     t.index ["email"], name: "index_users_on_email", unique: true, where: "(email IS NOT NULL)"
   end
 
+  add_foreign_key "access_logs", "users"
   add_foreign_key "journals", "users"
   add_foreign_key "journals", "users", column: "actor_user_id"
   add_foreign_key "paypal_payments", "sheet_entries"
   add_foreign_key "paypal_payments", "users"
   add_foreign_key "recharge_payments", "sheet_entries"
   add_foreign_key "recharge_payments", "users"
+  add_foreign_key "sheet_entries", "users"
+  add_foreign_key "slack_users", "users"
 end

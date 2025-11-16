@@ -1,5 +1,29 @@
-<div class="mb-4">
-  <%= link_to "&larr; Back to Slack users".html_safe, slack_users_path, class: "text-decoration-none" %>
+<div class="mb-4 d-flex justify-content-between align-items-center">
+  <div class="d-flex gap-2 align-items-center">
+    <% if @previous_slack_user %>
+      <%= link_to slack_user_path(@previous_slack_user), class: "btn btn-outline-secondary", title: "Previous: #{@previous_slack_user.display_name}" do %>
+        <i class="bi bi-chevron-left"></i> Previous
+      <% end %>
+    <% else %>
+      <span class="btn btn-outline-secondary disabled" title="First user">
+        <i class="bi bi-chevron-left"></i> Previous
+      </span>
+    <% end %>
+    
+    <% if @next_slack_user %>
+      <%= link_to slack_user_path(@next_slack_user), class: "btn btn-outline-secondary", title: "Next: #{@next_slack_user.display_name}" do %>
+        Next <i class="bi bi-chevron-right"></i>
+      <% end %>
+    <% else %>
+      <span class="btn btn-outline-secondary disabled" title="Last user">
+        Next <i class="bi bi-chevron-right"></i>
+      </span>
+    <% end %>
+  </div>
+  
+  <div>
+    <%= link_to "&larr; Back to Slack users".html_safe, slack_users_path, class: "text-decoration-none" %>
+  </div>
 </div>
 
 <div class="card shadow-sm border-0">

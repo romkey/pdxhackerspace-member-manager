@@ -19,12 +19,14 @@ Rails.application.routes.draw do
   resources :slack_users, only: [:index, :show] do
     collection do
       post :sync
+      post :sync_to_users
     end
   end
 
   resources :sheet_entries, only: [:index, :show] do
     collection do
       post :sync
+      post :sync_to_users
     end
   end
 
@@ -41,6 +43,8 @@ Rails.application.routes.draw do
   end
 
   resources :journals, only: [:index]
+
+  resources :access_logs, only: [:index]
 
   get "/search", to: "search#index", as: :search
 end
