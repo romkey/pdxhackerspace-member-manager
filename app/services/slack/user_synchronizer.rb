@@ -61,11 +61,11 @@ module Slack
           end
         end
         
-        # Add slack_id and slack_handle to user
-        user.update!(
-          slack_id: attrs[:slack_id],
-          slack_handle: attrs[:username]
-        )
+        # Add slack_id and slack_handle to user (only if not already set)
+        updates = {}
+        updates[:slack_id] = attrs[:slack_id] if user.slack_id.blank?
+        updates[:slack_handle] = attrs[:username] if user.slack_handle.blank?
+        user.update!(updates) if updates.any?
       end
     end
 
