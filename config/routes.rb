@@ -44,7 +44,14 @@ Rails.application.routes.draw do
 
   resources :journals, only: [:index]
 
-  resources :access_logs, only: [:index]
+  resources :access_logs, only: [:index] do
+    collection do
+      get :generate_users_json
+    end
+  end
 
   get "/search", to: "search#index", as: :search
+
+  get "/settings", to: "settings#index", as: :settings
+  resources :training_topics, only: [:index, :create, :destroy]
 end

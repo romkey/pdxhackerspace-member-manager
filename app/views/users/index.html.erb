@@ -21,6 +21,7 @@
           <th scope="col">Name</th>
           <th scope="col">Email</th>
           <th scope="col">Status</th>
+          <th scope="col">Payment Type</th>
           <th scope="col">Last synced</th>
         </tr>
       </thead>
@@ -38,10 +39,21 @@
               <% end %>
             </td>
             <td>
-              <% badge_class = user.active? ? "success" : "secondary" %>
+              <% badge_class = case user.membership_status
+                 when "active" then "success"
+                 when "inactive" then "secondary"
+                 when "paused" then "warning"
+                 when "banned" then "danger"
+                 when "non-entity" then "dark"
+                 when "deceased" then "dark"
+                 else "secondary"
+                 end %>
               <span class="badge text-bg-<%= badge_class %>">
-                <%= user.active? ? "Active" : "Inactive" %>
+                <%= user.membership_status.humanize %>
               </span>
+            </td>
+            <td>
+              <span class="badge text-bg-info"><%= user.payment_type.humanize %></span>
             </td>
             <td><%= user.last_synced_at ? l(user.last_synced_at, format: :long) : "n/a" %></td>
           </tr>

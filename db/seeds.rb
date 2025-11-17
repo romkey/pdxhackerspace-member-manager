@@ -22,3 +22,28 @@ if LocalAuthConfig.enabled? && LocalAuthConfig.settings.default_email.present?
 else
   puts "Local auth disabled or missing credentials; skipping local admin seed."
 end
+
+# Seed training topics
+training_topics = [
+  "Laser",
+  "Sewing Machine",
+  "Serger",
+  "Embroidery Machine",
+  "Dremel 3D45",
+  "Ender 3",
+  "Prusa",
+  "Laminator",
+  "Shaper",
+  "General Shop",
+  "Event Host",
+  "Vinyl Cutter",
+  "MPCNC Marlin",
+  "Long Mill",
+  "Member Management"
+]
+
+training_topics.each do |topic_name|
+  TrainingTopic.find_or_create_by!(name: topic_name)
+end
+
+puts "Seeded #{training_topics.count} training topics."

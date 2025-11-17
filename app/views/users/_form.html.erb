@@ -9,15 +9,45 @@
     <%= f.email_field :email, class: "form-control" %>
   </div>
 
-  <div class="form-check">
-    <%= f.check_box :active, class: "form-check-input" %>
-    <%= f.label :active, "Active", class: "form-check-label" %>
+  <div>
+    <%= f.label :membership_status, "Membership Status", class: "form-label" %>
+    <%= f.select :membership_status, 
+        options_for_select([
+          ["Active", "active"],
+          ["Inactive", "inactive"],
+          ["Paused", "paused"],
+          ["Banned", "banned"],
+          ["Non-entity", "non-entity"],
+          ["Deceased", "deceased"]
+        ], @user.membership_status),
+        {},
+        { class: "form-select" } %>
+  </div>
+
+  <div>
+    <%= f.label :payment_type, class: "form-label" %>
+    <%= f.select :payment_type, 
+        options_for_select([
+          ["Unknown", "unknown"],
+          ["Sponsored", "sponsored"],
+          ["PayPal", "paypal"],
+          ["Recharge", "recharge"],
+          ["Cash", "cash"],
+          ["Inactive", "inactive"]
+        ], @user.payment_type),
+        {},
+        { class: "form-select" } %>
   </div>
 
   <div>
     <%= f.label :notes, class: "form-label" %>
-    <%= text_area_tag "user[notes]", (@user.authentik_attributes || {})["notes"], class: "form-control", rows: 4 %>
-    <div class="form-text">Stored in attributes as “notes”.</div>
+    <%= f.text_area :notes, class: "form-control", rows: 4 %>
+  </div>
+
+  <div>
+    <%= f.label :rfid, "RFID", class: "form-label" %>
+    <%= text_area_tag "user[rfid]", (@user.rfid || []).join("\n"), class: "form-control", rows: 3, placeholder: "Enter one RFID per line" %>
+    <div class="form-text">Enter one RFID per line. Leave empty if none.</div>
   </div>
 
   <div class="d-flex gap-2">

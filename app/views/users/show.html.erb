@@ -19,17 +19,12 @@
         Next <i class="bi bi-chevron-right"></i>
       </span>
     <% end %>
+    
+    <%= link_to "Edit user", edit_user_path(@user), class: "btn btn-outline-secondary" %>
   </div>
   
   <div>
     <%= link_to "&larr; Back to users".html_safe, users_path, class: "text-decoration-none" %>
-  </div>
-</div>
-
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <div></div>
-  <div>
-    <%= link_to "Edit user", edit_user_path(@user), class: "btn btn-outline-secondary" %>
   </div>
 </div>
 
@@ -63,6 +58,15 @@
       <dt class="col-sm-3 text-secondary">Full name</dt>
       <dd class="col-sm-9"><%= @user.full_name.presence || content_tag(:span, "Not provided", class: "text-muted fst-italic") %></dd>
 
+      <dt class="col-sm-3 text-secondary">Sheet Entry</dt>
+      <dd class="col-sm-9">
+        <% if @user.sheet_entry.present? %>
+          <%= link_to @user.sheet_entry.name, sheet_entry_path(@user.sheet_entry), class: "text-decoration-none" %>
+        <% else %>
+          <span class="text-muted fst-italic">Not linked</span>
+        <% end %>
+      </dd>
+
       <dt class="col-sm-3 text-secondary">Slack</dt>
       <dd class="col-sm-9">
         <% if @user.slack_handle.present? %>
@@ -81,10 +85,19 @@
         <% end %>
       </dd>
 
-      <dt class="col-sm-3 text-secondary">Status</dt>
+      <dt class="col-sm-3 text-secondary">Membership Status</dt>
       <dd class="col-sm-9">
-        <span class="badge text-bg-<%= @user.active? ? 'success' : 'secondary' %>">
-          <%= @user.active? ? "Active" : "Inactive" %>
+        <% badge_class = case @user.membership_status
+           when "active" then "success"
+           when "inactive" then "secondary"
+           when "paused" then "warning"
+           when "banned" then "danger"
+           when "non-entity" then "dark"
+           when "deceased" then "dark"
+           else "secondary"
+           end %>
+        <span class="badge text-bg-<%= badge_class %>">
+          <%= @user.membership_status.humanize %>
         </span>
         <% member_status = (@user.authentik_attributes || {})["memberStatus"] %>
         <% if member_status.present? %>
@@ -92,21 +105,42 @@
         <% end %>
       </dd>
 
+      <dt class="col-sm-3 text-secondary">Payment Type</dt>
+      <dd class="col-sm-9">
+        <span class="badge text-bg-info"><%= @user.payment_type.humanize %></span>
+      </dd>
+
       <dt class="col-sm-3 text-secondary">Trained on</dt>
       <dd class="col-sm-9">
-        <% trained_on = (@user.authentik_attributes || {})["trained_on"] %>
-        <% if trained_on.present? && trained_on.is_a?(Array) && trained_on.any? %>
-          <% trained_on.each do |item| %>
-            <span class="badge text-bg-primary me-1 mb-1"><%= item %></span>
+        <% trained_topics = @user.trainings_as_trainee.map(&:training_topic).uniq %>
+        <% if trained_topics.any? %>
+          <% trained_topics.each do |topic| %>
+            <span class="badge text-bg-primary me-1 mb-1"><%= topic.name %></span>
           <% end %>
         <% else %>
           <span class="text-muted fst-italic">None recorded</span>
         <% end %>
       </dd>
 
+      <dt class="col-sm-3 text-secondary">Can train</dt>
+      <dd class="col-sm-9">
+        <% if @user.training_topics.any? %>
+          <% @user.training_topics.each do |topic| %>
+            <span class="badge text-bg-success me-1 mb-1"><%= topic.name %></span>
+          <% end %>
+        <% else %>
+          <span class="text-muted fst-italic">None</span>
+        <% end %>
+      </dd>
+
       <dt class="col-sm-3 text-secondary">Last synced</dt>
       <dd class="col-sm-9">
         <%= @user.last_synced_at ? l(@user.last_synced_at, format: :long) : content_tag(:span, "Never", class: "text-muted fst-italic") %>
+      </dd>
+
+      <dt class="col-sm-3 text-secondary">Last login</dt>
+      <dd class="col-sm-9">
+        <%= @user.last_login_at ? l(@user.last_login_at, format: :long) : content_tag(:span, "Never", class: "text-muted fst-italic") %>
       </dd>
 
       <dt class="col-sm-3 text-secondary">Created</dt>
@@ -117,9 +151,20 @@
 
       <dt class="col-sm-3 text-secondary">Notes</dt>
       <dd class="col-sm-9">
-        <% notes = (@user.authentik_attributes || {})["notes"] %>
-        <% if notes.present? %>
-          <%= simple_format(notes) %>
+        <% if @user.notes.present? %>
+          <%= simple_format(@user.notes) %>
+        <% else %>
+          <span class="text-muted fst-italic">None</span>
+        <% end %>
+      </dd>
+
+      <dt class="col-sm-3 text-secondary">RFID</dt>
+      <dd class="col-sm-9">
+        <% rfid_array = @user.rfid || [] %>
+        <% if rfid_array.any? %>
+          <% rfid_array.each do |rfid| %>
+            <code class="bg-body-secondary px-2 py-1 rounded me-2"><%= rfid %></code>
+          <% end %>
         <% else %>
           <span class="text-muted fst-italic">None</span>
         <% end %>

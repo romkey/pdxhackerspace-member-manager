@@ -90,7 +90,7 @@ SlackUser.active.with_attribute(:department, "IT")
 
 ## RFID Sign-In
 
-When Authentik users include an `rfid` attribute (populated via the group sync), the login page exposes a **Sign in via RFID** form. Scanning/entering a value that matches `authentik_attributes["rfid"]` on an active user signs that person in immediately—handy for badge readers or kiosk setups.
+The login page exposes a **Sign in via RFID** form. Scanning/entering a value that matches any RFID in a user's `rfid` array (populated via sheet sync or manual editing) on an active user signs that person in immediately—handy for badge readers or kiosk setups.
 
 ## Google Sheet Intake
 

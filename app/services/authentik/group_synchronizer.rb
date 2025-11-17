@@ -25,7 +25,7 @@ module Authentik
         user.assign_attributes(
           email: attrs[:email],
           full_name: attrs[:full_name],
-          active: attrs.fetch(:active, true),
+          membership_status: attrs.fetch(:active, true) ? "active" : "inactive",
           authentik_attributes: attrs[:attributes] || {},
           last_synced_at: timestamp
         )
@@ -39,7 +39,7 @@ module Authentik
       authentik_ids = members.map { |attrs| attrs[:authentik_id] }.compact
       return if authentik_ids.empty?
 
-      User.where.not(authentik_id: authentik_ids).where(active: true).update_all(active: false, updated_at: Time.current)
+      User.where.not(authentik_id: authentik_ids).where(membership_status: "active").update_all(membership_status: "inactive", updated_at: Time.current)
     end
   end
 end

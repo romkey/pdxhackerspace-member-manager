@@ -10,6 +10,7 @@ class SessionsController < ApplicationController
   def create
     auth = request.env["omniauth.auth"]
     user = upsert_user_from_auth(auth)
+    user.update!(last_login_at: Time.current)
     session[:user_id] = user.id
 
     redirect_to root_path, notice: "Welcome back, #{user.display_name}!"
@@ -28,6 +29,7 @@ class SessionsController < ApplicationController
     if account&.active? && account.authenticate(session_params[:password])
       account.touch(:last_signed_in_at)
       user = sync_local_account(account)
+      user.update!(last_login_at: Time.current)
       session[:user_id] = user.id
       redirect_to root_path, notice: "Signed in locally as #{user.display_name}."
     else
@@ -52,6 +54,7 @@ class SessionsController < ApplicationController
     user = find_user_by_rfid(token)
 
     if user
+      user.update!(last_login_at: Time.current)
       session[:user_id] = user.id
       redirect_to root_path, notice: "Signed in via RFID as #{user.display_name}."
     else
@@ -73,7 +76,7 @@ class SessionsController < ApplicationController
     attributes = {
       email: info[:email] || extra[:email],
       full_name: info[:name] || build_full_name(info, extra),
-      active: true,
+      membership_status: "active",
       last_synced_at: Time.current
     }
 
@@ -88,7 +91,7 @@ class SessionsController < ApplicationController
       user.assign_attributes(
         email: account.email,
         full_name: account.full_name,
-        active: account.active,
+        membership_status: account.active ? "active" : "inactive",
         last_synced_at: Time.current
       )
       user.save!
@@ -128,10 +131,11 @@ class SessionsController < ApplicationController
   end
 
   def find_user_by_rfid(value)
-    normalized = value.to_s.strip
+    normalized = value.to_s.strip.downcase
     return if normalized.blank?
 
-    User.active.where("LOWER(authentik_attributes ->> ?) = ?", "rfid", normalized.downcase).first
+    # Search in the rfid array column
+    User.active.where("EXISTS (SELECT 1 FROM unnest(rfid) AS r WHERE LOWER(r) = ?)", normalized).first
   end
 end
 

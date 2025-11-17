@@ -2,12 +2,12 @@ class UsersController < AuthenticatedController
   def index
     @users = User.ordered_by_display_name
     @user_count = @users.count
-    @active_count = @users.where(active: true).count
+    @active_count = @users.where(membership_status: "active").count
     @inactive_count = @user_count - @active_count
   end
 
   def show
-    @user = User.find(params[:id])
+    @user = User.includes(:sheet_entry, trainings_as_trainee: :training_topic, training_topics: []).find(params[:id])
     @payments = PaymentHistory.for_user(@user)
     @journals = @user.journals.includes(:actor_user).order(changed_at: :desc, created_at: :desc)
     
@@ -30,15 +30,15 @@ class UsersController < AuthenticatedController
 
   def update
     @user = User.find(params[:id])
-    # Update standard fields first
-    if @user.update(user_params)
-      # Merge notes into authentik_attributes if provided
-      notes = params.dig(:user, :notes).to_s
-      if notes.present?
-        attrs = (@user.authentik_attributes || {}).dup
-        attrs["notes"] = notes
-        @user.update_column(:authentik_attributes, attrs)
-      end
+    
+    # Parse RFID from textarea (one per line only, not comma-separated)
+    rfid_text = params.dig(:user, :rfid).to_s
+    rfid_array = rfid_text.split(/\n/).map(&:strip).reject(&:blank?)
+    
+    # Update user with parsed RFID
+    user_attrs = user_params.merge(rfid: rfid_array)
+    
+    if @user.update(user_attrs)
       redirect_to user_path(@user), notice: "User updated successfully."
     else
       flash.now[:alert] = "Unable to update user."
@@ -54,6 +54,6 @@ class UsersController < AuthenticatedController
   private
 
   def user_params
-    params.require(:user).permit(:full_name, :email, :active)
+    params.require(:user).permit(:full_name, :email, :membership_status, :payment_type, :notes)
   end
 end

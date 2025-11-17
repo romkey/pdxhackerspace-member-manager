@@ -5,6 +5,9 @@
       <strong><%= @access_logs.count %></strong> log entries
     </p>
   </div>
+  <div>
+    <%= link_to "Generate users.json", generate_users_json_access_logs_path, class: "btn btn-primary", data: { turbo: false } %>
+  </div>
 </div>
 
 <div class="card shadow-sm border-0">

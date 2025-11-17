@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_11_16_202111) do
+ActiveRecord::Schema[7.1].define(version: 2025_11_17_055631) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -155,11 +155,42 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_16_202111) do
     t.index ["user_id"], name: "index_slack_users_on_user_id"
   end
 
+  create_table "trainer_capabilities", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "training_topic_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["training_topic_id"], name: "index_trainer_capabilities_on_training_topic_id"
+    t.index ["user_id", "training_topic_id"], name: "index_trainer_capabilities_on_user_id_and_training_topic_id", unique: true
+    t.index ["user_id"], name: "index_trainer_capabilities_on_user_id"
+  end
+
+  create_table "training_topics", force: :cascade do |t|
+    t.string "name", null: false
+    t.text "description"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_training_topics_on_name", unique: true
+  end
+
+  create_table "trainings", force: :cascade do |t|
+    t.bigint "trainee_id", null: false
+    t.bigint "trainer_id"
+    t.bigint "training_topic_id", null: false
+    t.datetime "trained_at", null: false
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["trained_at"], name: "index_trainings_on_trained_at"
+    t.index ["trainee_id"], name: "index_trainings_on_trainee_id"
+    t.index ["trainer_id"], name: "index_trainings_on_trainer_id"
+    t.index ["training_topic_id"], name: "index_trainings_on_training_topic_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "authentik_id", null: false
     t.string "email"
     t.string "full_name"
-    t.boolean "active", default: true, null: false
     t.datetime "last_synced_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
@@ -167,6 +198,12 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_16_202111) do
     t.string "extra_emails", default: [], array: true
     t.string "slack_id"
     t.string "slack_handle"
+    t.string "payment_type", default: "unknown"
+    t.string "sign_name"
+    t.text "notes"
+    t.text "rfid", default: [], array: true
+    t.datetime "last_login_at"
+    t.string "membership_status", default: "inactive"
     t.index ["authentik_attributes"], name: "index_users_on_authentik_attributes", using: :gin
     t.index ["authentik_id"], name: "index_users_on_authentik_id", unique: true
     t.index ["email"], name: "index_users_on_email", unique: true, where: "(email IS NOT NULL)"
@@ -181,4 +218,9 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_16_202111) do
   add_foreign_key "recharge_payments", "users"
   add_foreign_key "sheet_entries", "users"
   add_foreign_key "slack_users", "users"
+  add_foreign_key "trainer_capabilities", "training_topics"
+  add_foreign_key "trainer_capabilities", "users"
+  add_foreign_key "trainings", "training_topics"
+  add_foreign_key "trainings", "users", column: "trainee_id"
+  add_foreign_key "trainings", "users", column: "trainer_id"
 end

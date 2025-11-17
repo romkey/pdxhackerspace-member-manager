@@ -1,0 +1,72 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0">Training Topics</h1>
+  <%= link_to "&larr; Back to Settings".html_safe, settings_path, class: "text-decoration-none" %>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <h2 class="h5 mb-3">Add New Training Topic</h2>
+    <% if @training_topic&.errors&.any? %>
+      <div class="alert alert-danger">
+        <ul class="mb-0">
+          <% @training_topic.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+    <%= form_with model: @training_topic || TrainingTopic.new, url: training_topics_path, local: true, class: "row g-3" do |f| %>
+      <div class="col-md-8">
+        <%= f.text_field :name, class: "form-control #{'is-invalid' if @training_topic&.errors&.key?(:name)}", placeholder: "Enter training topic name", required: true, value: @training_topic&.name %>
+        <% if @training_topic&.errors&.key?(:name) %>
+          <div class="invalid-feedback">
+            <%= @training_topic.errors[:name].first %>
+          </div>
+        <% end %>
+      </div>
+      <div class="col-md-4">
+        <%= f.submit "Add Topic", class: "btn btn-primary w-100" %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <h2 class="h5 mb-3">Training Topics</h2>
+    <% if @training_topics.any? %>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="bg-body-tertiary">
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col" class="text-center">Trained Count</th>
+              <th scope="col" class="text-center">Trainer Count</th>
+              <th scope="col" class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @training_topics.each do |topic| %>
+              <tr>
+                <td><strong><%= topic.name %></strong></td>
+                <td class="text-center">
+                  <span class="badge text-bg-primary"><%= topic.trainings.select(:trainee_id).distinct.count %></span>
+                </td>
+                <td class="text-center">
+                  <span class="badge text-bg-success"><%= topic.trainer_capabilities.select(:user_id).distinct.count %></span>
+                </td>
+                <td class="text-end">
+                  <%= button_to "Delete", training_topic_path(topic), method: :delete, 
+                      class: "btn btn-sm btn-outline-danger",
+                      data: { confirm: "Are you sure you want to delete '#{topic.name}'? This cannot be undone if there are trainings or trainer capabilities associated with it." } %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <p class="text-muted mb-0">No training topics yet. Add one above to get started.</p>
+    <% end %>
+  </div>
+</div>

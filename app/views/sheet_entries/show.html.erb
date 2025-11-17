@@ -33,6 +33,15 @@
     <h1 class="h4 mb-3"><%= @sheet_entry.name %></h1>
 
     <dl class="row mb-0">
+      <dt class="col-sm-3 text-secondary">User</dt>
+      <dd class="col-sm-9">
+        <% if @sheet_entry.user.present? %>
+          <%= link_to @sheet_entry.user.display_name, user_path(@sheet_entry.user), class: "text-decoration-none" %>
+        <% else %>
+          <span class="text-muted fst-italic">Not linked</span>
+        <% end %>
+      </dd>
+
       <dt class="col-sm-3 text-secondary">Email</dt>
       <dd class="col-sm-9">
         <% if @sheet_entry.email.present? %>
