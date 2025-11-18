@@ -1,0 +1,211 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0">Consistency Test Report</h1>
+  <%= link_to "&larr; Back to Sheet Entries".html_safe, sheet_entries_path, class: "text-decoration-none" %>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <h2 class="h5 mb-3">Same Name, Different Email</h2>
+    <p class="text-muted">Sheet Entries and Users with matching names but different email addresses.</p>
+    
+    <% if @name_mismatches.any? %>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="bg-body-tertiary">
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Sheet Entry Email</th>
+              <th scope="col">User Email</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @name_mismatches.each do |mismatch| %>
+              <tr>
+                <td>
+                  <strong><%= link_to mismatch[:sheet_entry].name, sheet_entry_path(mismatch[:sheet_entry]), class: "text-decoration-none" %></strong>
+                </td>
+                <td><%= mail_to mismatch[:sheet_email] %></td>
+                <td>
+                  <%= mail_to mismatch[:user_email] %>
+                  <% unless mismatch[:user].membership_status == "active" %>
+                    <% badge_class = case mismatch[:user].membership_status
+                       when "inactive" then "secondary"
+                       when "paused" then "warning"
+                       when "banned" then "danger"
+                       when "non-entity" then "dark"
+                       when "deceased" then "dark"
+                       else "secondary"
+                       end %>
+                    <span class="badge text-bg-<%= badge_class %> ms-2"><%= mismatch[:user].membership_status.humanize %></span>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-muted mt-3 mb-0"><strong><%= @name_mismatches.count %></strong> mismatch<%= @name_mismatches.count == 1 ? '' : 'es' %> found.</p>
+    <% else %>
+      <p class="text-muted mb-0">No mismatches found. All Sheet Entries and Users with matching names have the same email addresses.</p>
+    <% end %>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <h2 class="h5 mb-3">Same Email, Different Name</h2>
+    <p class="text-muted">Sheet Entries and Users with matching email addresses but different names.</p>
+    
+    <% if @email_mismatches.any? %>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="bg-body-tertiary">
+            <tr>
+              <th scope="col">Email</th>
+              <th scope="col">Sheet Entry Name</th>
+              <th scope="col">User Name</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @email_mismatches.each do |mismatch| %>
+              <tr>
+                <td><%= mail_to mismatch[:sheet_entry].email %></td>
+                <td><strong><%= link_to mismatch[:sheet_name], sheet_entry_path(mismatch[:sheet_entry]), class: "text-decoration-none" %></strong></td>
+                <td>
+                  <strong><%= link_to mismatch[:user_name], user_path(mismatch[:user]), class: "text-decoration-none" %></strong>
+                  <% unless mismatch[:user].membership_status == "active" %>
+                    <% badge_class = case mismatch[:user].membership_status
+                       when "inactive" then "secondary"
+                       when "paused" then "warning"
+                       when "banned" then "danger"
+                       when "non-entity" then "dark"
+                       when "deceased" then "dark"
+                       else "secondary"
+                       end %>
+                    <span class="badge text-bg-<%= badge_class %> ms-2"><%= mismatch[:user].membership_status.humanize %></span>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-muted mt-3 mb-0"><strong><%= @email_mismatches.count %></strong> mismatch<%= @email_mismatches.count == 1 ? '' : 'es' %> found.</p>
+    <% else %>
+      <p class="text-muted mb-0">No mismatches found. All Sheet Entries and Users with matching emails have the same names.</p>
+    <% end %>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <h2 class="h5 mb-3">RFID Mismatches</h2>
+    <p class="text-muted">Sheet Entries and Users with matching RFID values but mismatched names or emails.</p>
+    
+    <% if @rfid_mismatches.any? %>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="bg-body-tertiary">
+            <tr>
+              <th scope="col">RFID</th>
+              <th scope="col">Sheet Entry Name</th>
+              <th scope="col">User Name</th>
+              <th scope="col">Sheet Entry Email</th>
+              <th scope="col">User Email</th>
+              <th scope="col">Issues</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @rfid_mismatches.each do |mismatch| %>
+              <tr>
+                <td><code class="bg-body-secondary px-2 py-1 rounded"><%= mismatch[:rfid] %></code></td>
+                <td>
+                  <strong><%= link_to mismatch[:sheet_name], sheet_entry_path(mismatch[:sheet_entry]), class: "text-decoration-none" %></strong>
+                  <% sheet_entry_status = mismatch[:sheet_entry].status %>
+                  <% is_sheet_inactive = sheet_entry_status.blank? || sheet_entry_status.to_s.downcase.include?("inactive") %>
+                  <% if is_sheet_inactive %>
+                    <span class="badge text-bg-secondary ms-2">Inactive</span>
+                  <% else %>
+                    <span class="badge text-bg-success ms-2">Active</span>
+                  <% end %>
+                </td>
+                <td>
+                  <strong><%= link_to mismatch[:user_name], user_path(mismatch[:user]), class: "text-decoration-none" %></strong>
+                  <% if mismatch[:not_in_sheet] %>
+                    <span class="text-muted ms-2">(not in Sheet)</span>
+                  <% end %>
+                  <% unless mismatch[:user].membership_status == "active" %>
+                    <% badge_class = case mismatch[:user].membership_status
+                       when "inactive" then "secondary"
+                       when "paused" then "warning"
+                       when "banned" then "danger"
+                       when "non-entity" then "dark"
+                       when "deceased" then "dark"
+                       else "secondary"
+                       end %>
+                    <span class="badge text-bg-<%= badge_class %> ms-2"><%= mismatch[:user].membership_status.humanize %></span>
+                  <% end %>
+                </td>
+                <td><%= mismatch[:sheet_email] ? mail_to(mismatch[:sheet_email]) : content_tag(:span, "—", class: "text-muted") %></td>
+                <td><%= mismatch[:user_email] ? mail_to(mismatch[:user_email]) : content_tag(:span, "—", class: "text-muted") %></td>
+                <td>
+                  <% if mismatch[:name_mismatch] %>
+                    <span class="badge text-bg-warning me-1">Name</span>
+                  <% end %>
+                  <% if mismatch[:email_mismatch] %>
+                    <span class="badge text-bg-warning">Email</span>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-muted mt-3 mb-0"><strong><%= @rfid_mismatches.count %></strong> mismatch<%= @rfid_mismatches.count == 1 ? '' : 'es' %> found.</p>
+    <% else %>
+      <p class="text-muted mb-0">No mismatches found. All Sheet Entries and Users with matching RFID values have matching names and emails.</p>
+    <% end %>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 mt-4">
+  <div class="card-body">
+    <h2 class="h5 mb-3">Duplicate RFID Values in Sheet Entries</h2>
+    <p class="text-muted">Sheet Entries that share the same RFID value.</p>
+    
+    <% if @duplicate_rfids.any? %>
+      <% @duplicate_rfids.each do |duplicate| %>
+        <div class="mb-4">
+          <h6 class="mb-2">
+            RFID: <code class="bg-body-secondary px-2 py-1 rounded"><%= duplicate[:rfid] %></code>
+            <span class="badge text-bg-warning ms-2"><%= duplicate[:count] %> entries</span>
+          </h6>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+              <thead class="bg-body-tertiary">
+                <tr>
+                  <th scope="col">Name</th>
+                  <th scope="col">Email</th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% duplicate[:entries].each do |entry| %>
+                  <tr>
+                    <td><strong><%= link_to entry.name, sheet_entry_path(entry), class: "text-decoration-none" %></strong></td>
+                    <td><%= entry.email ? mail_to(entry.email) : content_tag(:span, "—", class: "text-muted") %></td>
+                    <td><%= entry.status.presence || content_tag(:span, "Inactive", class: "text-muted") %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      <% end %>
+      <p class="text-muted mt-3 mb-0"><strong><%= @duplicate_rfids.count %></strong> duplicate RFID value<%= @duplicate_rfids.count == 1 ? '' : 's' %> found.</p>
+    <% else %>
+      <p class="text-muted mb-0">No duplicate RFID values found. Each Sheet Entry has a unique RFID value.</p>
+    <% end %>
+  </div>
+</div>
+

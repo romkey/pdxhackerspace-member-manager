@@ -6,18 +6,18 @@ class AccessLogsController < AuthenticatedController
   def generate_users_json
     users_data = {}
     
-    # Find all active users with RFID values
-    User.where(membership_status: "active").find_each do |user|
-      next unless user.rfid.present? && user.rfid.any?
+    # Find all active users with RFID records
+    User.where(membership_status: "active").includes(:rfids, trainings_as_trainee: :training_topic).find_each do |user|
+      next unless user.rfids.any?
       
       # Build permissions list: "active member" + training topics
       permissions = ["active member"]
-      trained_topics = user.trainings_as_trainee.includes(:training_topic).map(&:training_topic).uniq
+      trained_topics = user.trainings_as_trainee.map(&:training_topic).uniq
       permissions += trained_topics.map(&:name)
       
       # Create one entry per RFID
-      user.rfid.each do |rfid|
-        users_data[rfid.to_s] = {
+      user.rfids.each do |rfid_record|
+        users_data[rfid_record.rfid.to_s] = {
           "name" => user.full_name.presence || user.display_name,
           "permissions" => permissions
         }

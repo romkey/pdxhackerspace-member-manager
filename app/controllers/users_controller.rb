@@ -7,7 +7,7 @@ class UsersController < AuthenticatedController
   end
 
   def show
-    @user = User.includes(:sheet_entry, trainings_as_trainee: :training_topic, training_topics: []).find(params[:id])
+    @user = User.includes(:sheet_entry, :rfids, trainings_as_trainee: :training_topic, training_topics: []).find(params[:id])
     @payments = PaymentHistory.for_user(@user)
     @journals = @user.journals.includes(:actor_user).order(changed_at: :desc, created_at: :desc)
     

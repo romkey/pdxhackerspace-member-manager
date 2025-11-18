@@ -27,6 +27,10 @@ Rails.application.routes.draw do
     collection do
       post :sync
       post :sync_to_users
+      get :test
+    end
+    member do
+      post :sync_to_user
     end
   end
 
@@ -39,6 +43,7 @@ Rails.application.routes.draw do
   resources :recharge_payments, only: [:index, :show] do
     collection do
       post :sync
+      get :test
     end
   end
 

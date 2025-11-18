@@ -5,6 +5,7 @@ class User < ApplicationRecord
   has_many :recharge_payments, dependent: :nullify
   has_many :journals, dependent: :destroy
   has_many :access_logs, dependent: :nullify
+  has_many :rfids, dependent: :destroy
   has_many :trainer_capabilities, dependent: :destroy
   has_many :training_topics, through: :trainer_capabilities
   has_many :trainings_as_trainee, class_name: "Training", foreign_key: "trainee_id", dependent: :destroy
@@ -19,6 +20,7 @@ class User < ApplicationRecord
             }
   validates :payment_type, inclusion: { in: %w[unknown sponsored paypal recharge cash inactive] }
   validates :membership_status, inclusion: { in: %w[active inactive paused banned non-entity deceased] }
+  validates :dues_status, inclusion: { in: %w[current lapsed inactive unknown] }
   validate :extra_emails_format
 
   scope :active, -> { where(membership_status: "active") }
@@ -39,15 +41,10 @@ class User < ApplicationRecord
     membership_status == "active"
   end
 
-  after_initialize :ensure_rfid_is_array
   after_create_commit :journal_created!
   after_update_commit :journal_updated!
 
   private
-
-  def ensure_rfid_is_array
-    self.rfid = [] if rfid.nil?
-  end
 
   def journal_created!
     Journal.create!(

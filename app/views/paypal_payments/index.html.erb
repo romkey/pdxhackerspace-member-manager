@@ -31,10 +31,10 @@
             <td><%= payment.amount_with_currency || "—" %></td>
             <td>
               <% if payment.payer_name.present? %>
-                <div><%= payment.payer_name %></div>
+                <div><strong><%= payment.payer_name %></strong></div>
               <% end %>
               <% if payment.payer_email.present? %>
-                <div class="text-muted small"><%= payment.payer_email %></div>
+                <div class="text-muted small"><%= mail_to payment.payer_email %></div>
               <% end %>
             </td>
             <td><%= payment.transaction_time ? l(payment.transaction_time, format: :long) : "n/a" %></td>

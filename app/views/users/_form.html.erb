@@ -44,12 +44,6 @@
     <%= f.text_area :notes, class: "form-control", rows: 4 %>
   </div>
 
-  <div>
-    <%= f.label :rfid, "RFID", class: "form-label" %>
-    <%= text_area_tag "user[rfid]", (@user.rfid || []).join("\n"), class: "form-control", rows: 3, placeholder: "Enter one RFID per line" %>
-    <div class="form-text">Enter one RFID per line. Leave empty if none.</div>
-  </div>
-
   <div class="d-flex gap-2">
     <%= f.submit "Save", class: "btn btn-primary" %>
     <%= link_to "Cancel", user_path(@user), class: "btn btn-outline-secondary" %>

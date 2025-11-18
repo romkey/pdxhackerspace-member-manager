@@ -134,8 +134,9 @@ class SessionsController < ApplicationController
     normalized = value.to_s.strip.downcase
     return if normalized.blank?
 
-    # Search in the rfid array column
-    User.active.where("EXISTS (SELECT 1 FROM unnest(rfid) AS r WHERE LOWER(r) = ?)", normalized).first
+    # Search in the rfids table
+    rfid_record = Rfid.where("LOWER(rfid) = ?", normalized).joins(:user).where(users: { membership_status: "active" }).first
+    rfid_record&.user
   end
 end
 

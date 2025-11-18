@@ -14,6 +14,7 @@
   <div class="d-flex gap-2">
     <%= button_to "Sync now", sync_sheet_entries_path, method: :post, class: "btn btn-primary", data: { turbo: false } %>
     <%= button_to "Sync to Users", sync_to_users_sheet_entries_path, method: :post, class: "btn btn-outline-primary", data: { turbo: false } %>
+    <%= link_to "Test", test_sheet_entries_path, class: "btn btn-outline-secondary", data: { turbo: false } %>
   </div>
 </div>
 

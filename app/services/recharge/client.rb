@@ -18,27 +18,47 @@ module Recharge
 
       results = []
       page = 1
+      max_limit = 250  # Recharge API max limit per page (can be up to 250)
+
+      Rails.logger.info("[Recharge::Client] Fetching charges from #{start_iso} to #{end_iso}")
 
       loop do
         params = {
           created_at_min: start_iso,
           created_at_max: end_iso,
-          limit: 250,
+          limit: max_limit,
           page: page
         }
 
+        Rails.logger.debug("[Recharge::Client] Fetching page #{page} with limit #{max_limit}")
         response = connection.get(CHARGES_ENDPOINT, params)
         payload = JSON.parse(response.body)
         charges = Array(payload["charges"])
+        
+        Rails.logger.debug("[Recharge::Client] Page #{page}: received #{charges.size} charges")
+        
         break if charges.empty?
 
         results.concat(charges.map { |charge| normalize_charge(charge) })
+        
+        Rails.logger.debug("[Recharge::Client] Total charges collected so far: #{results.size}")
 
-        break unless next_page?(payload)
+        # Check if there's a next page
+        has_next_page = next_page?(payload, charges.size, max_limit)
+        Rails.logger.debug("[Recharge::Client] Has next page: #{has_next_page}")
+        
+        break unless has_next_page
 
         page += 1
+        
+        # Safety check to prevent infinite loops
+        if page > 1000
+          Rails.logger.warn("[Recharge::Client] Stopping pagination at page 1000 to prevent infinite loop")
+          break
+        end
       end
 
+      Rails.logger.info("[Recharge::Client] Finished fetching charges. Total: #{results.size}")
       results
     end
 
@@ -60,10 +80,29 @@ module Recharge
       end
     end
 
-    def next_page?(payload)
+    def next_page?(payload, charges_count, limit)
       meta = payload["meta"] || {}
       next_page = meta["next"]
-      next_page.present?
+      
+      # Log pagination metadata for debugging
+      Rails.logger.debug("[Recharge::Client] Pagination meta: #{meta.inspect}")
+      Rails.logger.debug("[Recharge::Client] Charges in this page: #{charges_count}, Limit: #{limit}")
+      
+      # If we got a full page of results, there might be more pages
+      # Even if next_page isn't explicitly set, if we got exactly the limit, try the next page
+      if next_page.present?
+        return true
+      end
+      
+      # If we got a full page (equal to limit), assume there might be more pages
+      # This handles cases where the API doesn't set the next field but there are more results
+      if charges_count >= limit
+        Rails.logger.debug("[Recharge::Client] Got full page (#{charges_count} >= #{limit}), assuming more pages available")
+        return true
+      end
+      
+      # If we got fewer than the limit, we're definitely on the last page
+      false
     end
 
     def normalize_charge(charge)
@@ -80,6 +119,7 @@ module Recharge
         currency: charge.dig("amount", "currency") || charge["currency"],
         processed_at: parse_time(charge["processed_at"]) || parse_time(charge["created_at"]),
         charge_type: charge["type"],
+        customer_id: (customer["id"] || charge["customer_id"]).to_s,
         customer_email: customer["email"] || charge["email"],
         customer_name: full_name.presence || customer["billing_first_name"],
         raw_attributes: charge

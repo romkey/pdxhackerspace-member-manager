@@ -8,7 +8,26 @@ module Paypal
     def call
       raise ArgumentError, "PayPal integration disabled" unless PaypalConfig.enabled?
 
-      payments = @client.transactions
+      begin
+        payments = @client.transactions
+      rescue Faraday::ForbiddenError => e
+        @logger.error("PayPal API returned 403 Forbidden - NOT_AUTHORIZED")
+        @logger.error("This means your PayPal app doesn't have permission to access the Reporting API.")
+        @logger.error("")
+        @logger.error("To fix this, you need to:")
+        @logger.error("  1. Go to https://developer.paypal.com/dashboard")
+        @logger.error("  2. Select your app (or create a new one)")
+        @logger.error("  3. Under 'Features', enable 'Transaction Search' or 'Reporting API'")
+        @logger.error("  4. Make sure your app has 'Read transaction details' permission")
+        @logger.error("  5. Regenerate your client secret if needed")
+        @logger.error("")
+        if e.respond_to?(:response) && e.response
+          @logger.error("Response body: #{e.response[:body]}")
+        elsif e.respond_to?(:message)
+          @logger.error("Error message: #{e.message}")
+        end
+        raise
+      end
       now = Time.current
 
       PaypalPayment.transaction do

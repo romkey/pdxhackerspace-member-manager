@@ -158,13 +158,19 @@
         <% end %>
       </dd>
 
-      <dt class="col-sm-3 text-secondary">RFID</dt>
+      <dt class="col-sm-3 text-secondary">RFID Keys</dt>
       <dd class="col-sm-9">
-        <% rfid_array = @user.rfid || [] %>
-        <% if rfid_array.any? %>
-          <% rfid_array.each do |rfid| %>
-            <code class="bg-body-secondary px-2 py-1 rounded me-2"><%= rfid %></code>
-          <% end %>
+        <% if @user.rfids.any? %>
+          <div class="d-flex flex-column gap-2">
+            <% @user.rfids.each do |rfid_record| %>
+              <div>
+                <code class="bg-body-secondary px-2 py-1 rounded me-2"><%= rfid_record.rfid %></code>
+                <% if rfid_record.notes.present? %>
+                  <span class="text-muted small ms-2"><%= rfid_record.notes %></span>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
         <% else %>
           <span class="text-muted fst-italic">None</span>
         <% end %>

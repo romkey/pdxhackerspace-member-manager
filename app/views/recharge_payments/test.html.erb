@@ -1,0 +1,78 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0">Recharge Payments Reconciliation Test</h1>
+  <%= link_to "&larr; Back to Recharge Payments".html_safe, recharge_payments_path, class: "text-decoration-none" %>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <h2 class="h5 mb-3">Summary</h2>
+    <div class="row">
+      <div class="col-md-3">
+        <p class="mb-2">
+          <strong>Successful Payees:</strong> 
+          <span class="badge text-bg-success"><%= @unique_successful_payees %></span>
+        </p>
+      </div>
+      <div class="col-md-3">
+        <p class="mb-2">
+          <strong>Unique Email Matches:</strong> 
+          <span class="badge text-bg-success"><%= @unique_email_successes %></span>
+        </p>
+      </div>
+      <div class="col-md-3">
+        <p class="mb-2">
+          <strong>Unique Name Matches:</strong> 
+          <span class="badge text-bg-success"><%= @unique_name_successes %></span>
+        </p>
+      </div>
+      <div class="col-md-3">
+        <p class="mb-2">
+          <strong>Failed Payees:</strong> 
+          <span class="badge text-bg-danger"><%= @unique_failed_payees %></span>
+          <span class="text-muted small ms-2">(<%= @total_failures %> payments)</span>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<% if @failures.any? %>
+  <div class="card shadow-sm border-0">
+    <div class="card-body">
+      <h2 class="h5 mb-3">Failures</h2>
+      <p class="text-muted small mb-3">Payments that matched neither email nor name</p>
+      
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="bg-body-tertiary">
+            <tr>
+              <th scope="col">Payment</th>
+              <th scope="col">Customer Name</th>
+              <th scope="col">Customer Email</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @failures.each do |failure| %>
+              <tr>
+                <td>
+                  <strong><%= link_to failure[:payment].recharge_id, recharge_payment_path(failure[:payment]), class: "text-decoration-none" %></strong>
+                </td>
+                <td><%= failure[:name].presence || "—" %></td>
+                <td>
+                  <% if failure[:email].present? %>
+                    <%= mail_to failure[:email] %>
+                  <% else %>
+                    —
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-muted small mt-3 mb-0"><strong><%= @failures.count %></strong> failure<%= @failures.count == 1 ? '' : 's' %></p>
+    </div>
+  </div>
+<% end %>
+
+

@@ -30,6 +30,12 @@ module Authentik
           last_synced_at: timestamp
         )
         user.save!
+        
+        # Create RFID record if present in attributes
+        rfid_value = attrs[:attributes]&.dig("rfid")
+        if rfid_value.present?
+          Rfid.find_or_create_by!(user: user, rfid: rfid_value.to_s)
+        end
       rescue ActiveRecord::RecordInvalid => e
         @logger.error("Failed to sync Authentik user #{attrs.inspect}: #{e.message}")
       end
