@@ -10,6 +10,8 @@ class UsersController < AuthenticatedController
     @user = User.includes(:sheet_entry, :rfids, trainings_as_trainee: :training_topic, training_topics: []).find(params[:id])
     @payments = PaymentHistory.for_user(@user)
     @journals = @user.journals.includes(:actor_user).order(changed_at: :desc, created_at: :desc)
+    @most_recent_access = @user.access_logs.order(logged_at: :desc).first
+    @recent_accesses = @user.access_logs.order(logged_at: :desc).limit(10)
     
     # Find previous and next users using the same ordering as index
     ordered_ids = User.ordered_by_display_name.pluck(:id)

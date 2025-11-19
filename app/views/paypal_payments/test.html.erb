@@ -1,0 +1,78 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0">PayPal Payments Test ($40 Payments)</h1>
+  <%= link_to "&larr; Back to PayPal Payments".html_safe, paypal_payments_path, class: "text-decoration-none" %>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <h2 class="h5 mb-3">Summary</h2>
+    <div class="row">
+      <div class="col-md-4">
+        <p class="mb-2">
+          <strong>Total $40 Payments:</strong>
+          <span class="badge text-bg-info"><%= @total_40_payments %></span>
+        </p>
+      </div>
+      <div class="col-md-4">
+        <p class="mb-2">
+          <strong>Unique Email Matches:</strong>
+          <span class="badge text-bg-success"><%= @unique_matched_email_count %></span>
+        </p>
+      </div>
+      <div class="col-md-4">
+        <p class="mb-2">
+          <strong>Unmatched Payments:</strong>
+          <span class="badge text-bg-danger"><%= @unmatched_payments.count %></span>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<% if @unmatched_payments.any? %>
+  <div class="card shadow-sm border-0">
+    <div class="card-body">
+      <h2 class="h5 mb-3">Unmatched Payments</h2>
+      <p class="text-muted small mb-3">$40 payments that don't match any User records by email</p>
+      
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="bg-body-tertiary">
+            <tr>
+              <th scope="col">Payment ID</th>
+              <th scope="col">Payer Name</th>
+              <th scope="col">Payer Email</th>
+              <th scope="col">Transaction Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @unmatched_payments.each do |unmatched| %>
+              <tr>
+                <td>
+                  <strong><%= link_to unmatched[:payment].paypal_id, paypal_payment_path(unmatched[:payment]), class: "text-decoration-none" %></strong>
+                </td>
+                <td><%= unmatched[:name].presence || "—" %></td>
+                <td>
+                  <% if unmatched[:email].present? %>
+                    <%= mail_to unmatched[:email] %>
+                  <% else %>
+                    —
+                  <% end %>
+                </td>
+                <td>
+                  <%= unmatched[:payment].transaction_time ? l(unmatched[:payment].transaction_time, format: :long) : "n/a" %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-muted small mt-3 mb-0"><strong><%= @unmatched_payments.count %></strong> unmatched payment<%= @unmatched_payments.count == 1 ? '' : 's' %></p>
+    </div>
+  </div>
+<% else %>
+  <div class="alert alert-success">
+    <strong>Great!</strong> All $40 payments match User records by email.
+  </div>
+<% end %>
+

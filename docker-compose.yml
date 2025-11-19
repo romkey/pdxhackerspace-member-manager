@@ -27,6 +27,7 @@ services:
       DATABASE_URL: postgres://postgres:postgres@db:5432/member_manager_development
     volumes:
       - /Users/romkey/Dropbox/src/MemberManager:/rails
+      - ./tmp/access:/tmp/access
     ports:
       - "3000:3000"
     depends_on:

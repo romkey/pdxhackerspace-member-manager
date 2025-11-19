@@ -18,17 +18,35 @@ module Paypal
       results = []
       max_days_per_request = 31
       
-      # Start from the beginning of the lookback period
-      current_start = start_time
+      # Capture end_time once to avoid Time.current changing between calls
       final_end = end_time
+      current_start = start_time
+      
+      # Validate overall date range
+      if current_start >= final_end
+        Rails.logger.warn("[PayPal::Client] Invalid date range: start_time (#{current_start.utc.iso8601}) >= end_time (#{final_end.utc.iso8601})")
+        return []
+      end
       
       Rails.logger.info("[PayPal::Client] Fetching transactions from #{current_start.utc.iso8601} to #{final_end.utc.iso8601}")
       Rails.logger.info("[PayPal::Client] PayPal API limit: 31 days per request, will fetch in chunks")
       
       # Fetch data in 31-day chunks
-      while current_start < final_end
+      loop do
+        # Break if we've reached or passed the end
+        break if current_start >= final_end
+        
         # Calculate the end date for this chunk (31 days from start, or final_end, whichever is earlier)
-        chunk_end = [current_start + max_days_per_request.days, final_end].min
+        potential_end = current_start + max_days_per_request.days
+        chunk_end = [potential_end, final_end].min
+        
+        # Ensure chunk_end is strictly greater than current_start with at least 1 second difference
+        # PayPal requires start_date < end_date (not <=) and may reject identical timestamps
+        time_diff = chunk_end - current_start
+        if chunk_end <= current_start || time_diff < 1
+          Rails.logger.warn("[PayPal::Client] Skipping chunk with invalid date range: #{current_start.utc.iso8601} to #{chunk_end.utc.iso8601}, diff: #{time_diff}s")
+          break
+        end
         
         Rails.logger.info("[PayPal::Client] Fetching chunk: #{current_start.utc.iso8601} to #{chunk_end.utc.iso8601}")
         
@@ -39,7 +57,20 @@ module Paypal
         Rails.logger.info("[PayPal::Client] Chunk complete: #{chunk_results.size} transactions")
         
         # Move to the next chunk (start from the end of this chunk)
+        # If we've reached or passed the final_end, we're done
+        if chunk_end >= final_end
+          Rails.logger.debug("[PayPal::Client] Reached final_end, stopping chunking")
+          break
+        end
+        
+        # Set next start to current chunk_end
         current_start = chunk_end
+        
+        # Final safety check: if current_start is now at or past final_end, we're done
+        if current_start >= final_end
+          Rails.logger.debug("[PayPal::Client] current_start (#{current_start.utc.iso8601}) >= final_end (#{final_end.utc.iso8601}), stopping")
+          break
+        end
       end
       
       Rails.logger.info("[PayPal::Client] Finished fetching all transactions. Total: #{results.size}")
@@ -47,8 +78,22 @@ module Paypal
     end
     
     def fetch_transactions_for_date_range(start_time, end_time)
+      # Validate date range - PayPal requires start_date < end_date
+      # Also ensure there's at least 1 second difference (PayPal may reject identical timestamps)
+      time_diff = end_time - start_time
+      if start_time >= end_time || time_diff < 1
+        Rails.logger.warn("[PayPal::Client] Skipping invalid date range: start_time (#{start_time.utc.iso8601}) >= end_time (#{end_time.utc.iso8601}), diff: #{time_diff}s")
+        return []
+      end
+      
       start_iso = start_time.utc.iso8601
       end_iso = end_time.utc.iso8601
+      
+      # Double-check the ISO strings aren't identical (defensive check)
+      if start_iso == end_iso
+        Rails.logger.warn("[PayPal::Client] Skipping request with identical ISO timestamps: #{start_iso}")
+        return []
+      end
       
       results = []
       next_page_token = nil
@@ -59,7 +104,8 @@ module Paypal
           start_date: start_iso,
           end_date: end_iso,
           fields: "all",
-          page_size: 500
+          page_size: 500,
+          transaction_class: "Received"  # Only fetch received payments, not sent payments
         }
         params[:page_token] = next_page_token if next_page_token.present?
 
@@ -194,22 +240,58 @@ module Paypal
         
         amount_value = detail.dig("transaction_amount", "value")
         transaction_type = detail["transaction_event_code"]
+        payer_email = payer["email_address"]
+        payer_name = payer["payer_name"] && payer["payer_name"]["alternative_full_name"]
         
-        # Only include received payments (positive amounts and incoming transaction types)
-        # Filter out expenses (withdrawals, debits, etc.)
-        next if amount_value.nil?
+        # Only include received payments (money coming IN to our account)
+        # Skip if amount is missing
+        if amount_value.nil?
+          Rails.logger.debug("[PayPal::Client] SKIPPING: Missing amount | Email: #{payer_email} | Name: #{payer_name} | Type: #{transaction_type}")
+          next
+        end
         
         # Convert amount to float for comparison
         amount_float = amount_value.to_f
         
-        # Skip if amount is negative or zero (expenses/refunds)
-        next if amount_float <= 0
+        # Skip if amount is negative or zero (these are expenses/refunds/outgoing payments)
+        if amount_float <= 0
+          Rails.logger.debug("[PayPal::Client] SKIPPING: Amount <= 0 (#{amount_value}) | Email: #{payer_email} | Name: #{payer_name} | Type: #{transaction_type}")
+          next
+        end
         
-        # Skip certain transaction types that are expenses
-        # T0002 = Withdrawal, T0004 = Debit card purchase, T0005 = Credit card withdrawal
-        # T0006 = Credit card deposit (this is an expense from our perspective)
-        expense_types = %w[T0002 T0004 T0005 T0006]
-        next if expense_types.include?(transaction_type)
+        # Only include transaction types that represent received payments
+        # Common received payment types in PayPal:
+        # T1107 = Payment received (most common)
+        # T0003 = Payment received
+        # T0001 = Payment received
+        # T1106 = Payment received
+        # T1111 = Payment received (subscription)
+        # T1117 = Payment received (recurring)
+        # T0002 = Withdrawal (money received into account - PayPal calls this "expense" but it's money we received)
+        received_payment_types = %w[T1107 T0003 T0001 T1106 T1111 T1117 T0002]
+        
+        # Exclude known expense/outgoing transaction types (but NOT T0002 - that's money we received)
+        # T0004 = Debit card purchase
+        # T0005 = Credit card withdrawal
+        # T0006 = Credit card deposit (outgoing)
+        # T0007 = Payment sent
+        # T0008 = Payment sent
+        expense_types = %w[T0004 T0005 T0006 T0007 T0008 T0009 T0010]
+        if expense_types.include?(transaction_type)
+          Rails.logger.debug("[PayPal::Client] SKIPPING: Expense type (#{transaction_type}) | Amount: #{amount_value} | Email: #{payer_email} | Name: #{payer_name}")
+          next
+        end
+        
+        # Safety check: If transaction_class filter didn't work, use whitelist
+        # Only include transactions that are in our whitelist of received payment types
+        # This ensures we only record money received, not money spent
+        unless received_payment_types.include?(transaction_type)
+          Rails.logger.debug("[PayPal::Client] SKIPPING: Not in received payment whitelist (type: #{transaction_type}) | Amount: #{amount_value} | Email: #{payer_email} | Name: #{payer_name}")
+          next
+        end
+
+        # Log payments that are being included
+        Rails.logger.debug("[PayPal::Client] INCLUDING: Type: #{transaction_type} | Amount: #{amount_value} | Email: #{payer_email} | Name: #{payer_name}")
 
         {
           paypal_id: detail["transaction_id"],

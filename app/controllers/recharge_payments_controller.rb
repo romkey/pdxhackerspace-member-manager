@@ -9,6 +9,14 @@ class RechargePaymentsController < AuthenticatedController
 
   def show
     @payment = RechargePayment.find(params[:id])
+    
+    # Try to find user by recharge_customer_id if payment has a customer_id
+    if @payment.raw_attributes.present?
+      customer_id = @payment.raw_attributes.dig("customer", "id") || @payment.raw_attributes["customer_id"]
+      if customer_id.present?
+        @user_by_customer_id = User.where(recharge_customer_id: customer_id.to_s).first
+      end
+    end
   end
 
   def sync

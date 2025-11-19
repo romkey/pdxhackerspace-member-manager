@@ -143,6 +143,18 @@
         <%= @user.last_login_at ? l(@user.last_login_at, format: :long) : content_tag(:span, "Never", class: "text-muted fst-italic") %>
       </dd>
 
+      <dt class="col-sm-3 text-secondary">Last access</dt>
+      <dd class="col-sm-9">
+        <% if @most_recent_access&.logged_at.present? %>
+          <%= l(@most_recent_access.logged_at, format: :long) %>
+          <% if @most_recent_access.location.present? %>
+            <span class="text-muted small ms-2">(<%= @most_recent_access.location %>)</span>
+          <% end %>
+        <% else %>
+          <span class="text-muted fst-italic">Never</span>
+        <% end %>
+      </dd>
+
       <dt class="col-sm-3 text-secondary">Created</dt>
       <dd class="col-sm-9"><%= l(@user.created_at, format: :long) %></dd>
 
@@ -180,6 +192,50 @@
 </div>
 
 <%= render "paypal_payments/payment_history", payments: @payments %>
+
+<div class="card shadow-sm border-0 mt-4">
+  <div class="card-body">
+    <h2 class="h6 mb-3">Access</h2>
+    <% if @recent_accesses.any? %>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="bg-body-tertiary">
+            <tr>
+              <th scope="col">When</th>
+              <th scope="col">Location</th>
+              <th scope="col">Action</th>
+              <th scope="col">Name</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @recent_accesses.each do |access| %>
+              <tr>
+                <td>
+                  <% if access.logged_at.present? %>
+                    <%= l(access.logged_at, format: :long) %>
+                  <% else %>
+                    <span class="text-muted fst-italic">Unknown</span>
+                  <% end %>
+                </td>
+                <td><%= access.location.presence || content_tag(:span, "—", class: "text-muted") %></td>
+                <td>
+                  <% if access.action.present? %>
+                    <span class="badge text-bg-secondary"><%= access.action.humanize %></span>
+                  <% else %>
+                    <span class="text-muted">—</span>
+                  <% end %>
+                </td>
+                <td><%= access.name.presence || content_tag(:span, "—", class: "text-muted") %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <p class="text-muted mb-0">No access logs recorded yet.</p>
+    <% end %>
+  </div>
+</div>
 
 <div class="card shadow-sm border-0 mt-4">
   <div class="card-body">

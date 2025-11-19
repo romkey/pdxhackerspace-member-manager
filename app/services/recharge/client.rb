@@ -112,6 +112,15 @@ module Recharge
       last = customer["last_name"].to_s.presence || billing["last_name"]
       full_name = [name, last].compact_blank.join(" ")
 
+      # Redact billing_address and shipping_address in raw_attributes
+      redacted_charge = charge.deep_dup
+      if redacted_charge.key?("billing_address")
+        redacted_charge["billing_address"] = "REDACTED"
+      end
+      if redacted_charge.key?("shipping_address")
+        redacted_charge["shipping_address"] = "REDACTED"
+      end
+
       {
         recharge_id: charge["id"].to_s,
         status: charge["status"],
@@ -122,7 +131,7 @@ module Recharge
         customer_id: (customer["id"] || charge["customer_id"]).to_s,
         customer_email: customer["email"] || charge["email"],
         customer_name: full_name.presence || customer["billing_first_name"],
-        raw_attributes: charge
+        raw_attributes: redacted_charge
       }
     end
 

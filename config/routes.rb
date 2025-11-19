@@ -37,6 +37,7 @@ Rails.application.routes.draw do
   resources :paypal_payments, only: [:index, :show] do
     collection do
       post :sync
+      get :test
     end
   end
 

@@ -8,11 +8,17 @@ module Recharge
     def call
       raise ArgumentError, "Recharge integration disabled" unless RechargeConfig.enabled?
 
-      charges = @client.charges
+      # Determine start_time based on existing transactions
+      start_time = calculate_start_time
+      
+      charges = @client.charges(start_time: start_time)
       now = Time.current
 
       RechargePayment.transaction do
         charges.each do |attrs|
+          # Only process transactions with status "SUCCESS"
+          next unless attrs[:status] == "SUCCESS"
+          
           record = RechargePayment.find_or_initialize_by(recharge_id: attrs[:recharge_id])
           record.assign_attributes(
             status: attrs[:status],
@@ -27,15 +33,24 @@ module Recharge
           )
           user_was_linked = record.user_id.present?
           
-          # First try to match by customer_id
+          # First try to match by customer_id - if there's a matching recharge_customer_id, we're all set
           user = find_user_by_customer_id(attrs[:customer_id]) if attrs[:customer_id].present?
           
-          # If no match by customer_id, try name and email
+          # If no match by customer_id, try to match by email address
           unless user
             user = find_user_by_email(attrs[:customer_email])
-            user ||= find_user_by_name(attrs[:customer_name]) if attrs[:customer_name].present?
             
-            # If we found a user by name/email, copy the customer_id to the user
+            # If we found a user by email, set the recharge_customer_id from the transaction
+            if user && attrs[:customer_id].present? && user.recharge_customer_id != attrs[:customer_id]
+              user.update!(recharge_customer_id: attrs[:customer_id])
+            end
+          end
+          
+          # If still no match, try to match by full name
+          unless user
+            user = find_user_by_name(attrs[:customer_name]) if attrs[:customer_name].present?
+            
+            # If we found a user by name, set the recharge_customer_id from the transaction
             if user && attrs[:customer_id].present? && user.recharge_customer_id != attrs[:customer_id]
               user.update!(recharge_customer_id: attrs[:customer_id])
             end
@@ -82,6 +97,28 @@ module Recharge
     end
 
     private
+
+    def calculate_start_time
+      # If there are no transactions, use the configured lookback days
+      most_recent_payment = RechargePayment.order(processed_at: :desc).first
+      
+      if most_recent_payment.nil? || most_recent_payment.processed_at.nil?
+        # No transactions or no processed_at date, use default lookback
+        days = RechargeConfig.settings.transactions_lookback_days
+        days = 30 if days <= 0
+        return Time.current - days.days
+      end
+      
+      # Calculate how many days ago the most recent transaction was
+      days_ago = ((Time.current - most_recent_payment.processed_at) / 1.day).ceil
+      
+      # Add 3 days to that
+      lookback_days = days_ago + 3
+      
+      @logger.info("[Recharge::PaymentSynchronizer] Most recent payment was #{days_ago} days ago, looking back #{lookback_days} days")
+      
+      Time.current - lookback_days.days
+    end
 
     def find_user_by_customer_id(customer_id)
       return if customer_id.blank?
@@ -167,8 +204,6 @@ module Recharge
                       user.recharge_customer_id
 
         user.update_columns(
-          recharge_name: most_recent_payment.customer_name,
-          recharge_email: most_recent_payment.customer_email,
           recharge_order_number: order_number.to_s,
           recharge_most_recent_payment_date: most_recent_payment.processed_at,
           recharge_customer_id: customer_id.to_s.presence
@@ -190,13 +225,12 @@ module Recharge
       # Also update users who have no Recharge payments (clear their fields)
       users_without_payments = User.left_joins(:recharge_payments)
                                     .where(recharge_payments: { id: nil })
-                                    .where("recharge_name IS NOT NULL OR recharge_email IS NOT NULL OR recharge_order_number IS NOT NULL OR recharge_most_recent_payment_date IS NOT NULL")
+                                    .where("recharge_order_number IS NOT NULL OR recharge_most_recent_payment_date IS NOT NULL OR recharge_customer_id IS NOT NULL")
       
       users_without_payments.update_all(
-        recharge_name: nil,
-        recharge_email: nil,
         recharge_order_number: nil,
-        recharge_most_recent_payment_date: nil
+        recharge_most_recent_payment_date: nil,
+        recharge_customer_id: nil
       )
     end
   end
