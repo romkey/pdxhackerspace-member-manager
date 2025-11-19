@@ -88,17 +88,20 @@
       <dt class="col-sm-3 text-secondary">Membership Status</dt>
       <dd class="col-sm-9">
         <% badge_class = case @user.membership_status
-           when "active" then "success"
-           when "inactive" then "secondary"
-           when "paused" then "warning"
+           when "coworking" then "success"
+           when "basic" then "info"
+           when "guest" then "warning"
            when "banned" then "danger"
-           when "non-entity" then "dark"
            when "deceased" then "dark"
+           when "unknown" then "secondary"
            else "secondary"
            end %>
         <span class="badge text-bg-<%= badge_class %>">
           <%= @user.membership_status.humanize %>
         </span>
+        <% if @user.active? %>
+          <span class="badge text-bg-success ms-2">Active</span>
+        <% end %>
         <% member_status = (@user.authentik_attributes || {})["memberStatus"] %>
         <% if member_status.present? %>
           <span class="badge text-bg-info ms-2"><%= member_status %></span>

@@ -13,15 +13,20 @@
     <%= f.label :membership_status, "Membership Status", class: "form-label" %>
     <%= f.select :membership_status, 
         options_for_select([
-          ["Active", "active"],
-          ["Inactive", "inactive"],
-          ["Paused", "paused"],
+          ["Coworking", "coworking"],
+          ["Basic", "basic"],
+          ["Guest", "guest"],
           ["Banned", "banned"],
-          ["Non-entity", "non-entity"],
-          ["Deceased", "deceased"]
+          ["Deceased", "deceased"],
+          ["Unknown", "unknown"]
         ], @user.membership_status),
         {},
         { class: "form-select" } %>
+  </div>
+
+  <div class="form-check">
+    <%= f.check_box :active, class: "form-check-input" %>
+    <%= f.label :active, "Active member", class: "form-check-label" %>
   </div>
 
   <div>

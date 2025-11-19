@@ -76,7 +76,7 @@ class SessionsController < ApplicationController
     attributes = {
       email: info[:email] || extra[:email],
       full_name: info[:name] || build_full_name(info, extra),
-      membership_status: "active",
+      active: true,
       last_synced_at: Time.current
     }
 
@@ -91,7 +91,7 @@ class SessionsController < ApplicationController
       user.assign_attributes(
         email: account.email,
         full_name: account.full_name,
-        membership_status: account.active ? "active" : "inactive",
+        active: account.active,
         last_synced_at: Time.current
       )
       user.save!
@@ -135,7 +135,7 @@ class SessionsController < ApplicationController
     return if normalized.blank?
 
     # Search in the rfids table
-    rfid_record = Rfid.where("LOWER(rfid) = ?", normalized).joins(:user).where(users: { membership_status: "active" }).first
+    rfid_record = Rfid.where("LOWER(rfid) = ?", normalized).joins(:user).where(users: { active: true }).first
     rfid_record&.user
   end
 end

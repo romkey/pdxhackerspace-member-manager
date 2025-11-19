@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_11_19_012725) do
+ActiveRecord::Schema[7.1].define(version: 2025_11_19_041357) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -215,11 +215,12 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_19_012725) do
     t.string "sign_name"
     t.text "notes"
     t.datetime "last_login_at"
-    t.string "membership_status", default: "inactive"
+    t.string "membership_status", default: "unknown"
     t.string "recharge_order_number"
     t.datetime "recharge_most_recent_payment_date"
     t.string "recharge_customer_id"
     t.string "dues_status", default: "unknown"
+    t.boolean "active", default: false, null: false
     t.index ["authentik_attributes"], name: "index_users_on_authentik_attributes", using: :gin
     t.index ["authentik_id"], name: "index_users_on_authentik_id", unique: true
     t.index ["email"], name: "index_users_on_email", unique: true, where: "(email IS NOT NULL)"

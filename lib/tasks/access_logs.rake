@@ -95,7 +95,10 @@ def should_skip_line?(line)
     /\bcomms check\z/i,
     /\A.*:\s*Initializing\z/i,
     /\bis alive\?\z/i,
-    /\bis fail\?\??\z/i
+    /\bis fail\?\??\z/i,
+    /\bstarting up!\z/i,
+    /\baccess control is online\z/i,
+    /\blog check\z/i
   ]
   
   skip_patterns.any? { |pattern| check_line.match?(pattern) }
@@ -133,7 +136,8 @@ def parse_log_line(line, file_year, original_line = nil)
     # Pattern 2: Laser access format
     # "Sep  8 21:20:14 laser-access accesscontrol: John Bates disabled laser-access"
     # "Sep 10 14:09:38 laser-access accesscontrol: Paul Maupoux enabled laser-access"
-    pattern2 = /\A(\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+laser-access\s+accesscontrol:\s+(.+?)\s+(enabled|disabled)\s+laser-access\z/
+    # "Aug 30 19:58:37 laser-access accesscontrol: Jon H. enabled unit1 laser"
+    pattern2 = /\A(\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+laser-access\s+accesscontrol:\s+(.+?)\s+(enabled|disabled)\s+(?:laser-access|unit\d+\s+laser)\z/
     
     match = parse_line.match(pattern2)
     if match
@@ -227,7 +231,40 @@ def parse_log_line(line, file_year, original_line = nil)
 def find_user_by_name(name)
   return nil if name.blank?
   
-  normalized_name = name.strip.downcase
-  User.where("LOWER(full_name) = ?", normalized_name).first
+  normalized_name = name.strip
+  
+  # Check if name has an abbreviated last name (e.g., "Jon H.")
+  if normalized_name.match?(/\A\w+\s+\w\.\z/i)
+    # Try to match with abbreviated last name
+    return find_user_by_abbreviated_name(normalized_name)
+  end
+  
+  # Normal exact match
+  normalized_name_lower = normalized_name.downcase
+  User.where("LOWER(full_name) = ?", normalized_name_lower).first
+end
+
+def find_user_by_abbreviated_name(abbreviated_name)
+  # Parse "Jon H." or "Melinda H." into first name and last initial
+  # Handle potential extra spaces
+  match = abbreviated_name.strip.match(/\A(\w+)\s+(\w)\.\z/i)
+  return nil unless match
+  
+  first_name = match[1].strip
+  last_initial = match[2].upcase
+  
+  # Find users where first name matches and last name starts with the initial
+  # Handle names that might have multiple spaces or parts
+  # Use TRIM to handle extra spaces and get the last word as the last name
+  matching_users = User.where(
+    "LOWER(TRIM(SPLIT_PART(full_name, ' ', 1))) = ? AND UPPER(SUBSTRING(TRIM(SPLIT_PART(full_name, ' ', -1)) FROM 1 FOR 1)) = ?",
+    first_name.downcase,
+    last_initial
+  ).to_a
+  
+  # If more than one match, skip it (return nil)
+  return nil if matching_users.length != 1
+  
+  matching_users.first
 end
 

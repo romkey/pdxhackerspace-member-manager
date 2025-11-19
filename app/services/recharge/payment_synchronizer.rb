@@ -168,11 +168,11 @@ module Recharge
       if user.recharge_most_recent_payment_date.nil? || payment_date > user.recharge_most_recent_payment_date
         user.update!(recharge_most_recent_payment_date: payment_date)
         
-        # If payment is less than a month old, mark membership_status as active and dues_status as current
+        # If payment is less than a month old, mark active as true and dues_status as current
         if payment_date > 1.month.ago
           updates = {}
-          if user.membership_status != "active"
-            updates[:membership_status] = "active"
+          unless user.active?
+            updates[:active] = true
           end
           if user.dues_status != "current"
             updates[:dues_status] = "current"
@@ -209,11 +209,11 @@ module Recharge
           recharge_customer_id: customer_id.to_s.presence
         )
         
-        # If most recent payment is less than a month old, ensure membership_status is active and dues_status is current
+        # If most recent payment is less than a month old, ensure active is true and dues_status is current
         if most_recent_payment.processed_at && most_recent_payment.processed_at > 1.month.ago
           updates = {}
-          if user.membership_status != "active"
-            updates[:membership_status] = "active"
+          unless user.active?
+            updates[:active] = true
           end
           if user.dues_status != "current"
             updates[:dues_status] = "current"

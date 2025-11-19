@@ -2,11 +2,32 @@
   <div>
     <h1 class="h3 mb-1">Access Logs</h1>
     <p class="text-muted mb-0">
-      <strong><%= @access_logs.count %></strong> log entries
+      <strong><%= @total_count %></strong> log entries
+      <% if @total_pages > 1 %>
+        (page <%= @page %> of <%= @total_pages %>)
+      <% end %>
     </p>
   </div>
   <div>
     <%= link_to "Generate users.json", generate_users_json_access_logs_path, class: "btn btn-primary", data: { turbo: false } %>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <%= form_with url: access_logs_path, method: :get, local: true, class: "row g-3" do |f| %>
+      <div class="col-md-10">
+        <%= f.text_field :q, value: params[:q], placeholder: "Search by name, location, or raw text...", class: "form-control" %>
+      </div>
+      <div class="col-md-2">
+        <%= f.submit "Search", class: "btn btn-outline-primary w-100" %>
+      </div>
+      <% if params[:q].present? %>
+        <div class="col-12">
+          <%= link_to "Clear search", access_logs_path, class: "text-decoration-none small" %>
+        </div>
+      <% end %>
+    <% end %>
   </div>
 </div>
 
@@ -60,4 +81,68 @@
     </table>
   </div>
 </div>
+
+<% if @total_pages > 1 %>
+  <nav aria-label="Access logs pagination" class="mt-4">
+    <ul class="pagination justify-content-center">
+      <% if @page > 1 %>
+        <li class="page-item">
+          <%= link_to "Previous", access_logs_path(page: @page - 1, q: params[:q]), class: "page-link" %>
+        </li>
+      <% else %>
+        <li class="page-item disabled">
+          <span class="page-link">Previous</span>
+        </li>
+      <% end %>
+      
+      <% start_page = [@page - 2, 1].max %>
+      <% end_page = [start_page + 4, @total_pages].min %>
+      <% start_page = [end_page - 4, 1].max if end_page - start_page < 4 %>
+      
+      <% if start_page > 1 %>
+        <li class="page-item">
+          <%= link_to "1", access_logs_path(page: 1, q: params[:q]), class: "page-link" %>
+        </li>
+        <% if start_page > 2 %>
+          <li class="page-item disabled">
+            <span class="page-link">...</span>
+          </li>
+        <% end %>
+      <% end %>
+      
+      <% (start_page..end_page).each do |page_num| %>
+        <% if page_num == @page %>
+          <li class="page-item active">
+            <span class="page-link"><%= page_num %></span>
+          </li>
+        <% else %>
+          <li class="page-item">
+            <%= link_to page_num, access_logs_path(page: page_num, q: params[:q]), class: "page-link" %>
+          </li>
+        <% end %>
+      <% end %>
+      
+      <% if end_page < @total_pages %>
+        <% if end_page < @total_pages - 1 %>
+          <li class="page-item disabled">
+            <span class="page-link">...</span>
+          </li>
+        <% end %>
+        <li class="page-item">
+          <%= link_to @total_pages, access_logs_path(page: @total_pages, q: params[:q]), class: "page-link" %>
+        </li>
+      <% end %>
+      
+      <% if @page < @total_pages %>
+        <li class="page-item">
+          <%= link_to "Next", access_logs_path(page: @page + 1, q: params[:q]), class: "page-link" %>
+        </li>
+      <% else %>
+        <li class="page-item disabled">
+          <span class="page-link">Next</span>
+        </li>
+      <% end %>
+    </ul>
+  </nav>
+<% end %>
 

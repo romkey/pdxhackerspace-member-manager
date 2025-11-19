@@ -19,11 +19,18 @@ class User < ApplicationRecord
               allow_blank: true
             }
   validates :payment_type, inclusion: { in: %w[unknown sponsored paypal recharge cash inactive] }
-  validates :membership_status, inclusion: { in: %w[active inactive paused banned non-entity deceased] }
+  enum membership_status: {
+    coworking: "coworking",
+    basic: "basic",
+    guest: "guest",
+    banned: "banned",
+    deceased: "deceased",
+    unknown: "unknown"
+  }, _default: "unknown"
   validates :dues_status, inclusion: { in: %w[current lapsed inactive unknown] }
   validate :extra_emails_format
 
-  scope :active, -> { where(membership_status: "active") }
+  scope :active, -> { where(active: true) }
   scope :with_attribute, ->(key, value) { where("authentik_attributes ->> ? = ?", key.to_s, value.to_s) }
   scope :ordered_by_display_name, lambda {
     order(
@@ -38,7 +45,7 @@ class User < ApplicationRecord
   end
 
   def active?
-    membership_status == "active"
+    active
   end
 
   after_create_commit :journal_created!

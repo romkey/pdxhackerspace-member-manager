@@ -213,11 +213,10 @@ class SheetEntriesController < AuthenticatedController
           user.update!(authentik_attributes: attributes)
         end
         
-        # Update user membership_status based on sheet entry status
+        # Update user active status based on sheet entry status
         # If status is blank or contains "inactive" (case-insensitive), set user to inactive; otherwise set to active
         is_inactive = sheet_entry.status.blank? || sheet_entry.status.to_s.downcase.include?("inactive")
-        membership_status = is_inactive ? "inactive" : "active"
-        user.update!(membership_status: membership_status)
+        user.update!(active: !is_inactive)
         
         # Update payment_type based on sheet entry status
         payment_type = determine_payment_type(sheet_entry.status)
@@ -245,23 +244,22 @@ class SheetEntriesController < AuthenticatedController
           end
         end
         
-        # Determine membership_status: inactive if status is blank or contains "inactive" (case-insensitive)
+        # Determine active status: inactive if status is blank or contains "inactive" (case-insensitive)
         is_inactive = sheet_entry.status.blank? || sheet_entry.status.to_s.downcase.include?("inactive")
-        membership_status = is_inactive ? "inactive" : "active"
         
         # Determine payment_type based on sheet entry status
         payment_type = determine_payment_type(sheet_entry.status)
         
         # Create the user
         user = User.create!(
-          authentik_id: authentik_id,
-          email: primary_email,
-          full_name: sheet_entry.name,
-          membership_status: membership_status,
-          payment_type: payment_type,
-          extra_emails: extra_emails,
-          authentik_attributes: attributes
-        )
+            authentik_id: authentik_id,
+            email: primary_email,
+            full_name: sheet_entry.name,
+            active: !is_inactive,
+            payment_type: payment_type,
+            extra_emails: extra_emails,
+            authentik_attributes: attributes
+          )
         
         # Link the sheet entry to the new user
         sheet_entry.update!(user_id: user.id)
@@ -338,13 +336,13 @@ class SheetEntriesController < AuthenticatedController
       user = sheet_entry.user
       next unless user # Skip if user was deleted
       
-      # Update user membership_status based on sheet entry status
+      # Update user active status based on sheet entry status
       # If status is blank or contains "inactive" (case-insensitive), set user to inactive; otherwise set to active
       is_inactive = sheet_entry.status.blank? || sheet_entry.status.to_s.downcase.include?("inactive")
-      new_membership_status = is_inactive ? "inactive" : "active"
+      new_active = !is_inactive
       status_changed = false
-      if user.membership_status != new_membership_status
-        user.update!(membership_status: new_membership_status)
+      if user.active != new_active
+        user.update!(active: new_active)
         status_changed = true
       end
       
@@ -582,11 +580,11 @@ class SheetEntriesController < AuthenticatedController
         end
       end
       
-      # Update user membership_status based on sheet entry status
+      # Update user active status based on sheet entry status
       is_inactive = @sheet_entry.status.blank? || @sheet_entry.status.to_s.downcase.include?("inactive")
-      membership_status = is_inactive ? "inactive" : "active"
-      if user.membership_status != membership_status
-        user.update!(membership_status: membership_status)
+      new_active = !is_inactive
+      if user.active != new_active
+        user.update!(active: new_active)
         updated = true
       end
       
@@ -756,11 +754,11 @@ class SheetEntriesController < AuthenticatedController
         end
       end
       
-      # Update user membership_status based on sheet entry status
+      # Update user active status based on sheet entry status
       is_inactive = @sheet_entry.status.blank? || @sheet_entry.status.to_s.downcase.include?("inactive")
-      membership_status = is_inactive ? "inactive" : "active"
-      if user.membership_status != membership_status
-        user.update!(membership_status: membership_status)
+      new_active = !is_inactive
+      if user.active != new_active
+        user.update!(active: new_active)
         updated = true
       end
       
@@ -790,9 +788,8 @@ class SheetEntriesController < AuthenticatedController
         end
       end
       
-      # Determine membership_status: inactive if status is blank or contains "inactive" (case-insensitive)
+      # Determine active status: inactive if status is blank or contains "inactive" (case-insensitive)
       is_inactive = @sheet_entry.status.blank? || @sheet_entry.status.to_s.downcase.include?("inactive")
-      membership_status = is_inactive ? "inactive" : "active"
       
       # Determine payment_type based on sheet entry status
       payment_type = determine_payment_type(@sheet_entry.status)
@@ -802,7 +799,7 @@ class SheetEntriesController < AuthenticatedController
         authentik_id: authentik_id,
         email: primary_email,
         full_name: @sheet_entry.name,
-        membership_status: membership_status,
+        active: !is_inactive,
         payment_type: payment_type,
         extra_emails: extra_emails,
         authentik_attributes: attributes

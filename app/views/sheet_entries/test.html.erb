@@ -27,7 +27,7 @@
                 <td><%= mail_to mismatch[:sheet_email] %></td>
                 <td>
                   <%= mail_to mismatch[:user_email] %>
-                  <% unless mismatch[:user].membership_status == "active" %>
+                        <% unless mismatch[:user].active? %>
                     <% badge_class = case mismatch[:user].membership_status
                        when "inactive" then "secondary"
                        when "paused" then "warning"
@@ -73,7 +73,7 @@
                 <td><strong><%= link_to mismatch[:sheet_name], sheet_entry_path(mismatch[:sheet_entry]), class: "text-decoration-none" %></strong></td>
                 <td>
                   <strong><%= link_to mismatch[:user_name], user_path(mismatch[:user]), class: "text-decoration-none" %></strong>
-                  <% unless mismatch[:user].membership_status == "active" %>
+                        <% unless mismatch[:user].active? %>
                     <% badge_class = case mismatch[:user].membership_status
                        when "inactive" then "secondary"
                        when "paused" then "warning"
@@ -134,7 +134,7 @@
                   <% if mismatch[:not_in_sheet] %>
                     <span class="text-muted ms-2">(not in Sheet)</span>
                   <% end %>
-                  <% unless mismatch[:user].membership_status == "active" %>
+                        <% unless mismatch[:user].active? %>
                     <% badge_class = case mismatch[:user].membership_status
                        when "inactive" then "secondary"
                        when "paused" then "warning"

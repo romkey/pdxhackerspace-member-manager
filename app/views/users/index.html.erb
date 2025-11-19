@@ -40,17 +40,20 @@
             </td>
             <td>
               <% badge_class = case user.membership_status
-                 when "active" then "success"
-                 when "inactive" then "secondary"
-                 when "paused" then "warning"
+                 when "coworking" then "success"
+                 when "basic" then "info"
+                 when "guest" then "warning"
                  when "banned" then "danger"
-                 when "non-entity" then "dark"
                  when "deceased" then "dark"
+                 when "unknown" then "secondary"
                  else "secondary"
                  end %>
               <span class="badge text-bg-<%= badge_class %>">
                 <%= user.membership_status.humanize %>
               </span>
+              <% if user.active? %>
+                <span class="badge text-bg-success ms-1">Active</span>
+              <% end %>
             </td>
             <td>
               <span class="badge text-bg-info"><%= user.payment_type.humanize %></span>

@@ -2,7 +2,7 @@ class UsersController < AuthenticatedController
   def index
     @users = User.ordered_by_display_name
     @user_count = @users.count
-    @active_count = @users.where(membership_status: "active").count
+    @active_count = @users.where(active: true).count
     @inactive_count = @user_count - @active_count
   end
 
@@ -56,6 +56,6 @@ class UsersController < AuthenticatedController
   private
 
   def user_params
-    params.require(:user).permit(:full_name, :email, :membership_status, :payment_type, :notes)
+    params.require(:user).permit(:full_name, :email, :membership_status, :payment_type, :notes, :active)
   end
 end

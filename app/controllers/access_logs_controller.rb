@@ -1,13 +1,31 @@
 class AccessLogsController < AuthenticatedController
+  PER_PAGE = 200
+
   def index
-    @access_logs = AccessLog.includes(:user).recent.limit(1000)
+    @access_logs = AccessLog.includes(:user).recent
+    
+    # Apply search filter if provided
+    if params[:q].present?
+      search_term = "%#{params[:q]}%"
+      @access_logs = @access_logs.where(
+        "name ILIKE ? OR location ILIKE ? OR raw_text ILIKE ?",
+        search_term, search_term, search_term
+      )
+    end
+    
+    # Pagination
+    @page = (params[:page] || 1).to_i
+    @page = 1 if @page < 1
+    @total_count = @access_logs.count
+    @total_pages = (@total_count.to_f / PER_PAGE).ceil
+    @access_logs = @access_logs.offset((@page - 1) * PER_PAGE).limit(PER_PAGE)
   end
 
   def generate_users_json
     users_data = {}
     
     # Find all active users with RFID records
-    User.where(membership_status: "active").includes(:rfids, trainings_as_trainee: :training_topic).find_each do |user|
+    User.where(active: true).includes(:rfids, trainings_as_trainee: :training_topic).find_each do |user|
       next unless user.rfids.any?
       
       # Build permissions list: "active member" + training topics
