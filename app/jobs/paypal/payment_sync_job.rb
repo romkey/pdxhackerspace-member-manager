@@ -11,4 +11,3 @@ module Paypal
     end
   end
 end
-

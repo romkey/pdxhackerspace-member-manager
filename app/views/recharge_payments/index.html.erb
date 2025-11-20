@@ -12,6 +12,15 @@
   </div>
 </div>
 
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <div class="d-flex gap-2">
+      <input type="text" id="recharge_search" class="form-control" placeholder="Search by charge ID, customer name, email, or status…" autocomplete="off">
+      <button type="button" id="clear_recharge_search" class="btn btn-outline-secondary" style="display: none;">Clear</button>
+    </div>
+  </div>
+</div>
+
 <div class="card shadow-sm border-0">
   <div class="table-responsive">
     <table class="table mb-0 align-middle">
@@ -24,9 +33,16 @@
           <th scope="col">Processed</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="recharge_payments_table_body">
         <% @payments.each do |payment| %>
-          <tr>
+          <tr class="recharge-payment-row" 
+              data-search-text="<%= [
+                payment.recharge_id,
+                payment.customer_name,
+                payment.customer_email,
+                payment.status.presence || "unknown",
+                payment.amount_with_currency
+              ].compact.join(' ').downcase %>">
             <td class="fw-semibold"><%= link_to payment.recharge_id, recharge_payment_path(payment) %></td>
             <td><span class="badge text-bg-secondary"><%= payment.status.presence || "Unknown" %></span></td>
             <td><%= payment.amount_with_currency || "—" %></td>
@@ -45,4 +61,47 @@
     </table>
   </div>
 </div>
+
+<script>
+  (function() {
+    const searchInput = document.getElementById('recharge_search');
+    const clearButton = document.getElementById('clear_recharge_search');
+    const tableBody = document.getElementById('recharge_payments_table_body');
+    
+    if (!searchInput || !tableBody) return;
+    
+    function filterPayments() {
+      const searchTerm = searchInput.value.toLowerCase().trim();
+      const rows = tableBody.querySelectorAll('.recharge-payment-row');
+      
+      rows.forEach(function(row) {
+        const searchText = row.getAttribute('data-search-text');
+        if (searchText && searchText.includes(searchTerm)) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+      
+      // Show/hide clear button
+      if (clearButton) {
+        if (searchTerm !== '') {
+          clearButton.style.display = '';
+        } else {
+          clearButton.style.display = 'none';
+        }
+      }
+    }
+    
+    searchInput.addEventListener('input', filterPayments);
+    
+    if (clearButton) {
+      clearButton.addEventListener('click', function() {
+        searchInput.value = '';
+        filterPayments();
+        searchInput.focus();
+      });
+    }
+  })();
+</script>
 

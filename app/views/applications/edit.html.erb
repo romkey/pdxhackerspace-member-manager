@@ -1,0 +1,52 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">Edit Application</h1>
+  </div>
+  <div>
+    <%= link_to "&larr; Back to application".html_safe, application_path(@application), class: "text-decoration-none" %>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <%= form_with model: @application, local: true do |f| %>
+      <% if @application.errors.any? %>
+        <div class="alert alert-danger">
+          <ul class="mb-0">
+            <% @application.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <div class="mb-3">
+        <%= f.label :name, class: "form-label" %>
+        <%= f.text_field :name, class: "form-control", required: true %>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :internal_url, "Internal URL", class: "form-label" %>
+        <%= f.url_field :internal_url, class: "form-control" %>
+        <div class="form-text">URL for internal access to this application.</div>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :external_url, "External URL", class: "form-label" %>
+        <%= f.url_field :external_url, class: "form-control" %>
+        <div class="form-text">URL for external access to this application.</div>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :authentik_prefix, "Authentik Prefix", class: "form-label" %>
+        <%= f.text_field :authentik_prefix, class: "form-control" %>
+        <div class="form-text">Prefix used in Authentik for this application's groups.</div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <%= f.submit "Update Application", class: "btn btn-primary" %>
+        <%= link_to "Cancel", application_path(@application), class: "btn btn-outline-secondary" %>
+      </div>
+    <% end %>
+  </div>
+</div>

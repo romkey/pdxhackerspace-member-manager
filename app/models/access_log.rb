@@ -3,4 +3,3 @@ class AccessLog < ApplicationRecord
 
   scope :recent, -> { order(logged_at: :desc) }
 end
-

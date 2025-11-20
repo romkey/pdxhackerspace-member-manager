@@ -14,8 +14,7 @@ module Slack
     private
 
     def ensure_configured!
-      raise "SLACK_API_TOKEN is missing" unless SlackConfig.configured?
+      raise 'SLACK_API_TOKEN is missing' unless SlackConfig.configured?
     end
   end
 end
-

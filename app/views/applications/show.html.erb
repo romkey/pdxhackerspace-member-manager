@@ -1,0 +1,95 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1"><%= @application.name %></h1>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to "Edit", edit_application_path(@application), class: "btn btn-outline-secondary" %>
+    <%= link_to "&larr; Back to applications".html_safe, applications_path, class: "text-decoration-none" %>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <dl class="row mb-0">
+      <dt class="col-sm-3 text-secondary">Name</dt>
+      <dd class="col-sm-9"><%= @application.name %></dd>
+
+      <dt class="col-sm-3 text-secondary">Internal URL</dt>
+      <dd class="col-sm-9">
+        <% if @application.internal_url.present? %>
+          <%= link_to @application.internal_url, @application.internal_url, target: "_blank", rel: "noopener", class: "text-decoration-none" %>
+        <% else %>
+          <span class="text-muted fst-italic">Not set</span>
+        <% end %>
+      </dd>
+
+      <dt class="col-sm-3 text-secondary">External URL</dt>
+      <dd class="col-sm-9">
+        <% if @application.external_url.present? %>
+          <%= link_to @application.external_url, @application.external_url, target: "_blank", rel: "noopener", class: "text-decoration-none" %>
+        <% else %>
+          <span class="text-muted fst-italic">Not set</span>
+        <% end %>
+      </dd>
+
+      <dt class="col-sm-3 text-secondary">Authentik Prefix</dt>
+      <dd class="col-sm-9">
+        <% if @application.authentik_prefix.present? %>
+          <code><%= @application.authentik_prefix %></code>
+        <% else %>
+          <span class="text-muted fst-italic">Not set</span>
+        <% end %>
+      </dd>
+    </dl>
+  </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="h5 mb-0">Application Groups</h2>
+  <%= link_to "New Group", new_application_application_group_path(@application), class: "btn btn-primary btn-sm" %>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="table-responsive">
+    <table class="table mb-0 align-middle">
+      <thead class="bg-body-tertiary">
+        <tr>
+          <th scope="col">Name</th>
+          <th scope="col">Authentik Name</th>
+          <th scope="col">Note</th>
+          <th scope="col">Users</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if @application.application_groups.any? %>
+          <% @application.application_groups.each do |group| %>
+            <tr>
+              <td class="fw-semibold">
+                <%= link_to group.name, application_application_group_path(@application, group), class: "text-decoration-none" %>
+              </td>
+              <td>
+                <code><%= group.authentik_name %></code>
+              </td>
+              <td>
+                <%= group.note.presence || content_tag(:span, "No note", class: "text-muted fst-italic") %>
+              </td>
+              <td>
+                <span class="badge text-bg-info"><%= group.users.count %> users</span>
+              </td>
+              <td>
+                <%= link_to "Manage", application_application_group_path(@application, group), class: "btn btn-sm btn-outline-primary" %>
+              </td>
+            </tr>
+          <% end %>
+        <% else %>
+          <tr>
+            <td colspan="5" class="text-center text-muted py-4">
+              No groups yet. <%= link_to "Create one", new_application_application_group_path(@application), class: "text-decoration-none" %>.
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>

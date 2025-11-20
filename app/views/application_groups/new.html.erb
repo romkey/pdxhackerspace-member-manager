@@ -1,0 +1,48 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">New Application Group</h1>
+    <p class="text-muted mb-0">Application: <%= link_to @application.name, application_path(@application), class: "text-decoration-none" %></p>
+  </div>
+  <div>
+    <%= link_to "&larr; Back to application".html_safe, application_path(@application), class: "text-decoration-none" %>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <%= form_with model: [@application, @application_group], local: true do |f| %>
+      <% if @application_group.errors.any? %>
+        <div class="alert alert-danger">
+          <ul class="mb-0">
+            <% @application_group.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <div class="mb-3">
+        <%= f.label :name, class: "form-label" %>
+        <%= f.text_field :name, class: "form-control", required: true %>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :authentik_name, "Authentik Name", class: "form-label" %>
+        <%= f.text_field :authentik_name, class: "form-control", required: true, value: @application_group.authentik_name %>
+        <div class="form-text">The name of this group in Authentik.</div>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :note, class: "form-label" %>
+        <%= f.text_area :note, class: "form-control", rows: 3 %>
+        <div class="form-text">Optional note about this group.</div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <%= f.submit "Create Group", class: "btn btn-primary" %>
+        <%= link_to "Cancel", application_path(@application), class: "btn btn-outline-secondary" %>
+      </div>
+    <% end %>
+  </div>
+</div>
+

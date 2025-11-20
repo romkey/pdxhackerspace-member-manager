@@ -17,9 +17,7 @@ module Authentik
       settings = AuthentikConfig.settings
       return if settings.api_token.present? && settings.group_id.present?
 
-      raise "Authentik API token and group ID are required for syncing."
+      raise 'Authentik API token and group ID are required for syncing.'
     end
   end
 end
-
-

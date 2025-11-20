@@ -4,7 +4,7 @@ module PaymentsHelper
   end
 
   def payment_status(payment)
-    payment.respond_to?(:status) ? payment.status : "Unknown"
+    payment.respond_to?(:status) ? payment.status : 'Unknown'
   end
 
   def payment_amount(payment)
@@ -30,19 +30,18 @@ module PaymentsHelper
     when RechargePayment
       recharge_payment_path(payment)
     else
-      "#"
+      '#'
     end
   end
 
   def payment_source_label(payment)
     case payment
     when PaypalPayment
-      "PayPal"
+      'PayPal'
     when RechargePayment
-      "Recharge"
+      'Recharge'
     else
-      "Payment"
+      'Payment'
     end
   end
 end
-

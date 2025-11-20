@@ -4,4 +4,3 @@ class TrainerCapability < ApplicationRecord
 
   validates :user_id, uniqueness: { scope: :training_topic_id }
 end
-

@@ -30,4 +30,3 @@ class RechargePayment < ApplicationRecord
     self.customer_email = customer_email.to_s.strip.downcase.presence
   end
 end
-

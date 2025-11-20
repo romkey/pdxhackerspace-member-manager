@@ -11,4 +11,3 @@ module Recharge
     end
   end
 end
-

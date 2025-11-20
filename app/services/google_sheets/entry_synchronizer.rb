@@ -1,37 +1,37 @@
 module GoogleSheets
   class EntrySynchronizer
     MEMBER_HEADER_MAP = {
-      "name" => :name,
-      "dirty" => :dirty,
-      "status" => :status,
-      "twitter" => :twitter,
-      "alias" => :alias_name,
-      "email" => :email,
-      "date added" => :date_added,
-      "payment" => :payment,
-      "paypal name" => :paypal_name,
-      "notes" => :notes
+      'name' => :name,
+      'dirty' => :dirty,
+      'status' => :status,
+      'twitter' => :twitter,
+      'alias' => :alias_name,
+      'email' => :email,
+      'date added' => :date_added,
+      'payment' => :payment,
+      'paypal name' => :paypal_name,
+      'notes' => :notes
     }.freeze
 
     ACCESS_HEADER_MAP = {
-      "name" => :name,
-      "dirty" => :dirty,
-      "status" => :status,
-      "rfid" => :rfid,
-      "laser" => :laser,
-      "sewing machine" => :sewing_machine,
-      "serger" => :serger,
-      "embroidery machine" => :embroidery_machine,
-      "dremel" => :dremel,
-      "ender" => :ender,
-      "prusa" => :prusa,
-      "laminator" => :laminator,
-      "shaper" => :shaper,
-      "general shop" => :general_shop,
-      "event host" => :event_host,
-      "vinyl cutter" => :vinyl_cutter,
-      "mpcnc marlin" => :mpcnc_marlin,
-      "longmill" => :longmill
+      'name' => :name,
+      'dirty' => :dirty,
+      'status' => :status,
+      'rfid' => :rfid,
+      'laser' => :laser,
+      'sewing machine' => :sewing_machine,
+      'serger' => :serger,
+      'embroidery machine' => :embroidery_machine,
+      'dremel' => :dremel,
+      'ender' => :ender,
+      'prusa' => :prusa,
+      'laminator' => :laminator,
+      'shaper' => :shaper,
+      'general shop' => :general_shop,
+      'event host' => :event_host,
+      'vinyl cutter' => :vinyl_cutter,
+      'mpcnc marlin' => :mpcnc_marlin,
+      'longmill' => :longmill
     }.freeze
 
     def initialize(client: Client.new, logger: Rails.logger)
@@ -40,7 +40,7 @@ module GoogleSheets
     end
 
     def call
-      raise ArgumentError, "Google Sheets not enabled" unless GoogleSheetsConfig.enabled?
+      raise ArgumentError, 'Google Sheets not enabled' unless GoogleSheetsConfig.enabled?
 
       members = parse_rows(@client.fetch_sheet(Client::MEMBER_LIST_TAB), MEMBER_HEADER_MAP)
       access = parse_rows(@client.fetch_sheet(Client::ACCESS_TAB), ACCESS_HEADER_MAP)
@@ -180,9 +180,9 @@ module GoogleSheets
       email = sheet_entry.email.to_s.strip.downcase
       return if email.blank?
 
-      return unless sheet_entry.status.to_s.strip.blank?
+      return if sheet_entry.status.to_s.strip.present?
 
-      user = User.where("LOWER(email) = ?", email).first
+      user = User.where('LOWER(email) = ?', email).first
       return unless user
 
       # Mark user inactive if status is blank
@@ -190,4 +190,3 @@ module GoogleSheets
     end
   end
 end
-

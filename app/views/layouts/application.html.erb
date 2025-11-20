@@ -45,6 +45,12 @@
                 <%= link_to "Access", access_logs_path, class: "nav-link #{current_page?(access_logs_path) ? 'active' : ''}" %>
               </li>
               <li class="nav-item">
+                <%= link_to "Applications", applications_path, class: "nav-link #{current_page?(applications_path) || controller_name == 'applications' || controller_name == 'application_groups' ? 'active' : ''}" %>
+              </li>
+              <li class="nav-item">
+                <%= link_to "Reports", reports_path, class: "nav-link #{current_page?(reports_path) ? 'active' : ''}" %>
+              </li>
+              <li class="nav-item">
                 <%= link_to "Settings", settings_path, class: "nav-link #{current_page?(settings_path) || current_page?(training_topics_path) ? 'active' : ''}" %>
               </li>
             <% end %>

@@ -25,29 +25,32 @@ module Authentik
         user.assign_attributes(
           email: attrs[:email],
           full_name: attrs[:full_name],
-          active: attrs.fetch(:active, true),
+          active: false,
+          membership_status: 'unknown',
+          payment_type: 'unknown',
           authentik_attributes: attrs[:attributes] || {},
           last_synced_at: timestamp
         )
         user.save!
-        
+
         # Create RFID record if present in attributes
-        rfid_value = attrs[:attributes]&.dig("rfid")
-        if rfid_value.present?
-          Rfid.find_or_create_by!(user: user, rfid: rfid_value.to_s)
-        end
+        rfid_value = attrs[:attributes]&.dig('rfid')
+        Rfid.find_or_create_by!(user: user, rfid: rfid_value.to_s) if rfid_value.present?
       rescue ActiveRecord::RecordInvalid => e
         @logger.error("Failed to sync Authentik user #{attrs.inspect}: #{e.message}")
       end
     end
 
     def deactivate_missing_members(members)
-      authentik_ids = members.map { |attrs| attrs[:authentik_id] }.compact
+      authentik_ids = members.pluck(:authentik_id).compact
       return if authentik_ids.empty?
 
-      User.where.not(authentik_id: authentik_ids).where(active: true).update_all(active: false, updated_at: Time.current)
+      User.where.not(authentik_id: authentik_ids).where(active: true).update_all(
+        active: false,
+        membership_status: 'unknown',
+        payment_type: 'unknown',
+        updated_at: Time.current
+      )
     end
   end
 end
-
-

@@ -29,11 +29,13 @@
                   <%= mail_to mismatch[:user_email] %>
                         <% unless mismatch[:user].active? %>
                     <% badge_class = case mismatch[:user].membership_status
-                       when "inactive" then "secondary"
-                       when "paused" then "warning"
+                       when "coworking" then "success"
+                       when "basic" then "info"
+                       when "guest" then "warning"
                        when "banned" then "danger"
-                       when "non-entity" then "dark"
                        when "deceased" then "dark"
+                       when "sponsored" then "primary"
+                       when "unknown" then "secondary"
                        else "secondary"
                        end %>
                     <span class="badge text-bg-<%= badge_class %> ms-2"><%= mismatch[:user].membership_status.humanize %></span>
@@ -75,11 +77,13 @@
                   <strong><%= link_to mismatch[:user_name], user_path(mismatch[:user]), class: "text-decoration-none" %></strong>
                         <% unless mismatch[:user].active? %>
                     <% badge_class = case mismatch[:user].membership_status
-                       when "inactive" then "secondary"
-                       when "paused" then "warning"
+                       when "coworking" then "success"
+                       when "basic" then "info"
+                       when "guest" then "warning"
                        when "banned" then "danger"
-                       when "non-entity" then "dark"
                        when "deceased" then "dark"
+                       when "sponsored" then "primary"
+                       when "unknown" then "secondary"
                        else "secondary"
                        end %>
                     <span class="badge text-bg-<%= badge_class %> ms-2"><%= mismatch[:user].membership_status.humanize %></span>
@@ -136,11 +140,13 @@
                   <% end %>
                         <% unless mismatch[:user].active? %>
                     <% badge_class = case mismatch[:user].membership_status
-                       when "inactive" then "secondary"
-                       when "paused" then "warning"
+                       when "coworking" then "success"
+                       when "basic" then "info"
+                       when "guest" then "warning"
                        when "banned" then "danger"
-                       when "non-entity" then "dark"
                        when "deceased" then "dark"
+                       when "sponsored" then "primary"
+                       when "unknown" then "secondary"
                        else "secondary"
                        end %>
                     <span class="badge text-bg-<%= badge_class %> ms-2"><%= mismatch[:user].membership_status.humanize %></span>

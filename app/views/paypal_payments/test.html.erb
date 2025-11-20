@@ -15,8 +15,8 @@
       </div>
       <div class="col-md-4">
         <p class="mb-2">
-          <strong>Unique Email Matches:</strong>
-          <span class="badge text-bg-success"><%= @unique_matched_email_count %></span>
+          <strong>Matched to Users:</strong>
+          <span class="badge text-bg-success"><%= @matched_count %></span>
         </p>
       </div>
       <div class="col-md-4">
@@ -33,7 +33,7 @@
   <div class="card shadow-sm border-0">
     <div class="card-body">
       <h2 class="h5 mb-3">Unmatched Payments</h2>
-      <p class="text-muted small mb-3">$40 payments that don't match any User records by email</p>
+      <p class="text-muted small mb-3">$40 payments that don't have a matching User record by PayPal account ID</p>
       
       <div class="table-responsive">
         <table class="table table-sm align-middle mb-0">
@@ -72,7 +72,7 @@
   </div>
 <% else %>
   <div class="alert alert-success">
-    <strong>Great!</strong> All $40 payments match User records by email.
+    <strong>Great!</strong> All $40 payments have matching User records by PayPal account ID.
   </div>
 <% end %>
 

@@ -6,9 +6,9 @@ class TrainingTopicsController < AuthenticatedController
   def create
     @training_topic = TrainingTopic.new(training_topic_params)
     @training_topics = TrainingTopic.order(:name)
-    
+
     if @training_topic.save
-      redirect_to training_topics_path, notice: "Training topic created successfully."
+      redirect_to training_topics_path, notice: 'Training topic created successfully.'
     else
       render :index, status: :unprocessable_content
     end
@@ -16,12 +16,13 @@ class TrainingTopicsController < AuthenticatedController
 
   def destroy
     @training_topic = TrainingTopic.find(params[:id])
-    
+
     if @training_topic.trainings.any? || @training_topic.trainer_capabilities.any?
-      redirect_to training_topics_path, alert: "Cannot delete training topic that has trainings or trainer capabilities."
+      redirect_to training_topics_path,
+                  alert: 'Cannot delete training topic that has trainings or trainer capabilities.'
     else
       @training_topic.destroy
-      redirect_to training_topics_path, notice: "Training topic deleted successfully."
+      redirect_to training_topics_path, notice: 'Training topic deleted successfully.'
     end
   end
 

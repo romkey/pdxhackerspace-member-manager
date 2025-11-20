@@ -9,5 +9,3 @@ class DashboardController < AuthenticatedController
     @recharge_payment_count = RechargePayment.count
   end
 end
-
-

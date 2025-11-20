@@ -30,4 +30,3 @@ class PaypalPayment < ApplicationRecord
     self.payer_email = payer_email.to_s.strip.downcase.presence
   end
 end
-

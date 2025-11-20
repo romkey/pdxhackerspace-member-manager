@@ -13,13 +13,23 @@
   </div>
 </div>
 
-<div class="d-flex justify-content-end mb-3">
-  <%= form_with url: slack_users_path, method: :get, local: true, class: "d-flex align-items-center gap-2" do |form| %>
-    <div class="form-check">
-      <%= form.check_box :show_bots, { class: "form-check-input", checked: @show_bots, onchange: "this.form.submit()" }, "1", "0" %>
-      <%= form.label :show_bots, "Show bot users", class: "form-check-label" %>
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <div class="d-flex gap-3 align-items-center flex-wrap">
+      <div class="flex-grow-1" style="min-width: 300px;">
+        <input type="text" id="slack_search" class="form-control" placeholder="Search by name, email, or linked user…" autocomplete="off">
+      </div>
+      <div class="d-flex gap-2 align-items-center">
+        <button type="button" id="clear_slack_search" class="btn btn-outline-secondary" style="display: none;">Clear</button>
+        <%= form_with url: slack_users_path, method: :get, local: true, class: "d-flex align-items-center" do |form| %>
+          <div class="form-check">
+            <%= form.check_box :show_bots, { class: "form-check-input", checked: @show_bots, onchange: "this.form.submit()" }, "1", "0" %>
+            <%= form.label :show_bots, "Show bot users", class: "form-check-label" %>
+          </div>
+        <% end %>
+      </div>
     </div>
-  <% end %>
+  </div>
 </div>
 
 <div class="card shadow-sm border-0">
@@ -27,18 +37,34 @@
     <table class="table mb-0 align-middle">
       <thead class="bg-body-tertiary">
         <tr>
+          <th scope="col" style="width: 48px;"></th>
           <th scope="col">Name</th>
           <th scope="col">Email</th>
-          <th scope="col">Title</th>
+          <th scope="col">User</th>
           <th scope="col">Admin</th>
           <th scope="col">Owner</th>
           <th scope="col">Bot</th>
           <th scope="col">Status</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="slack_users_table_body">
         <% @slack_users.each do |user| %>
-          <tr>
+          <tr class="slack-user-row" 
+              data-search-text="<%= [
+                user.display_name,
+                user.email,
+                user.user&.display_name,
+                user.is_admin? ? "admin yes" : "admin no",
+                user.is_owner? ? "owner yes" : "owner no",
+                user.is_bot? ? "bot" : "human",
+                user.deleted? ? "disabled" : "active"
+              ].compact.join(' ').downcase %>">
+            <td>
+              <% image_url = user.raw_attributes.dig("profile", "image_32") %>
+              <% if image_url.present? %>
+                <img src="<%= image_url %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
+              <% end %>
+            </td>
             <td class="fw-semibold">
               <%= link_to user.display_name, slack_user_path(user), class: "text-decoration-none" %>
             </td>
@@ -49,7 +75,13 @@
                 <span class="text-muted fst-italic">Not provided</span>
               <% end %>
             </td>
-            <td><%= user.title.presence || "—" %></td>
+            <td>
+              <% if user.user.present? %>
+                <%= link_to user.user.display_name, user_path(user.user), class: "text-decoration-none" %>
+              <% else %>
+                <span class="text-muted fst-italic">Not linked</span>
+              <% end %>
+            </td>
             <td>
               <span class="badge text-bg-<%= user.is_admin? ? 'success' : 'secondary' %>">
                 <%= user.is_admin? ? "Yes" : "No" %>
@@ -76,4 +108,47 @@
     </table>
   </div>
 </div>
+
+<script>
+  (function() {
+    const searchInput = document.getElementById('slack_search');
+    const clearButton = document.getElementById('clear_slack_search');
+    const tableBody = document.getElementById('slack_users_table_body');
+    
+    if (!searchInput || !tableBody) return;
+    
+    function filterUsers() {
+      const searchTerm = searchInput.value.toLowerCase().trim();
+      const rows = tableBody.querySelectorAll('.slack-user-row');
+      
+      rows.forEach(function(row) {
+        const searchText = row.getAttribute('data-search-text');
+        if (searchText && searchText.includes(searchTerm)) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+      
+      // Show/hide clear button
+      if (clearButton) {
+        if (searchTerm !== '') {
+          clearButton.style.display = '';
+        } else {
+          clearButton.style.display = 'none';
+        }
+      }
+    }
+    
+    searchInput.addEventListener('input', filterUsers);
+    
+    if (clearButton) {
+      clearButton.addEventListener('click', function() {
+        searchInput.value = '';
+        filterUsers();
+        searchInput.focus();
+      });
+    }
+  })();
+</script>
 

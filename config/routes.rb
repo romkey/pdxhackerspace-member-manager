@@ -10,7 +10,13 @@ Rails.application.routes.draw do
   match "/auth/:provider/callback", to: "sessions#create", via: %i[get post]
   get "/auth/failure", to: "sessions#failure"
 
-  resources :users, only: [:index, :show, :edit, :update] do
+  resources :users, only: [:index, :show, :edit, :update, :destroy] do
+    member do
+      post :activate
+      post :deactivate
+      post :ban
+      post :mark_deceased
+    end
     collection do
       post :sync
     end
@@ -20,6 +26,9 @@ Rails.application.routes.draw do
     collection do
       post :sync
       post :sync_to_users
+    end
+    member do
+      post :link_user
     end
   end
 
@@ -39,12 +48,18 @@ Rails.application.routes.draw do
       post :sync
       get :test
     end
+    member do
+      post :link_user
+    end
   end
 
   resources :recharge_payments, only: [:index, :show] do
     collection do
       post :sync
       get :test
+    end
+    member do
+      post :link_user
     end
   end
 
@@ -60,4 +75,18 @@ Rails.application.routes.draw do
 
   get "/settings", to: "settings#index", as: :settings
   resources :training_topics, only: [:index, :create, :destroy]
+  
+  get "/reports", to: "reports#index", as: :reports
+  
+  require 'sidekiq/web'
+  mount Sidekiq::Web => '/sidekiq'
+  
+  resources :applications do
+    resources :application_groups, except: [:index] do
+      member do
+        post :add_user
+        delete :remove_user
+      end
+    end
+  end
 end

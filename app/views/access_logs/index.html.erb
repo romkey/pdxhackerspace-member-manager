@@ -15,19 +15,10 @@
 
 <div class="card shadow-sm border-0 mb-4">
   <div class="card-body">
-    <%= form_with url: access_logs_path, method: :get, local: true, class: "row g-3" do |f| %>
-      <div class="col-md-10">
-        <%= f.text_field :q, value: params[:q], placeholder: "Search by name, location, or raw text...", class: "form-control" %>
-      </div>
-      <div class="col-md-2">
-        <%= f.submit "Search", class: "btn btn-outline-primary w-100" %>
-      </div>
-      <% if params[:q].present? %>
-        <div class="col-12">
-          <%= link_to "Clear search", access_logs_path, class: "text-decoration-none small" %>
-        </div>
-      <% end %>
-    <% end %>
+    <div class="d-flex gap-2">
+      <input type="text" id="access_logs_search" class="form-control" placeholder="Search by name, location, or raw text…" autocomplete="off" value="<%= params[:q] %>">
+      <button type="button" id="clear_access_logs_search" class="btn btn-outline-secondary" style="<%= params[:q].present? ? '' : 'display: none;' %>">Clear</button>
+    </div>
   </div>
 </div>
 
@@ -43,10 +34,17 @@
           <th scope="col">Raw Text</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="access_logs_table_body">
         <% if @access_logs.any? %>
           <% @access_logs.each do |log| %>
-            <tr>
+            <tr class="access-log-row" 
+                data-search-text="<%= [
+                  log.name,
+                  log.user&.display_name,
+                  log.location,
+                  log.action,
+                  log.raw_text
+                ].compact.join(' ').downcase %>">
               <td>
                 <% if log.logged_at.present? %>
                   <%= l(log.logged_at, format: :long) %>
@@ -145,4 +143,52 @@
     </ul>
   </nav>
 <% end %>
+
+<script>
+  (function() {
+    const searchInput = document.getElementById('access_logs_search');
+    const clearButton = document.getElementById('clear_access_logs_search');
+    const tableBody = document.getElementById('access_logs_table_body');
+    
+    if (!searchInput || !tableBody) return;
+    
+    function filterLogs() {
+      const searchTerm = searchInput.value.toLowerCase().trim();
+      const rows = tableBody.querySelectorAll('.access-log-row');
+      
+      rows.forEach(function(row) {
+        const searchText = row.getAttribute('data-search-text');
+        if (searchText && searchText.includes(searchTerm)) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+      
+      // Show/hide clear button
+      if (clearButton) {
+        if (searchTerm !== '') {
+          clearButton.style.display = '';
+        } else {
+          clearButton.style.display = 'none';
+        }
+      }
+    }
+    
+    searchInput.addEventListener('input', filterLogs);
+    
+    if (clearButton) {
+      clearButton.addEventListener('click', function() {
+        searchInput.value = '';
+        filterLogs();
+        searchInput.focus();
+      });
+    }
+    
+    // Initial filter if there's a value in the search box
+    if (searchInput.value) {
+      filterLogs();
+    }
+  })();
+</script>
 

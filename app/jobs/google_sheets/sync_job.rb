@@ -11,4 +11,3 @@ module GoogleSheets
     end
   end
 end
-

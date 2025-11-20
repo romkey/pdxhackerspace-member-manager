@@ -6,21 +6,21 @@ module Paypal
     end
 
     def call
-      raise ArgumentError, "PayPal integration disabled" unless PaypalConfig.enabled?
+      raise ArgumentError, 'PayPal integration disabled' unless PaypalConfig.enabled?
 
       begin
         payments = @client.transactions
       rescue Faraday::ForbiddenError => e
-        @logger.error("PayPal API returned 403 Forbidden - NOT_AUTHORIZED")
+        @logger.error('PayPal API returned 403 Forbidden - NOT_AUTHORIZED')
         @logger.error("This means your PayPal app doesn't have permission to access the Reporting API.")
-        @logger.error("")
-        @logger.error("To fix this, you need to:")
-        @logger.error("  1. Go to https://developer.paypal.com/dashboard")
-        @logger.error("  2. Select your app (or create a new one)")
+        @logger.error('')
+        @logger.error('To fix this, you need to:')
+        @logger.error('  1. Go to https://developer.paypal.com/dashboard')
+        @logger.error('  2. Select your app (or create a new one)')
         @logger.error("  3. Under 'Features', enable 'Transaction Search' or 'Reporting API'")
         @logger.error("  4. Make sure your app has 'Read transaction details' permission")
-        @logger.error("  5. Regenerate your client secret if needed")
-        @logger.error("")
+        @logger.error('  5. Regenerate your client secret if needed')
+        @logger.error('')
         if e.respond_to?(:response) && e.response
           @logger.error("Response body: #{e.response[:body]}")
         elsif e.respond_to?(:message)
@@ -45,9 +45,16 @@ module Paypal
             raw_attributes: attrs[:raw_attributes],
             last_synced_at: now
           )
-          record.user = find_user(attrs[:payer_email])
+          user = find_user(attrs[:payer_email], attrs[:payer_name])
+          record.user = user
           record.sheet_entry = find_sheet_entry(attrs[:payer_email])
           record.save!
+
+          # Update user's last_payment_date and dues_status if payment is recent
+          if user && attrs[:transaction_time].present?
+            payment_date = attrs[:transaction_time].to_date
+            update_user_from_payment(user, payment_date, attrs)
+          end
         rescue ActiveRecord::RecordInvalid => e
           @logger.error("Failed to sync PayPal payment #{attrs[:paypal_id]}: #{e.message}")
         end
@@ -55,25 +62,66 @@ module Paypal
 
       payments.count
     end
+
     private
 
-    def find_user(email)
-      normalized = normalize_email(email)
-      return if normalized.blank?
+    def find_user(email, name = nil)
+      normalized_email = normalize_email(email)
+      normalized_name = name.to_s.strip.downcase.presence
 
-      User.where("LOWER(email) = ?", normalized).first
+      # Try to find by email first (primary email or extra_emails)
+      if normalized_email.present?
+        # Match by primary email
+        user = User.where('LOWER(email) = ?', normalized_email).first
+        return user if user
+
+        # Match by extra_emails array
+        user = User.where('EXISTS (SELECT 1 FROM unnest(extra_emails) AS email WHERE LOWER(email) = ?)',
+                          normalized_email).first
+        return user if user
+      end
+
+      # Try to find by name if email didn't match
+      if normalized_name.present?
+        user = User.where('LOWER(full_name) = ?', normalized_name).first
+        return user if user
+      end
+
+      nil
     end
 
     def find_sheet_entry(email)
       normalized = normalize_email(email)
       return if normalized.blank?
 
-      SheetEntry.where("LOWER(email) = ?", normalized).first
+      SheetEntry.where('LOWER(email) = ?', normalized).first
     end
 
     def normalize_email(value)
       value.to_s.strip.downcase
     end
+
+    def update_user_from_payment(user, payment_date, attrs)
+      updates = {}
+
+      # Update last_payment_date if this payment is more recent
+      updates[:last_payment_date] = payment_date if user.last_payment_date.nil? || payment_date > user.last_payment_date
+
+      # If payment is 1 month old or less, set dues_status to current
+      updates[:dues_status] = 'current' if (payment_date >= 1.month.ago.to_date) && (user.dues_status != 'current')
+
+      # Set paypal_account_id from payer_id (which comes from payer_info:account_id)
+      if attrs[:payer_id].present? && user.paypal_account_id != attrs[:payer_id]
+        updates[:paypal_account_id] = attrs[:payer_id]
+      end
+
+      # Set payment_type to 'paypal'
+      updates[:payment_type] = 'paypal' if user.payment_type != 'paypal'
+
+      # If membership_status is 'unknown', set it to 'basic'
+      updates[:membership_status] = 'basic' if user.membership_status == 'unknown'
+
+      user.update!(updates) if updates.any?
+    end
   end
 end
-

@@ -1,4 +1,4 @@
-require "test_helper"
+require 'test_helper'
 
 class UsersControllerTest < ActionDispatch::IntegrationTest
   setup do
@@ -6,7 +6,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     sign_in_as_local_admin
   end
 
-  test "shows user with payment history" do
+  test 'shows user with payment history' do
     get user_path(@user)
     assert_response :success
     assert_match @user.display_name, response.body
@@ -21,9 +21,8 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     post local_login_path, params: {
       session: {
         email: account.email,
-        password: "localpassword123"
+        password: 'localpassword123'
       }
     }
   end
 end
-

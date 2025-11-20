@@ -1,0 +1,200 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1"><%= @application_group.name %></h1>
+    <p class="text-muted mb-0">Application: <%= link_to @application.name, application_path(@application), class: "text-decoration-none" %></p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to "Edit", edit_application_application_group_path(@application, @application_group), class: "btn btn-outline-secondary" %>
+    <%= link_to "&larr; Back to application".html_safe, application_path(@application), class: "text-decoration-none" %>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <dl class="row mb-0">
+      <dt class="col-sm-3 text-secondary">Name</dt>
+      <dd class="col-sm-9"><%= @application_group.name %></dd>
+
+      <dt class="col-sm-3 text-secondary">Authentik Name</dt>
+      <dd class="col-sm-9"><code><%= @application_group.authentik_name %></code></dd>
+
+      <dt class="col-sm-3 text-secondary">Note</dt>
+      <dd class="col-sm-9">
+        <%= @application_group.note.presence || content_tag(:span, "No note", class: "text-muted fst-italic") %>
+      </dd>
+
+      <dt class="col-sm-3 text-secondary">Users</dt>
+      <dd class="col-sm-9">
+        <span class="badge text-bg-info"><%= @application_group.users.count %> users</span>
+      </dd>
+    </dl>
+  </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="h5 mb-0">Users in Group</h2>
+  <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">
+    Add User
+  </button>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+  <div class="table-responsive">
+    <table class="table mb-0 align-middle">
+      <thead class="bg-body-tertiary">
+        <tr>
+          <th scope="col">Name</th>
+          <th scope="col">Email</th>
+          <th scope="col">Status</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if @users.any? %>
+          <% @users.each do |user| %>
+            <tr>
+              <td class="fw-semibold">
+                <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
+              </td>
+              <td>
+                <% if user.email.present? %>
+                  <%= mail_to user.email %>
+                <% else %>
+                  <span class="text-muted fst-italic">Not provided</span>
+                <% end %>
+              </td>
+              <td>
+                <% badge_class = case user.membership_status
+                   when "coworking" then "success"
+                   when "basic" then "info"
+                   when "guest" then "warning"
+                   when "banned" then "danger"
+                   when "deceased" then "dark"
+                   when "sponsored" then "primary"
+                   when "unknown" then "secondary"
+                   else "secondary"
+                   end %>
+                <span class="badge text-bg-<%= badge_class %>">
+                  <%= user.membership_status.humanize %>
+                </span>
+                <% if user.active? %>
+                  <span class="badge text-bg-success ms-1">Active</span>
+                <% end %>
+              </td>
+              <td>
+                <%= button_to "Remove", remove_user_application_application_group_path(@application, @application_group, user_id: user.id), 
+                    method: :delete, 
+                    class: "btn btn-sm btn-outline-danger", 
+                    data: { turbo: false, confirm: "Are you sure you want to remove #{user.display_name} from this group?" } %>
+              </td>
+            </tr>
+          <% end %>
+        <% else %>
+          <tr>
+            <td colspan="4" class="text-center text-muted py-4">
+              No users in this group yet. Click "Add User" to add some.
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addUserModalLabel">Add User to Group</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <input type="search" id="userSearchInput" class="form-control" placeholder="Search by name, email, or Authentik ID…" autocomplete="off">
+        </div>
+        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+          <table class="table table-sm mb-0" id="usersTable">
+            <thead class="bg-body-tertiary sticky-top">
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Email</th>
+                <th scope="col">Status</th>
+                <th scope="col">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @all_users.each do |user| %>
+                <% next if @users.include?(user) %>
+                <tr class="user-row" data-name="<%= user.display_name.downcase %>" data-email="<%= (user.email || '').downcase %>" data-authentik-id="<%= (user.authentik_id || '').downcase %>">
+                  <td class="fw-semibold"><%= user.display_name %></td>
+                  <td>
+                    <% if user.email.present? %>
+                      <%= mail_to user.email %>
+                    <% else %>
+                      <span class="text-muted fst-italic">Not provided</span>
+                    <% end %>
+                  </td>
+                  <td>
+                    <% badge_class = case user.membership_status
+                       when "coworking" then "success"
+                       when "basic" then "info"
+                       when "guest" then "warning"
+                       when "banned" then "danger"
+                       when "deceased" then "dark"
+                       when "unknown" then "secondary"
+                       else "secondary"
+                       end %>
+                    <span class="badge text-bg-<%= badge_class %>">
+                      <%= user.membership_status.humanize %>
+                    </span>
+                    <% if user.active? %>
+                      <span class="badge text-bg-success ms-1">Active</span>
+                    <% end %>
+                  </td>
+                  <td>
+                    <%= button_to "Add", add_user_application_application_group_path(@application, @application_group, user_id: user.id), 
+                        method: :post, 
+                        class: "btn btn-sm btn-primary", 
+                        data: { turbo: false } %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('userSearchInput');
+    const userRows = document.querySelectorAll('.user-row');
+    
+    if (searchInput) {
+      searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase().trim();
+        
+        userRows.forEach(function(row) {
+          const name = row.getAttribute('data-name') || '';
+          const email = row.getAttribute('data-email') || '';
+          const authentikId = row.getAttribute('data-authentik-id') || '';
+          
+          if (searchTerm === '' || 
+              name.includes(searchTerm) || 
+              email.includes(searchTerm) || 
+              authentikId.includes(searchTerm)) {
+            row.style.display = '';
+          } else {
+            row.style.display = 'none';
+          }
+        });
+      });
+    }
+  });
+</script>

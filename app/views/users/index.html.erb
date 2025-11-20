@@ -13,11 +13,43 @@
   </div>
 </div>
 
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <h2 class="h6 mb-3">Membership Status</h2>
+    <div class="d-flex flex-wrap gap-3 mb-3">
+      <span class="badge text-bg-secondary">Unknown: <strong><%= @membership_status_unknown %></strong></span>
+      <span class="badge text-bg-primary">Sponsored: <strong><%= @membership_status_sponsored %></strong></span>
+      <span class="badge text-bg-info">Basic: <strong><%= @membership_status_basic %></strong></span>
+      <span class="badge text-bg-danger">Banned: <strong><%= @membership_status_banned %></strong></span>
+      <span class="badge text-bg-dark">Deceased: <strong><%= @membership_status_deceased %></strong></span>
+    </div>
+    
+    <h2 class="h6 mb-3">Payment Type</h2>
+    <div class="d-flex flex-wrap gap-3">
+      <span class="badge text-bg-secondary">Unknown: <strong><%= @payment_type_unknown %></strong></span>
+      <span class="badge text-bg-primary">Sponsored: <strong><%= @payment_type_sponsored %></strong></span>
+      <span class="badge text-bg-info">PayPal: <strong><%= @payment_type_paypal %></strong></span>
+      <span class="badge text-bg-info">Recharge: <strong><%= @payment_type_recharge %></strong></span>
+      <span class="badge text-bg-info">Cash: <strong><%= @payment_type_cash %></strong></span>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <div class="d-flex gap-2">
+      <input type="text" id="user_search" class="form-control" placeholder="Search by name, email, or Authentik ID…" autocomplete="off" value="<%= params[:q] %>">
+      <button type="button" id="clear_search" class="btn btn-outline-secondary" style="<%= params[:q].present? ? '' : 'display: none;' %>">Clear</button>
+    </div>
+  </div>
+</div>
+
 <div class="card shadow-sm border-0">
   <div class="table-responsive">
     <table class="table mb-0 align-middle">
       <thead class="bg-body-tertiary">
         <tr>
+          <th scope="col" style="width: 48px;"></th>
           <th scope="col">Name</th>
           <th scope="col">Email</th>
           <th scope="col">Status</th>
@@ -25,9 +57,19 @@
           <th scope="col">Last synced</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="users_table_body">
         <% @users.each do |user| %>
-          <tr>
+          <tr class="user-row" 
+              data-search-text="<%= [user.display_name, user.email, user.authentik_id].compact.join(' ').downcase %>">
+            <td>
+              <% if user.avatar.present? %>
+                <img src="<%= user.avatar %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
+              <% elsif user.email.present? %>
+                <img src="<%= gravatar_url(user.email, size: 32) %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
+              <% else %>
+                <div style="width: 32px; height: 32px; border-radius: 4px; background-color: #dee2e6; display: inline-block;"></div>
+              <% end %>
+            </td>
             <td class="fw-semibold">
               <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
             </td>
@@ -45,6 +87,7 @@
                  when "guest" then "warning"
                  when "banned" then "danger"
                  when "deceased" then "dark"
+                 when "sponsored" then "primary"
                  when "unknown" then "secondary"
                  else "secondary"
                  end %>
@@ -66,4 +109,53 @@
   </div>
 </div>
 
+<script>
+  (function() {
+    const searchInput = document.getElementById('user_search');
+    const clearButton = document.getElementById('clear_search');
+    const tableBody = document.getElementById('users_table_body');
+    
+    if (!searchInput || !tableBody) return;
+    
+    function filterUsers() {
+      const searchTerm = searchInput.value.toLowerCase().trim();
+      const rows = tableBody.querySelectorAll('.user-row');
+      let visibleCount = 0;
+      
+      rows.forEach(function(row) {
+        const searchText = row.getAttribute('data-search-text');
+        if (searchText && searchText.includes(searchTerm)) {
+          row.style.display = '';
+          visibleCount++;
+        } else {
+          row.style.display = 'none';
+        }
+      });
+      
+      // Show/hide clear button
+      if (clearButton) {
+        if (searchTerm !== '') {
+          clearButton.style.display = '';
+        } else {
+          clearButton.style.display = 'none';
+        }
+      }
+    }
+    
+    searchInput.addEventListener('input', filterUsers);
+    
+    if (clearButton) {
+      clearButton.addEventListener('click', function() {
+        searchInput.value = '';
+        filterUsers();
+        searchInput.focus();
+      });
+    }
+    
+    // Initial filter if there's a value in the search box
+    if (searchInput.value) {
+      filterUsers();
+    }
+  })();
+</script>
 

@@ -1,5 +1,5 @@
-require "test_helper"
-require "active_job/test_helper"
+require 'test_helper'
+require 'active_job/test_helper'
 
 class PaypalPaymentsControllerTest < ActionDispatch::IntegrationTest
   include ActiveJob::TestHelper
@@ -9,20 +9,20 @@ class PaypalPaymentsControllerTest < ActionDispatch::IntegrationTest
     @payment = paypal_payments(:sample_payment)
   end
 
-  test "shows index" do
+  test 'shows index' do
     get paypal_payments_path
     assert_response :success
-    assert_select "h1", /PayPal Payments/
+    assert_select 'h1', /PayPal Payments/
     assert_match @payment.paypal_id, response.body
   end
 
-  test "shows payment" do
+  test 'shows payment' do
     get paypal_payment_path(@payment)
     assert_response :success
     assert_match @payment.paypal_id, response.body
   end
 
-  test "enqueues sync job" do
+  test 'enqueues sync job' do
     assert_enqueued_with(job: Paypal::PaymentSyncJob) do
       post sync_paypal_payments_path
     end
@@ -36,9 +36,8 @@ class PaypalPaymentsControllerTest < ActionDispatch::IntegrationTest
     post local_login_path, params: {
       session: {
         email: account.email,
-        password: "localpassword123"
+        password: 'localpassword123'
       }
     }
   end
 end
-

@@ -10,7 +10,7 @@ class SlackUser < ApplicationRecord
             }
 
   scope :active, -> { where(deleted: false, is_bot: false) }
-  scope :with_attribute, ->(key, value) { where("raw_attributes ->> ? = ?", key.to_s, value.to_s) }
+  scope :with_attribute, ->(key, value) { where('raw_attributes ->> ? = ?', key.to_s, value.to_s) }
 
   def display_name
     display_name = self[:display_name].presence || real_name.presence || username.presence

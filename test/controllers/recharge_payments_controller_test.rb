@@ -1,5 +1,5 @@
-require "test_helper"
-require "active_job/test_helper"
+require 'test_helper'
+require 'active_job/test_helper'
 
 class RechargePaymentsControllerTest < ActionDispatch::IntegrationTest
   include ActiveJob::TestHelper
@@ -9,20 +9,20 @@ class RechargePaymentsControllerTest < ActionDispatch::IntegrationTest
     @payment = recharge_payments(:recharge_payment)
   end
 
-  test "shows index" do
+  test 'shows index' do
     get recharge_payments_path
     assert_response :success
-    assert_select "h1", /Recharge Payments/
+    assert_select 'h1', /Recharge Payments/
     assert_match @payment.recharge_id, response.body
   end
 
-  test "shows payment" do
+  test 'shows payment' do
     get recharge_payment_path(@payment)
     assert_response :success
     assert_match @payment.recharge_id, response.body
   end
 
-  test "enqueues sync job" do
+  test 'enqueues sync job' do
     assert_enqueued_with(job: Recharge::PaymentSyncJob) do
       post sync_recharge_payments_path
     end
@@ -36,9 +36,8 @@ class RechargePaymentsControllerTest < ActionDispatch::IntegrationTest
     post local_login_path, params: {
       session: {
         email: account.email,
-        password: "localpassword123"
+        password: 'localpassword123'
       }
     }
   end
 end
-

@@ -1,5 +1,5 @@
-require "test_helper"
-require "active_job/test_helper"
+require 'test_helper'
+require 'active_job/test_helper'
 
 class SheetEntriesControllerTest < ActionDispatch::IntegrationTest
   include ActiveJob::TestHelper
@@ -16,16 +16,16 @@ class SheetEntriesControllerTest < ActionDispatch::IntegrationTest
     Rails.application.config.x.local_auth.enabled = @original_local_auth_enabled
   end
 
-  test "shows index" do
+  test 'shows index' do
     get sheet_entries_path
     assert_response :success
-    assert_select "h1", text: "Sheet Entries"
+    assert_select 'h1', text: 'Sheet Entries'
     assert_match @sheet_entry.name, response.body
-    assert_match /share Authentik emails/, response.body
-    assert_match /share Authentik names/, response.body
+    assert_match(/share Authentik emails/, response.body)
+    assert_match(/share Authentik names/, response.body)
   end
 
-  test "shows a single entry" do
+  test 'shows a single entry' do
     get sheet_entry_path(@sheet_entry)
     assert_response :success
     assert_match @sheet_entry.name, response.body
@@ -34,7 +34,7 @@ class SheetEntriesControllerTest < ActionDispatch::IntegrationTest
     assert_match @sheet_entry.recharge_payments.first.recharge_id, response.body
   end
 
-  test "enqueues sync job" do
+  test 'enqueues sync job' do
     assert_enqueued_with(job: GoogleSheets::SyncJob) do
       post sync_sheet_entries_path
     end
@@ -47,10 +47,9 @@ class SheetEntriesControllerTest < ActionDispatch::IntegrationTest
     post local_login_path, params: {
       session: {
         email: @local_account.email,
-        password: "localpassword123"
+        password: 'localpassword123'
       }
     }
     follow_redirect!
   end
 end
-

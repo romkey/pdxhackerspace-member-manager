@@ -14,7 +14,6 @@ class PaymentHistory
   end
 
   def self.sort_payments(payments)
-    payments.sort_by { |payment| payment.processed_time || payment.created_at || Time.at(0) }.reverse
+    payments.sort_by { |payment| payment.processed_time || payment.created_at || Time.zone.at(0) }.reverse
   end
 end
-

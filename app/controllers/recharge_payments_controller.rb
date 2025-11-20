@@ -1,5 +1,3 @@
-require 'set'
-
 class RechargePaymentsController < AuthenticatedController
   def index
     @payments = RechargePayment.ordered
@@ -9,100 +7,75 @@ class RechargePaymentsController < AuthenticatedController
 
   def show
     @payment = RechargePayment.find(params[:id])
-    
-    # Try to find user by recharge_customer_id if payment has a customer_id
-    if @payment.raw_attributes.present?
-      customer_id = @payment.raw_attributes.dig("customer", "id") || @payment.raw_attributes["customer_id"]
-      if customer_id.present?
-        @user_by_customer_id = User.where(recharge_customer_id: customer_id.to_s).first
-      end
-    end
+
+    # Try to find user by recharge_customer_id
+    @customer_id = extract_customer_id(@payment)
+    @user_by_customer_id = nil
+    @user_by_customer_id = User.where(recharge_customer_id: @customer_id.to_s).first if @customer_id.present?
+
+    # Get all users for the selection dropdown (if no match found)
+    @all_users = User.ordered_by_display_name if @user_by_customer_id.nil?
   end
 
   def sync
     Recharge::PaymentSyncJob.perform_later
-    redirect_to recharge_payments_path, notice: "Recharge payment sync has been scheduled."
+    redirect_to recharge_payments_path, notice: 'Recharge payment sync has been scheduled.'
   end
 
   def test
-    @failures = []
-    
-    # Track which payments matched by email or name
-    payments_matched_by_email = Set.new
-    payments_matched_by_name = Set.new
-    unique_matched_emails = Set.new
-    unique_matched_names = Set.new
-    unique_successful_payees = Set.new
-    
-    # Test email reconciliation
-    RechargePayment.where.not(customer_email: nil).find_each do |payment|
-      normalized_email = payment.customer_email.to_s.strip.downcase
-      next if normalized_email.blank?
-      
-      # Find users with matching email (primary or extra_emails)
-      matching_users = User.where("LOWER(email) = ?", normalized_email)
-      matching_users += User.where("EXISTS (SELECT 1 FROM unnest(extra_emails) AS email WHERE LOWER(email) = ?)", normalized_email)
-      matching_users = matching_users.uniq
-      
-      if matching_users.any?
-        payments_matched_by_email.add(payment.id)
-        unique_matched_emails.add(normalized_email)
-        unique_successful_payees.add("email:#{normalized_email}")
+    # Find payments that don't have a matching User by recharge_customer_id
+    @unmatched_payments = []
+
+    RechargePayment.find_each do |payment|
+      customer_id = extract_customer_id(payment)
+      next if customer_id.blank?
+
+      # Check if any User has this customer_id as their recharge_customer_id
+      matching_user = User.where(recharge_customer_id: customer_id.to_s).first
+
+      unless matching_user
+        @unmatched_payments << {
+          payment: payment,
+          email: payment.customer_email,
+          name: payment.customer_name,
+          customer_id: customer_id
+        }
       end
     end
-    
-    # Test name reconciliation
-    RechargePayment.where.not(customer_name: nil).find_each do |payment|
-      normalized_name = payment.customer_name.to_s.strip
-      next if normalized_name.blank?
-      
-      normalized_name_lower = normalized_name.downcase
-      
-      # Find users with matching name (case-insensitive)
-      matching_users = User.where("LOWER(full_name) = ?", normalized_name_lower)
-      
-      if matching_users.any?
-        payments_matched_by_name.add(payment.id)
-        unique_matched_names.add(normalized_name_lower)
-        
-        # Only add to successful payees if this payment didn't already match by email
-        # (to avoid double-counting the same payee)
-        unless payments_matched_by_email.include?(payment.id)
-          unique_successful_payees.add("name:#{normalized_name_lower}")
-        end
-      end
+
+    @total_payments = RechargePayment.count
+    @matched_count = @total_payments - @unmatched_payments.count
+  end
+
+  def link_user
+    @payment = RechargePayment.find(params[:id])
+    user = User.find(params[:user_id])
+
+    customer_id = extract_customer_id(@payment)
+
+    if customer_id.present?
+      updates = { recharge_customer_id: customer_id.to_s }
+
+      # Set payment_type to 'recharge'
+      updates[:payment_type] = 'recharge' if user.payment_type != 'recharge'
+
+      # If membership_status is 'unknown', set it to 'basic'
+      updates[:membership_status] = 'basic' if user.membership_status == 'unknown'
+
+      user.update!(updates)
+      redirect_to recharge_payment_path(@payment),
+                  notice: "Linked to user #{user.display_name} and updated their Recharge customer ID, payment type, and membership status."
+    else
+      redirect_to recharge_payment_path(@payment), alert: 'Cannot link: payment has no customer ID.'
     end
-    
-    # Find payments that matched neither email nor name
-    all_payment_ids = Set.new(RechargePayment.pluck(:id))
-    matched_payment_ids = payments_matched_by_email + payments_matched_by_name
-    unmatched_payment_ids = all_payment_ids - matched_payment_ids
-    
-    # Track unique payees that failed (by email or name)
-    unique_failed_payees = Set.new
-    
-    RechargePayment.where(id: unmatched_payment_ids).find_each do |payment|
-      @failures << {
-        payment: payment,
-        email: payment.customer_email,
-        name: payment.customer_name
-      }
-      
-      # Track unique payees - prefer email, fall back to name
-      if payment.customer_email.present?
-        normalized_email = payment.customer_email.to_s.strip.downcase
-        unique_failed_payees.add("email:#{normalized_email}") if normalized_email.present?
-      elsif payment.customer_name.present?
-        normalized_name = payment.customer_name.to_s.strip.downcase
-        unique_failed_payees.add("name:#{normalized_name}") if normalized_name.present?
-      end
-    end
-    
-    @unique_email_successes = unique_matched_emails.size
-    @unique_name_successes = unique_matched_names.size
-    @unique_successful_payees = unique_successful_payees.size
-    @total_failures = @failures.size
-    @unique_failed_payees = unique_failed_payees.size
+  end
+
+  private
+
+  def extract_customer_id(payment)
+    return nil if payment.raw_attributes.blank?
+
+    payment.raw_attributes.dig('customer', 'id') ||
+      payment.raw_attributes['customer_id']
   end
 end
-

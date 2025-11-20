@@ -18,6 +18,15 @@
   </div>
 </div>
 
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <div class="d-flex gap-2">
+      <input type="text" id="sheet_search" class="form-control" placeholder="Search by name, email, status, payment, or access…" autocomplete="off">
+      <button type="button" id="clear_sheet_search" class="btn btn-outline-secondary" style="display: none;">Clear</button>
+    </div>
+  </div>
+</div>
+
 <div class="card shadow-sm border-0">
   <div class="table-responsive">
     <table class="table mb-0 align-middle">
@@ -31,9 +40,16 @@
           <th scope="col">Last synced</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="sheet_entries_table_body">
         <% @sheet_entries.each do |entry| %>
-          <tr>
+          <tr class="sheet-entry-row" 
+              data-search-text="<%= [
+                entry.name,
+                entry.email,
+                entry.status.presence || "inactive",
+                entry.payment,
+                entry.access_permissions.join(" ")
+              ].compact.join(' ').downcase %>">
             <td class="fw-semibold"><%= link_to entry.name, sheet_entry_path(entry) %></td>
             <td><%= entry.email ? mail_to(entry.email) : content_tag(:span, "Not provided", class: "text-muted fst-italic") %></td>
             <td><%= entry.status.presence || content_tag(:span, "Inactive", class: "text-muted") %></td>
@@ -52,4 +68,47 @@
     </table>
   </div>
 </div>
+
+<script>
+  (function() {
+    const searchInput = document.getElementById('sheet_search');
+    const clearButton = document.getElementById('clear_sheet_search');
+    const tableBody = document.getElementById('sheet_entries_table_body');
+    
+    if (!searchInput || !tableBody) return;
+    
+    function filterEntries() {
+      const searchTerm = searchInput.value.toLowerCase().trim();
+      const rows = tableBody.querySelectorAll('.sheet-entry-row');
+      
+      rows.forEach(function(row) {
+        const searchText = row.getAttribute('data-search-text');
+        if (searchText && searchText.includes(searchTerm)) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+      
+      // Show/hide clear button
+      if (clearButton) {
+        if (searchTerm !== '') {
+          clearButton.style.display = '';
+        } else {
+          clearButton.style.display = 'none';
+        }
+      }
+    }
+    
+    searchInput.addEventListener('input', filterEntries);
+    
+    if (clearButton) {
+      clearButton.addEventListener('click', function() {
+        searchInput.value = '';
+        filterEntries();
+        searchInput.focus();
+      });
+    }
+  })();
+</script>
 

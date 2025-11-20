@@ -24,7 +24,7 @@ class ApplicationController < ActionController::Base
   def require_authenticated_user!
     return if user_signed_in?
 
-    redirect_to login_path, alert: "Please sign in to continue."
+    redirect_to login_path, alert: 'Please sign in to continue.'
   end
 
   def local_auth_enabled?

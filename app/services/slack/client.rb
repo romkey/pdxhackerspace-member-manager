@@ -1,8 +1,8 @@
-require "faraday"
+require 'faraday'
 
 module Slack
   class Client
-    USERS_LIST_ENDPOINT = "/api/users.list".freeze
+    USERS_LIST_ENDPOINT = '/api/users.list'.freeze
     DEFAULT_LIMIT = 200
 
     def initialize(token: SlackConfig.settings.api_token, base_url: SlackConfig.settings.base_url)
@@ -11,7 +11,7 @@ module Slack
     end
 
     def list_users
-      raise ArgumentError, "Slack API token is missing" if @token.blank?
+      raise ArgumentError, 'Slack API token is missing' if @token.blank?
 
       members = []
       cursor = nil
@@ -22,7 +22,7 @@ module Slack
         handle_error!(payload)
 
         members += extract_members(payload)
-        cursor = payload.dig("response_metadata", "next_cursor").presence
+        cursor = payload.dig('response_metadata', 'next_cursor').presence
         break if cursor.blank?
       end
 
@@ -33,7 +33,7 @@ module Slack
 
     def connection
       @connection ||= Faraday.new(url: @base_url) do |faraday|
-        faraday.request :authorization, "Bearer", @token
+        faraday.request :authorization, 'Bearer', @token
         faraday.response :raise_error
         faraday.adapter Faraday.default_adapter
       end
@@ -46,27 +46,27 @@ module Slack
     end
 
     def handle_error!(payload)
-      return if payload["ok"]
+      return if payload['ok']
 
       raise StandardError, "Slack API error: #{payload['error']}"
     end
 
     def extract_members(payload)
-      Array(payload["members"]).map do |member|
+      Array(payload['members']).map do |member|
         {
-          slack_id: member["id"],
-          team_id: member["team_id"],
-          username: member["name"],
-          real_name: member.dig("profile", "real_name"),
-          display_name: member.dig("profile", "display_name"),
-          email: normalize_email(member.dig("profile", "email")),
-          title: member.dig("profile", "title"),
-          phone: member.dig("profile", "phone"),
-          tz: member["tz"],
-          is_admin: truthy?(member["is_admin"]),
-          is_owner: truthy?(member["is_owner"]),
-          is_bot: truthy?(member["is_bot"]),
-          deleted: truthy?(member["deleted"]),
+          slack_id: member['id'],
+          team_id: member['team_id'],
+          username: member['name'],
+          real_name: member.dig('profile', 'real_name'),
+          display_name: member.dig('profile', 'display_name'),
+          email: normalize_email(member.dig('profile', 'email')),
+          title: member.dig('profile', 'title'),
+          phone: member.dig('profile', 'phone'),
+          tz: member['tz'],
+          is_admin: truthy?(member['is_admin']),
+          is_owner: truthy?(member['is_owner']),
+          is_bot: truthy?(member['is_bot']),
+          deleted: truthy?(member['deleted']),
           raw_attributes: member,
           last_synced_at: Time.current
         }
@@ -82,4 +82,3 @@ module Slack
     end
   end
 end
-

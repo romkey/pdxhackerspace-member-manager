@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_11_19_041357) do
+ActiveRecord::Schema[7.1].define(version: 2025_11_20_051722) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -27,6 +27,35 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_19_041357) do
     t.index ["logged_at"], name: "index_access_logs_on_logged_at"
     t.index ["name"], name: "index_access_logs_on_name"
     t.index ["user_id"], name: "index_access_logs_on_user_id"
+  end
+
+  create_table "application_groups", force: :cascade do |t|
+    t.bigint "application_id", null: false
+    t.string "name"
+    t.string "authentik_name"
+    t.text "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["application_id"], name: "index_application_groups_on_application_id"
+  end
+
+  create_table "application_groups_users", id: false, force: :cascade do |t|
+    t.bigint "application_group_id", null: false
+    t.bigint "user_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["application_group_id", "user_id"], name: "index_app_groups_users_on_group_and_user", unique: true
+    t.index ["application_group_id"], name: "index_application_groups_users_on_application_group_id"
+    t.index ["user_id"], name: "index_application_groups_users_on_user_id"
+  end
+
+  create_table "applications", force: :cascade do |t|
+    t.string "name"
+    t.string "internal_url"
+    t.string "external_url"
+    t.string "authentik_prefix"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "journals", force: :cascade do |t|
@@ -201,7 +230,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_19_041357) do
   end
 
   create_table "users", force: :cascade do |t|
-    t.string "authentik_id", null: false
+    t.string "authentik_id"
     t.string "email"
     t.string "full_name"
     t.datetime "last_synced_at"
@@ -216,18 +245,24 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_19_041357) do
     t.text "notes"
     t.datetime "last_login_at"
     t.string "membership_status", default: "unknown"
-    t.string "recharge_order_number"
     t.datetime "recharge_most_recent_payment_date"
     t.string "recharge_customer_id"
     t.string "dues_status", default: "unknown"
     t.boolean "active", default: false, null: false
+    t.date "last_payment_date"
+    t.string "paypal_account_id"
+    t.string "avatar"
     t.index ["authentik_attributes"], name: "index_users_on_authentik_attributes", using: :gin
     t.index ["authentik_id"], name: "index_users_on_authentik_id", unique: true
     t.index ["email"], name: "index_users_on_email", unique: true, where: "(email IS NOT NULL)"
+    t.index ["paypal_account_id"], name: "index_users_on_paypal_account_id"
     t.index ["recharge_customer_id"], name: "index_users_on_recharge_customer_id"
   end
 
   add_foreign_key "access_logs", "users"
+  add_foreign_key "application_groups", "applications"
+  add_foreign_key "application_groups_users", "application_groups"
+  add_foreign_key "application_groups_users", "users"
   add_foreign_key "journals", "users"
   add_foreign_key "journals", "users", column: "actor_user_id"
   add_foreign_key "paypal_payments", "sheet_entries"
