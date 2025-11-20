@@ -22,15 +22,24 @@ module Authentik
     def upsert_members(members, timestamp)
       members.each do |attrs|
         user = User.find_or_initialize_by(authentik_id: attrs[:authentik_id])
-        user.assign_attributes(
-          email: attrs[:email],
-          full_name: attrs[:full_name],
-          active: false,
-          membership_status: 'unknown',
-          payment_type: 'unknown',
-          authentik_attributes: attrs[:attributes] || {},
-          last_synced_at: timestamp
-        )
+        
+        # Merge in missing information - only set if blank/nil
+        user.email = attrs[:email] if user.email.blank? && attrs[:email].present?
+        user.full_name = attrs[:full_name] if user.full_name.blank? && attrs[:full_name].present?
+        
+        # Only reset active/membership_status/payment_type if this is a new record
+        if user.new_record?
+          user.active = false
+          user.membership_status = 'unknown'
+          user.payment_type = 'unknown'
+        end
+        
+        # Merge authentik_attributes - merge hashes instead of overwriting
+        existing_attrs = user.authentik_attributes || {}
+        new_attrs = attrs[:attributes] || {}
+        user.authentik_attributes = existing_attrs.deep_merge(new_attrs)
+        
+        user.last_synced_at = timestamp
         user.save!
 
         # Create RFID record if present in attributes

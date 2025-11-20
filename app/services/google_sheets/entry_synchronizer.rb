@@ -116,7 +116,30 @@ module GoogleSheets
         entries.each do |attrs|
           record = find_existing_entry(attrs)
           record ||= SheetEntry.new
-          record.assign_attributes(filtered_attributes(attrs))
+          
+          # Merge in missing information - only set if blank/nil
+          filtered = filtered_attributes(attrs)
+          filtered.each do |key, value|
+            next if value.blank?
+            
+            # Only set if the current value is blank/nil
+            current_value = record.send(key)
+            if current_value.blank?
+              record.send("#{key}=", value)
+            end
+          end
+          
+          # Special handling: if we found by name but new entry has email, update email if blank
+          if record.persisted? && attrs[:email].present? && record.email.blank?
+            record.email = attrs[:email].to_s.strip.presence
+          end
+          
+          # Special handling: if we found by email but new entry has name, update name if blank
+          if record.persisted? && attrs[:name].present? && record.name.blank?
+            record.name = attrs[:name]
+          end
+          
+          # Always update raw_attributes and last_synced_at
           record.raw_attributes = attrs
           record.last_synced_at = timestamp
           record.save!
@@ -128,9 +151,14 @@ module GoogleSheets
     end
 
     def find_existing_entry(attrs)
+      # Try to find by email first (more reliable)
       if attrs[:email].present?
-        SheetEntry.find_by(email: attrs[:email].strip.downcase)
-      elsif attrs[:name].present?
+        entry = SheetEntry.find_by(email: attrs[:email].strip.downcase)
+        return entry if entry
+      end
+      
+      # Fall back to name matching
+      if attrs[:name].present?
         SheetEntry.find_by(name: attrs[:name])
       end
     end
