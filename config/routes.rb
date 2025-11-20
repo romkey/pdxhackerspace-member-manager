@@ -79,7 +79,7 @@ Rails.application.routes.draw do
   get "/reports", to: "reports#index", as: :reports
   
   require 'sidekiq/web'
-  mount Sidekiq::Web => '/sidekiq'
+  mount Sidekiq::Web => '/goh7zeeNiezoozaingothu4'
   
   resources :applications do
     resources :application_groups, except: [:index] do
