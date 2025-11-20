@@ -57,23 +57,32 @@ class User < ApplicationRecord
   private
 
   def journal_created!
+    changes = saved_changes_to_json_hash
+    # Ensure changes_json is never empty
+    changes = { '_system_note' => { 'from' => nil, 'to' => 'User record created' } } if changes.empty?
+
     Journal.create!(
       user: self,
-      actor_user: Current.user,
+      actor_user: Current.user, # nil when done by system (login, sync, etc.)
       action: 'created',
-      changes_json: saved_changes_to_json_hash,
+      changes_json: changes,
       changed_at: Time.current
     )
   end
 
   def journal_updated!
+    # Skip if only updated_at changed
     return if saved_changes.except('updated_at').empty?
+
+    changes = saved_changes_to_json_hash
+    # Ensure changes_json is never empty
+    changes = { '_system_note' => { 'from' => nil, 'to' => 'User record updated' } } if changes.empty?
 
     Journal.create!(
       user: self,
-      actor_user: Current.user,
+      actor_user: Current.user, # nil when done by system (login, sync, etc.)
       action: 'updated',
-      changes_json: saved_changes_to_json_hash,
+      changes_json: changes,
       changed_at: Time.current
     )
   end

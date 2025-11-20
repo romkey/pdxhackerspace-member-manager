@@ -175,9 +175,10 @@ module Recharge
       # Update last_payment_date if this payment is more recent
       updates[:last_payment_date] = payment_date if user.last_payment_date.nil? || payment_date > user.last_payment_date
 
-      # If payment is 1 month old or less, mark active as true and dues_status as current
-      if payment_date >= 1.month.ago.to_date
+      # If payment is within the last 32 days, mark user as active, set membership_status to basic, and dues_status to current
+      if payment_date >= 32.days.ago.to_date
         updates[:active] = true unless user.active?
+        updates[:membership_status] = 'basic' if user.membership_status != 'basic'
         updates[:dues_status] = 'current' if user.dues_status != 'current'
       end
 
@@ -213,10 +214,11 @@ module Recharge
 
         user.update_columns(updates)
 
-        # If most recent payment is 1 month old or less, ensure active is true and dues_status is current
-        if payment_date && payment_date >= 1.month.ago.to_date
+        # If most recent payment is within the last 32 days, ensure active is true, membership_status is basic, and dues_status is current
+        if payment_date && payment_date >= 32.days.ago.to_date
           status_updates = {}
           status_updates[:active] = true unless user.active?
+          status_updates[:membership_status] = 'basic' if user.membership_status != 'basic'
           status_updates[:dues_status] = 'current' if user.dues_status != 'current'
           user.update!(status_updates) if status_updates.any?
         end

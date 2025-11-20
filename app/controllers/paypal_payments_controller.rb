@@ -26,8 +26,25 @@ class PaypalPaymentsController < AuthenticatedController
       # Set payment_type to 'paypal'
       updates[:payment_type] = 'paypal' if user.payment_type != 'paypal'
 
-      # If membership_status is 'unknown', set it to 'basic'
-      updates[:membership_status] = 'basic' if user.membership_status == 'unknown'
+      # Find the most recent payment for this user (by paypal_account_id)
+      most_recent_payment = PaypalPayment.where(payer_id: @payment.payer_id)
+                                         .where.not(transaction_time: nil)
+                                         .order(transaction_time: :desc)
+                                         .first
+
+      if most_recent_payment&.transaction_time
+        payment_date = most_recent_payment.transaction_time.to_date
+
+        # Update last_payment_date to the most recent payment date
+        updates[:last_payment_date] = payment_date if user.last_payment_date.nil? || payment_date > user.last_payment_date
+
+        # If payment is within the last 32 days, mark user as active, set membership_status to basic, and dues_status to current
+        if payment_date >= 32.days.ago.to_date
+          updates[:active] = true unless user.active?
+          updates[:membership_status] = 'basic' if user.membership_status != 'basic'
+          updates[:dues_status] = 'current' if user.dues_status != 'current'
+        end
+      end
 
       user.update!(updates)
       redirect_to paypal_payment_path(@payment),

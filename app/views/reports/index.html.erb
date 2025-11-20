@@ -84,7 +84,40 @@
                   <span class="badge text-bg-info"><%= user.payment_type.humanize %></span>
                 </td>
                 <td>
-                  <%= link_to "Edit", edit_user_path(user), class: "btn btn-sm btn-outline-primary" %>
+                  <div class="d-flex flex-wrap gap-1">
+                    <%= link_to "Edit", edit_user_path(user), class: "btn btn-sm btn-outline-primary" %>
+                    <% if user.active? %>
+                      <%= button_to "Deactivate", reports_update_user_path(user_id: user.id, action_type: 'deactivate', anchor: 'membership-status-unknown'), method: :post, class: "btn btn-sm btn-outline-secondary", 
+                          data: { 
+                            turbo: false,
+                            confirm_message: "Are you sure you want to deactivate #{user.display_name}?"
+                          },
+                          onclick: "return confirm(this.dataset.confirmMessage);" %>
+                    <% else %>
+                      <%= button_to "Activate", reports_update_user_path(user_id: user.id, action_type: 'activate', anchor: 'membership-status-unknown'), method: :post, class: "btn btn-sm btn-outline-success", 
+                          data: { 
+                            turbo: false,
+                            confirm_message: "Are you sure you want to activate #{user.display_name}?"
+                          },
+                          onclick: "return confirm(this.dataset.confirmMessage);" %>
+                    <% end %>
+                    <%= button_to "Ban", reports_update_user_path(user_id: user.id, action_type: 'ban', anchor: 'membership-status-unknown'), method: :post, class: "btn btn-sm btn-outline-danger", 
+                        data: { 
+                          turbo: false,
+                          confirm_message: "Are you sure you want to ban #{user.display_name}? This will set their membership status to 'banned' and deactivate them."
+                        },
+                        onclick: "return confirm(this.dataset.confirmMessage);" %>
+                    <%= button_to "Deceased", reports_update_user_path(user_id: user.id, action_type: 'deceased', anchor: 'membership-status-unknown'), method: :post, class: "btn btn-sm btn-outline-dark", 
+                        data: { 
+                          turbo: false,
+                          confirm_message: "Are you sure you want to mark #{user.display_name} as deceased? This will set their membership status to 'deceased' and deactivate them."
+                        },
+                        onclick: "return confirm(this.dataset.confirmMessage);" %>
+                    <%= button_to "Basic", reports_update_user_path(user_id: user.id, action_type: 'basic', anchor: 'membership-status-unknown'), method: :post, class: "btn btn-sm btn-outline-info" %>
+                    <%= button_to "Coworking", reports_update_user_path(user_id: user.id, action_type: 'coworking', anchor: 'membership-status-unknown'), method: :post, class: "btn btn-sm btn-outline-success" %>
+                    <%= button_to "Sponsored", reports_update_user_path(user_id: user.id, action_type: 'sponsored', anchor: 'membership-status-unknown'), method: :post, class: "btn btn-sm btn-outline-primary" %>
+                    <%= button_to "Guest", reports_update_user_path(user_id: user.id, action_type: 'guest', anchor: 'membership-status-unknown'), method: :post, class: "btn btn-sm btn-outline-warning" %>
+                  </div>
                 </td>
               </tr>
             <% end %>
@@ -150,7 +183,35 @@
                   <span class="badge text-bg-info"><%= user.payment_type.humanize %></span>
                 </td>
                 <td>
-                  <%= link_to "Edit", edit_user_path(user), class: "btn btn-sm btn-outline-primary" %>
+                  <div class="d-flex flex-wrap gap-1">
+                    <%= link_to "Edit", edit_user_path(user), class: "btn btn-sm btn-outline-primary" %>
+                    <% if user.active? %>
+                      <%= button_to "Deactivate", reports_update_user_path(user_id: user.id, action_type: 'deactivate', anchor: 'payment-type-unknown'), method: :post, class: "btn btn-sm btn-outline-secondary", 
+                          data: { 
+                            turbo: false,
+                            confirm_message: "Are you sure you want to deactivate #{user.display_name}?"
+                          },
+                          onclick: "return confirm(this.dataset.confirmMessage);" %>
+                    <% else %>
+                      <%= button_to "Activate", reports_update_user_path(user_id: user.id, action_type: 'activate', anchor: 'payment-type-unknown'), method: :post, class: "btn btn-sm btn-outline-success", 
+                          data: { 
+                            turbo: false,
+                            confirm_message: "Are you sure you want to activate #{user.display_name}?"
+                          },
+                          onclick: "return confirm(this.dataset.confirmMessage);" %>
+                    <% end %>
+                    <%= button_to "Ban", reports_update_user_path(user_id: user.id, action_type: 'ban', anchor: 'payment-type-unknown'), method: :post, class: "btn btn-sm btn-outline-danger", 
+                        data: { 
+                          turbo: false,
+                          confirm_message: "Are you sure you want to ban #{user.display_name}? This will set their membership status to 'banned' and deactivate them."
+                        },
+                        onclick: "return confirm(this.dataset.confirmMessage);" %>
+                    <%= button_to "Cash", reports_update_user_path(user_id: user.id, action_type: 'cash', anchor: 'payment-type-unknown'), method: :post, class: "btn btn-sm btn-outline-secondary" %>
+                    <%= button_to "PayPal", reports_update_user_path(user_id: user.id, action_type: 'paypal', anchor: 'payment-type-unknown'), method: :post, class: "btn btn-sm btn-outline-secondary" %>
+                    <%= button_to "Recharge", reports_update_user_path(user_id: user.id, action_type: 'recharge', anchor: 'payment-type-unknown'), method: :post, class: "btn btn-sm btn-outline-secondary" %>
+                    <%= button_to "Guest", reports_update_user_path(user_id: user.id, action_type: 'guest', anchor: 'payment-type-unknown'), method: :post, class: "btn btn-sm btn-outline-secondary" %>
+                    <%= button_to "Sponsored", reports_update_user_path(user_id: user.id, action_type: 'sponsored', anchor: 'payment-type-unknown'), method: :post, class: "btn btn-sm btn-outline-secondary" %>
+                  </div>
                 </td>
               </tr>
             <% end %>
@@ -223,7 +284,40 @@
                   <span class="badge text-bg-<%= dues_badge_class %>"><%= user.dues_status.humanize %></span>
                 </td>
                 <td>
-                  <%= link_to "Edit", edit_user_path(user), class: "btn btn-sm btn-outline-primary" %>
+                  <div class="d-flex flex-wrap gap-1">
+                    <%= link_to "Edit", edit_user_path(user), class: "btn btn-sm btn-outline-primary" %>
+                    <% if user.active? %>
+                      <%= button_to "Deactivate", reports_update_user_path(user_id: user.id, action_type: 'deactivate', anchor: 'dues-status-unknown'), method: :post, class: "btn btn-sm btn-outline-secondary", 
+                          data: { 
+                            turbo: false,
+                            confirm_message: "Are you sure you want to deactivate #{user.display_name}?"
+                          },
+                          onclick: "return confirm(this.dataset.confirmMessage);" %>
+                    <% else %>
+                      <%= button_to "Activate", reports_update_user_path(user_id: user.id, action_type: 'activate', anchor: 'dues-status-unknown'), method: :post, class: "btn btn-sm btn-outline-success", 
+                          data: { 
+                            turbo: false,
+                            confirm_message: "Are you sure you want to activate #{user.display_name}?"
+                          },
+                          onclick: "return confirm(this.dataset.confirmMessage);" %>
+                    <% end %>
+                    <%= button_to "Ban", reports_update_user_path(user_id: user.id, action_type: 'ban', anchor: 'dues-status-unknown'), method: :post, class: "btn btn-sm btn-outline-danger", 
+                        data: { 
+                          turbo: false,
+                          confirm_message: "Are you sure you want to ban #{user.display_name}? This will set their membership status to 'banned' and deactivate them."
+                        },
+                        onclick: "return confirm(this.dataset.confirmMessage);" %>
+                    <%= button_to "Deceased", reports_update_user_path(user_id: user.id, action_type: 'deceased', anchor: 'dues-status-unknown'), method: :post, class: "btn btn-sm btn-outline-dark", 
+                        data: { 
+                          turbo: false,
+                          confirm_message: "Are you sure you want to mark #{user.display_name} as deceased? This will set their membership status to 'deceased' and deactivate them."
+                        },
+                        onclick: "return confirm(this.dataset.confirmMessage);" %>
+                    <%= button_to "Basic", reports_update_user_path(user_id: user.id, action_type: 'basic', anchor: 'dues-status-unknown'), method: :post, class: "btn btn-sm btn-outline-info" %>
+                    <%= button_to "Coworking", reports_update_user_path(user_id: user.id, action_type: 'coworking', anchor: 'dues-status-unknown'), method: :post, class: "btn btn-sm btn-outline-success" %>
+                    <%= button_to "Sponsored", reports_update_user_path(user_id: user.id, action_type: 'sponsored', anchor: 'dues-status-unknown'), method: :post, class: "btn btn-sm btn-outline-primary" %>
+                    <%= button_to "Guest", reports_update_user_path(user_id: user.id, action_type: 'guest', anchor: 'dues-status-unknown'), method: :post, class: "btn btn-sm btn-outline-warning" %>
+                  </div>
                 </td>
               </tr>
             <% end %>
@@ -297,7 +391,40 @@
                   <% end %>
                 </td>
                 <td>
-                  <%= link_to "Edit", edit_user_path(user), class: "btn btn-sm btn-outline-primary" %>
+                  <div class="d-flex flex-wrap gap-1">
+                    <%= link_to "Edit", edit_user_path(user), class: "btn btn-sm btn-outline-primary" %>
+                    <% if user.active? %>
+                      <%= button_to "Deactivate", reports_update_user_path(user_id: user.id, action_type: 'deactivate', anchor: 'dues-status-lapsed'), method: :post, class: "btn btn-sm btn-outline-secondary", 
+                          data: { 
+                            turbo: false,
+                            confirm_message: "Are you sure you want to deactivate #{user.display_name}?"
+                          },
+                          onclick: "return confirm(this.dataset.confirmMessage);" %>
+                    <% else %>
+                      <%= button_to "Activate", reports_update_user_path(user_id: user.id, action_type: 'activate', anchor: 'dues-status-lapsed'), method: :post, class: "btn btn-sm btn-outline-success", 
+                          data: { 
+                            turbo: false,
+                            confirm_message: "Are you sure you want to activate #{user.display_name}?"
+                          },
+                          onclick: "return confirm(this.dataset.confirmMessage);" %>
+                    <% end %>
+                    <%= button_to "Ban", reports_update_user_path(user_id: user.id, action_type: 'ban', anchor: 'dues-status-lapsed'), method: :post, class: "btn btn-sm btn-outline-danger", 
+                        data: { 
+                          turbo: false,
+                          confirm_message: "Are you sure you want to ban #{user.display_name}? This will set their membership status to 'banned' and deactivate them."
+                        },
+                        onclick: "return confirm(this.dataset.confirmMessage);" %>
+                    <%= button_to "Deceased", reports_update_user_path(user_id: user.id, action_type: 'deceased', anchor: 'dues-status-lapsed'), method: :post, class: "btn btn-sm btn-outline-dark", 
+                        data: { 
+                          turbo: false,
+                          confirm_message: "Are you sure you want to mark #{user.display_name} as deceased? This will set their membership status to 'deceased' and deactivate them."
+                        },
+                        onclick: "return confirm(this.dataset.confirmMessage);" %>
+                    <%= button_to "Basic", reports_update_user_path(user_id: user.id, action_type: 'basic', anchor: 'dues-status-lapsed'), method: :post, class: "btn btn-sm btn-outline-info" %>
+                    <%= button_to "Coworking", reports_update_user_path(user_id: user.id, action_type: 'coworking', anchor: 'dues-status-lapsed'), method: :post, class: "btn btn-sm btn-outline-success" %>
+                    <%= button_to "Sponsored", reports_update_user_path(user_id: user.id, action_type: 'sponsored', anchor: 'dues-status-lapsed'), method: :post, class: "btn btn-sm btn-outline-primary" %>
+                    <%= button_to "Guest", reports_update_user_path(user_id: user.id, action_type: 'guest', anchor: 'dues-status-lapsed'), method: :post, class: "btn btn-sm btn-outline-warning" %>
+                  </div>
                 </td>
               </tr>
             <% end %>

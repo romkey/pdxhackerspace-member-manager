@@ -59,8 +59,30 @@ class RechargePaymentsController < AuthenticatedController
       # Set payment_type to 'recharge'
       updates[:payment_type] = 'recharge' if user.payment_type != 'recharge'
 
-      # If membership_status is 'unknown', set it to 'basic'
-      updates[:membership_status] = 'basic' if user.membership_status == 'unknown'
+      # Find the most recent payment for this user (by recharge_customer_id)
+      # Check both possible locations for customer_id in raw_attributes
+      most_recent_payment = RechargePayment.where(status: 'SUCCESS')
+                                           .where.not(processed_at: nil)
+                                           .where(
+                                             "(raw_attributes->>'customer_id')::text = ? OR (raw_attributes->'customer'->>'id')::text = ?",
+                                             customer_id.to_s, customer_id.to_s
+                                           )
+                                           .order(processed_at: :desc)
+                                           .first
+
+      if most_recent_payment&.processed_at
+        payment_date = most_recent_payment.processed_at.to_date
+
+        # Update last_payment_date to the most recent payment date
+        updates[:last_payment_date] = payment_date if user.last_payment_date.nil? || payment_date > user.last_payment_date
+
+        # If payment is within the last 32 days, mark user as active, set membership_status to basic, and dues_status to current
+        if payment_date >= 32.days.ago.to_date
+          updates[:active] = true unless user.active?
+          updates[:membership_status] = 'basic' if user.membership_status != 'basic'
+          updates[:dues_status] = 'current' if user.dues_status != 'current'
+        end
+      end
 
       user.update!(updates)
       redirect_to recharge_payment_path(@payment),

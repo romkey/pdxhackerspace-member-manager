@@ -77,6 +77,7 @@ Rails.application.routes.draw do
   resources :training_topics, only: [:index, :create, :destroy]
   
   get "/reports", to: "reports#index", as: :reports
+  post "/reports/update_user", to: "reports#update_user", as: :reports_update_user
   
   require 'sidekiq/web'
   mount Sidekiq::Web => '/goh7zeeNiezoozaingothu4'

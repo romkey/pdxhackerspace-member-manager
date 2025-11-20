@@ -107,8 +107,12 @@ module Paypal
       # Update last_payment_date if this payment is more recent
       updates[:last_payment_date] = payment_date if user.last_payment_date.nil? || payment_date > user.last_payment_date
 
-      # If payment is 1 month old or less, set dues_status to current
-      updates[:dues_status] = 'current' if (payment_date >= 1.month.ago.to_date) && (user.dues_status != 'current')
+      # If payment is within the last 32 days, mark user as active, set membership_status to basic, and dues_status to current
+      if payment_date >= 32.days.ago.to_date
+        updates[:active] = true unless user.active?
+        updates[:membership_status] = 'basic' if user.membership_status != 'basic'
+        updates[:dues_status] = 'current' if user.dues_status != 'current'
+      end
 
       # Set paypal_account_id from payer_id (which comes from payer_info:account_id)
       if attrs[:payer_id].present? && user.paypal_account_id != attrs[:payer_id]
@@ -117,9 +121,6 @@ module Paypal
 
       # Set payment_type to 'paypal'
       updates[:payment_type] = 'paypal' if user.payment_type != 'paypal'
-
-      # If membership_status is 'unknown', set it to 'basic'
-      updates[:membership_status] = 'basic' if user.membership_status == 'unknown'
 
       user.update!(updates) if updates.any?
     end

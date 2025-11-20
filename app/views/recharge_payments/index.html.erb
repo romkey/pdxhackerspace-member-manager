@@ -3,7 +3,7 @@
     <h1 class="h3 mb-1">Recharge Payments</h1>
     <p class="text-muted mb-0">
       <strong><%= @payment_count %></strong> records —
-      Total <strong><%= number_to_currency(@total_amount || 0, unit: "") %> USD</strong>
+      Total <strong>$<%= number_to_currency(@total_amount || 0, unit: "") %> USD</strong>
     </p>
   </div>
   <div class="d-flex gap-2">

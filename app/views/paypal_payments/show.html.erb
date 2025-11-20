@@ -205,6 +205,13 @@
         setupClickHandlers();
       });
       
+      modal.addEventListener('shown.bs.modal', function() {
+        const searchInput = document.getElementById('user_search');
+        if (searchInput) {
+          searchInput.focus();
+        }
+      });
+      
       // Setup on page load if modal exists
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function() {
