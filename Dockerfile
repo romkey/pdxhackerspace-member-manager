@@ -18,7 +18,10 @@ ENV RAILS_ENV="production" \
 FROM base as build
 
 # Install packages needed to build gems and node modules
-RUN apt-get update -qq && \
+# Use cache mount for apt packages to speed up rebuilds
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update -qq && \
     apt-get install --no-install-recommends -y build-essential curl git libpq-dev libvips node-gyp pkg-config python-is-python3 libyaml-dev
 
 # Install JavaScript dependencies
@@ -31,14 +34,19 @@ RUN curl -sL https://github.com/nodenv/node-build/archive/master.tar.gz | tar xz
     rm -rf /tmp/node-build-master
 
 # Install application gems
+# Use cache mount for bundle gem cache to speed up gem installation
 COPY Gemfile Gemfile.lock ./
-RUN bundle install && \
+RUN --mount=type=cache,target=/root/.bundle/cache \
+    bundle install && \
     rm -rf ~/.bundle/ "${BUNDLE_PATH}"/ruby/*/cache "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git && \
     bundle exec bootsnap precompile --gemfile
 
 # Install node modules
+# Use cache mount for yarn cache to speed up npm install
 COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile
+RUN --mount=type=cache,target=/root/.yarn \
+    --mount=type=cache,target=/root/.cache \
+    yarn install --frozen-lockfile
 
 # Copy application code
 COPY . .
@@ -56,7 +64,10 @@ ARG APP_VERSION
 ENV APP_VERSION=${APP_VERSION}
 
 # Install packages needed for deployment
-RUN apt-get update -qq && \
+# Use cache mount for apt packages to speed up rebuilds
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update -qq && \
     apt-get install --no-install-recommends -y curl libvips postgresql-client libyaml-0-2 tzdata && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
