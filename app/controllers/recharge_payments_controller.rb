@@ -85,10 +85,21 @@ class RechargePaymentsController < AuthenticatedController
       end
 
       user.update!(updates)
-      redirect_to recharge_payment_path(@payment),
-                  notice: "Linked to user #{user.display_name} and updated their Recharge customer ID, payment type, and membership status."
+      
+      # Redirect back to reports if coming from there, otherwise to payment detail page
+      if params[:from_reports] == 'true'
+        redirect_to reports_path(anchor: 'unmatched-recharge'),
+                    notice: "Linked to user #{user.display_name} and updated their Recharge customer ID, payment type, and membership status."
+      else
+        redirect_to recharge_payment_path(@payment),
+                    notice: "Linked to user #{user.display_name} and updated their Recharge customer ID, payment type, and membership status."
+      end
     else
-      redirect_to recharge_payment_path(@payment), alert: 'Cannot link: payment has no customer ID.'
+      if params[:from_reports] == 'true'
+        redirect_to reports_path(anchor: 'unmatched-recharge'), alert: 'Cannot link: payment has no customer ID.'
+      else
+        redirect_to recharge_payment_path(@payment), alert: 'Cannot link: payment has no customer ID.'
+      end
     end
   end
 

@@ -4,6 +4,47 @@ class ReportsController < AuthenticatedController
     @payment_type_unknown = User.where(payment_type: 'unknown', active: true).ordered_by_display_name
     @dues_status_unknown = User.where(dues_status: 'unknown', active: true).ordered_by_display_name
     @dues_status_lapsed = User.where(dues_status: 'lapsed', active: true).ordered_by_display_name
+    
+    # Find unmatched PayPal payments
+    @unmatched_paypal_payments = []
+    PaypalPayment.where.not(payer_id: nil).find_each do |payment|
+      matching_user = User.where(paypal_account_id: payment.payer_id).first
+      unless matching_user
+        @unmatched_paypal_payments << {
+          payment: payment,
+          email: payment.payer_email,
+          name: payment.payer_name
+        }
+      end
+    end
+    
+    # Find unmatched Recharge payments
+    @unmatched_recharge_payments = []
+    RechargePayment.find_each do |payment|
+      customer_id = extract_customer_id(payment)
+      next if customer_id.blank?
+      
+      matching_user = User.where(recharge_customer_id: customer_id.to_s).first
+      unless matching_user
+        @unmatched_recharge_payments << {
+          payment: payment,
+          email: payment.customer_email,
+          name: payment.customer_name,
+          customer_id: customer_id
+        }
+      end
+    end
+    
+    @all_users = User.ordered_by_display_name
+  end
+  
+  private
+  
+  def extract_customer_id(payment)
+    return nil if payment.raw_attributes.blank?
+    
+    payment.raw_attributes.dig('customer', 'id') ||
+      payment.raw_attributes['customer_id']
   end
 
   def update_user

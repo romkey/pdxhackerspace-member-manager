@@ -47,10 +47,21 @@ class PaypalPaymentsController < AuthenticatedController
       end
 
       user.update!(updates)
-      redirect_to paypal_payment_path(@payment),
-                  notice: "Linked to user #{user.display_name} and updated their PayPal account ID, payment type, and membership status."
+      
+      # Redirect back to reports if coming from there, otherwise to payment detail page
+      if params[:from_reports] == 'true'
+        redirect_to reports_path(anchor: 'unmatched-paypal'),
+                    notice: "Linked to user #{user.display_name} and updated their PayPal account ID, payment type, and membership status."
+      else
+        redirect_to paypal_payment_path(@payment),
+                    notice: "Linked to user #{user.display_name} and updated their PayPal account ID, payment type, and membership status."
+      end
     else
-      redirect_to paypal_payment_path(@payment), alert: 'Cannot link: payment has no payer ID.'
+      if params[:from_reports] == 'true'
+        redirect_to reports_path(anchor: 'unmatched-paypal'), alert: 'Cannot link: payment has no payer ID.'
+      else
+        redirect_to paypal_payment_path(@payment), alert: 'Cannot link: payment has no payer ID.'
+      end
     end
   end
 

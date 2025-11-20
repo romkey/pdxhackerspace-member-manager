@@ -27,6 +27,16 @@
           Dues Status: Lapsed <span class="badge text-bg-light text-dark ms-2"><%= @dues_status_lapsed.count %></span>
         </span>
       <% end %>
+      <%= link_to "#unmatched-paypal", class: "text-decoration-none" do %>
+        <span class="badge text-bg-secondary fs-6 px-3 py-2">
+          Unmatched PayPal <span class="badge text-bg-light text-dark ms-2"><%= @unmatched_paypal_payments.count %></span>
+        </span>
+      <% end %>
+      <%= link_to "#unmatched-recharge", class: "text-decoration-none" do %>
+        <span class="badge text-bg-secondary fs-6 px-3 py-2">
+          Unmatched Recharge <span class="badge text-bg-light text-dark ms-2"><%= @unmatched_recharge_payments.count %></span>
+        </span>
+      <% end %>
     </div>
   </div>
 </div>
@@ -42,6 +52,7 @@
         <table class="table mb-0 align-middle">
           <thead class="bg-body-tertiary">
             <tr>
+              <th scope="col" style="width: 48px;"></th>
               <th scope="col">Name</th>
               <th scope="col">Email</th>
               <th scope="col">Status</th>
@@ -52,6 +63,15 @@
           <tbody>
             <% @membership_status_unknown.each do |user| %>
               <tr>
+                <td>
+                  <% if user.avatar.present? %>
+                    <img src="<%= user.avatar %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
+                  <% elsif user.email.present? %>
+                    <img src="<%= gravatar_url(user.email, size: 32) %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
+                  <% else %>
+                    <div style="width: 32px; height: 32px; border-radius: 4px; background-color: #dee2e6;"></div>
+                  <% end %>
+                </td>
                 <td class="fw-semibold">
                   <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
                 </td>
@@ -141,6 +161,7 @@
         <table class="table mb-0 align-middle">
           <thead class="bg-body-tertiary">
             <tr>
+              <th scope="col" style="width: 48px;"></th>
               <th scope="col">Name</th>
               <th scope="col">Email</th>
               <th scope="col">Status</th>
@@ -151,6 +172,15 @@
           <tbody>
             <% @payment_type_unknown.each do |user| %>
               <tr>
+                <td>
+                  <% if user.avatar.present? %>
+                    <img src="<%= user.avatar %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
+                  <% elsif user.email.present? %>
+                    <img src="<%= gravatar_url(user.email, size: 32) %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
+                  <% else %>
+                    <div style="width: 32px; height: 32px; border-radius: 4px; background-color: #dee2e6;"></div>
+                  <% end %>
+                </td>
                 <td class="fw-semibold">
                   <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
                 </td>
@@ -235,6 +265,7 @@
         <table class="table mb-0 align-middle">
           <thead class="bg-body-tertiary">
             <tr>
+              <th scope="col" style="width: 48px;"></th>
               <th scope="col">Name</th>
               <th scope="col">Email</th>
               <th scope="col">Status</th>
@@ -245,6 +276,15 @@
           <tbody>
             <% @dues_status_unknown.each do |user| %>
               <tr>
+                <td>
+                  <% if user.avatar.present? %>
+                    <img src="<%= user.avatar %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
+                  <% elsif user.email.present? %>
+                    <img src="<%= gravatar_url(user.email, size: 32) %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
+                  <% else %>
+                    <div style="width: 32px; height: 32px; border-radius: 4px; background-color: #dee2e6;"></div>
+                  <% end %>
+                </td>
                 <td class="fw-semibold">
                   <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
                 </td>
@@ -341,6 +381,7 @@
         <table class="table mb-0 align-middle">
           <thead class="bg-body-tertiary">
             <tr>
+              <th scope="col" style="width: 48px;"></th>
               <th scope="col">Name</th>
               <th scope="col">Email</th>
               <th scope="col">Status</th>
@@ -352,6 +393,15 @@
           <tbody>
             <% @dues_status_lapsed.each do |user| %>
               <tr>
+                <td>
+                  <% if user.avatar.present? %>
+                    <img src="<%= user.avatar %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
+                  <% elsif user.email.present? %>
+                    <img src="<%= gravatar_url(user.email, size: 32) %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
+                  <% else %>
+                    <div style="width: 32px; height: 32px; border-radius: 4px; background-color: #dee2e6;"></div>
+                  <% end %>
+                </td>
                 <td class="fw-semibold">
                   <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
                 </td>
@@ -436,6 +486,437 @@
     <% end %>
   </div>
 </div>
+
+<!-- Unmatched PayPal Payments -->
+<div id="unmatched-paypal" class="card shadow-sm border-0 mb-4">
+  <div class="card-header bg-body-tertiary">
+    <h2 class="h5 mb-0">Unmatched PayPal Payments (<%= @unmatched_paypal_payments.count %>)</h2>
+  </div>
+  <div class="card-body">
+    <% if @unmatched_paypal_payments.any? %>
+      <p class="text-muted small mb-3">Payments that don't have a matching User record by PayPal account ID</p>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="bg-body-tertiary">
+            <tr>
+              <th scope="col">Payment ID</th>
+              <th scope="col">Payer Name</th>
+              <th scope="col">Payer Email</th>
+              <th scope="col">Transaction Time</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @unmatched_paypal_payments.each do |unmatched| %>
+              <tr>
+                <td>
+                  <strong><%= link_to unmatched[:payment].paypal_id, paypal_payment_path(unmatched[:payment]), class: "text-decoration-none" %></strong>
+                </td>
+                <td><%= unmatched[:name].presence || "—" %></td>
+                <td>
+                  <% if unmatched[:email].present? %>
+                    <%= mail_to unmatched[:email] %>
+                  <% else %>
+                    —
+                  <% end %>
+                </td>
+                <td>
+                  <%= unmatched[:payment].transaction_time ? l(unmatched[:payment].transaction_time, format: :long) : "n/a" %>
+                </td>
+                <td>
+                  <% if unmatched[:payment].payer_id.present? %>
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#linkPaypalUserModal_<%= unmatched[:payment].id %>">
+                      Link User
+                    </button>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <p class="text-muted mb-0">All PayPal payments have matching User records.</p>
+    <% end %>
+  </div>
+</div>
+
+<!-- Unmatched Recharge Payments -->
+<div id="unmatched-recharge" class="card shadow-sm border-0 mb-4">
+  <div class="card-header bg-body-tertiary">
+    <h2 class="h5 mb-0">Unmatched Recharge Payments (<%= @unmatched_recharge_payments.count %>)</h2>
+  </div>
+  <div class="card-body">
+    <% if @unmatched_recharge_payments.any? %>
+      <p class="text-muted small mb-3">Payments that don't have a matching User record by Recharge customer ID</p>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="bg-body-tertiary">
+            <tr>
+              <th scope="col">Payment ID</th>
+              <th scope="col">Customer ID</th>
+              <th scope="col">Customer Name</th>
+              <th scope="col">Customer Email</th>
+              <th scope="col">Processed</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @unmatched_recharge_payments.each do |unmatched| %>
+              <tr>
+                <td>
+                  <strong><%= link_to unmatched[:payment].recharge_id, recharge_payment_path(unmatched[:payment]), class: "text-decoration-none" %></strong>
+                </td>
+                <td><%= unmatched[:customer_id].presence || "—" %></td>
+                <td><%= unmatched[:name].presence || "—" %></td>
+                <td>
+                  <% if unmatched[:email].present? %>
+                    <%= mail_to unmatched[:email] %>
+                  <% else %>
+                    —
+                  <% end %>
+                </td>
+                <td>
+                  <%= unmatched[:payment].processed_at ? l(unmatched[:payment].processed_at, format: :long) : "n/a" %>
+                </td>
+                <td>
+                  <% if unmatched[:customer_id].present? %>
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#linkRechargeUserModal_<%= unmatched[:payment].id %>">
+                      Link User
+                    </button>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <p class="text-muted mb-0">All Recharge payments have matching User records.</p>
+    <% end %>
+  </div>
+</div>
+
+<!-- PayPal Link User Modals -->
+<% @unmatched_paypal_payments.each do |unmatched| %>
+  <% payment = unmatched[:payment] %>
+  <% next unless payment.payer_id.present? %>
+  <div class="modal fade" id="linkPaypalUserModal_<%= payment.id %>" tabindex="-1" aria-labelledby="linkPaypalUserModalLabel_<%= payment.id %>" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="linkPaypalUserModalLabel_<%= payment.id %>">Link User to Payment</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <%= form_with url: link_user_paypal_payment_path(payment), method: :post, local: true do |f| %>
+          <%= hidden_field_tag :from_reports, 'true' %>
+          <div class="modal-body">
+            <p class="mb-3">Select a user to link to this payment. The user's <code>paypal_account_id</code> will be set to <code><%= payment.payer_id %></code>.</p>
+            <div class="mb-3">
+              <label for="user_search_paypal_<%= payment.id %>" class="form-label">Search Users</label>
+              <input type="text" id="user_search_paypal_<%= payment.id %>" class="form-control mb-2" placeholder="Type to search users..." autocomplete="off">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Select User</label>
+              <div id="user_list_paypal_<%= payment.id %>" class="border rounded" style="max-height: 300px; overflow-y: auto;">
+                <% @all_users.each do |user| %>
+                  <div class="user-item p-2 border-bottom" data-user-id="<%= user.id %>" data-user-name="<%= user.display_name.downcase %>" style="cursor: pointer;">
+                    <input type="radio" name="user_id" id="user_paypal_<%= payment.id %>_<%= user.id %>" value="<%= user.id %>" class="form-check-input me-2" required>
+                    <label for="user_paypal_<%= payment.id %>_<%= user.id %>" class="form-check-label mb-0" style="cursor: pointer;">
+                      <%= user.display_name %>
+                    </label>
+                  </div>
+                <% end %>
+              </div>
+              <div id="no_results_paypal_<%= payment.id %>" class="text-muted text-center p-3" style="display: none;">
+                No users found matching your search.
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <%= f.submit "Link User", class: "btn btn-primary" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const modal = document.getElementById('linkPaypalUserModal_<%= payment.id %>');
+      if (!modal) return;
+      
+      let searchHandler = null;
+      
+      function filterUsers() {
+        const searchInput = document.getElementById('user_search_paypal_<%= payment.id %>');
+        const userList = document.getElementById('user_list_paypal_<%= payment.id %>');
+        const noResults = document.getElementById('no_results_paypal_<%= payment.id %>');
+        
+        if (!searchInput || !userList) return;
+        
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        const userItems = userList.querySelectorAll('.user-item');
+        let visibleCount = 0;
+        
+        userItems.forEach(function(item) {
+          const userName = item.getAttribute('data-user-name');
+          if (userName && userName.includes(searchTerm)) {
+            item.style.display = '';
+            visibleCount++;
+          } else {
+            item.style.display = 'none';
+          }
+        });
+        
+        if (visibleCount === 0 && searchTerm !== '') {
+          userList.style.display = 'none';
+          if (noResults) {
+            noResults.style.display = 'block';
+          }
+        } else {
+          userList.style.display = 'block';
+          if (noResults) {
+            noResults.style.display = 'none';
+          }
+        }
+      }
+      
+      function resetSearch() {
+        const searchInput = document.getElementById('user_search_paypal_<%= payment.id %>');
+        const userList = document.getElementById('user_list_paypal_<%= payment.id %>');
+        const noResults = document.getElementById('no_results_paypal_<%= payment.id %>');
+        
+        if (searchInput) {
+          searchInput.value = '';
+        }
+        if (userList) {
+          const userItems = userList.querySelectorAll('.user-item');
+          userItems.forEach(function(item) {
+            item.style.display = '';
+          });
+          userList.style.display = 'block';
+        }
+        if (noResults) {
+          noResults.style.display = 'none';
+        }
+      }
+      
+      function setupClickHandlers() {
+        const userList = document.getElementById('user_list_paypal_<%= payment.id %>');
+        if (!userList) return;
+        
+        const userItems = userList.querySelectorAll('.user-item');
+        userItems.forEach(function(item) {
+          item.addEventListener('click', function(e) {
+            if (e.target.type !== 'radio' && e.target.tagName !== 'LABEL') {
+              const radio = item.querySelector('input[type="radio"]');
+              if (radio) {
+                radio.checked = true;
+              }
+            }
+          });
+        });
+      }
+      
+      modal.addEventListener('show.bs.modal', function() {
+        resetSearch();
+        
+        const searchInput = document.getElementById('user_search_paypal_<%= payment.id %>');
+        if (searchInput) {
+          if (searchHandler) {
+            searchInput.removeEventListener('input', searchHandler);
+          }
+          
+          searchHandler = function() {
+            filterUsers();
+          };
+          
+          searchInput.addEventListener('input', searchHandler);
+        }
+        
+        setupClickHandlers();
+      });
+      
+      modal.addEventListener('shown.bs.modal', function() {
+        const searchInput = document.getElementById('user_search_paypal_<%= payment.id %>');
+        if (searchInput) {
+          searchInput.focus();
+        }
+      });
+      
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+          setupClickHandlers();
+        });
+      } else {
+        setupClickHandlers();
+      }
+    })();
+  </script>
+<% end %>
+
+<!-- Recharge Link User Modals -->
+<% @unmatched_recharge_payments.each do |unmatched| %>
+  <% payment = unmatched[:payment] %>
+  <% customer_id = unmatched[:customer_id] %>
+  <% next unless customer_id.present? %>
+  <div class="modal fade" id="linkRechargeUserModal_<%= payment.id %>" tabindex="-1" aria-labelledby="linkRechargeUserModalLabel_<%= payment.id %>" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="linkRechargeUserModalLabel_<%= payment.id %>">Link User to Recharge Payment</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <%= form_with url: link_user_recharge_payment_path(payment), method: :post, local: true do |f| %>
+          <%= hidden_field_tag :from_reports, 'true' %>
+          <div class="modal-body">
+            <p class="mb-3">Select a user to link to this Recharge payment. The user's <code>recharge_customer_id</code> will be set to match this payment's customer ID (<strong><%= customer_id %></strong>).</p>
+            <div class="mb-3">
+              <label for="user_search_recharge_<%= payment.id %>" class="form-label">Search Users</label>
+              <input type="text" id="user_search_recharge_<%= payment.id %>" class="form-control mb-2" placeholder="Type to search users..." autocomplete="off">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Select User</label>
+              <div id="user_list_recharge_<%= payment.id %>" class="border rounded" style="max-height: 300px; overflow-y: auto;">
+                <% @all_users.each do |user| %>
+                  <div class="user-item p-2 border-bottom" data-user-id="<%= user.id %>" data-user-name="<%= user.display_name.downcase %>" style="cursor: pointer;">
+                    <input type="radio" name="user_id" id="user_recharge_<%= payment.id %>_<%= user.id %>" value="<%= user.id %>" class="form-check-input me-2" required>
+                    <label for="user_recharge_<%= payment.id %>_<%= user.id %>" class="form-check-label mb-0" style="cursor: pointer;">
+                      <%= user.display_name %>
+                    </label>
+                  </div>
+                <% end %>
+              </div>
+              <div id="no_results_recharge_<%= payment.id %>" class="text-muted text-center p-3" style="display: none;">
+                No users found matching your search.
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <%= f.submit "Link User", class: "btn btn-primary" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const modal = document.getElementById('linkRechargeUserModal_<%= payment.id %>');
+      if (!modal) return;
+      
+      let searchHandler = null;
+      
+      function filterUsers() {
+        const searchInput = document.getElementById('user_search_recharge_<%= payment.id %>');
+        const userList = document.getElementById('user_list_recharge_<%= payment.id %>');
+        const noResults = document.getElementById('no_results_recharge_<%= payment.id %>');
+        
+        if (!searchInput || !userList) return;
+        
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        const userItems = userList.querySelectorAll('.user-item');
+        let visibleCount = 0;
+        
+        userItems.forEach(function(item) {
+          const userName = item.getAttribute('data-user-name');
+          if (userName && userName.includes(searchTerm)) {
+            item.style.display = '';
+            visibleCount++;
+          } else {
+            item.style.display = 'none';
+          }
+        });
+        
+        if (visibleCount === 0 && searchTerm !== '') {
+          userList.style.display = 'none';
+          if (noResults) {
+            noResults.style.display = 'block';
+          }
+        } else {
+          userList.style.display = 'block';
+          if (noResults) {
+            noResults.style.display = 'none';
+          }
+        }
+      }
+      
+      function resetSearch() {
+        const searchInput = document.getElementById('user_search_recharge_<%= payment.id %>');
+        const userList = document.getElementById('user_list_recharge_<%= payment.id %>');
+        const noResults = document.getElementById('no_results_recharge_<%= payment.id %>');
+        
+        if (searchInput) {
+          searchInput.value = '';
+        }
+        if (userList) {
+          const userItems = userList.querySelectorAll('.user-item');
+          userItems.forEach(function(item) {
+            item.style.display = '';
+          });
+          userList.style.display = 'block';
+        }
+        if (noResults) {
+          noResults.style.display = 'none';
+        }
+      }
+      
+      function setupClickHandlers() {
+        const userList = document.getElementById('user_list_recharge_<%= payment.id %>');
+        if (!userList) return;
+        
+        const userItems = userList.querySelectorAll('.user-item');
+        userItems.forEach(function(item) {
+          item.addEventListener('click', function(e) {
+            if (e.target.type !== 'radio' && e.target.tagName !== 'LABEL') {
+              const radio = item.querySelector('input[type="radio"]');
+              if (radio) {
+                radio.checked = true;
+              }
+            }
+          });
+        });
+      }
+      
+      modal.addEventListener('show.bs.modal', function() {
+        resetSearch();
+        
+        const searchInput = document.getElementById('user_search_recharge_<%= payment.id %>');
+        if (searchInput) {
+          if (searchHandler) {
+            searchInput.removeEventListener('input', searchHandler);
+          }
+          
+          searchHandler = function() {
+            filterUsers();
+          };
+          
+          searchInput.addEventListener('input', searchHandler);
+        }
+        
+        setupClickHandlers();
+      });
+      
+      modal.addEventListener('shown.bs.modal', function() {
+        const searchInput = document.getElementById('user_search_recharge_<%= payment.id %>');
+        if (searchInput) {
+          searchInput.focus();
+        }
+      });
+      
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+          setupClickHandlers();
+        });
+      } else {
+        setupClickHandlers();
+      }
+    })();
+  </script>
+<% end %>
 
 <!-- Floating back to top button -->
 <%= link_to "#", class: "position-fixed bottom-0 end-0 m-4 text-decoration-none", style: "z-index: 1000;", title: "Back to top" do %>
