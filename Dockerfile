@@ -38,7 +38,7 @@ RUN curl -sL https://github.com/nodenv/node-build/archive/master.tar.gz | tar xz
 COPY Gemfile Gemfile.lock ./
 RUN --mount=type=cache,target=/root/.bundle/cache \
     bundle install && \
-    rm -rf ~/.bundle/ "${BUNDLE_PATH}"/ruby/*/cache "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git && \
+    rm -rf "${BUNDLE_PATH}"/ruby/*/cache "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git && \
     bundle exec bootsnap precompile --gemfile
 
 # Install node modules
