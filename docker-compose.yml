@@ -26,6 +26,8 @@ services:
         RUBY_VERSION: 3.3.10
     image: member_manager_web:latest
     command: ./bin/rails server -b 0.0.0.0 -p 3000
+    env_file:
+      - .env
     environment:
       RAILS_ENV: development
       DB_HOST: db
@@ -34,8 +36,6 @@ services:
       DB_PORT: 5432
       DATABASE_URL: postgres://postgres:postgres@db:5432/member_manager_development
       REDIS_URL: redis://redis:6379/0
-      TZ: ${TIMEZONE:-America/Los_Angeles}
-      TIMEZONE: ${TIMEZONE:-America/Los_Angeles}
     volumes:
       - /Users/romkey/Dropbox/src/MemberManager:/rails
       - ./tmp/access:/tmp/access
@@ -52,6 +52,8 @@ services:
         RUBY_VERSION: 3.3.10
     image: member_manager_web:latest
     command: bundle exec sidekiq
+    env_file:
+      - .env
     environment:
       RAILS_ENV: development
       DB_HOST: db
@@ -60,8 +62,6 @@ services:
       DB_PORT: 5432
       DATABASE_URL: postgres://postgres:postgres@db:5432/member_manager_development
       REDIS_URL: redis://redis:6379/0
-      TZ: ${TIMEZONE:-America/Los_Angeles}
-      TIMEZONE: ${TIMEZONE:-America/Los_Angeles}
     volumes:
       - /Users/romkey/Dropbox/src/MemberManager:/rails
       - ./tmp/access:/tmp/access
