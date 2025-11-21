@@ -38,11 +38,10 @@ COPY --from=nodejs /usr/local/lib/node_modules /usr/local/lib/node_modules
 # Set PATH to include Node.js binaries
 ENV PATH=/usr/local/bin:$PATH
 
-# Verify Node.js and npm work, then install Yarn
+# Install Yarn using the official installation script (doesn't require npm)
 ARG YARN_VERSION=latest
-RUN node --version && \
-    npm --version && \
-    npm install -g yarn@${YARN_VERSION} && \
+RUN curl -o- -L https://yarnpkg.com/install.sh | bash -s -- --version ${YARN_VERSION} && \
+    export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH" && \
     yarn --version
 
 # Install application gems
@@ -56,8 +55,9 @@ RUN --mount=type=cache,target=/root/.bundle/cache \
     bundle exec bootsnap precompile --gemfile
 
 # Install node modules
-# Use cache mount for yarn cache to speed up npm install
+# Use cache mount for yarn cache to speed up yarn install
 COPY package.json yarn.lock ./
+ENV PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
 RUN --mount=type=cache,target=/root/.yarn \
     --mount=type=cache,target=/root/.cache \
     yarn install --frozen-lockfile
