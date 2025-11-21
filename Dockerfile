@@ -30,11 +30,13 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # Extract major version from NODE_VERSION (e.g., 24.9.0 -> 24)
 RUN NODE_MAJOR=$(echo ${NODE_VERSION} | cut -d. -f1) && \
     curl -fsSL https://deb.nodesource.com/setup_${NODE_MAJOR}.x | bash - && \
-    apt-get install -y --no-install-recommends nodejs
+    apt-get install -y --no-install-recommends nodejs && \
+    node --version && \
+    npm --version
 
-# Install Yarn using npm (now that Node.js is properly installed)
-ARG YARN_VERSION=latest
-RUN npm install -g yarn@${YARN_VERSION} && \
+# Install Yarn using corepack (comes with Node.js 16.10+)
+RUN corepack enable && \
+    corepack prepare yarn@stable --activate && \
     yarn --version
 
 # Install application gems
