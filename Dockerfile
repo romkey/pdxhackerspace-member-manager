@@ -16,9 +16,6 @@ ENV RAILS_ENV="production" \
     BUNDLE_PATH="/usr/local/bundle" \
     BUNDLE_WITHOUT="development"
 
-# Node.js stage - copy Node.js from official Node image
-FROM node:${NODE_VERSION}-slim AS nodejs
-
 # Throw-away build stage to reduce size of final image
 FROM base as build
 
@@ -27,21 +24,17 @@ FROM base as build
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential curl git libpq-dev libvips node-gyp pkg-config python-is-python3 libyaml-dev
+    apt-get install --no-install-recommends -y build-essential curl git libpq-dev libvips node-gyp pkg-config python-is-python3 libyaml-dev gnupg
 
-# Copy Node.js binaries and modules from the official Node image
-COPY --from=nodejs /usr/local/bin/node /usr/local/bin/node
-COPY --from=nodejs /usr/local/bin/npm /usr/local/bin/npm
-COPY --from=nodejs /usr/local/bin/npx /usr/local/bin/npx
-COPY --from=nodejs /usr/local/lib/node_modules /usr/local/lib/node_modules
+# Install Node.js using NodeSource repository
+# Extract major version from NODE_VERSION (e.g., 24.9.0 -> 24)
+RUN NODE_MAJOR=$(echo ${NODE_VERSION} | cut -d. -f1) && \
+    curl -fsSL https://deb.nodesource.com/setup_${NODE_MAJOR}.x | bash - && \
+    apt-get install -y --no-install-recommends nodejs
 
-# Set PATH to include Node.js binaries
-ENV PATH=/usr/local/bin:$PATH
-
-# Install Yarn using the official installation script (doesn't require npm)
+# Install Yarn using npm (now that Node.js is properly installed)
 ARG YARN_VERSION=latest
-RUN curl -o- -L https://yarnpkg.com/install.sh | bash -s -- --version ${YARN_VERSION} && \
-    export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH" && \
+RUN npm install -g yarn@${YARN_VERSION} && \
     yarn --version
 
 # Install application gems
@@ -57,7 +50,6 @@ RUN --mount=type=cache,target=/root/.bundle/cache \
 # Install node modules
 # Use cache mount for yarn cache to speed up yarn install
 COPY package.json yarn.lock ./
-ENV PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
 RUN --mount=type=cache,target=/root/.yarn \
     --mount=type=cache,target=/root/.cache \
     yarn install --frozen-lockfile
