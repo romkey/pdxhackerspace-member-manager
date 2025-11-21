@@ -1,11 +1,8 @@
 # syntax = docker/dockerfile:1
 
-# Define build arguments at the top level
-ARG RUBY_VERSION=3.3.10
-ARG NODE_VERSION=24.9.0
-
 # Make sure RUBY_VERSION matches the Ruby version in .ruby-version and Gemfile
-FROM registry.docker.com/library/ruby:${RUBY_VERSION}-slim AS base
+ARG RUBY_VERSION=3.3.10
+FROM registry.docker.com/library/ruby:$RUBY_VERSION-slim as base
 
 # Rails app lives here
 WORKDIR /rails
@@ -16,6 +13,7 @@ ENV RAILS_ENV="production" \
     BUNDLE_PATH="/usr/local/bundle" \
     BUNDLE_WITHOUT="development"
 
+
 # Throw-away build stage to reduce size of final image
 FROM base as build
 
@@ -24,20 +22,16 @@ FROM base as build
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential curl git libpq-dev libvips node-gyp pkg-config python-is-python3 libyaml-dev gnupg
+    apt-get install --no-install-recommends -y build-essential curl git libpq-dev libvips node-gyp pkg-config python-is-python3 libyaml-dev
 
-# Install Node.js using NodeSource repository
-# Extract major version from NODE_VERSION (e.g., 24.9.0 -> 24)
-RUN NODE_MAJOR=$(echo ${NODE_VERSION} | cut -d. -f1) && \
-    curl -fsSL https://deb.nodesource.com/setup_${NODE_MAJOR}.x | bash - && \
-    apt-get install -y --no-install-recommends nodejs && \
-    node --version && \
-    npm --version
-
-# Install Yarn using corepack (comes with Node.js 16.10+)
-RUN corepack enable && \
-    corepack prepare yarn@stable --activate && \
-    yarn --version
+# Install JavaScript dependencies
+ARG NODE_VERSION=24.9.0
+ARG YARN_VERSION=latest
+ENV PATH=/usr/local/node/bin:$PATH
+RUN curl -sL https://github.com/nodenv/node-build/archive/master.tar.gz | tar xz -C /tmp/ && \
+    /tmp/node-build-master/bin/node-build "${NODE_VERSION}" /usr/local/node && \
+    npm install -g yarn@$YARN_VERSION && \
+    rm -rf /tmp/node-build-master
 
 # Install application gems
 # Use cache mount for bundle gem cache to speed up gem installation
