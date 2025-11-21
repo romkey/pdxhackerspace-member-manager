@@ -1,8 +1,11 @@
 # syntax = docker/dockerfile:1
 
-# Make sure RUBY_VERSION matches the Ruby version in .ruby-version and Gemfile
+# Define build arguments at the top level
 ARG RUBY_VERSION=3.3.10
-FROM registry.docker.com/library/ruby:$RUBY_VERSION-slim as base
+ARG NODE_VERSION=24.9.0
+
+# Make sure RUBY_VERSION matches the Ruby version in .ruby-version and Gemfile
+FROM registry.docker.com/library/ruby:${RUBY_VERSION}-slim AS base
 
 # Rails app lives here
 WORKDIR /rails
@@ -14,8 +17,7 @@ ENV RAILS_ENV="production" \
     BUNDLE_WITHOUT="development"
 
 # Node.js stage - copy Node.js from official Node image
-ARG NODE_VERSION=24.9.0
-FROM node:${NODE_VERSION}-slim as nodejs
+FROM node:${NODE_VERSION}-slim AS nodejs
 
 # Throw-away build stage to reduce size of final image
 FROM base as build
