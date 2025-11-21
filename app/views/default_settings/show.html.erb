@@ -1,0 +1,42 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">Manage Defaults</h1>
+    <p class="text-muted mb-0">Configure default prefixes and group names used throughout the application.</p>
+  </div>
+  <div>
+    <%= link_to "&larr; Back to Settings".html_safe, settings_path, class: "text-decoration-none" %>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <dl class="row mb-0">
+      <dt class="col-sm-4 text-secondary">Site Prefix</dt>
+      <dd class="col-sm-8"><code><%= @default_setting.site_prefix %></code></dd>
+
+      <dt class="col-sm-4 text-secondary">App Prefix</dt>
+      <dd class="col-sm-8"><code><%= @default_setting.app_prefix %></code></dd>
+
+      <dt class="col-sm-4 text-secondary">Members Prefix</dt>
+      <dd class="col-sm-8"><code><%= @default_setting.members_prefix %></code></dd>
+
+      <dt class="col-sm-4 text-secondary">Active Members Group</dt>
+      <dd class="col-sm-8"><code><%= @default_setting.active_members_group %></code></dd>
+
+      <dt class="col-sm-4 text-secondary">Admins Group</dt>
+      <dd class="col-sm-8"><code><%= @default_setting.admins_group %></code></dd>
+
+      <dt class="col-sm-4 text-secondary">Trained On Prefix</dt>
+      <dd class="col-sm-8"><code><%= @default_setting.trained_on_prefix %></code></dd>
+
+      <dt class="col-sm-4 text-secondary">Can Train Prefix</dt>
+      <dd class="col-sm-8"><code><%= @default_setting.can_train_prefix %></code></dd>
+    </dl>
+  </div>
+</div>
+
+<div class="d-flex gap-2">
+  <%= link_to "Edit", edit_default_settings_path, class: "btn btn-primary" %>
+  <%= link_to "Back to Settings", settings_path, class: "btn btn-outline-secondary" %>
+</div>
+

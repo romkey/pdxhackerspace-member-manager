@@ -28,7 +28,28 @@
 
       <div class="mb-3">
         <%= f.label :authentik_name, "Authentik Name", class: "form-label" %>
-        <%= f.text_field :authentik_name, class: "form-control", required: true %>
+        <div class="form-check mb-2">
+          <%= f.check_box :use_default_members_group, class: "form-check-input", id: "application_group_use_default_members_group" %>
+          <%= f.label :use_default_members_group, "Use active members group", class: "form-check-label" %>
+          <small class="text-muted d-block ms-4"><code><%= @default_settings.active_members_group %></code></small>
+        </div>
+        <div class="form-check mb-2">
+          <%= f.check_box :use_default_admins_group, class: "form-check-input", id: "application_group_use_default_admins_group" %>
+          <%= f.label :use_default_admins_group, "Use admin members group", class: "form-check-label" %>
+          <small class="text-muted d-block ms-4"><code><%= @default_settings.admins_group %></code></small>
+        </div>
+        <div class="form-check mb-2">
+          <%= f.check_box :use_can_train, class: "form-check-input", id: "application_group_use_can_train" %>
+          <%= f.label :use_can_train, "Use members who can train", class: "form-check-label" %>
+        </div>
+        <div class="form-check mb-2">
+          <%= f.check_box :use_trained_in, class: "form-check-input", id: "application_group_use_trained_in" %>
+          <%= f.label :use_trained_in, "Use members who are trained in", class: "form-check-label" %>
+        </div>
+        <div id="training_topic_wrapper" style="display: <%= (@application_group.use_can_train? || @application_group.use_trained_in?) ? 'block' : 'none' %>;" class="ms-4 mb-2">
+          <%= f.collection_select :training_topic_id, @training_topics, :id, :name, { selected: @application_group.training_topic_id, prompt: "Select training topic..." }, { class: "form-select form-select-sm", id: "application_group_training_topic_id" } %>
+        </div>
+        <%= f.text_field :authentik_name, class: "form-control", required: true, id: "application_group_authentik_name" %>
         <div class="form-text">The name of this group in Authentik.</div>
       </div>
 
@@ -45,3 +66,116 @@
     <% end %>
   </div>
 </div>
+
+<script>
+  (function() {
+    const activeCheckbox = document.getElementById('application_group_use_default_members_group');
+    const adminCheckbox = document.getElementById('application_group_use_default_admins_group');
+    const canTrainCheckbox = document.getElementById('application_group_use_can_train');
+    const trainedInCheckbox = document.getElementById('application_group_use_trained_in');
+    const trainingTopicWrapper = document.getElementById('training_topic_wrapper');
+    const trainingTopicSelect = document.getElementById('application_group_training_topic_id');
+    const textField = document.getElementById('application_group_authentik_name');
+    
+    if (!activeCheckbox || !adminCheckbox || !canTrainCheckbox || !trainedInCheckbox || !textField) return;
+    
+    const originalValue = textField.value || '';
+    const trainingTopics = {};
+    <% @training_topics.each do |topic| %>
+      trainingTopics[<%= topic.id %>] = '<%= topic.name.downcase.gsub(/\s+/, '-') %>';
+    <% end %>
+    
+    const defaultSettings = {
+      activeMembersGroup: '<%= @default_settings.active_members_group %>',
+      adminsGroup: '<%= @default_settings.admins_group %>',
+      trainedOnPrefix: '<%= @default_settings.trained_on_prefix %>',
+      canTrainPrefix: '<%= @default_settings.can_train_prefix %>'
+    };
+    
+    function uncheckOthers(excludeCheckbox) {
+      if (excludeCheckbox !== activeCheckbox) activeCheckbox.checked = false;
+      if (excludeCheckbox !== adminCheckbox) adminCheckbox.checked = false;
+      if (excludeCheckbox !== canTrainCheckbox) {
+        canTrainCheckbox.checked = false;
+      }
+      if (excludeCheckbox !== trainedInCheckbox) {
+        trainedInCheckbox.checked = false;
+      }
+      if (excludeCheckbox !== canTrainCheckbox && excludeCheckbox !== trainedInCheckbox) {
+        trainingTopicWrapper.style.display = 'none';
+        trainingTopicSelect.value = '';
+      }
+    }
+    
+    function updateTextField() {
+      if (activeCheckbox.checked) {
+        textField.value = defaultSettings.activeMembersGroup;
+        trainingTopicSelect.value = '';
+      } else if (adminCheckbox.checked) {
+        textField.value = defaultSettings.adminsGroup;
+        trainingTopicSelect.value = '';
+      } else if (canTrainCheckbox.checked && trainingTopicSelect.value) {
+        const topicSlug = trainingTopics[trainingTopicSelect.value];
+        if (topicSlug) {
+          textField.value = defaultSettings.canTrainPrefix + ':' + topicSlug;
+        }
+      } else if (trainedInCheckbox.checked && trainingTopicSelect.value) {
+        const topicSlug = trainingTopics[trainingTopicSelect.value];
+        if (topicSlug) {
+          textField.value = defaultSettings.trainedOnPrefix + ':' + topicSlug;
+        }
+      } else {
+        textField.value = originalValue;
+        trainingTopicSelect.value = '';
+      }
+    }
+    
+    activeCheckbox.addEventListener('change', function() {
+      if (this.checked) {
+        uncheckOthers(this);
+      }
+      updateTextField();
+    });
+    
+    adminCheckbox.addEventListener('change', function() {
+      if (this.checked) {
+        uncheckOthers(this);
+      }
+      updateTextField();
+    });
+    
+    canTrainCheckbox.addEventListener('change', function() {
+      if (this.checked) {
+        uncheckOthers(this);
+        trainingTopicWrapper.style.display = 'block';
+      } else {
+        if (!trainedInCheckbox.checked) {
+          trainingTopicWrapper.style.display = 'none';
+          trainingTopicSelect.value = '';
+        }
+      }
+      updateTextField();
+    });
+    
+    trainedInCheckbox.addEventListener('change', function() {
+      if (this.checked) {
+        uncheckOthers(this);
+        trainingTopicWrapper.style.display = 'block';
+      } else {
+        if (!canTrainCheckbox.checked) {
+          trainingTopicWrapper.style.display = 'none';
+          trainingTopicSelect.value = '';
+        }
+      }
+      updateTextField();
+    });
+    
+    trainingTopicSelect.addEventListener('change', updateTextField);
+    
+    // Initialize on page load
+    if (canTrainCheckbox.checked || trainedInCheckbox.checked) {
+      trainingTopicWrapper.style.display = 'block';
+      updateTextField();
+    }
+  })();
+</script>

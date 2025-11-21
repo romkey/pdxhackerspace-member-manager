@@ -1,0 +1,123 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">Edit Default Settings</h1>
+    <p class="text-muted mb-0">Configure default prefixes and group names used throughout the application.</p>
+  </div>
+  <div>
+    <%= link_to "&larr; Back to Defaults".html_safe, default_settings_path, class: "text-decoration-none" %>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <%= form_with model: @default_setting, url: default_settings_path, method: :patch, local: true do |f| %>
+      <% if @default_setting.errors.any? %>
+        <div class="alert alert-danger">
+          <ul class="mb-0">
+            <% @default_setting.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <div class="mb-3">
+        <%= f.label :site_prefix, "Default Site Prefix", class: "form-label" %>
+        <%= f.text_field :site_prefix, class: "form-control", required: true, id: "default_setting_site_prefix" %>
+        <div class="form-text">The base prefix used for all groups and applications.</div>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :app_prefix, "Default App Prefix", class: "form-label" %>
+        <%= f.text_field :app_prefix, class: "form-control", required: true, id: "default_setting_app_prefix", readonly: true %>
+        <div class="form-text">Automatically calculated as: <span id="app_prefix_preview"></span></div>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :members_prefix, "Default Members Prefix", class: "form-label" %>
+        <%= f.text_field :members_prefix, class: "form-control", required: true, id: "default_setting_members_prefix", readonly: true %>
+        <div class="form-text">Automatically calculated as: <span id="members_prefix_preview"></span></div>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :active_members_group, "Default Active Members Group", class: "form-label" %>
+        <%= f.text_field :active_members_group, class: "form-control", required: true, id: "default_setting_active_members_group", readonly: true %>
+        <div class="form-text">Automatically calculated as: <span id="active_members_group_preview"></span></div>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :admins_group, "Default Admins Group", class: "form-label" %>
+        <%= f.text_field :admins_group, class: "form-control", required: true, id: "default_setting_admins_group", readonly: true %>
+        <div class="form-text">Automatically calculated as: <span id="admins_group_preview"></span></div>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :trained_on_prefix, "Trained On Prefix", class: "form-label" %>
+        <%= f.text_field :trained_on_prefix, class: "form-control", required: true, id: "default_setting_trained_on_prefix", readonly: true %>
+        <div class="form-text">Automatically calculated as: <span id="trained_on_prefix_preview"></span></div>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :can_train_prefix, "Can Train Prefix", class: "form-label" %>
+        <%= f.text_field :can_train_prefix, class: "form-control", required: true, id: "default_setting_can_train_prefix", readonly: true %>
+        <div class="form-text">Automatically calculated as: <span id="can_train_prefix_preview"></span></div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <%= f.submit "Update Settings", class: "btn btn-primary" %>
+        <%= link_to "Cancel", default_settings_path, class: "btn btn-outline-secondary" %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const sitePrefixInput = document.getElementById('default_setting_site_prefix');
+    const appPrefixInput = document.getElementById('default_setting_app_prefix');
+    const membersPrefixInput = document.getElementById('default_setting_members_prefix');
+    const activeMembersGroupInput = document.getElementById('default_setting_active_members_group');
+    const adminsGroupInput = document.getElementById('default_setting_admins_group');
+    const trainedOnPrefixInput = document.getElementById('default_setting_trained_on_prefix');
+    const canTrainPrefixInput = document.getElementById('default_setting_can_train_prefix');
+    
+    const appPrefixPreview = document.getElementById('app_prefix_preview');
+    const membersPrefixPreview = document.getElementById('members_prefix_preview');
+    const activeMembersGroupPreview = document.getElementById('active_members_group_preview');
+    const adminsGroupPreview = document.getElementById('admins_group_preview');
+    const trainedOnPrefixPreview = document.getElementById('trained_on_prefix_preview');
+    const canTrainPrefixPreview = document.getElementById('can_train_prefix_preview');
+    
+    if (!sitePrefixInput) return;
+    
+    function updateDerivedFields() {
+      const sitePrefix = sitePrefixInput.value.trim() || 'ctrlh';
+      
+      const appPrefix = sitePrefix + ':app';
+      const membersPrefix = sitePrefix + ':org:members';
+      const activeMembersGroup = membersPrefix + ':active';
+      const adminsGroup = membersPrefix + ':admins';
+      const trainedOnPrefix = membersPrefix + ':trained-on';
+      const canTrainPrefix = membersPrefix + ':can-train';
+      
+      if (appPrefixInput) appPrefixInput.value = appPrefix;
+      if (membersPrefixInput) membersPrefixInput.value = membersPrefix;
+      if (activeMembersGroupInput) activeMembersGroupInput.value = activeMembersGroup;
+      if (adminsGroupInput) adminsGroupInput.value = adminsGroup;
+      if (trainedOnPrefixInput) trainedOnPrefixInput.value = trainedOnPrefix;
+      if (canTrainPrefixInput) canTrainPrefixInput.value = canTrainPrefix;
+      
+      if (appPrefixPreview) appPrefixPreview.textContent = appPrefix;
+      if (membersPrefixPreview) membersPrefixPreview.textContent = membersPrefix;
+      if (activeMembersGroupPreview) activeMembersGroupPreview.textContent = activeMembersGroup;
+      if (adminsGroupPreview) adminsGroupPreview.textContent = adminsGroup;
+      if (trainedOnPrefixPreview) trainedOnPrefixPreview.textContent = trainedOnPrefix;
+      if (canTrainPrefixPreview) canTrainPrefixPreview.textContent = canTrainPrefix;
+    }
+    
+    sitePrefixInput.addEventListener('input', updateDerivedFields);
+    
+    // Initialize on page load
+    updateDerivedFields();
+  })();
+</script>

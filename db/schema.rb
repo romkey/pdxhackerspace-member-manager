@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_11_20_051722) do
+ActiveRecord::Schema[7.1].define(version: 2025_11_21_045154) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -36,7 +36,13 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_20_051722) do
     t.text "note"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "use_default_members_group", default: false, null: false
+    t.boolean "use_default_admins_group", default: false, null: false
+    t.boolean "use_can_train", default: false, null: false
+    t.boolean "use_trained_in", default: false, null: false
+    t.bigint "training_topic_id"
     t.index ["application_id"], name: "index_application_groups_on_application_id"
+    t.index ["training_topic_id"], name: "index_application_groups_on_training_topic_id"
   end
 
   create_table "application_groups_users", id: false, force: :cascade do |t|
@@ -56,6 +62,18 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_20_051722) do
     t.string "authentik_prefix"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "default_settings", force: :cascade do |t|
+    t.string "site_prefix", default: "ctrlh", null: false
+    t.string "app_prefix", null: false
+    t.string "members_prefix", null: false
+    t.string "active_members_group", null: false
+    t.string "admins_group", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "trained_on_prefix", null: false
+    t.string "can_train_prefix", null: false
   end
 
   create_table "journals", force: :cascade do |t|
@@ -261,6 +279,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_20_051722) do
 
   add_foreign_key "access_logs", "users"
   add_foreign_key "application_groups", "applications"
+  add_foreign_key "application_groups", "training_topics"
   add_foreign_key "application_groups_users", "application_groups"
   add_foreign_key "application_groups_users", "users"
   add_foreign_key "journals", "users"

@@ -1,4 +1,7 @@
 Rails.application.routes.draw do
+  get 'default_settings/index'
+  get 'default_settings/edit'
+  get 'default_settings/update'
   get "up" => "rails/health#show", as: :rails_health_check
 
   root "dashboard#index"
@@ -75,6 +78,7 @@ Rails.application.routes.draw do
 
   get "/settings", to: "settings#index", as: :settings
   resources :training_topics, only: [:index, :create, :destroy]
+  resource :default_settings, only: [:show, :edit, :update], path: "settings/defaults"
   
   get "/reports", to: "reports#index", as: :reports
   get "/reports/:report_type/all", to: "reports#view_all", as: :reports_view_all

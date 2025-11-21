@@ -14,7 +14,7 @@
       <% payments.each do |unmatched| %>
         <tr>
           <td>
-            <strong><%= link_to unmatched[:payment].recharge_id, recharge_payment_path(unmatched[:payment]), class: "text-decoration-none" %></strong>
+            <strong><%= link_to unmatched[:payment].recharge_id, recharge_payment_path(unmatched[:payment]), class: "text-decoration-none", data: { turbo_frame: "_top" } %></strong>
           </td>
           <td><%= unmatched[:customer_id].presence || "—" %></td>
           <td><%= unmatched[:name].presence || "—" %></td>

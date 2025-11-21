@@ -31,77 +31,95 @@
   </div>
 </div>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h2 class="h5 mb-0">Users in Group</h2>
-  <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">
-    Add User
-  </button>
-</div>
+<% if @application_group.uses_default_group? %>
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <div class="alert alert-info mb-0">
+        <% if @application_group.use_default_members_group? %>
+          <strong>This group uses the default active members group.</strong> It automatically includes all active members and cannot have individual users added or removed.
+        <% elsif @application_group.use_default_admins_group? %>
+          <strong>This group uses the default admin members group.</strong> It automatically includes all admin members and cannot have individual users added or removed.
+        <% elsif @application_group.use_can_train? && @application_group.training_topic %>
+          <strong>This group uses members who can train in <%= @application_group.training_topic.name %>.</strong> It automatically includes all members who can train others in this topic and cannot have individual users added or removed.
+        <% elsif @application_group.use_trained_in? && @application_group.training_topic %>
+          <strong>This group uses members who are trained in <%= @application_group.training_topic.name %>.</strong> It automatically includes all members who have been trained in this topic and cannot have individual users added or removed.
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% else %>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="h5 mb-0">Users in Group</h2>
+    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">
+      Add User
+    </button>
+  </div>
 
-<div class="card shadow-sm border-0 mb-4">
-  <div class="table-responsive">
-    <table class="table mb-0 align-middle">
-      <thead class="bg-body-tertiary">
-        <tr>
-          <th scope="col">Name</th>
-          <th scope="col">Email</th>
-          <th scope="col">Status</th>
-          <th scope="col">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% if @users.any? %>
-          <% @users.each do |user| %>
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="table-responsive">
+      <table class="table mb-0 align-middle">
+        <thead class="bg-body-tertiary">
+          <tr>
+            <th scope="col">Name</th>
+            <th scope="col">Email</th>
+            <th scope="col">Status</th>
+            <th scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if @users.any? %>
+            <% @users.each do |user| %>
+              <tr>
+                <td class="fw-semibold">
+                  <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
+                </td>
+                <td>
+                  <% if user.email.present? %>
+                    <%= mail_to user.email %>
+                  <% else %>
+                    <span class="text-muted fst-italic">Not provided</span>
+                  <% end %>
+                </td>
+                <td>
+                  <% badge_class = case user.membership_status
+                     when "coworking" then "success"
+                     when "basic" then "info"
+                     when "guest" then "warning"
+                     when "banned" then "danger"
+                     when "deceased" then "dark"
+                     when "sponsored" then "primary"
+                     when "unknown" then "secondary"
+                     else "secondary"
+                     end %>
+                  <span class="badge text-bg-<%= badge_class %>">
+                    <%= user.membership_status.humanize %>
+                  </span>
+                  <% if user.active? %>
+                    <span class="badge text-bg-success ms-1">Active</span>
+                  <% end %>
+                </td>
+                <td>
+                  <%= button_to "Remove", remove_user_application_application_group_path(@application, @application_group, user_id: user.id), 
+                      method: :delete, 
+                      class: "btn btn-sm btn-outline-danger", 
+                      data: { turbo: false, confirm: "Are you sure you want to remove #{user.display_name} from this group?" } %>
+                </td>
+              </tr>
+            <% end %>
+          <% else %>
             <tr>
-              <td class="fw-semibold">
-                <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
-              </td>
-              <td>
-                <% if user.email.present? %>
-                  <%= mail_to user.email %>
-                <% else %>
-                  <span class="text-muted fst-italic">Not provided</span>
-                <% end %>
-              </td>
-              <td>
-                <% badge_class = case user.membership_status
-                   when "coworking" then "success"
-                   when "basic" then "info"
-                   when "guest" then "warning"
-                   when "banned" then "danger"
-                   when "deceased" then "dark"
-                   when "sponsored" then "primary"
-                   when "unknown" then "secondary"
-                   else "secondary"
-                   end %>
-                <span class="badge text-bg-<%= badge_class %>">
-                  <%= user.membership_status.humanize %>
-                </span>
-                <% if user.active? %>
-                  <span class="badge text-bg-success ms-1">Active</span>
-                <% end %>
-              </td>
-              <td>
-                <%= button_to "Remove", remove_user_application_application_group_path(@application, @application_group, user_id: user.id), 
-                    method: :delete, 
-                    class: "btn btn-sm btn-outline-danger", 
-                    data: { turbo: false, confirm: "Are you sure you want to remove #{user.display_name} from this group?" } %>
+              <td colspan="4" class="text-center text-muted py-4">
+                No users in this group yet. Click "Add User" to add some.
               </td>
             </tr>
           <% end %>
-        <% else %>
-          <tr>
-            <td colspan="4" class="text-center text-muted py-4">
-              No users in this group yet. Click "Add User" to add some.
-            </td>
-          </tr>
-        <% end %>
-      </tbody>
-    </table>
+        </tbody>
+      </table>
+    </div>
   </div>
-</div>
 
-<!-- Add User Modal -->
+  <!-- Add User Modal -->
+<% end %>
 <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">

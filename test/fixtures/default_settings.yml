@@ -1,0 +1,15 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  site_prefix: MyString
+  app_prefix: MyString
+  members_prefix: MyString
+  active_members_group: MyString
+  admins_group: MyString
+
+two:
+  site_prefix: MyString
+  app_prefix: MyString
+  members_prefix: MyString
+  active_members_group: MyString
+  admins_group: MyString

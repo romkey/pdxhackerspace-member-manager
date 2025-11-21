@@ -8,8 +8,9 @@ class ApplicationsController < AuthenticatedController
   end
 
   def new
+    default_settings = DefaultSetting.instance
     @application = Application.new(
-      authentik_prefix: 'ctrlh:app',
+      authentik_prefix: default_settings.app_prefix,
       internal_url: 'http://',
       external_url: 'https://'
     )
