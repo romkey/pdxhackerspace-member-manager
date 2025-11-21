@@ -13,6 +13,9 @@ ENV RAILS_ENV="production" \
     BUNDLE_PATH="/usr/local/bundle" \
     BUNDLE_WITHOUT="development"
 
+# Node.js stage - copy Node.js from official Node image
+ARG NODE_VERSION=24.9.0
+FROM node:${NODE_VERSION}-slim as nodejs
 
 # Throw-away build stage to reduce size of final image
 FROM base as build
@@ -24,19 +27,23 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get update -qq && \
     apt-get install --no-install-recommends -y build-essential curl git libpq-dev libvips node-gyp pkg-config python-is-python3 libyaml-dev
 
-# Install JavaScript dependencies
-ARG NODE_VERSION=24.9.0
+# Copy Node.js and npm from the official Node image
+COPY --from=nodejs /usr/local/bin/node /usr/local/bin/node
+COPY --from=nodejs /usr/local/bin/npm /usr/local/bin/npm
+COPY --from=nodejs /usr/local/bin/npx /usr/local/bin/npx
+COPY --from=nodejs /usr/local/lib/node_modules /usr/local/lib/node_modules
+
+# Install Yarn globally
 ARG YARN_VERSION=latest
-ENV PATH=/usr/local/node/bin:$PATH
-RUN curl -sL https://github.com/nodenv/node-build/archive/master.tar.gz | tar xz -C /tmp/ && \
-    /tmp/node-build-master/bin/node-build "${NODE_VERSION}" /usr/local/node && \
-    npm install -g yarn@$YARN_VERSION && \
-    rm -rf /tmp/node-build-master
+ENV PATH=/usr/local/bin:$PATH
+RUN npm install -g yarn@${YARN_VERSION}
 
 # Install application gems
 # Use cache mount for bundle gem cache to speed up gem installation
+# Lock to linux platform to match our build target
 COPY Gemfile Gemfile.lock ./
 RUN --mount=type=cache,target=/root/.bundle/cache \
+    bundle lock --add-platform x86_64-linux && \
     bundle install && \
     rm -rf "${BUNDLE_PATH}"/ruby/*/cache "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git && \
     bundle exec bootsnap precompile --gemfile
@@ -55,7 +62,9 @@ COPY . .
 RUN bundle exec bootsnap precompile app/ lib/
 
 # Precompiling assets for production without requiring secret RAILS_MASTER_KEY
-RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
+# Use cache mount for asset compilation cache to speed up rebuilds
+RUN --mount=type=cache,target=/rails/tmp/cache \
+    SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
 
 
 # Final stage for app image
