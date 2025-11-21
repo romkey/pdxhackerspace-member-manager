@@ -3,1084 +3,248 @@
   <p class="text-muted mb-0">Users requiring attention.</p>
 </div>
 
-<div class="card shadow-sm border-0 mb-4">
-  <div class="card-body">
-    <h2 class="h6 mb-3">Jump to Section</h2>
-    <div class="d-flex flex-wrap gap-3">
-      <%= link_to "#membership-status-unknown", class: "text-decoration-none" do %>
-        <span class="badge text-bg-secondary fs-6 px-3 py-2">
-          Membership Status: Unknown <span class="badge text-bg-light text-dark ms-2"><%= @membership_status_unknown.count %></span>
-        </span>
-      <% end %>
-      <%= link_to "#payment-type-unknown", class: "text-decoration-none" do %>
-        <span class="badge text-bg-secondary fs-6 px-3 py-2">
-          Payment Type: Unknown <span class="badge text-bg-light text-dark ms-2"><%= @payment_type_unknown.count %></span>
-        </span>
-      <% end %>
-      <%= link_to "#dues-status-unknown", class: "text-decoration-none" do %>
-        <span class="badge text-bg-secondary fs-6 px-3 py-2">
-          Dues Status: Unknown <span class="badge text-bg-light text-dark ms-2"><%= @dues_status_unknown.count %></span>
-        </span>
-      <% end %>
-      <%= link_to "#dues-status-lapsed", class: "text-decoration-none" do %>
-        <span class="badge text-bg-secondary fs-6 px-3 py-2">
-          Dues Status: Lapsed <span class="badge text-bg-light text-dark ms-2"><%= @dues_status_lapsed.count %></span>
-        </span>
-      <% end %>
-      <%= link_to "#unmatched-paypal", class: "text-decoration-none" do %>
-        <span class="badge text-bg-secondary fs-6 px-3 py-2">
-          Unmatched PayPal <span class="badge text-bg-light text-dark ms-2"><%= @unmatched_paypal_payments.count %></span>
-        </span>
-      <% end %>
-      <%= link_to "#unmatched-recharge", class: "text-decoration-none" do %>
-        <span class="badge text-bg-secondary fs-6 px-3 py-2">
-          Unmatched Recharge <span class="badge text-bg-light text-dark ms-2"><%= @unmatched_recharge_payments.count %></span>
-        </span>
-      <% end %>
-    </div>
-  </div>
-</div>
+<% 
+  active_tab = params[:tab] || 'membership-status-unknown'
+  tabs = [
+    { id: 'membership-status-unknown', name: 'Membership', count: @membership_status_unknown_count },
+    { id: 'payment-type-unknown', name: 'Payment', count: @payment_type_unknown_count },
+    { id: 'dues-status-unknown', name: 'Dues', count: @dues_status_unknown_count },
+    { id: 'dues-status-lapsed', name: 'Lapsed', count: @dues_status_lapsed_count },
+    { id: 'unmatched-paypal', name: 'PayPal', count: @unmatched_paypal_payments_count },
+    { id: 'unmatched-recharge', name: 'Recharge', count: @unmatched_recharge_payments_count }
+  ]
+%>
 
-<!-- Membership Status Unknown -->
-<div id="membership-status-unknown" class="card shadow-sm border-0 mb-4">
-  <div class="card-header bg-body-tertiary">
-    <h2 class="h5 mb-0">Membership Status: Unknown (<%= @membership_status_unknown.count %>)</h2>
-  </div>
-  <div class="card-body">
-    <% if @membership_status_unknown.any? %>
-      <div class="table-responsive">
-        <table class="table mb-0 align-middle">
-          <thead class="bg-body-tertiary">
-            <tr>
-              <th scope="col" style="width: 48px;"></th>
-              <th scope="col">Name</th>
-              <th scope="col">Email</th>
-              <th scope="col">Status</th>
-              <th scope="col">Payment Type</th>
-              <th scope="col">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% @membership_status_unknown.each do |user| %>
-              <tr>
-                <td>
-                  <% if user.avatar.present? %>
-                    <img src="<%= user.avatar %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
-                  <% elsif user.email.present? %>
-                    <img src="<%= gravatar_url(user.email, size: 32) %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
-                  <% else %>
-                    <div style="width: 32px; height: 32px; border-radius: 4px; background-color: #dee2e6;"></div>
-                  <% end %>
-                </td>
-                <td class="fw-semibold">
-                  <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
-                </td>
-                <td>
-                  <% if user.email.present? %>
-                    <%= mail_to user.email %>
-                  <% else %>
-                    <span class="text-muted fst-italic">Not provided</span>
-                  <% end %>
-                </td>
-                <td>
-                  <% badge_class = case user.membership_status
-                     when "coworking" then "success"
-                     when "basic" then "info"
-                     when "guest" then "warning"
-                     when "banned" then "danger"
-                     when "deceased" then "dark"
-                     when "sponsored" then "primary"
-                     when "unknown" then "secondary"
-                     else "secondary"
-                     end %>
-                  <span class="badge text-bg-<%= badge_class %>">
-                    <%= user.membership_status.humanize %>
-                  </span>
-                  <% if user.active? %>
-                    <span class="badge text-bg-success ms-1">Active</span>
-                  <% end %>
-                </td>
-                <td>
-                  <span class="badge text-bg-info"><%= user.payment_type.humanize %></span>
-                </td>
-                <td>
-                  <div class="d-flex flex-wrap gap-1">
-                    <%= link_to "Edit", edit_user_path(user), class: "btn btn-sm btn-outline-primary" %>
-                    <% if user.active? %>
-                      <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                        <%= hidden_field_tag :user_id, user.id %>
-                        <%= hidden_field_tag :action_type, 'deactivate' %>
-                        <%= hidden_field_tag :anchor, 'membership-status-unknown' %>
-                        <%= f.submit "Deactivate", class: "btn btn-sm btn-outline-secondary", 
-                            data: { 
-                              turbo: false,
-                              confirm_message: "Are you sure you want to deactivate #{user.display_name}?"
-                            },
-                            onclick: "return confirm(this.dataset.confirmMessage);" %>
-                      <% end %>
-                    <% else %>
-                      <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                        <%= hidden_field_tag :user_id, user.id %>
-                        <%= hidden_field_tag :action_type, 'activate' %>
-                        <%= hidden_field_tag :anchor, 'membership-status-unknown' %>
-                        <%= f.submit "Activate", class: "btn btn-sm btn-outline-success", 
-                            data: { 
-                              turbo: false,
-                              confirm_message: "Are you sure you want to activate #{user.display_name}?"
-                            },
-                            onclick: "return confirm(this.dataset.confirmMessage);" %>
-                      <% end %>
-                    <% end %>
-                    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                      <%= hidden_field_tag :user_id, user.id %>
-                      <%= hidden_field_tag :action_type, 'ban' %>
-                      <%= hidden_field_tag :anchor, 'membership-status-unknown' %>
-                      <%= f.submit "Ban", class: "btn btn-sm btn-outline-danger", 
-                          data: { 
-                            turbo: false,
-                            confirm_message: "Are you sure you want to ban #{user.display_name}? This will set their membership status to 'banned' and deactivate them."
-                          },
-                          onclick: "return confirm(this.dataset.confirmMessage);" %>
-                    <% end %>
-                    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                      <%= hidden_field_tag :user_id, user.id %>
-                      <%= hidden_field_tag :action_type, 'deceased' %>
-                      <%= hidden_field_tag :anchor, 'membership-status-unknown' %>
-                      <%= f.submit "Deceased", class: "btn btn-sm btn-outline-dark", 
-                          data: { 
-                            turbo: false,
-                            confirm_message: "Are you sure you want to mark #{user.display_name} as deceased? This will set their membership status to 'deceased' and deactivate them."
-                          },
-                          onclick: "return confirm(this.dataset.confirmMessage);" %>
-                    <% end %>
-                    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                      <%= hidden_field_tag :user_id, user.id %>
-                      <%= hidden_field_tag :action_type, 'basic' %>
-                      <%= hidden_field_tag :anchor, 'membership-status-unknown' %>
-                      <%= f.submit "Basic", class: "btn btn-sm btn-outline-info" %>
-                    <% end %>
-                    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                      <%= hidden_field_tag :user_id, user.id %>
-                      <%= hidden_field_tag :action_type, 'coworking' %>
-                      <%= hidden_field_tag :anchor, 'membership-status-unknown' %>
-                      <%= f.submit "Coworking", class: "btn btn-sm btn-outline-success" %>
-                    <% end %>
-                    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                      <%= hidden_field_tag :user_id, user.id %>
-                      <%= hidden_field_tag :action_type, 'sponsored' %>
-                      <%= hidden_field_tag :anchor, 'membership-status-unknown' %>
-                      <%= f.submit "Sponsored", class: "btn btn-sm btn-outline-primary" %>
-                    <% end %>
-                    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                      <%= hidden_field_tag :user_id, user.id %>
-                      <%= hidden_field_tag :action_type, 'guest' %>
-                      <%= hidden_field_tag :anchor, 'membership-status-unknown' %>
-                      <%= f.submit "Guest", class: "btn btn-sm btn-outline-warning" %>
-                    <% end %>
-                  </div>
-                </td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
+<ul class="nav nav-tabs mb-4" role="tablist">
+  <% tabs.each do |tab| %>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link <%= 'active' if active_tab == tab[:id] %>" 
+              id="<%= tab[:id] %>-tab" 
+              data-bs-toggle="tab" 
+              data-bs-target="#<%= tab[:id] %>-pane" 
+              type="button" 
+              role="tab" 
+              aria-controls="<%= tab[:id] %>-pane" 
+              aria-selected="<%= active_tab == tab[:id] %>">
+        <%= tab[:name] %> <span class="badge text-bg-secondary ms-1"><%= tab[:count] %></span>
+      </button>
+    </li>
+  <% end %>
+</ul>
+
+<div class="tab-content">
+  <!-- Membership Status Unknown -->
+  <div class="tab-pane fade <%= 'show active' if active_tab == 'membership-status-unknown' %>" 
+       id="membership-status-unknown-pane" 
+       role="tabpanel" 
+       aria-labelledby="membership-status-unknown-tab">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-body-tertiary">
+        <h2 class="h5 mb-0">Membership Status: Unknown (<%= @membership_status_unknown_count %>)</h2>
       </div>
-    <% else %>
-      <p class="text-muted mb-0">No users with unknown membership status.</p>
-    <% end %>
-  </div>
-</div>
-
-<!-- Payment Type Unknown -->
-<div id="payment-type-unknown" class="card shadow-sm border-0 mb-4">
-  <div class="card-header bg-body-tertiary">
-    <h2 class="h5 mb-0">Payment Type: Unknown (<%= @payment_type_unknown.count %>)</h2>
-  </div>
-  <div class="card-body">
-    <% if @payment_type_unknown.any? %>
-      <div class="table-responsive">
-        <table class="table mb-0 align-middle">
-          <thead class="bg-body-tertiary">
-            <tr>
-              <th scope="col" style="width: 48px;"></th>
-              <th scope="col">Name</th>
-              <th scope="col">Email</th>
-              <th scope="col">Status</th>
-              <th scope="col">Payment Type</th>
-              <th scope="col">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% @payment_type_unknown.each do |user| %>
-              <tr>
-                <td>
-                  <% if user.avatar.present? %>
-                    <img src="<%= user.avatar %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
-                  <% elsif user.email.present? %>
-                    <img src="<%= gravatar_url(user.email, size: 32) %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
-                  <% else %>
-                    <div style="width: 32px; height: 32px; border-radius: 4px; background-color: #dee2e6;"></div>
-                  <% end %>
-                </td>
-                <td class="fw-semibold">
-                  <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
-                </td>
-                <td>
-                  <% if user.email.present? %>
-                    <%= mail_to user.email %>
-                  <% else %>
-                    <span class="text-muted fst-italic">Not provided</span>
-                  <% end %>
-                </td>
-                <td>
-                  <% badge_class = case user.membership_status
-                     when "coworking" then "success"
-                     when "basic" then "info"
-                     when "guest" then "warning"
-                     when "banned" then "danger"
-                     when "deceased" then "dark"
-                     when "sponsored" then "primary"
-                     when "unknown" then "secondary"
-                     else "secondary"
-                     end %>
-                  <span class="badge text-bg-<%= badge_class %>">
-                    <%= user.membership_status.humanize %>
-                  </span>
-                  <% if user.active? %>
-                    <span class="badge text-bg-success ms-1">Active</span>
-                  <% end %>
-                </td>
-                <td>
-                  <span class="badge text-bg-info"><%= user.payment_type.humanize %></span>
-                </td>
-                <td>
-                  <div class="d-flex flex-wrap gap-1">
-                    <%= link_to "Edit", edit_user_path(user), class: "btn btn-sm btn-outline-primary" %>
-                    <% if user.active? %>
-                      <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                        <%= hidden_field_tag :user_id, user.id %>
-                        <%= hidden_field_tag :action_type, 'deactivate' %>
-                        <%= hidden_field_tag :anchor, 'payment-type-unknown' %>
-                        <%= f.submit "Deactivate", class: "btn btn-sm btn-outline-secondary", 
-                            data: { 
-                              turbo: false,
-                              confirm_message: "Are you sure you want to deactivate #{user.display_name}?"
-                            },
-                            onclick: "return confirm(this.dataset.confirmMessage);" %>
-                      <% end %>
-                    <% else %>
-                      <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                        <%= hidden_field_tag :user_id, user.id %>
-                        <%= hidden_field_tag :action_type, 'activate' %>
-                        <%= hidden_field_tag :anchor, 'payment-type-unknown' %>
-                        <%= f.submit "Activate", class: "btn btn-sm btn-outline-success", 
-                            data: { 
-                              turbo: false,
-                              confirm_message: "Are you sure you want to activate #{user.display_name}?"
-                            },
-                            onclick: "return confirm(this.dataset.confirmMessage);" %>
-                      <% end %>
-                    <% end %>
-                    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                      <%= hidden_field_tag :user_id, user.id %>
-                      <%= hidden_field_tag :action_type, 'ban' %>
-                      <%= hidden_field_tag :anchor, 'payment-type-unknown' %>
-                      <%= f.submit "Ban", class: "btn btn-sm btn-outline-danger", 
-                          data: { 
-                            turbo: false,
-                            confirm_message: "Are you sure you want to ban #{user.display_name}? This will set their membership status to 'banned' and deactivate them."
-                          },
-                          onclick: "return confirm(this.dataset.confirmMessage);" %>
-                    <% end %>
-                    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                      <%= hidden_field_tag :user_id, user.id %>
-                      <%= hidden_field_tag :action_type, 'cash' %>
-                      <%= hidden_field_tag :anchor, 'payment-type-unknown' %>
-                      <%= f.submit "Cash", class: "btn btn-sm btn-outline-secondary" %>
-                    <% end %>
-                    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                      <%= hidden_field_tag :user_id, user.id %>
-                      <%= hidden_field_tag :action_type, 'paypal' %>
-                      <%= hidden_field_tag :anchor, 'payment-type-unknown' %>
-                      <%= f.submit "PayPal", class: "btn btn-sm btn-outline-secondary" %>
-                    <% end %>
-                    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                      <%= hidden_field_tag :user_id, user.id %>
-                      <%= hidden_field_tag :action_type, 'recharge' %>
-                      <%= hidden_field_tag :anchor, 'payment-type-unknown' %>
-                      <%= f.submit "Recharge", class: "btn btn-sm btn-outline-secondary" %>
-                    <% end %>
-                    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                      <%= hidden_field_tag :user_id, user.id %>
-                      <%= hidden_field_tag :action_type, 'guest' %>
-                      <%= hidden_field_tag :anchor, 'payment-type-unknown' %>
-                      <%= f.submit "Guest", class: "btn btn-sm btn-outline-secondary" %>
-                    <% end %>
-                    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                      <%= hidden_field_tag :user_id, user.id %>
-                      <%= hidden_field_tag :action_type, 'sponsored' %>
-                      <%= hidden_field_tag :anchor, 'payment-type-unknown' %>
-                      <%= f.submit "Sponsored", class: "btn btn-sm btn-outline-secondary" %>
-                    <% end %>
-                  </div>
-                </td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    <% else %>
-      <p class="text-muted mb-0">No users with unknown payment type.</p>
-    <% end %>
-  </div>
-</div>
-
-<!-- Dues Status Unknown -->
-<div id="dues-status-unknown" class="card shadow-sm border-0 mb-4">
-  <div class="card-header bg-body-tertiary">
-    <h2 class="h5 mb-0">Dues Status: Unknown (<%= @dues_status_unknown.count %>)</h2>
-  </div>
-  <div class="card-body">
-    <% if @dues_status_unknown.any? %>
-      <div class="table-responsive">
-        <table class="table mb-0 align-middle">
-          <thead class="bg-body-tertiary">
-            <tr>
-              <th scope="col" style="width: 48px;"></th>
-              <th scope="col">Name</th>
-              <th scope="col">Email</th>
-              <th scope="col">Status</th>
-              <th scope="col">Dues Status</th>
-              <th scope="col">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% @dues_status_unknown.each do |user| %>
-              <tr>
-                <td>
-                  <% if user.avatar.present? %>
-                    <img src="<%= user.avatar %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
-                  <% elsif user.email.present? %>
-                    <img src="<%= gravatar_url(user.email, size: 32) %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
-                  <% else %>
-                    <div style="width: 32px; height: 32px; border-radius: 4px; background-color: #dee2e6;"></div>
-                  <% end %>
-                </td>
-                <td class="fw-semibold">
-                  <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
-                </td>
-                <td>
-                  <% if user.email.present? %>
-                    <%= mail_to user.email %>
-                  <% else %>
-                    <span class="text-muted fst-italic">Not provided</span>
-                  <% end %>
-                </td>
-                <td>
-                  <% badge_class = case user.membership_status
-                     when "coworking" then "success"
-                     when "basic" then "info"
-                     when "guest" then "warning"
-                     when "banned" then "danger"
-                     when "deceased" then "dark"
-                     when "sponsored" then "primary"
-                     when "unknown" then "secondary"
-                     else "secondary"
-                     end %>
-                  <span class="badge text-bg-<%= badge_class %>">
-                    <%= user.membership_status.humanize %>
-                  </span>
-                  <% if user.active? %>
-                    <span class="badge text-bg-success ms-1">Active</span>
-                  <% end %>
-                </td>
-                <td>
-                  <% dues_badge_class = case user.dues_status
-                     when "current" then "success"
-                     when "lapsed" then "warning"
-                     when "inactive" then "secondary"
-                     when "unknown" then "secondary"
-                     else "secondary"
-                     end %>
-                  <span class="badge text-bg-<%= dues_badge_class %>"><%= user.dues_status.humanize %></span>
-                </td>
-                <td>
-                  <div class="d-flex flex-wrap gap-1">
-                    <%= link_to "Edit", edit_user_path(user), class: "btn btn-sm btn-outline-primary" %>
-                    <% if user.active? %>
-                      <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                        <%= hidden_field_tag :user_id, user.id %>
-                        <%= hidden_field_tag :action_type, 'deactivate' %>
-                        <%= hidden_field_tag :anchor, 'dues-status-unknown' %>
-                        <%= f.submit "Deactivate", class: "btn btn-sm btn-outline-secondary", 
-                            data: { 
-                              turbo: false,
-                              confirm_message: "Are you sure you want to deactivate #{user.display_name}?"
-                            },
-                            onclick: "return confirm(this.dataset.confirmMessage);" %>
-                      <% end %>
-                    <% else %>
-                      <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                        <%= hidden_field_tag :user_id, user.id %>
-                        <%= hidden_field_tag :action_type, 'activate' %>
-                        <%= hidden_field_tag :anchor, 'dues-status-unknown' %>
-                        <%= f.submit "Activate", class: "btn btn-sm btn-outline-success", 
-                            data: { 
-                              turbo: false,
-                              confirm_message: "Are you sure you want to activate #{user.display_name}?"
-                            },
-                            onclick: "return confirm(this.dataset.confirmMessage);" %>
-                      <% end %>
-                    <% end %>
-                    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                      <%= hidden_field_tag :user_id, user.id %>
-                      <%= hidden_field_tag :action_type, 'ban' %>
-                      <%= hidden_field_tag :anchor, 'dues-status-unknown' %>
-                      <%= f.submit "Ban", class: "btn btn-sm btn-outline-danger", 
-                          data: { 
-                            turbo: false,
-                            confirm_message: "Are you sure you want to ban #{user.display_name}? This will set their membership status to 'banned' and deactivate them."
-                          },
-                          onclick: "return confirm(this.dataset.confirmMessage);" %>
-                    <% end %>
-                    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                      <%= hidden_field_tag :user_id, user.id %>
-                      <%= hidden_field_tag :action_type, 'deceased' %>
-                      <%= hidden_field_tag :anchor, 'dues-status-unknown' %>
-                      <%= f.submit "Deceased", class: "btn btn-sm btn-outline-dark", 
-                          data: { 
-                            turbo: false,
-                            confirm_message: "Are you sure you want to mark #{user.display_name} as deceased? This will set their membership status to 'deceased' and deactivate them."
-                          },
-                          onclick: "return confirm(this.dataset.confirmMessage);" %>
-                    <% end %>
-                    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                      <%= hidden_field_tag :user_id, user.id %>
-                      <%= hidden_field_tag :action_type, 'basic' %>
-                      <%= hidden_field_tag :anchor, 'dues-status-unknown' %>
-                      <%= f.submit "Basic", class: "btn btn-sm btn-outline-info" %>
-                    <% end %>
-                    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                      <%= hidden_field_tag :user_id, user.id %>
-                      <%= hidden_field_tag :action_type, 'coworking' %>
-                      <%= hidden_field_tag :anchor, 'dues-status-unknown' %>
-                      <%= f.submit "Coworking", class: "btn btn-sm btn-outline-success" %>
-                    <% end %>
-                    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                      <%= hidden_field_tag :user_id, user.id %>
-                      <%= hidden_field_tag :action_type, 'sponsored' %>
-                      <%= hidden_field_tag :anchor, 'dues-status-unknown' %>
-                      <%= f.submit "Sponsored", class: "btn btn-sm btn-outline-primary" %>
-                    <% end %>
-                    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                      <%= hidden_field_tag :user_id, user.id %>
-                      <%= hidden_field_tag :action_type, 'guest' %>
-                      <%= hidden_field_tag :anchor, 'dues-status-unknown' %>
-                      <%= f.submit "Guest", class: "btn btn-sm btn-outline-warning" %>
-                    <% end %>
-                  </div>
-                </td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    <% else %>
-      <p class="text-muted mb-0">No users with unknown dues status.</p>
-    <% end %>
-  </div>
-</div>
-
-<!-- Dues Status Lapsed -->
-<div id="dues-status-lapsed" class="card shadow-sm border-0 mb-4">
-  <div class="card-header bg-body-tertiary">
-    <h2 class="h5 mb-0">Dues Status: Lapsed (<%= @dues_status_lapsed.count %>)</h2>
-  </div>
-  <div class="card-body">
-    <% if @dues_status_lapsed.any? %>
-      <div class="table-responsive">
-        <table class="table mb-0 align-middle">
-          <thead class="bg-body-tertiary">
-            <tr>
-              <th scope="col" style="width: 48px;"></th>
-              <th scope="col">Name</th>
-              <th scope="col">Email</th>
-              <th scope="col">Status</th>
-              <th scope="col">Dues Status</th>
-              <th scope="col">Last Payment</th>
-              <th scope="col">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% @dues_status_lapsed.each do |user| %>
-              <tr>
-                <td>
-                  <% if user.avatar.present? %>
-                    <img src="<%= user.avatar %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
-                  <% elsif user.email.present? %>
-                    <img src="<%= gravatar_url(user.email, size: 32) %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
-                  <% else %>
-                    <div style="width: 32px; height: 32px; border-radius: 4px; background-color: #dee2e6;"></div>
-                  <% end %>
-                </td>
-                <td class="fw-semibold">
-                  <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
-                </td>
-                <td>
-                  <% if user.email.present? %>
-                    <%= mail_to user.email %>
-                  <% else %>
-                    <span class="text-muted fst-italic">Not provided</span>
-                  <% end %>
-                </td>
-                <td>
-                  <% badge_class = case user.membership_status
-                     when "coworking" then "success"
-                     when "basic" then "info"
-                     when "guest" then "warning"
-                     when "banned" then "danger"
-                     when "deceased" then "dark"
-                     when "sponsored" then "primary"
-                     when "unknown" then "secondary"
-                     else "secondary"
-                     end %>
-                  <span class="badge text-bg-<%= badge_class %>">
-                    <%= user.membership_status.humanize %>
-                  </span>
-                  <% if user.active? %>
-                    <span class="badge text-bg-success ms-1">Active</span>
-                  <% end %>
-                </td>
-                <td>
-                  <span class="badge text-bg-warning"><%= user.dues_status.humanize %></span>
-                </td>
-                <td>
-                  <% if user.last_payment_date.present? %>
-                    <%= l(user.last_payment_date, format: :long) %>
-                  <% else %>
-                    <span class="text-muted fst-italic">Never</span>
-                  <% end %>
-                </td>
-                <td>
-                  <div class="d-flex flex-wrap gap-1">
-                    <%= link_to "Edit", edit_user_path(user), class: "btn btn-sm btn-outline-primary" %>
-                    <% if user.active? %>
-                      <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                        <%= hidden_field_tag :user_id, user.id %>
-                        <%= hidden_field_tag :action_type, 'deactivate' %>
-                        <%= hidden_field_tag :anchor, 'dues-status-lapsed' %>
-                        <%= f.submit "Deactivate", class: "btn btn-sm btn-outline-secondary", 
-                            data: { 
-                              turbo: false,
-                              confirm_message: "Are you sure you want to deactivate #{user.display_name}?"
-                            },
-                            onclick: "return confirm(this.dataset.confirmMessage);" %>
-                      <% end %>
-                    <% else %>
-                      <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                        <%= hidden_field_tag :user_id, user.id %>
-                        <%= hidden_field_tag :action_type, 'activate' %>
-                        <%= hidden_field_tag :anchor, 'dues-status-lapsed' %>
-                        <%= f.submit "Activate", class: "btn btn-sm btn-outline-success", 
-                            data: { 
-                              turbo: false,
-                              confirm_message: "Are you sure you want to activate #{user.display_name}?"
-                            },
-                            onclick: "return confirm(this.dataset.confirmMessage);" %>
-                      <% end %>
-                    <% end %>
-                    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                      <%= hidden_field_tag :user_id, user.id %>
-                      <%= hidden_field_tag :action_type, 'ban' %>
-                      <%= hidden_field_tag :anchor, 'dues-status-lapsed' %>
-                      <%= f.submit "Ban", class: "btn btn-sm btn-outline-danger", 
-                          data: { 
-                            turbo: false,
-                            confirm_message: "Are you sure you want to ban #{user.display_name}? This will set their membership status to 'banned' and deactivate them."
-                          },
-                          onclick: "return confirm(this.dataset.confirmMessage);" %>
-                    <% end %>
-                    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                      <%= hidden_field_tag :user_id, user.id %>
-                      <%= hidden_field_tag :action_type, 'deceased' %>
-                      <%= hidden_field_tag :anchor, 'dues-status-lapsed' %>
-                      <%= f.submit "Deceased", class: "btn btn-sm btn-outline-dark", 
-                          data: { 
-                            turbo: false,
-                            confirm_message: "Are you sure you want to mark #{user.display_name} as deceased? This will set their membership status to 'deceased' and deactivate them."
-                          },
-                          onclick: "return confirm(this.dataset.confirmMessage);" %>
-                    <% end %>
-                    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                      <%= hidden_field_tag :user_id, user.id %>
-                      <%= hidden_field_tag :action_type, 'basic' %>
-                      <%= hidden_field_tag :anchor, 'dues-status-lapsed' %>
-                      <%= f.submit "Basic", class: "btn btn-sm btn-outline-info" %>
-                    <% end %>
-                    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                      <%= hidden_field_tag :user_id, user.id %>
-                      <%= hidden_field_tag :action_type, 'coworking' %>
-                      <%= hidden_field_tag :anchor, 'dues-status-lapsed' %>
-                      <%= f.submit "Coworking", class: "btn btn-sm btn-outline-success" %>
-                    <% end %>
-                    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                      <%= hidden_field_tag :user_id, user.id %>
-                      <%= hidden_field_tag :action_type, 'sponsored' %>
-                      <%= hidden_field_tag :anchor, 'dues-status-lapsed' %>
-                      <%= f.submit "Sponsored", class: "btn btn-sm btn-outline-primary" %>
-                    <% end %>
-                    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-                      <%= hidden_field_tag :user_id, user.id %>
-                      <%= hidden_field_tag :action_type, 'guest' %>
-                      <%= hidden_field_tag :anchor, 'dues-status-lapsed' %>
-                      <%= f.submit "Guest", class: "btn btn-sm btn-outline-warning" %>
-                    <% end %>
-                  </div>
-                </td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    <% else %>
-      <p class="text-muted mb-0">No users with lapsed dues status.</p>
-    <% end %>
-  </div>
-</div>
-
-<!-- Unmatched PayPal Payments -->
-<div id="unmatched-paypal" class="card shadow-sm border-0 mb-4">
-  <div class="card-header bg-body-tertiary">
-    <h2 class="h5 mb-0">Unmatched PayPal Payments (<%= @unmatched_paypal_payments.count %>)</h2>
-  </div>
-  <div class="card-body">
-    <% if @unmatched_paypal_payments.any? %>
-      <p class="text-muted small mb-3">Payments that don't have a matching User record by PayPal account ID</p>
-      <div class="table-responsive">
-        <table class="table table-sm align-middle mb-0">
-          <thead class="bg-body-tertiary">
-            <tr>
-              <th scope="col">Payment ID</th>
-              <th scope="col">Payer Name</th>
-              <th scope="col">Payer Email</th>
-              <th scope="col">Transaction Time</th>
-              <th scope="col">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% @unmatched_paypal_payments.each do |unmatched| %>
-              <tr>
-                <td>
-                  <strong><%= link_to unmatched[:payment].paypal_id, paypal_payment_path(unmatched[:payment]), class: "text-decoration-none" %></strong>
-                </td>
-                <td><%= unmatched[:name].presence || "—" %></td>
-                <td>
-                  <% if unmatched[:email].present? %>
-                    <%= mail_to unmatched[:email] %>
-                  <% else %>
-                    —
-                  <% end %>
-                </td>
-                <td>
-                  <%= unmatched[:payment].transaction_time ? l(unmatched[:payment].transaction_time, format: :long) : "n/a" %>
-                </td>
-                <td>
-                  <% if unmatched[:payment].payer_id.present? %>
-                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#linkPaypalUserModal_<%= unmatched[:payment].id %>">
-                      Link User
-                    </button>
-                  <% end %>
-                </td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    <% else %>
-      <p class="text-muted mb-0">All PayPal payments have matching User records.</p>
-    <% end %>
-  </div>
-</div>
-
-<!-- Unmatched Recharge Payments -->
-<div id="unmatched-recharge" class="card shadow-sm border-0 mb-4">
-  <div class="card-header bg-body-tertiary">
-    <h2 class="h5 mb-0">Unmatched Recharge Payments (<%= @unmatched_recharge_payments.count %>)</h2>
-  </div>
-  <div class="card-body">
-    <% if @unmatched_recharge_payments.any? %>
-      <p class="text-muted small mb-3">Payments that don't have a matching User record by Recharge customer ID</p>
-      <div class="table-responsive">
-        <table class="table table-sm align-middle mb-0">
-          <thead class="bg-body-tertiary">
-            <tr>
-              <th scope="col">Payment ID</th>
-              <th scope="col">Customer ID</th>
-              <th scope="col">Customer Name</th>
-              <th scope="col">Customer Email</th>
-              <th scope="col">Processed</th>
-              <th scope="col">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% @unmatched_recharge_payments.each do |unmatched| %>
-              <tr>
-                <td>
-                  <strong><%= link_to unmatched[:payment].recharge_id, recharge_payment_path(unmatched[:payment]), class: "text-decoration-none" %></strong>
-                </td>
-                <td><%= unmatched[:customer_id].presence || "—" %></td>
-                <td><%= unmatched[:name].presence || "—" %></td>
-                <td>
-                  <% if unmatched[:email].present? %>
-                    <%= mail_to unmatched[:email] %>
-                  <% else %>
-                    —
-                  <% end %>
-                </td>
-                <td>
-                  <%= unmatched[:payment].processed_at ? l(unmatched[:payment].processed_at, format: :long) : "n/a" %>
-                </td>
-                <td>
-                  <% if unmatched[:customer_id].present? %>
-                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#linkRechargeUserModal_<%= unmatched[:payment].id %>">
-                      Link User
-                    </button>
-                  <% end %>
-                </td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    <% else %>
-      <p class="text-muted mb-0">All Recharge payments have matching User records.</p>
-    <% end %>
-  </div>
-</div>
-
-<!-- PayPal Link User Modals -->
-<% @unmatched_paypal_payments.each do |unmatched| %>
-  <% payment = unmatched[:payment] %>
-  <% next unless payment.payer_id.present? %>
-  <div class="modal fade" id="linkPaypalUserModal_<%= payment.id %>" tabindex="-1" aria-labelledby="linkPaypalUserModalLabel_<%= payment.id %>" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="linkPaypalUserModalLabel_<%= payment.id %>">Link User to Payment</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <%= form_with url: link_user_paypal_payment_path(payment), method: :post, local: true do |f| %>
-          <%= hidden_field_tag :from_reports, 'true' %>
-          <div class="modal-body">
-            <p class="mb-3">Select a user to link to this payment. The user's <code>paypal_account_id</code> will be set to <code><%= payment.payer_id %></code>.</p>
-            <div class="mb-3">
-              <label for="user_search_paypal_<%= payment.id %>" class="form-label">Search Users</label>
-              <input type="text" id="user_search_paypal_<%= payment.id %>" class="form-control mb-2" placeholder="Type to search users..." autocomplete="off">
+      <div class="card-body">
+        <% if @membership_status_unknown.any? %>
+          <%= render partial: 'user_table', locals: { 
+            users: @membership_status_unknown, 
+            anchor: 'membership-status-unknown',
+            show_payment_type: true,
+            show_dues_status: false,
+            show_last_payment: false
+          } %>
+          <% if @membership_status_unknown_count > 20 %>
+            <div class="mt-3 text-center">
+              <%= link_to "View all #{@membership_status_unknown_count} users", 
+                  reports_view_all_path('membership-status-unknown'), 
+                  class: "btn btn-outline-primary" %>
             </div>
-            <div class="mb-3">
-              <label class="form-label">Select User</label>
-              <div id="user_list_paypal_<%= payment.id %>" class="border rounded" style="max-height: 300px; overflow-y: auto;">
-                <% @all_users.each do |user| %>
-                  <div class="user-item p-2 border-bottom" data-user-id="<%= user.id %>" data-user-name="<%= user.display_name.downcase %>" style="cursor: pointer;">
-                    <input type="radio" name="user_id" id="user_paypal_<%= payment.id %>_<%= user.id %>" value="<%= user.id %>" class="form-check-input me-2" required>
-                    <label for="user_paypal_<%= payment.id %>_<%= user.id %>" class="form-check-label mb-0" style="cursor: pointer;">
-                      <%= user.display_name %>
-                    </label>
-                  </div>
-                <% end %>
-              </div>
-              <div id="no_results_paypal_<%= payment.id %>" class="text-muted text-center p-3" style="display: none;">
-                No users found matching your search.
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <%= f.submit "Link User", class: "btn btn-primary" %>
-          </div>
+          <% end %>
+        <% else %>
+          <p class="text-muted mb-0">No users with unknown membership status.</p>
         <% end %>
       </div>
     </div>
   </div>
 
-  <script>
-    (function() {
-      const modal = document.getElementById('linkPaypalUserModal_<%= payment.id %>');
-      if (!modal) return;
-      
-      let searchHandler = null;
-      
-      function filterUsers() {
-        const searchInput = document.getElementById('user_search_paypal_<%= payment.id %>');
-        const userList = document.getElementById('user_list_paypal_<%= payment.id %>');
-        const noResults = document.getElementById('no_results_paypal_<%= payment.id %>');
-        
-        if (!searchInput || !userList) return;
-        
-        const searchTerm = searchInput.value.toLowerCase().trim();
-        const userItems = userList.querySelectorAll('.user-item');
-        let visibleCount = 0;
-        
-        userItems.forEach(function(item) {
-          const userName = item.getAttribute('data-user-name');
-          if (userName && userName.includes(searchTerm)) {
-            item.style.display = '';
-            visibleCount++;
-          } else {
-            item.style.display = 'none';
-          }
-        });
-        
-        if (visibleCount === 0 && searchTerm !== '') {
-          userList.style.display = 'none';
-          if (noResults) {
-            noResults.style.display = 'block';
-          }
-        } else {
-          userList.style.display = 'block';
-          if (noResults) {
-            noResults.style.display = 'none';
-          }
-        }
-      }
-      
-      function resetSearch() {
-        const searchInput = document.getElementById('user_search_paypal_<%= payment.id %>');
-        const userList = document.getElementById('user_list_paypal_<%= payment.id %>');
-        const noResults = document.getElementById('no_results_paypal_<%= payment.id %>');
-        
-        if (searchInput) {
-          searchInput.value = '';
-        }
-        if (userList) {
-          const userItems = userList.querySelectorAll('.user-item');
-          userItems.forEach(function(item) {
-            item.style.display = '';
-          });
-          userList.style.display = 'block';
-        }
-        if (noResults) {
-          noResults.style.display = 'none';
-        }
-      }
-      
-      function setupClickHandlers() {
-        const userList = document.getElementById('user_list_paypal_<%= payment.id %>');
-        if (!userList) return;
-        
-        const userItems = userList.querySelectorAll('.user-item');
-        userItems.forEach(function(item) {
-          item.addEventListener('click', function(e) {
-            if (e.target.type !== 'radio' && e.target.tagName !== 'LABEL') {
-              const radio = item.querySelector('input[type="radio"]');
-              if (radio) {
-                radio.checked = true;
-              }
-            }
-          });
-        });
-      }
-      
-      modal.addEventListener('show.bs.modal', function() {
-        resetSearch();
-        
-        const searchInput = document.getElementById('user_search_paypal_<%= payment.id %>');
-        if (searchInput) {
-          if (searchHandler) {
-            searchInput.removeEventListener('input', searchHandler);
-          }
-          
-          searchHandler = function() {
-            filterUsers();
-          };
-          
-          searchInput.addEventListener('input', searchHandler);
-        }
-        
-        setupClickHandlers();
-      });
-      
-      modal.addEventListener('shown.bs.modal', function() {
-        const searchInput = document.getElementById('user_search_paypal_<%= payment.id %>');
-        if (searchInput) {
-          searchInput.focus();
-        }
-      });
-      
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
-          setupClickHandlers();
-        });
-      } else {
-        setupClickHandlers();
-      }
-    })();
-  </script>
-<% end %>
-
-<!-- Recharge Link User Modals -->
-<% @unmatched_recharge_payments.each do |unmatched| %>
-  <% payment = unmatched[:payment] %>
-  <% customer_id = unmatched[:customer_id] %>
-  <% next unless customer_id.present? %>
-  <div class="modal fade" id="linkRechargeUserModal_<%= payment.id %>" tabindex="-1" aria-labelledby="linkRechargeUserModalLabel_<%= payment.id %>" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="linkRechargeUserModalLabel_<%= payment.id %>">Link User to Recharge Payment</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <%= form_with url: link_user_recharge_payment_path(payment), method: :post, local: true do |f| %>
-          <%= hidden_field_tag :from_reports, 'true' %>
-          <div class="modal-body">
-            <p class="mb-3">Select a user to link to this Recharge payment. The user's <code>recharge_customer_id</code> will be set to match this payment's customer ID (<strong><%= customer_id %></strong>).</p>
-            <div class="mb-3">
-              <label for="user_search_recharge_<%= payment.id %>" class="form-label">Search Users</label>
-              <input type="text" id="user_search_recharge_<%= payment.id %>" class="form-control mb-2" placeholder="Type to search users..." autocomplete="off">
+  <!-- Payment Type Unknown -->
+  <div class="tab-pane fade <%= 'show active' if active_tab == 'payment-type-unknown' %>" 
+       id="payment-type-unknown-pane" 
+       role="tabpanel" 
+       aria-labelledby="payment-type-unknown-tab">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-body-tertiary">
+        <h2 class="h5 mb-0">Payment Type: Unknown (<%= @payment_type_unknown_count %>)</h2>
+      </div>
+      <div class="card-body">
+        <% if @payment_type_unknown.any? %>
+          <%= render partial: 'user_table', locals: { 
+            users: @payment_type_unknown, 
+            anchor: 'payment-type-unknown',
+            show_payment_type: true,
+            show_dues_status: false,
+            show_last_payment: false
+          } %>
+          <% if @payment_type_unknown_count > 20 %>
+            <div class="mt-3 text-center">
+              <%= link_to "View all #{@payment_type_unknown_count} users", 
+                  reports_view_all_path('payment-type-unknown'), 
+                  class: "btn btn-outline-primary" %>
             </div>
-            <div class="mb-3">
-              <label class="form-label">Select User</label>
-              <div id="user_list_recharge_<%= payment.id %>" class="border rounded" style="max-height: 300px; overflow-y: auto;">
-                <% @all_users.each do |user| %>
-                  <div class="user-item p-2 border-bottom" data-user-id="<%= user.id %>" data-user-name="<%= user.display_name.downcase %>" style="cursor: pointer;">
-                    <input type="radio" name="user_id" id="user_recharge_<%= payment.id %>_<%= user.id %>" value="<%= user.id %>" class="form-check-input me-2" required>
-                    <label for="user_recharge_<%= payment.id %>_<%= user.id %>" class="form-check-label mb-0" style="cursor: pointer;">
-                      <%= user.display_name %>
-                    </label>
-                  </div>
-                <% end %>
-              </div>
-              <div id="no_results_recharge_<%= payment.id %>" class="text-muted text-center p-3" style="display: none;">
-                No users found matching your search.
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <%= f.submit "Link User", class: "btn btn-primary" %>
-          </div>
+          <% end %>
+        <% else %>
+          <p class="text-muted mb-0">No users with unknown payment type.</p>
         <% end %>
       </div>
     </div>
   </div>
 
-  <script>
-    (function() {
-      const modal = document.getElementById('linkRechargeUserModal_<%= payment.id %>');
-      if (!modal) return;
-      
-      let searchHandler = null;
-      
-      function filterUsers() {
-        const searchInput = document.getElementById('user_search_recharge_<%= payment.id %>');
-        const userList = document.getElementById('user_list_recharge_<%= payment.id %>');
-        const noResults = document.getElementById('no_results_recharge_<%= payment.id %>');
-        
-        if (!searchInput || !userList) return;
-        
-        const searchTerm = searchInput.value.toLowerCase().trim();
-        const userItems = userList.querySelectorAll('.user-item');
-        let visibleCount = 0;
-        
-        userItems.forEach(function(item) {
-          const userName = item.getAttribute('data-user-name');
-          if (userName && userName.includes(searchTerm)) {
-            item.style.display = '';
-            visibleCount++;
-          } else {
-            item.style.display = 'none';
-          }
-        });
-        
-        if (visibleCount === 0 && searchTerm !== '') {
-          userList.style.display = 'none';
-          if (noResults) {
-            noResults.style.display = 'block';
-          }
-        } else {
-          userList.style.display = 'block';
-          if (noResults) {
-            noResults.style.display = 'none';
-          }
-        }
-      }
-      
-      function resetSearch() {
-        const searchInput = document.getElementById('user_search_recharge_<%= payment.id %>');
-        const userList = document.getElementById('user_list_recharge_<%= payment.id %>');
-        const noResults = document.getElementById('no_results_recharge_<%= payment.id %>');
-        
-        if (searchInput) {
-          searchInput.value = '';
-        }
-        if (userList) {
-          const userItems = userList.querySelectorAll('.user-item');
-          userItems.forEach(function(item) {
-            item.style.display = '';
-          });
-          userList.style.display = 'block';
-        }
-        if (noResults) {
-          noResults.style.display = 'none';
-        }
-      }
-      
-      function setupClickHandlers() {
-        const userList = document.getElementById('user_list_recharge_<%= payment.id %>');
-        if (!userList) return;
-        
-        const userItems = userList.querySelectorAll('.user-item');
-        userItems.forEach(function(item) {
-          item.addEventListener('click', function(e) {
-            if (e.target.type !== 'radio' && e.target.tagName !== 'LABEL') {
-              const radio = item.querySelector('input[type="radio"]');
-              if (radio) {
-                radio.checked = true;
-              }
-            }
-          });
-        });
-      }
-      
-      modal.addEventListener('show.bs.modal', function() {
-        resetSearch();
-        
-        const searchInput = document.getElementById('user_search_recharge_<%= payment.id %>');
-        if (searchInput) {
-          if (searchHandler) {
-            searchInput.removeEventListener('input', searchHandler);
-          }
-          
-          searchHandler = function() {
-            filterUsers();
-          };
-          
-          searchInput.addEventListener('input', searchHandler);
-        }
-        
-        setupClickHandlers();
-      });
-      
-      modal.addEventListener('shown.bs.modal', function() {
-        const searchInput = document.getElementById('user_search_recharge_<%= payment.id %>');
-        if (searchInput) {
-          searchInput.focus();
-        }
-      });
-      
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
-          setupClickHandlers();
-        });
-      } else {
-        setupClickHandlers();
-      }
-    })();
-  </script>
-<% end %>
-
-<!-- Floating back to top button -->
-<%= link_to "#", class: "position-fixed bottom-0 end-0 m-4 text-decoration-none", style: "z-index: 1000;", title: "Back to top" do %>
-  <div class="bg-primary text-white rounded-circle p-3 shadow-lg">
-    <i class="bi bi-arrow-up-circle fs-4"></i>
+  <!-- Dues Status Unknown -->
+  <div class="tab-pane fade <%= 'show active' if active_tab == 'dues-status-unknown' %>" 
+       id="dues-status-unknown-pane" 
+       role="tabpanel" 
+       aria-labelledby="dues-status-unknown-tab">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-body-tertiary">
+        <h2 class="h5 mb-0">Dues Status: Unknown (<%= @dues_status_unknown_count %>)</h2>
+      </div>
+      <div class="card-body">
+        <% if @dues_status_unknown.any? %>
+          <%= render partial: 'user_table', locals: { 
+            users: @dues_status_unknown, 
+            anchor: 'dues-status-unknown',
+            show_payment_type: false,
+            show_dues_status: true,
+            show_last_payment: false
+          } %>
+          <% if @dues_status_unknown_count > 20 %>
+            <div class="mt-3 text-center">
+              <%= link_to "View all #{@dues_status_unknown_count} users", 
+                  reports_view_all_path('dues-status-unknown'), 
+                  class: "btn btn-outline-primary" %>
+            </div>
+          <% end %>
+        <% else %>
+          <p class="text-muted mb-0">No users with unknown dues status.</p>
+        <% end %>
+      </div>
+    </div>
   </div>
-<% end %>
+
+  <!-- Dues Status Lapsed -->
+  <div class="tab-pane fade <%= 'show active' if active_tab == 'dues-status-lapsed' %>" 
+       id="dues-status-lapsed-pane" 
+       role="tabpanel" 
+       aria-labelledby="dues-status-lapsed-tab">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-body-tertiary">
+        <h2 class="h5 mb-0">Dues Status: Lapsed (<%= @dues_status_lapsed_count %>)</h2>
+      </div>
+      <div class="card-body">
+        <% if @dues_status_lapsed.any? %>
+          <%= render partial: 'user_table', locals: { 
+            users: @dues_status_lapsed, 
+            anchor: 'dues-status-lapsed',
+            show_payment_type: false,
+            show_dues_status: true,
+            show_last_payment: true
+          } %>
+          <% if @dues_status_lapsed_count > 20 %>
+            <div class="mt-3 text-center">
+              <%= link_to "View all #{@dues_status_lapsed_count} users", 
+                  reports_view_all_path('dues-status-lapsed'), 
+                  class: "btn btn-outline-primary" %>
+            </div>
+          <% end %>
+        <% else %>
+          <p class="text-muted mb-0">No users with lapsed dues status.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Unmatched PayPal Payments -->
+  <div class="tab-pane fade <%= 'show active' if active_tab == 'unmatched-paypal' %>" 
+       id="unmatched-paypal-pane" 
+       role="tabpanel" 
+       aria-labelledby="unmatched-paypal-tab">
+    <%= turbo_frame_tag "unmatched-paypal-frame", data: { turbo_action: "advance" } do %>
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-body-tertiary">
+          <h2 class="h5 mb-0">Unmatched PayPal Payments (<%= @unmatched_paypal_payments_count %>)</h2>
+        </div>
+        <div class="card-body">
+          <% if @unmatched_paypal_payments.any? %>
+            <p class="text-muted small mb-3">Payments that don't have a matching User record by PayPal account ID</p>
+            <%= render partial: 'paypal_payments_table', locals: { payments: @unmatched_paypal_payments } %>
+            <% if @unmatched_paypal_payments_count > 20 %>
+              <div class="mt-3 text-center">
+                <%= link_to "View all #{@unmatched_paypal_payments_count} payments", 
+                    reports_view_all_path('unmatched-paypal'), 
+                    class: "btn btn-outline-primary" %>
+              </div>
+            <% end %>
+          <% else %>
+            <p class="text-muted mb-0">All PayPal payments have matching User records.</p>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Unmatched Recharge Payments -->
+  <div class="tab-pane fade <%= 'show active' if active_tab == 'unmatched-recharge' %>" 
+       id="unmatched-recharge-pane" 
+       role="tabpanel" 
+       aria-labelledby="unmatched-recharge-tab">
+    <%= turbo_frame_tag "unmatched-recharge-frame", data: { turbo_action: "advance" } do %>
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-body-tertiary">
+          <h2 class="h5 mb-0">Unmatched Recharge Payments (<%= @unmatched_recharge_payments_count %>)</h2>
+        </div>
+        <div class="card-body">
+          <% if @unmatched_recharge_payments.any? %>
+            <p class="text-muted small mb-3">Payments that don't have a matching User record by Recharge customer ID</p>
+            <%= render partial: 'recharge_payments_table', locals: { payments: @unmatched_recharge_payments } %>
+            <% if @unmatched_recharge_payments_count > 20 %>
+              <div class="mt-3 text-center">
+                <%= link_to "View all #{@unmatched_recharge_payments_count} payments", 
+                    reports_view_all_path('unmatched-recharge'), 
+                    class: "btn btn-outline-primary" %>
+              </div>
+            <% end %>
+          <% else %>
+            <p class="text-muted mb-0">All Recharge payments have matching User records.</p>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<%= render partial: 'paypal_modals', locals: { payments: @unmatched_paypal_payments } %>
+<%= render partial: 'recharge_modals', locals: { payments: @unmatched_recharge_payments } %>
+
+<script>
+  // Update URL when tab changes
+  document.addEventListener('DOMContentLoaded', function() {
+    const tabButtons = document.querySelectorAll('[data-bs-toggle="tab"]');
+    tabButtons.forEach(function(button) {
+      button.addEventListener('shown.bs.tab', function(event) {
+        const tabId = event.target.getAttribute('data-bs-target').replace('#', '').replace('-pane', '');
+        const url = new URL(window.location);
+        url.searchParams.set('tab', tabId);
+        window.history.pushState({}, '', url);
+      });
+    });
+    
+    // Set active tab from URL parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    if (tabParam) {
+      const tabButton = document.querySelector('[data-bs-target="#' + tabParam + '-pane"]');
+      if (tabButton) {
+        const tab = new bootstrap.Tab(tabButton);
+        tab.show();
+      }
+    }
+  });
+</script>

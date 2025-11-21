@@ -88,15 +88,37 @@ class RechargePaymentsController < AuthenticatedController
       
       # Redirect back to reports if coming from there, otherwise to payment detail page
       if params[:from_reports] == 'true'
-        redirect_to reports_path(anchor: 'unmatched-recharge'),
-                    notice: "Linked to user #{user.display_name} and updated their Recharge customer ID, payment type, and membership status."
+        # Reload the unmatched payments list
+        all_unmatched_recharge = []
+        RechargePayment.find_each do |payment|
+          customer_id = extract_customer_id(payment)
+          next if customer_id.blank?
+          
+          matching_user = User.where(recharge_customer_id: customer_id.to_s).first
+          unless matching_user
+            all_unmatched_recharge << {
+              payment: payment,
+              email: payment.customer_email,
+              name: payment.customer_name,
+              customer_id: customer_id
+            }
+          end
+        end
+        @unmatched_recharge_payments_count = all_unmatched_recharge.count
+        @unmatched_recharge_payments = all_unmatched_recharge.first(20)
+        @all_users = User.ordered_by_display_name
+        
+        respond_to do |format|
+          format.html { redirect_to reports_path(tab: 'unmatched-recharge'), notice: "Linked to user #{user.display_name}." }
+          format.turbo_stream
+        end
       else
         redirect_to recharge_payment_path(@payment),
                     notice: "Linked to user #{user.display_name} and updated their Recharge customer ID, payment type, and membership status."
       end
     else
       if params[:from_reports] == 'true'
-        redirect_to reports_path(anchor: 'unmatched-recharge'), alert: 'Cannot link: payment has no customer ID.'
+        redirect_to reports_path(tab: 'unmatched-recharge'), alert: 'Cannot link: payment has no customer ID.'
       else
         redirect_to recharge_payment_path(@payment), alert: 'Cannot link: payment has no customer ID.'
       end

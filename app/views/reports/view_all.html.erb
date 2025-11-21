@@ -1,0 +1,81 @@
+<div class="mb-4">
+  <h1 class="h3 mb-1"><%= @title %></h1>
+  <p class="text-muted mb-0">
+    <%= link_to "← Back to Reports", reports_path(tab: @report_type), class: "text-decoration-none" %>
+  </p>
+</div>
+
+<% if @users.present? %>
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-body-tertiary">
+      <h2 class="h5 mb-0"><%= @title %> (<%= @users.count %>)</h2>
+    </div>
+    <div class="card-body">
+      <% case @report_type %>
+      <% when 'membership-status-unknown' %>
+        <%= render partial: 'user_table', locals: { 
+          users: @users, 
+          anchor: 'membership-status-unknown',
+          show_payment_type: true,
+          show_dues_status: false,
+          show_last_payment: false,
+          from_view_all: true
+        } %>
+      <% when 'payment-type-unknown' %>
+        <%= render partial: 'user_table', locals: { 
+          users: @users, 
+          anchor: 'payment-type-unknown',
+          show_payment_type: true,
+          show_dues_status: false,
+          show_last_payment: false,
+          from_view_all: true
+        } %>
+      <% when 'dues-status-unknown' %>
+        <%= render partial: 'user_table', locals: { 
+          users: @users, 
+          anchor: 'dues-status-unknown',
+          show_payment_type: false,
+          show_dues_status: true,
+          show_last_payment: false,
+          from_view_all: true
+        } %>
+      <% when 'dues-status-lapsed' %>
+        <%= render partial: 'user_table', locals: { 
+          users: @users, 
+          anchor: 'dues-status-lapsed',
+          show_payment_type: false,
+          show_dues_status: true,
+          show_last_payment: true,
+          from_view_all: true
+        } %>
+      <% end %>
+    </div>
+  </div>
+<% elsif @unmatched_paypal_payments.present? %>
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-body-tertiary">
+      <h2 class="h5 mb-0"><%= @title %> (<%= @unmatched_paypal_payments.count %>)</h2>
+    </div>
+    <div class="card-body">
+      <p class="text-muted small mb-3">Payments that don't have a matching User record by PayPal account ID</p>
+      <%= render partial: 'paypal_payments_table', locals: { payments: @unmatched_paypal_payments } %>
+    </div>
+  </div>
+  <%= render partial: 'paypal_modals', locals: { payments: @unmatched_paypal_payments } %>
+<% elsif @unmatched_recharge_payments.present? %>
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-body-tertiary">
+      <h2 class="h5 mb-0"><%= @title %> (<%= @unmatched_recharge_payments.count %>)</h2>
+    </div>
+    <div class="card-body">
+      <p class="text-muted small mb-3">Payments that don't have a matching User record by Recharge customer ID</p>
+      <%= render partial: 'recharge_payments_table', locals: { payments: @unmatched_recharge_payments } %>
+    </div>
+  </div>
+  <%= render partial: 'recharge_modals', locals: { payments: @unmatched_recharge_payments } %>
+<% else %>
+  <div class="alert alert-info">
+    No items found for this report.
+  </div>
+<% end %>
+

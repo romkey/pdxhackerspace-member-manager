@@ -50,15 +50,33 @@ class PaypalPaymentsController < AuthenticatedController
       
       # Redirect back to reports if coming from there, otherwise to payment detail page
       if params[:from_reports] == 'true'
-        redirect_to reports_path(anchor: 'unmatched-paypal'),
-                    notice: "Linked to user #{user.display_name} and updated their PayPal account ID, payment type, and membership status."
+        # Reload the unmatched payments list
+        all_unmatched_paypal = []
+        PaypalPayment.where.not(payer_id: nil).find_each do |payment|
+          matching_user = User.where(paypal_account_id: payment.payer_id).first
+          unless matching_user
+            all_unmatched_paypal << {
+              payment: payment,
+              email: payment.payer_email,
+              name: payment.payer_name
+            }
+          end
+        end
+        @unmatched_paypal_payments_count = all_unmatched_paypal.count
+        @unmatched_paypal_payments = all_unmatched_paypal.first(20)
+        @all_users = User.ordered_by_display_name
+        
+        respond_to do |format|
+          format.html { redirect_to reports_path(tab: 'unmatched-paypal'), notice: "Linked to user #{user.display_name}." }
+          format.turbo_stream
+        end
       else
         redirect_to paypal_payment_path(@payment),
                     notice: "Linked to user #{user.display_name} and updated their PayPal account ID, payment type, and membership status."
       end
     else
       if params[:from_reports] == 'true'
-        redirect_to reports_path(anchor: 'unmatched-paypal'), alert: 'Cannot link: payment has no payer ID.'
+        redirect_to reports_path(tab: 'unmatched-paypal'), alert: 'Cannot link: payment has no payer ID.'
       else
         redirect_to paypal_payment_path(@payment), alert: 'Cannot link: payment has no payer ID.'
       end

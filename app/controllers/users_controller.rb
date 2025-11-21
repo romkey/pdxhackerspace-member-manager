@@ -28,6 +28,12 @@ class UsersController < AuthenticatedController
     @payment_type_paypal = @users.where(payment_type: 'paypal').count
     @payment_type_recharge = @users.where(payment_type: 'recharge').count
     @payment_type_cash = @users.where(payment_type: 'cash').count
+
+    # Dues status counts
+    @dues_status_current = @users.where(dues_status: 'current').count
+    @dues_status_lapsed = @users.where(dues_status: 'lapsed').count
+    @dues_status_inactive = @users.where(dues_status: 'inactive').count
+    @dues_status_unknown = @users.where(dues_status: 'unknown').count
   end
 
   def show

@@ -1,0 +1,41 @@
+<div class="table-responsive">
+  <table class="table table-sm align-middle mb-0">
+    <thead class="bg-body-tertiary">
+      <tr>
+        <th scope="col">Payment ID</th>
+        <th scope="col">Payer Name</th>
+        <th scope="col">Payer Email</th>
+        <th scope="col">Transaction Time</th>
+        <th scope="col">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% payments.each do |unmatched| %>
+        <tr>
+          <td>
+            <strong><%= link_to unmatched[:payment].paypal_id, paypal_payment_path(unmatched[:payment]), class: "text-decoration-none" %></strong>
+          </td>
+          <td><%= unmatched[:name].presence || "—" %></td>
+          <td>
+            <% if unmatched[:email].present? %>
+              <%= mail_to unmatched[:email] %>
+            <% else %>
+              —
+            <% end %>
+          </td>
+          <td>
+            <%= unmatched[:payment].transaction_time ? l(unmatched[:payment].transaction_time, format: :long) : "n/a" %>
+          </td>
+          <td>
+            <% if unmatched[:payment].payer_id.present? %>
+              <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#linkPaypalUserModal_<%= unmatched[:payment].id %>">
+                Link User
+              </button>
+            <% end %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+

@@ -1,0 +1,95 @@
+<div class="table-responsive">
+  <table class="table mb-0 align-middle">
+    <thead class="bg-body-tertiary">
+      <tr>
+        <th scope="col" style="width: 48px;"></th>
+        <th scope="col">Name</th>
+        <th scope="col">Email</th>
+        <th scope="col">Status</th>
+        <% if show_payment_type %>
+          <th scope="col">Payment Type</th>
+        <% end %>
+        <% if show_dues_status %>
+          <th scope="col">Dues Status</th>
+        <% end %>
+        <% if show_last_payment %>
+          <th scope="col">Last Payment</th>
+        <% end %>
+        <th scope="col">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% users.each do |user| %>
+        <tr>
+          <td>
+            <% if user.avatar.present? %>
+              <img src="<%= user.avatar %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
+            <% elsif user.email.present? %>
+              <img src="<%= gravatar_url(user.email, size: 32) %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
+            <% else %>
+              <div style="width: 32px; height: 32px; border-radius: 4px; background-color: #dee2e6;"></div>
+            <% end %>
+          </td>
+          <td class="fw-semibold">
+            <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
+          </td>
+          <td>
+            <% if user.email.present? %>
+              <%= mail_to user.email %>
+            <% else %>
+              <span class="text-muted fst-italic">Not provided</span>
+            <% end %>
+          </td>
+          <td>
+            <% badge_class = case user.membership_status
+               when "coworking" then "success"
+               when "basic" then "info"
+               when "guest" then "warning"
+               when "banned" then "danger"
+               when "deceased" then "dark"
+               when "sponsored" then "primary"
+               when "unknown" then "secondary"
+               else "secondary"
+               end %>
+            <span class="badge text-bg-<%= badge_class %>">
+              <%= user.membership_status.humanize %>
+            </span>
+            <% if user.active? %>
+              <span class="badge text-bg-success ms-1">Active</span>
+            <% end %>
+          </td>
+          <% if show_payment_type %>
+            <td>
+              <span class="badge text-bg-info"><%= user.payment_type.humanize %></span>
+            </td>
+          <% end %>
+          <% if show_dues_status %>
+            <td>
+              <% dues_badge_class = case user.dues_status
+                 when "current" then "success"
+                 when "lapsed" then "warning"
+                 when "inactive" then "secondary"
+                 when "unknown" then "secondary"
+                 else "secondary"
+                 end %>
+              <span class="badge text-bg-<%= dues_badge_class %>"><%= user.dues_status.humanize %></span>
+            </td>
+          <% end %>
+          <% if show_last_payment %>
+            <td>
+              <% if user.last_payment_date.present? %>
+                <%= l(user.last_payment_date, format: :long) %>
+              <% else %>
+                <span class="text-muted fst-italic">Never</span>
+              <% end %>
+            </td>
+          <% end %>
+          <td>
+            <%= render partial: 'user_actions', locals: { user: user, anchor: anchor, from_view_all: local_assigns[:from_view_all] || false } %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+

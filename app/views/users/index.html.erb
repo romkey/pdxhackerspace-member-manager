@@ -25,12 +25,20 @@
     </div>
     
     <h2 class="h6 mb-3">Payment Type</h2>
-    <div class="d-flex flex-wrap gap-3">
+    <div class="d-flex flex-wrap gap-3 mb-3">
       <span class="badge text-bg-secondary">Unknown: <strong><%= @payment_type_unknown %></strong></span>
       <span class="badge text-bg-primary">Sponsored: <strong><%= @payment_type_sponsored %></strong></span>
       <span class="badge text-bg-info">PayPal: <strong><%= @payment_type_paypal %></strong></span>
       <span class="badge text-bg-info">Recharge: <strong><%= @payment_type_recharge %></strong></span>
       <span class="badge text-bg-info">Cash: <strong><%= @payment_type_cash %></strong></span>
+    </div>
+    
+    <h2 class="h6 mb-3">Dues Status</h2>
+    <div class="d-flex flex-wrap gap-3">
+      <span class="badge text-bg-success">Current: <strong><%= @dues_status_current %></strong></span>
+      <span class="badge text-bg-warning">Lapsed: <strong><%= @dues_status_lapsed %></strong></span>
+      <span class="badge text-bg-secondary">Inactive: <strong><%= @dues_status_inactive %></strong></span>
+      <span class="badge text-bg-secondary">Unknown: <strong><%= @dues_status_unknown %></strong></span>
     </div>
   </div>
 </div>
