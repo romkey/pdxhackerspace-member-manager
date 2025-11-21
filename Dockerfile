@@ -29,16 +29,20 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get update -qq && \
     apt-get install --no-install-recommends -y build-essential curl git libpq-dev libvips node-gyp pkg-config python-is-python3 libyaml-dev
 
-# Copy Node.js and npm from the official Node image
+# Copy Node.js, npm, and corepack from the official Node image
 COPY --from=nodejs /usr/local/bin/node /usr/local/bin/node
 COPY --from=nodejs /usr/local/bin/npm /usr/local/bin/npm
 COPY --from=nodejs /usr/local/bin/npx /usr/local/bin/npx
+COPY --from=nodejs /usr/local/bin/corepack /usr/local/bin/corepack
 COPY --from=nodejs /usr/local/lib/node_modules /usr/local/lib/node_modules
 
-# Install Yarn globally
-ARG YARN_VERSION=latest
+# Set PATH to include Node.js binaries
 ENV PATH=/usr/local/bin:$PATH
-RUN npm install -g yarn@${YARN_VERSION}
+
+# Enable corepack and use it to install yarn
+ARG YARN_VERSION=latest
+RUN corepack enable && \
+    corepack prepare yarn@${YARN_VERSION} --activate
 
 # Install application gems
 # Use cache mount for bundle gem cache to speed up gem installation
