@@ -191,12 +191,14 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
+    const addUserModal = document.getElementById('addUserModal');
     const searchInput = document.getElementById('userSearchInput');
-    const userRows = document.querySelectorAll('.user-row');
     
-    if (searchInput) {
+    if (addUserModal && searchInput) {
+      // Add input listener once
       searchInput.addEventListener('input', function() {
         const searchTerm = this.value.toLowerCase().trim();
+        const userRows = addUserModal.querySelectorAll('.user-row');
         
         userRows.forEach(function(row) {
           const name = row.getAttribute('data-name') || '';
@@ -211,6 +213,15 @@
           } else {
             row.style.display = 'none';
           }
+        });
+      });
+      
+      // Clear search when modal is hidden
+      addUserModal.addEventListener('hidden.bs.modal', function() {
+        searchInput.value = '';
+        const userRows = addUserModal.querySelectorAll('.user-row');
+        userRows.forEach(function(row) {
+          row.style.display = '';
         });
       });
     }
