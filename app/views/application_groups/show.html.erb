@@ -195,10 +195,21 @@
     const searchInput = document.getElementById('userSearchInput');
     
     if (addUserModal && searchInput) {
+      let userRows = [];
+      
+      // Query rows when modal is shown
+      addUserModal.addEventListener('shown.bs.modal', function() {
+        userRows = Array.from(addUserModal.querySelectorAll('.user-row'));
+      });
+      
       // Add input listener once
       searchInput.addEventListener('input', function() {
         const searchTerm = this.value.toLowerCase().trim();
-        const userRows = addUserModal.querySelectorAll('.user-row');
+        
+        // Re-query rows if not already cached (fallback)
+        if (userRows.length === 0) {
+          userRows = Array.from(addUserModal.querySelectorAll('.user-row'));
+        }
         
         userRows.forEach(function(row) {
           const name = row.getAttribute('data-name') || '';
@@ -219,10 +230,10 @@
       // Clear search when modal is hidden
       addUserModal.addEventListener('hidden.bs.modal', function() {
         searchInput.value = '';
-        const userRows = addUserModal.querySelectorAll('.user-row');
         userRows.forEach(function(row) {
           row.style.display = '';
         });
+        userRows = []; // Clear cache
       });
     }
   });

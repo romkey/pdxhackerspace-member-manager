@@ -23,6 +23,11 @@ class PaypalPaymentsController < AuthenticatedController
     if @payment.payer_id.present?
       updates = { paypal_account_id: @payment.payer_id }
 
+      # Copy email from payment if user doesn't have one
+      if user.email.blank? && @payment.payer_email.present?
+        updates[:email] = @payment.payer_email
+      end
+
       # Set payment_type to 'paypal'
       updates[:payment_type] = 'paypal' if user.payment_type != 'paypal'
 

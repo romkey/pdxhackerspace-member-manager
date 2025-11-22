@@ -56,6 +56,11 @@ class RechargePaymentsController < AuthenticatedController
     if customer_id.present?
       updates = { recharge_customer_id: customer_id.to_s }
 
+      # Copy email from payment if user doesn't have one
+      if user.email.blank? && @payment.customer_email.present?
+        updates[:email] = @payment.customer_email
+      end
+
       # Set payment_type to 'recharge'
       updates[:payment_type] = 'recharge' if user.payment_type != 'recharge'
 

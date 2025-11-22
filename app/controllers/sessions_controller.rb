@@ -73,17 +73,37 @@ class SessionsController < ApplicationController
     info = payload.fetch(:info, {})
     extra = payload.fetch(:extra, {}).fetch(:raw_info, {})
 
-    attributes = {
-      email: info[:email] || extra[:email],
-      full_name: info[:name] || build_full_name(info, extra),
-      active: true,
-      last_synced_at: Time.current
-    }
+    authentik_id = payload[:uid].to_s
+    email = info[:email] || extra[:email]
+    full_name = info[:name] || build_full_name(info, extra)
 
-    User.find_or_initialize_by(authentik_id: payload[:uid].to_s).tap do |user|
-      user.assign_attributes(attributes.compact)
-      user.save!
+    # First, try to find by authentik_id
+    user = User.find_by(authentik_id: authentik_id) if authentik_id.present?
+
+    # If not found and we have an email, try to find by email
+    if user.nil? && email.present?
+      normalized_email = email.to_s.strip.downcase
+      user = User.find_by('LOWER(email) = ?', normalized_email) if normalized_email.present?
     end
+
+    # If still not found, initialize a new user
+    user ||= User.new
+
+    # Set authentik_id if it's not already set
+    user.authentik_id = authentik_id if authentik_id.present? && user.authentik_id.blank?
+
+    # Merge in email only if blank (don't overwrite existing email)
+    user.email = email if user.email.blank? && email.present?
+
+    # Merge in full_name only if blank (don't overwrite existing name)
+    user.full_name = full_name if user.full_name.blank? && full_name.present?
+
+    # Always update these fields on login
+    user.active = true
+    user.last_synced_at = Time.current
+
+    user.save!
+    user
   end
 
   def sync_local_account(account)
