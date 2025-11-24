@@ -1,0 +1,127 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0">Edit RFID Reader</h1>
+  <%= link_to "&larr; Back to RFID Readers".html_safe, rfid_readers_path, class: "text-decoration-none" %>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <% if @rfid_reader.errors.any? %>
+      <div class="alert alert-danger">
+        <ul class="mb-0">
+          <% @rfid_reader.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <%= form_with model: @rfid_reader, url: rfid_reader_path(@rfid_reader), local: true do |f| %>
+      <div class="mb-3">
+        <%= f.label :name, class: "form-label" %>
+        <%= f.text_field :name, class: "form-control #{'is-invalid' if @rfid_reader.errors.key?(:name)}", required: true %>
+        <% if @rfid_reader.errors.key?(:name) %>
+          <div class="invalid-feedback">
+            <%= @rfid_reader.errors[:name].first %>
+          </div>
+        <% end %>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :note, class: "form-label" %>
+        <%= f.text_area :note, class: "form-control #{'is-invalid' if @rfid_reader.errors.key?(:note)}", rows: 3 %>
+        <% if @rfid_reader.errors.key?(:note) %>
+          <div class="invalid-feedback">
+            <%= @rfid_reader.errors[:note].first %>
+          </div>
+        <% end %>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :key, "API Key", class: "form-label" %>
+        <div class="input-group">
+          <%= f.text_field :key, class: "form-control font-monospace", readonly: true, id: "rfid_reader_key" %>
+          <button type="button" id="generate-key-btn" class="btn btn-outline-secondary">Generate New Key</button>
+        </div>
+        <div class="form-text">This key is used by the RFID reader to authenticate webhook requests. Keep it secure.</div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <%= f.submit "Update Reader", class: "btn btn-primary" %>
+        <%= link_to "Cancel", rfid_readers_path, class: "btn btn-outline-secondary" %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const generateBtn = document.getElementById('generate-key-btn');
+    const keyField = document.getElementById('rfid_reader_key');
+    
+    if (generateBtn && keyField) {
+      generateBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        if (!confirm('Are you sure you want to generate a new key? The old key will no longer work.')) {
+          return;
+        }
+        
+        // Disable button while generating
+        generateBtn.disabled = true;
+        generateBtn.textContent = 'Generating...';
+        
+        // Get CSRF token from meta tag (Rails sets this via csrf_meta_tags)
+        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : null;
+        
+        if (!csrfToken) {
+          alert('CSRF token not found. Please refresh the page and try again.');
+          generateBtn.disabled = false;
+          generateBtn.textContent = 'Generate New Key';
+          return;
+        }
+        
+        fetch('<%= regenerate_key_rfid_reader_path(@rfid_reader) %>', {
+          method: 'POST',
+          headers: {
+            'X-CSRF-Token': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: `authenticity_token=${encodeURIComponent(csrfToken)}`,
+          credentials: 'same-origin'
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.key) {
+            keyField.value = data.key;
+            // Show success message
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-success alert-dismissible fade show mt-2';
+            alert.innerHTML = 'Key regenerated successfully. <button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+            keyField.parentElement.parentElement.appendChild(alert);
+            // Auto-dismiss after 3 seconds
+            setTimeout(() => alert.remove(), 3000);
+          } else {
+            alert('Error generating key. Please try again.');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Error generating key. Please try again.');
+        })
+        .finally(() => {
+          generateBtn.disabled = false;
+          generateBtn.textContent = 'Generate New Key';
+        });
+      });
+    }
+  });
+</script>
+

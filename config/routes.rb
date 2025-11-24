@@ -9,9 +9,15 @@ Rails.application.routes.draw do
   get "/login", to: "sessions#new"
   post "/local_login", to: "sessions#create_local"
   post "/rfid_login", to: "sessions#create_rfid"
+  get "/rfid_login/wait", to: "sessions#rfid_wait", as: :rfid_wait
+  get "/rfid_login/verify", to: "sessions#rfid_verify", as: :rfid_verify
+  get "/rfid_login/check_webhook", to: "sessions#rfid_check_webhook", as: :rfid_check_webhook
+  post "/rfid_login/submit_pin", to: "sessions#rfid_submit_pin", as: :rfid_submit_pin
   delete "/logout", to: "sessions#destroy"
   match "/auth/:provider/callback", to: "sessions#create", via: %i[get post]
   get "/auth/failure", to: "sessions#failure"
+
+  post "/webhooks/rfid", to: "webhooks#rfid"
 
   resources :users, only: [:index, :show, :edit, :update, :destroy] do
     member do
@@ -78,6 +84,11 @@ Rails.application.routes.draw do
 
   get "/settings", to: "settings#index", as: :settings
   resources :training_topics, only: [:index, :create, :destroy]
+  resources :rfid_readers, except: [:show] do
+    member do
+      post :regenerate_key
+    end
+  end
   resource :default_settings, only: [:show, :edit, :update], path: "settings/defaults"
   
   get "/reports", to: "reports#index", as: :reports

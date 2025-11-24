@@ -60,7 +60,7 @@
               <input type="search" name="q" value="<%= params[:q] %>" class="form-control form-control-sm me-2" placeholder="Search…" aria-label="Search">
             <% end %>
             <% if user_signed_in? %>
-              <span class="text-muted small">Signed in as <%= current_user.display_name %></span>
+              <span class="text-muted small"><%= current_user.display_name %></span>
               <%= button_to "Sign out", logout_path, method: :delete, class: "btn btn-outline-secondary btn-sm" %>
             <% else %>
               <%= link_to "Sign in", login_path, class: "btn btn-primary btn-sm" %>

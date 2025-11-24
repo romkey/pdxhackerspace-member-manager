@@ -34,14 +34,8 @@
 
         <hr class="my-4">
 
-        <div>
-          <h2 class="h6 text-center mb-3">Sign in via RFID</h2>
-          <%= form_with url: rfid_login_path, scope: :rfid, data: { turbo: false } do |form| %>
-            <div class="input-group">
-              <%= form.text_field :token, class: "form-control", placeholder: "Scan or enter RFID", autocomplete: "off" %>
-              <button class="btn btn-outline-primary" type="submit">Sign in</button>
-            </div>
-          <% end %>
+        <div class="text-center">
+          <%= button_to "Sign In with Keyfob", rfid_login_path, method: :post, class: "btn btn-outline-primary w-100", data: { turbo: false } %>
         </div>
       </div>
     </div>

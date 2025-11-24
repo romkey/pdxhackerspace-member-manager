@@ -1,0 +1,63 @@
+<div class="row justify-content-center py-5">
+  <div class="col-12 col-md-7 col-lg-5">
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-4">
+        <h1 class="h4 mb-3 text-center">Enter Verification Code</h1>
+        
+        <% if @reader_name.present? %>
+          <div class="alert alert-info text-center mb-3" role="alert">
+            <strong>Reader:</strong> <%= @reader_name %>
+          </div>
+        <% end %>
+        
+        <p class="text-center text-muted mb-4">
+          Please enter the 4-digit code displayed on the device.
+        </p>
+
+        <% if flash[:alert] %>
+          <div class="alert alert-danger" role="alert">
+            <%= flash[:alert] %>
+          </div>
+        <% end %>
+
+        <%= form_with url: rfid_submit_pin_path, method: :post, data: { turbo: false }, class: "mb-3" do |form| %>
+          <div class="mb-3">
+            <%= form.label :pin, "4-Digit Code", class: "form-label" %>
+            <%= form.text_field :pin, 
+                class: "form-control form-control-lg text-center", 
+                placeholder: "0000", 
+                autofocus: true, 
+                required: true,
+                maxlength: 4,
+                pattern: "[0-9]{4}",
+                inputmode: "numeric",
+                autocomplete: "off" %>
+            <div class="form-text">Enter the 4-digit code from the device</div>
+          </div>
+
+          <%= form.submit "Verify and Sign In", class: "btn btn-primary w-100" %>
+        <% end %>
+
+        <div class="text-center">
+          <%= link_to "Cancel", login_path, class: "btn btn-link" %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Auto-focus and format the pin input
+  document.addEventListener('DOMContentLoaded', function() {
+    const pinInput = document.querySelector('input[name="pin"]');
+    if (pinInput) {
+      pinInput.focus();
+      
+      // Only allow numeric input
+      pinInput.addEventListener('input', function(e) {
+        e.target.value = e.target.value.replace(/[^0-9]/g, '');
+      });
+    }
+  });
+</script>
+

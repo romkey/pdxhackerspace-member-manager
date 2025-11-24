@@ -44,21 +44,93 @@ class SessionsController < ApplicationController
   end
 
   def create_rfid
-    token = rfid_token
+    # Store session timestamp to match with webhook data
+    session[:waiting_for_keyfob] = Time.current.to_i
+    redirect_to rfid_wait_path
+  end
 
-    if token.blank?
-      redirect_to login_path, alert: 'Please scan or enter an RFID value.'
+  def rfid_wait
+    unless session[:waiting_for_keyfob].present?
+      redirect_to login_path, alert: 'No keyfob session found. Please try again.'
       return
     end
 
-    user = find_user_by_rfid(token)
+    # Check if any webhook data is available (created after session started)
+    session_start = Time.at(session[:waiting_for_keyfob])
+    webhook_data = RfidWebhookService.find_recent(session_start)
+    
+    if webhook_data.present?
+      # Store the RFID from webhook in session for verification
+      session[:pending_rfid] = webhook_data[:rfid]
+      redirect_to rfid_verify_path
+      return
+    end
+  end
 
-    if user
-      user.update!(last_login_at: Time.current)
-      session[:user_id] = user.id
-      redirect_to root_path, notice: "Signed in via RFID as #{user.display_name}."
+  def rfid_verify
+    rfid = session[:pending_rfid]
+    unless rfid.present?
+      redirect_to rfid_wait_path, alert: 'Waiting for keyfob scan. Please try again.'
+      return
+    end
+
+    # Verify webhook data is still available
+    @webhook_data = RfidWebhookService.retrieve(rfid)
+    unless @webhook_data.present?
+      redirect_to rfid_wait_path, alert: 'Waiting for keyfob scan. Please try again.'
+      return
+    end
+
+    @reader_name = @webhook_data[:reader_name]
+  end
+
+  def rfid_check_webhook
+    unless session[:waiting_for_keyfob].present?
+      render json: { status: 'no_session' }, status: :ok
+      return
+    end
+
+    session_start = Time.at(session[:waiting_for_keyfob])
+    webhook_data = RfidWebhookService.find_recent(session_start)
+    
+    if webhook_data.present?
+      # Store the RFID from webhook in session
+      session[:pending_rfid] = webhook_data[:rfid]
+      render json: { status: 'ready' }, status: :ok
     else
-      redirect_to login_path, alert: 'No user with that RFID was found.'
+      render json: { status: 'waiting' }, status: :ok
+    end
+  end
+
+  def rfid_submit_pin
+    rfid = session[:pending_rfid]
+    pin = params[:pin] || params[:rfid]&.dig(:pin)
+
+    if rfid.blank?
+      redirect_to login_path, alert: 'No keyfob session found. Please try again.'
+      return
+    end
+
+    if pin.blank?
+      redirect_to rfid_verify_path, alert: 'Please enter the 4-digit code.'
+      return
+    end
+
+    # Verify the pin
+    if RfidWebhookService.verify_and_consume(rfid, pin)
+      # Pin is correct, log in the user
+      user = find_user_by_rfid(rfid)
+      if user
+        session.delete(:pending_rfid)
+        session.delete(:waiting_for_keyfob)
+        user.update!(last_login_at: Time.current)
+        session[:user_id] = user.id
+        redirect_to root_path, notice: "Signed in via keyfob as #{user.display_name}."
+      else
+        redirect_to login_path, alert: 'User not found. Please try again.'
+      end
+    else
+      redirect_to rfid_verify_path, alert: 'Invalid code. Please try again.'
     end
   end
 
