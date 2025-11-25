@@ -1,4 +1,4 @@
-class AccessLogsController < AuthenticatedController
+class AccessLogsController < AdminController
   PER_PAGE = 200
 
   def index

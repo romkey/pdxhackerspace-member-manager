@@ -14,50 +14,58 @@
   <body class="bg-body min-vh-100">
     <nav class="navbar navbar-expand-lg bg-body border-bottom shadow-sm">
       <div class="container">
-        <a class="navbar-brand" href="<%= root_path %>" aria-label="Home">
-          <i class="bi bi-house"></i>
-        </a>
+        <% if !user_signed_in? || current_user_admin? %>
+          <a class="navbar-brand" href="<%= root_path %>" aria-label="Home">
+            <i class="bi bi-house"></i>
+          </a>
+        <% end %>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="mainNav">
           <ul class="navbar-nav me-auto mb-2 mb-lg-0">
             <% if user_signed_in? %>
-              <li class="nav-item">
-                <%= link_to "Members", users_path, class: "nav-link #{current_page?(users_path) ? 'active' : ''}" %>
-              </li>
-              <li class="nav-item">
-                <%= link_to "Sheet", sheet_entries_path, class: "nav-link #{current_page?(sheet_entries_path) ? 'active' : ''}" %>
-              </li>
-              <li class="nav-item">
-                <%= link_to "Slack", slack_users_path, class: "nav-link #{current_page?(slack_users_path) ? 'active' : ''}" %>
-              </li>
-              <li class="nav-item">
-                <%= link_to "PayPal", paypal_payments_path, class: "nav-link #{current_page?(paypal_payments_path) ? 'active' : ''}" %>
-              </li>
-              <li class="nav-item">
-                <%= link_to "Recharge", recharge_payments_path, class: "nav-link #{current_page?(recharge_payments_path) ? 'active' : ''}" %>
-              </li>
-              <li class="nav-item">
-                <%= link_to "Journal", journals_path, class: "nav-link #{current_page?(journals_path) ? 'active' : ''}" %>
-              </li>
-              <li class="nav-item">
-                <%= link_to "Access", access_logs_path, class: "nav-link #{current_page?(access_logs_path) ? 'active' : ''}" %>
-              </li>
-              <li class="nav-item">
-                <%= link_to "Reports", reports_path, class: "nav-link #{current_page?(reports_path) ? 'active' : ''}" %>
-              </li>
-              <li class="nav-item">
-                <%= link_to "Settings", settings_path, class: "nav-link #{current_page?(settings_path) || current_page?(training_topics_path) || current_page?(applications_path) || controller_name == 'applications' || controller_name == 'application_groups' ? 'active' : ''}" %>
-              </li>
-              <li class="nav-item">
-                <%= link_to "Sidekiq", '/goh7zeeNiezoozaingothu4', class: "nav-link", target: "_blank" %>
-              </li>
+            <% if current_user_admin? %>
+                <li class="nav-item">
+                  <%= link_to "Members", users_path, class: "nav-link #{current_page?(users_path) ? 'active' : ''}" %>
+                </li>
+                <li class="nav-item">
+                  <%= link_to "Sheet", sheet_entries_path, class: "nav-link #{current_page?(sheet_entries_path) ? 'active' : ''}" %>
+                </li>
+                <li class="nav-item">
+                  <%= link_to "Slack", slack_users_path, class: "nav-link #{current_page?(slack_users_path) ? 'active' : ''}" %>
+                </li>
+                <li class="nav-item">
+                  <%= link_to "PayPal", paypal_payments_path, class: "nav-link #{current_page?(paypal_payments_path) ? 'active' : ''}" %>
+                </li>
+                <li class="nav-item">
+                  <%= link_to "Recharge", recharge_payments_path, class: "nav-link #{current_page?(recharge_payments_path) ? 'active' : ''}" %>
+                </li>
+                <li class="nav-item">
+                  <%= link_to "Journal", journals_path, class: "nav-link #{current_page?(journals_path) ? 'active' : ''}" %>
+                </li>
+                <li class="nav-item">
+                  <%= link_to "Access", access_logs_path, class: "nav-link #{current_page?(access_logs_path) ? 'active' : ''}" %>
+                </li>
+                <li class="nav-item">
+                  <%= link_to "Reports", reports_path, class: "nav-link #{current_page?(reports_path) ? 'active' : ''}" %>
+                </li>
+                <li class="nav-item">
+                  <%= link_to "Settings", settings_path, class: "nav-link #{current_page?(settings_path) || current_page?(training_topics_path) || current_page?(applications_path) || controller_name == 'applications' || controller_name == 'application_groups' ? 'active' : ''}" %>
+                </li>
+                <li class="nav-item">
+                  <%= link_to "Sidekiq", '/goh7zeeNiezoozaingothu4', class: "nav-link", target: "_blank" %>
+                </li>
+              <% else %>
+                <%# non-admins see no extra links %>
+              <% end %>
             <% end %>
           </ul>
           <div class="d-flex gap-3 align-items-center">
-            <%= form_with url: search_path, method: :get, local: true, class: "d-flex" do |f| %>
-              <input type="search" name="q" value="<%= params[:q] %>" class="form-control form-control-sm me-2" placeholder="Search…" aria-label="Search">
+            <% if current_user_admin? %>
+              <%= form_with url: search_path, method: :get, local: true, class: "d-flex" do |f| %>
+                <input type="search" name="q" value="<%= params[:q] %>" class="form-control form-control-sm me-2" placeholder="Search…" aria-label="Search">
+              <% end %>
             <% end %>
             <% if user_signed_in? %>
               <span class="text-muted small"><%= current_user.display_name %></span>

@@ -6,8 +6,8 @@ Sidekiq.configure_server do |config|
   config.redis = { url: redis_url }
   # Configure Sidekiq to listen to queues with the environment-specific prefix
   config.queues = [
-    "member_manager_#{Rails.env}_default",
-    "member_manager_#{Rails.env}_mailers"
+    "default",
+    "mailers"
   ]
 end
 

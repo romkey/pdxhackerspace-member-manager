@@ -38,6 +38,8 @@ module Authentik
         existing_attrs = user.authentik_attributes || {}
         new_attrs = attrs[:attributes] || {}
         user.authentik_attributes = existing_attrs.deep_merge(new_attrs)
+
+        user.username = attrs[:username] if attrs[:username].present?
         
         user.last_synced_at = timestamp
         user.save!

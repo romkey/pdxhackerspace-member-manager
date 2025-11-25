@@ -1,4 +1,9 @@
 class UsersController < AuthenticatedController
+  before_action :set_user_for_show, only: [:show]
+  before_action :set_user, only: [:edit, :update, :activate, :deactivate, :ban, :mark_deceased, :destroy]
+  before_action :require_admin!, except: [:show, :edit, :update]
+  before_action :authorize_self_or_admin, only: [:show, :edit, :update]
+
   def index
     @users = User.ordered_by_display_name
 
@@ -6,7 +11,7 @@ class UsersController < AuthenticatedController
     if params[:q].present?
       search_term = "%#{params[:q].downcase}%"
       @users = @users.where(
-        "LOWER(COALESCE(full_name, '')) LIKE :p OR LOWER(COALESCE(email, '')) LIKE :p OR LOWER(authentik_id) LIKE :p",
+        "LOWER(COALESCE(full_name, '')) LIKE :p OR LOWER(COALESCE(email, '')) LIKE :p OR LOWER(authentik_id) LIKE :p OR LOWER(COALESCE(username, '')) LIKE :p",
         p: search_term
       )
     end
@@ -37,8 +42,8 @@ class UsersController < AuthenticatedController
   end
 
   def show
-    @user = User.includes(:sheet_entry, :slack_user, :rfids, trainings_as_trainee: :training_topic,
-                                                             training_topics: []).find(params[:id])
+    return unless current_user_admin?
+
     @payments = PaymentHistory.for_user(@user)
     @journals = @user.journals.includes(:actor_user).order(changed_at: :desc, created_at: :desc)
     @most_recent_access = @user.access_logs.order(logged_at: :desc).first
@@ -58,12 +63,9 @@ class UsersController < AuthenticatedController
   end
 
   def edit
-    @user = User.find(params[:id])
   end
 
   def update
-    @user = User.find(params[:id])
-
     if @user.update(user_params)
       redirect_to user_path(@user), notice: 'User updated successfully.'
     else
@@ -78,38 +80,59 @@ class UsersController < AuthenticatedController
   end
 
   def activate
-    @user = User.find(params[:id])
     @user.update!(active: true)
     redirect_to user_path(@user), notice: 'User activated.'
   end
 
   def deactivate
-    @user = User.find(params[:id])
     @user.update!(active: false)
     redirect_to user_path(@user), notice: 'User deactivated.'
   end
 
   def ban
-    @user = User.find(params[:id])
     @user.update!(membership_status: 'banned', active: false)
     redirect_to user_path(@user), notice: 'User banned.'
   end
 
   def mark_deceased
-    @user = User.find(params[:id])
     @user.update!(membership_status: 'deceased', active: false)
     redirect_to user_path(@user), notice: 'User marked as deceased.'
   end
 
   def destroy
-    @user = User.find(params[:id])
     @user.destroy!
     redirect_to users_path, notice: 'User deleted successfully.'
   end
 
   private
 
+  def set_user_for_show
+    @user = User.includes(:sheet_entry, :slack_user, :rfids, trainings_as_trainee: :training_topic,
+                           training_topics: []).find(params[:id])
+  end
+
+  def set_user
+    @user = User.find(params[:id])
+  end
+
+  def authorize_self_or_admin
+    return if current_user_admin?
+    return if @user == current_user
+
+    redirect_to user_path(current_user), alert: 'You may only view and edit your own profile.'
+  end
+
   def user_params
-    params.require(:user).permit(:full_name, :email, :membership_status, :payment_type, :notes, :active)
+    permitted = %i[
+      username full_name email greeting_name use_full_name_for_greeting
+      use_username_for_greeting do_not_greet
+    ]
+
+    if current_user_admin?
+      permitted += %i[membership_status payment_type notes active]
+      permitted << :is_admin
+    end
+
+    params.require(:user).permit(permitted)
   end
 end

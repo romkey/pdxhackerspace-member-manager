@@ -50,7 +50,19 @@ class User < ApplicationRecord
     active
   end
 
+  def username
+    self[:username].presence || (authentik_attributes || {})['username'].presence || authentik_id
+  end
+
+  def admin?
+    is_admin?
+  end
+
+  before_save :ensure_greeting_name_mutual_exclusivity
+  before_save :clear_greeting_name_if_do_not_greet
+  before_save :auto_fill_greeting_name
   before_save :deactivate_if_deceased
+  after_save :update_greeting_name_on_source_change
   after_create_commit :journal_created!
   after_update_commit :journal_updated!
 
@@ -109,5 +121,45 @@ class User < ApplicationRecord
 
     self.active = false
     self.payment_type = 'inactive'
+  end
+
+  def clear_greeting_name_if_do_not_greet
+    self.greeting_name = nil if do_not_greet?
+  end
+
+  def auto_fill_greeting_name
+    return if do_not_greet?
+
+    if use_full_name_for_greeting?
+      self.greeting_name = full_name if full_name.present?
+    elsif use_username_for_greeting?
+      self.greeting_name = username if username.present?
+    end
+  end
+
+  def update_greeting_name_on_source_change
+    # Update greeting_name if the source field changed and the corresponding boolean is set
+    return if do_not_greet?
+    if saved_change_to_full_name? && use_full_name_for_greeting?
+      update_column(:greeting_name, full_name) if full_name.present?
+    elsif saved_change_to_authentik_id? && use_username_for_greeting?
+      update_column(:greeting_name, username) if username.present?
+    elsif saved_change_to_username? && use_username_for_greeting?
+      update_column(:greeting_name, username) if username.present?
+    end
+  end
+
+  def ensure_greeting_name_mutual_exclusivity
+    if do_not_greet?
+      self.use_full_name_for_greeting = false
+      self.use_username_for_greeting = false
+      return
+    end
+
+    if use_full_name_for_greeting? && use_username_for_greeting?
+      self.use_username_for_greeting = false
+    end
+
+    self.do_not_greet = false if use_full_name_for_greeting? || use_username_for_greeting?
   end
 end

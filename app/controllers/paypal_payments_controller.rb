@@ -1,4 +1,4 @@
-class PaypalPaymentsController < AuthenticatedController
+class PaypalPaymentsController < AdminController
   def index
     @payments = PaypalPayment.ordered
     @payment_count = @payments.count

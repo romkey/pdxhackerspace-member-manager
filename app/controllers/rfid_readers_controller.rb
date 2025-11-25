@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: CC0-1.0
 
-class RfidReadersController < AuthenticatedController
+class RfidReadersController < AdminController
   skip_before_action :verify_authenticity_token, only: [:regenerate_key]
   before_action :set_rfid_reader, only: [:show, :edit, :update, :destroy, :regenerate_key]
 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_11_24_174317) do
+ActiveRecord::Schema[7.1].define(version: 2025_11_25_171500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -279,11 +279,18 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_24_174317) do
     t.date "last_payment_date"
     t.string "paypal_account_id"
     t.string "avatar"
+    t.string "greeting_name"
+    t.boolean "use_full_name_for_greeting", default: true, null: false
+    t.boolean "use_username_for_greeting", default: false, null: false
+    t.boolean "do_not_greet", default: false, null: false
+    t.string "username"
+    t.boolean "is_admin", default: false, null: false
     t.index ["authentik_attributes"], name: "index_users_on_authentik_attributes", using: :gin
     t.index ["authentik_id"], name: "index_users_on_authentik_id", unique: true
     t.index ["email"], name: "index_users_on_email", unique: true, where: "(email IS NOT NULL)"
     t.index ["paypal_account_id"], name: "index_users_on_paypal_account_id"
     t.index ["recharge_customer_id"], name: "index_users_on_recharge_customer_id"
+    t.index ["username"], name: "index_users_on_username"
   end
 
   add_foreign_key "access_logs", "users"

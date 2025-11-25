@@ -1,4 +1,4 @@
-class RechargePaymentsController < AuthenticatedController
+class RechargePaymentsController < AdminController
   def index
     @payments = RechargePayment.ordered
     @payment_count = @payments.count

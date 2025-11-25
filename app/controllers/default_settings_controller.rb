@@ -1,4 +1,4 @@
-class DefaultSettingsController < AuthenticatedController
+class DefaultSettingsController < AdminController
   def show
     @default_setting = DefaultSetting.instance
   end

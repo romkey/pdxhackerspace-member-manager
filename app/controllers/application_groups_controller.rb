@@ -1,4 +1,4 @@
-class ApplicationGroupsController < AuthenticatedController
+class ApplicationGroupsController < AdminController
   before_action :set_application
   before_action :set_application_group, only: %i[show edit update add_user remove_user]
 

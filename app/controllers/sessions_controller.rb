@@ -147,6 +147,7 @@ class SessionsController < ApplicationController
 
     authentik_id = payload[:uid].to_s
     email = info[:email] || extra[:email]
+    username = info[:nickname] || info[:preferred_username] || extra[:username]
     full_name = info[:name] || build_full_name(info, extra)
 
     # First, try to find by authentik_id
@@ -170,6 +171,9 @@ class SessionsController < ApplicationController
     # Merge in full_name only if blank (don't overwrite existing name)
     user.full_name = full_name if user.full_name.blank? && full_name.present?
 
+    # Merge in username from Authentik
+    user.username = username if username.present?
+
     # Always update these fields on login
     user.active = true
     user.last_synced_at = Time.current
@@ -184,7 +188,8 @@ class SessionsController < ApplicationController
         email: account.email,
         full_name: account.full_name,
         active: account.active,
-        last_synced_at: Time.current
+        last_synced_at: Time.current,
+        is_admin: account.admin?
       )
       user.save!
     end

@@ -1,4 +1,4 @@
-class SearchController < AuthenticatedController
+class SearchController < AdminController
   def index
     @q = params[:q].to_s.strip
     return if @q.blank?

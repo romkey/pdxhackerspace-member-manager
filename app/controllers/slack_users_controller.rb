@@ -1,4 +1,4 @@
-class SlackUsersController < AuthenticatedController
+class SlackUsersController < AdminController
   def index
     @show_bots = ActiveModel::Type::Boolean.new.cast(params[:show_bots])
     scope = @show_bots ? SlackUser.all : SlackUser.where(is_bot: false)

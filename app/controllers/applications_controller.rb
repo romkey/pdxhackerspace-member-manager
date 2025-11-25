@@ -1,4 +1,4 @@
-class ApplicationsController < AuthenticatedController
+class ApplicationsController < AdminController
   def index
     @applications = Application.includes(:application_groups).order(:name)
   end

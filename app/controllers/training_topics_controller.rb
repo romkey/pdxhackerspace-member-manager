@@ -1,4 +1,4 @@
-class TrainingTopicsController < AuthenticatedController
+class TrainingTopicsController < AdminController
   def index
     @training_topics = TrainingTopic.order(:name)
   end

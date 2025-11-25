@@ -1,4 +1,4 @@
-class SheetEntriesController < AuthenticatedController
+class SheetEntriesController < AdminController
   def index
     @sheet_entries = SheetEntry.order(Arel.sql('LOWER(name) ASC'))
     @entry_count = @sheet_entries.count

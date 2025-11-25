@@ -58,6 +58,7 @@
       <thead class="bg-body-tertiary">
         <tr>
           <th scope="col" style="width: 48px;"></th>
+          <th scope="col">Username</th>
           <th scope="col">Name</th>
           <th scope="col">Email</th>
           <th scope="col">Status</th>
@@ -68,7 +69,7 @@
       <tbody id="users_table_body">
         <% @users.each do |user| %>
           <tr class="user-row" 
-              data-search-text="<%= [user.display_name, user.email, user.authentik_id].compact.join(' ').downcase %>">
+              data-search-text="<%= [user.username, user.display_name, user.email, user.authentik_id].compact.join(' ').downcase %>">
             <td>
               <% if user.avatar.present? %>
                 <img src="<%= user.avatar %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
@@ -78,6 +79,7 @@
                 <div style="width: 32px; height: 32px; border-radius: 4px; background-color: #dee2e6; display: inline-block;"></div>
               <% end %>
             </td>
+            <td class="small text-monospace text-secondary fw-semibold"><%= user.username %></td>
             <td class="fw-semibold">
               <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
             </td>

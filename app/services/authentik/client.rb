@@ -94,6 +94,7 @@ module Authentik
         authentik_id: (user_data['pk'] || user_data['id'] || entry['pk'] || entry['id']).to_s,
         email: normalize_email(user_data['email']),
         full_name: user_data['name'] || [user_data['first_name'], user_data['last_name']].compact_blank.join(' '),
+        username: user_data['username'] || user_data['preferred_username'] || entry['username'],
         active: !entry['is_active'].in?([false, 'false']),
         attributes: extract_attributes(entry, user_data)
       }

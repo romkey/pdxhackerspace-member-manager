@@ -1,4 +1,16 @@
-<%= form_with model: @user, local: true, class: "vstack gap-3" do |f| %>
+<%= form_with model: @user,
+              local: true,
+              class: "vstack gap-3",
+              data: {
+                user_authentik_id: @user.authentik_id,
+                user_username: @user.username
+              } do |f| %>
+  <div>
+    <%= f.label :username, class: "form-label" %>
+    <%= f.text_field :username, class: "form-control", readonly: true %>
+    <div class="form-text">Synced from Authentik. Read-only.</div>
+  </div>
+
   <div>
     <%= f.label :full_name, class: "form-label" %>
     <%= f.text_field :full_name, class: "form-control" %>
@@ -10,50 +22,200 @@
   </div>
 
   <div>
-    <%= f.label :membership_status, "Membership Status", class: "form-label" %>
-    <%= f.select :membership_status, 
-        options_for_select([
-          ["Coworking", "coworking"],
-          ["Basic", "basic"],
-          ["Guest", "guest"],
-          ["Banned", "banned"],
-          ["Deceased", "deceased"],
-          ["Sponsored", "sponsored"],
-          ["Unknown", "unknown"]
-        ], @user.membership_status),
-        {},
-        { class: "form-select" } %>
+    <%= f.label :greeting_name, "Greeting Name", class: "form-label" %>
+    <small class="text-muted d-block mb-2">Name used on signs on entry</small>
+    <%= f.text_field :greeting_name, class: "form-control", id: "user_greeting_name" %>
+    
+    <div class="mt-2">
+      <div class="form-check">
+        <%= f.check_box :use_full_name_for_greeting, class: "form-check-input", id: "user_use_full_name_for_greeting" %>
+        <%= f.label :use_full_name_for_greeting, "Use Full Name", class: "form-check-label" %>
+      </div>
+      <div class="form-check">
+        <%= f.check_box :use_username_for_greeting, class: "form-check-input", id: "user_use_username_for_greeting" %>
+        <%= f.label :use_username_for_greeting, "Use Username", class: "form-check-label" %>
+      </div>
+      <div class="form-check">
+        <%= f.check_box :do_not_greet, class: "form-check-input", id: "user_do_not_greet" %>
+        <%= f.label :do_not_greet, "Do not greet", class: "form-check-label" %>
+      </div>
+    </div>
   </div>
 
-  <div class="form-check">
-    <%= f.check_box :active, class: "form-check-input" %>
-    <%= f.label :active, "Active member", class: "form-check-label" %>
-  </div>
+  <% if current_user_admin? %>
+    <div>
+      <%= f.label :membership_status, "Membership Status", class: "form-label" %>
+      <%= f.select :membership_status, 
+          options_for_select([
+            ["Coworking", "coworking"],
+            ["Basic", "basic"],
+            ["Guest", "guest"],
+            ["Banned", "banned"],
+            ["Deceased", "deceased"],
+            ["Sponsored", "sponsored"],
+            ["Unknown", "unknown"]
+          ], @user.membership_status),
+          {},
+          { class: "form-select" } %>
+    </div>
 
-  <div>
-    <%= f.label :payment_type, class: "form-label" %>
-    <%= f.select :payment_type, 
-        options_for_select([
-          ["Unknown", "unknown"],
-          ["Sponsored", "sponsored"],
-          ["PayPal", "paypal"],
-          ["Recharge", "recharge"],
-          ["Cash", "cash"],
-          ["Inactive", "inactive"]
-        ], @user.payment_type),
-        {},
-        { class: "form-select" } %>
-  </div>
+    <div class="form-check">
+      <%= f.check_box :active, class: "form-check-input" %>
+      <%= f.label :active, "Active member", class: "form-check-label" %>
+    </div>
 
-  <div>
-    <%= f.label :notes, class: "form-label" %>
-    <%= f.text_area :notes, class: "form-control", rows: 4 %>
-  </div>
+    <div>
+      <%= f.label :payment_type, class: "form-label" %>
+      <%= f.select :payment_type, 
+          options_for_select([
+            ["Unknown", "unknown"],
+            ["Sponsored", "sponsored"],
+            ["PayPal", "paypal"],
+            ["Recharge", "recharge"],
+            ["Cash", "cash"],
+            ["Inactive", "inactive"]
+          ], @user.payment_type),
+          {},
+          { class: "form-select" } %>
+    </div>
+
+    <div>
+      <%= f.label :notes, class: "form-label" %>
+      <%= f.text_area :notes, class: "form-control", rows: 4 %>
+    </div>
+
+    <div class="form-check">
+      <%= f.check_box :is_admin, class: "form-check-input", id: "user_is_admin" %>
+      <%= f.label :is_admin, "Administrator", class: "form-check-label" %>
+    </div>
+  <% end %>
 
   <div class="d-flex gap-2">
     <%= f.submit "Save", class: "btn btn-primary" %>
     <%= link_to "Cancel", user_path(@user), class: "btn btn-outline-secondary" %>
   </div>
 <% end %>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const useFullNameCheckbox = document.getElementById('user_use_full_name_for_greeting');
+    const useUsernameCheckbox = document.getElementById('user_use_username_for_greeting');
+    const doNotGreetCheckbox = document.getElementById('user_do_not_greet');
+    const greetingNameField = document.getElementById('user_greeting_name');
+    const fullNameField = document.getElementById('user_full_name');
+    const usernameField = document.getElementById('user_username');
+    const form = document.querySelector('form[data-user-authentik-id]');
+
+    function getUsername() {
+      if (usernameField && usernameField.value) {
+        return usernameField.value;
+      }
+      return form ? form.dataset.userUsername || '' : '';
+    }
+
+    let suppressGreetingInputHandler = false;
+
+    function setGreetingValue(value) {
+      if (!greetingNameField) return;
+      suppressGreetingInputHandler = true;
+      greetingNameField.value = value;
+      suppressGreetingInputHandler = false;
+    }
+
+    function updateGreetingFromFullName() {
+      setGreetingValue(fullNameField?.value || '');
+    }
+
+    function updateGreetingFromUsername() {
+      setGreetingValue(getUsername());
+    }
+
+    function clearGreeting() {
+      setGreetingValue('');
+    }
+
+    function enforceMutualExclusivity(selectedCheckbox) {
+      const checkboxes = [useFullNameCheckbox, useUsernameCheckbox, doNotGreetCheckbox];
+      checkboxes.forEach((checkbox) => {
+        if (!checkbox || checkbox === selectedCheckbox) return;
+        checkbox.checked = false;
+      });
+    }
+
+    function handleSelection(selectedCheckbox) {
+      if (!selectedCheckbox) return;
+      if (!selectedCheckbox.checked) return;
+
+      enforceMutualExclusivity(selectedCheckbox);
+
+      if (selectedCheckbox === useFullNameCheckbox) {
+        updateGreetingFromFullName();
+      } else if (selectedCheckbox === useUsernameCheckbox) {
+        updateGreetingFromUsername();
+      } else if (selectedCheckbox === doNotGreetCheckbox) {
+        clearGreeting();
+      }
+    }
+
+    if (useFullNameCheckbox) {
+      useFullNameCheckbox.addEventListener('change', function() {
+        handleSelection(useFullNameCheckbox);
+      });
+    }
+
+    if (useUsernameCheckbox) {
+      useUsernameCheckbox.addEventListener('change', function() {
+        handleSelection(useUsernameCheckbox);
+      });
+    }
+
+    if (doNotGreetCheckbox) {
+      doNotGreetCheckbox.addEventListener('change', function() {
+        handleSelection(doNotGreetCheckbox);
+      });
+    }
+
+    if (fullNameField) {
+      fullNameField.addEventListener('input', function() {
+        if (useFullNameCheckbox && useFullNameCheckbox.checked) {
+          updateGreetingFromFullName();
+        }
+      });
+    }
+
+    if (usernameField) {
+      usernameField.addEventListener('input', function() {
+        if (useUsernameCheckbox && useUsernameCheckbox.checked) {
+          updateGreetingFromUsername();
+        }
+      });
+    }
+
+    if (greetingNameField) {
+      greetingNameField.addEventListener('input', function() {
+        if (suppressGreetingInputHandler) {
+          return;
+        }
+
+        if (greetingNameField.value.trim().length > 0) {
+          [useFullNameCheckbox, useUsernameCheckbox, doNotGreetCheckbox].forEach((checkbox) => {
+            if (checkbox) {
+              checkbox.checked = false;
+            }
+          });
+        }
+      });
+    }
+
+    // Initialize the greeting name field based on current selection.
+    if (useFullNameCheckbox && useFullNameCheckbox.checked) {
+      updateGreetingFromFullName();
+    } else if (useUsernameCheckbox && useUsernameCheckbox.checked) {
+      updateGreetingFromUsername();
+    } else if (doNotGreetCheckbox && doNotGreetCheckbox.checked) {
+      clearGreeting();
+    }
+  });
+</script>
 
 

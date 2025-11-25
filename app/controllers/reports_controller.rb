@@ -1,4 +1,4 @@
-class ReportsController < AuthenticatedController
+class ReportsController < AdminController
   LIMIT = 20
 
   def index

@@ -1,4 +1,4 @@
-class DashboardController < AuthenticatedController
+class DashboardController < AdminController
   def index
     @user_count = User.count
     @active_user_count = User.active.count
