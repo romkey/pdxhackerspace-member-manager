@@ -45,6 +45,7 @@ gem 'redis', '>= 4.0.1'
 
 # Background job processing
 gem 'sidekiq', '~> 7.0'
+gem 'sidekiq-cron', '~> 1.12'
 
 gem 'bcrypt', '~> 3.1'
 
