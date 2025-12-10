@@ -141,54 +141,110 @@ class SessionsController < ApplicationController
   private
 
   def upsert_user_from_auth(auth)
-    # Log all Authentik OAuth data for debugging
-    Rails.logger.info("=" * 80)
-    Rails.logger.info("Authentik OAuth Login - Full Auth Data Dump")
-    Rails.logger.info("=" * 80)
+    # COMPREHENSIVE DUMP - Log EVERYTHING from Authentik OAuth response
+    Rails.logger.info("=" * 100)
+    Rails.logger.info("AUTHENTIK OAUTH LOGIN - COMPLETE DATA DUMP")
+    Rails.logger.info("=" * 100)
     
-    # Log the raw auth object structure
+    # Log raw object metadata
     Rails.logger.info("Raw auth object class: #{auth.class}")
-    Rails.logger.info("Raw auth object methods: #{auth.respond_to?(:keys) ? auth.keys.inspect : 'N/A'}")
+    Rails.logger.info("Raw auth object inspect: #{auth.inspect}")
     
-    # Convert to hash for logging
-    auth_hash = if auth.respond_to?(:to_h)
-      auth.to_h
+    # Try multiple ways to convert to hash
+    auth_hash = nil
+    if auth.respond_to?(:to_h)
+      auth_hash = auth.to_h
+      Rails.logger.info("Converted via to_h")
     elsif auth.respond_to?(:deep_symbolize_keys)
-      auth.deep_symbolize_keys
+      auth_hash = auth.deep_symbolize_keys
+      Rails.logger.info("Converted via deep_symbolize_keys")
+    elsif auth.is_a?(Hash)
+      auth_hash = auth
+      Rails.logger.info("Already a Hash")
     else
-      auth
+      # Try to convert via JSON
+      begin
+        auth_hash = JSON.parse(auth.to_json) if auth.respond_to?(:to_json)
+        Rails.logger.info("Converted via JSON round-trip")
+      rescue => e
+        Rails.logger.info("Could not convert to hash: #{e.message}")
+        auth_hash = { raw: auth.inspect }
+      end
     end
     
-    # Log the entire auth hash as JSON for readability
+    # Dump the ENTIRE auth hash as raw JSON - no filtering
+    Rails.logger.info("-" * 100)
+    Rails.logger.info("COMPLETE AUTH HASH (RAW JSON):")
+    Rails.logger.info("-" * 100)
     begin
-      Rails.logger.info("Full auth hash (JSON):")
       Rails.logger.info(JSON.pretty_generate(auth_hash.as_json))
     rescue => e
-      Rails.logger.info("Could not serialize auth hash as JSON: #{e.message}")
-      Rails.logger.info("Auth hash (inspect): #{auth_hash.inspect}")
+      Rails.logger.info("JSON serialization failed: #{e.message}")
+      Rails.logger.info("Falling back to inspect:")
+      Rails.logger.info(auth_hash.inspect)
     end
     
-    payload = auth.respond_to?(:deep_symbolize_keys) ? auth.deep_symbolize_keys : {}
+    # Also dump as YAML for alternative view
+    begin
+      require 'yaml'
+      Rails.logger.info("-" * 100)
+      Rails.logger.info("COMPLETE AUTH HASH (YAML):")
+      Rails.logger.info("-" * 100)
+      Rails.logger.info(auth_hash.to_yaml)
+    rescue => e
+      Rails.logger.info("YAML serialization failed: #{e.message}")
+    end
+    
+    # Recursively dump all keys and values
+    Rails.logger.info("-" * 100)
+    Rails.logger.info("RECURSIVE KEY/VALUE DUMP:")
+    Rails.logger.info("-" * 100)
+    dump_hash_recursive(auth_hash, prefix: "  ")
+    
+    # Extract sections for detailed inspection
+    payload = auth.respond_to?(:deep_symbolize_keys) ? auth.deep_symbolize_keys : (auth_hash || {})
     info = payload.fetch(:info, {})
     extra_hash = payload.fetch(:extra, {})
     extra = extra_hash.fetch(:raw_info, {})
     
-    # Log individual sections
-    Rails.logger.info("-" * 80)
-    Rails.logger.info("Payload section:")
+    # Dump each section separately with full detail
+    Rails.logger.info("-" * 100)
+    Rails.logger.info("PAYLOAD SECTION (complete):")
+    Rails.logger.info("-" * 100)
+    dump_hash_recursive(payload, prefix: "  ")
+    Rails.logger.info("Payload JSON:")
     Rails.logger.info(JSON.pretty_generate(payload.as_json))
     
-    Rails.logger.info("-" * 80)
-    Rails.logger.info("Info section:")
+    Rails.logger.info("-" * 100)
+    Rails.logger.info("INFO SECTION (complete):")
+    Rails.logger.info("-" * 100)
+    dump_hash_recursive(info, prefix: "  ")
+    Rails.logger.info("Info JSON:")
     Rails.logger.info(JSON.pretty_generate(info.as_json))
     
-    Rails.logger.info("-" * 80)
-    Rails.logger.info("Extra section (full):")
+    Rails.logger.info("-" * 100)
+    Rails.logger.info("EXTRA SECTION (complete):")
+    Rails.logger.info("-" * 100)
+    dump_hash_recursive(extra_hash, prefix: "  ")
+    Rails.logger.info("Extra JSON:")
     Rails.logger.info(JSON.pretty_generate(extra_hash.as_json))
     
-    Rails.logger.info("-" * 80)
-    Rails.logger.info("Raw info section:")
+    Rails.logger.info("-" * 100)
+    Rails.logger.info("RAW_INFO SECTION (complete):")
+    Rails.logger.info("-" * 100)
+    dump_hash_recursive(extra, prefix: "  ")
+    Rails.logger.info("Raw info JSON:")
     Rails.logger.info(JSON.pretty_generate(extra.as_json))
+    
+    # Log all keys at every level
+    Rails.logger.info("-" * 100)
+    Rails.logger.info("ALL KEYS AT EVERY LEVEL:")
+    Rails.logger.info("-" * 100)
+    Rails.logger.info("  Top-level keys: #{auth_hash.keys.inspect if auth_hash.respond_to?(:keys)}")
+    Rails.logger.info("  payload keys: #{payload.keys.inspect}")
+    Rails.logger.info("  info keys: #{info.keys.inspect}")
+    Rails.logger.info("  extra keys: #{extra_hash.keys.inspect}")
+    Rails.logger.info("  raw_info keys: #{extra.respond_to?(:keys) ? extra.keys.inspect : extra.inspect}")
     
     # Log extracted values
     authentik_id = payload[:uid].to_s
@@ -196,22 +252,21 @@ class SessionsController < ApplicationController
     username = info[:nickname] || info[:preferred_username] || extra[:username]
     full_name = info[:name] || build_full_name(info, extra)
     
-    Rails.logger.info("-" * 80)
-    Rails.logger.info("Extracted values:")
+    Rails.logger.info("-" * 100)
+    Rails.logger.info("EXTRACTED VALUES:")
+    Rails.logger.info("-" * 100)
     Rails.logger.info("  authentik_id: #{authentik_id.inspect}")
     Rails.logger.info("  email: #{email.inspect}")
     Rails.logger.info("  username: #{username.inspect}")
     Rails.logger.info("  full_name: #{full_name.inspect}")
     
-    # Log all keys available in each section
-    Rails.logger.info("-" * 80)
-    Rails.logger.info("Available keys:")
-    Rails.logger.info("  payload keys: #{payload.keys.inspect}")
-    Rails.logger.info("  info keys: #{info.keys.inspect}")
-    Rails.logger.info("  extra keys: #{extra_hash.keys.inspect}")
-    Rails.logger.info("  raw_info keys: #{extra.respond_to?(:keys) ? extra.keys.inspect : 'N/A'}")
+    # Search for any admin-related keys
+    Rails.logger.info("-" * 100)
+    Rails.logger.info("SEARCHING FOR ADMIN-RELATED KEYS:")
+    Rails.logger.info("-" * 100)
+    search_for_keys(auth_hash, /admin/i, prefix: "  ")
     
-    Rails.logger.info("=" * 80)
+    Rails.logger.info("=" * 100)
 
     # Extract admin status from Authentik
     is_admin = extract_admin_status(info, extra)
@@ -249,6 +304,59 @@ class SessionsController < ApplicationController
 
     user.save!
     user
+  end
+
+  def dump_hash_recursive(hash, prefix: "", depth: 0, max_depth: 10)
+    return if depth > max_depth
+    
+    return unless hash.is_a?(Hash) || hash.is_a?(Array)
+    
+    if hash.is_a?(Array)
+      hash.each_with_index do |item, index|
+        Rails.logger.info("#{prefix}[#{index}]: #{item.inspect}")
+        if item.is_a?(Hash) || item.is_a?(Array)
+          dump_hash_recursive(item, prefix: "#{prefix}  ", depth: depth + 1, max_depth: max_depth)
+        end
+      end
+    else
+      hash.each do |key, value|
+        if value.is_a?(Hash) || value.is_a?(Array)
+          Rails.logger.info("#{prefix}#{key.inspect}:")
+          dump_hash_recursive(value, prefix: "#{prefix}  ", depth: depth + 1, max_depth: max_depth)
+        else
+          Rails.logger.info("#{prefix}#{key.inspect}: #{value.inspect}")
+        end
+      end
+    end
+  end
+
+  def search_for_keys(hash, pattern, prefix: "", path: "")
+    return unless hash.is_a?(Hash) || hash.is_a?(Array)
+    
+    if hash.is_a?(Array)
+      hash.each_with_index do |item, index|
+        new_path = "#{path}[#{index}]"
+        if item.is_a?(Hash) || item.is_a?(Array)
+          search_for_keys(item, pattern, prefix: prefix, path: new_path)
+        elsif item.to_s.match?(pattern)
+          Rails.logger.info("#{prefix}#{new_path}: #{item.inspect}")
+        end
+      end
+    else
+      hash.each do |key, value|
+        new_path = path.empty? ? key.to_s : "#{path}.#{key}"
+        
+        if key.to_s.match?(pattern)
+          Rails.logger.info("#{prefix}#{new_path}: #{value.inspect}")
+        end
+        
+        if value.is_a?(Hash) || value.is_a?(Array)
+          search_for_keys(value, pattern, prefix: prefix, path: new_path)
+        elsif value.to_s.match?(pattern)
+          Rails.logger.info("#{prefix}#{new_path}: #{value.inspect}")
+        end
+      end
+    end
   end
 
   def extract_admin_status(info, extra)

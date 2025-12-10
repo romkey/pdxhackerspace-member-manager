@@ -19,7 +19,7 @@ Rails.application.config.middleware.use OmniAuth::Builder do
            name: :authentik,
            issuer: authentik.issuer,
            discovery: true,
-           scope: %w[openid email profile],
+           scope: %w[openid email profile member_manager_admin],
            response_type: :code,
            pkce: true,
            client_options: {
