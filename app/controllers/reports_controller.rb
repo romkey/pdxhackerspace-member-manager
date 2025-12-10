@@ -46,6 +46,95 @@ class ReportsController < AdminController
     @unmatched_recharge_payments = all_unmatched_recharge.first(LIMIT)
     
     @all_users = User.ordered_by_display_name
+    
+    # Prepare chart data
+    prepare_chart_data
+  end
+  
+  def prepare_chart_data
+    # Active members per month
+    # Count users who have activity (payments) in or before each month and are currently active
+    @active_members_data = {}
+    start_date = 12.months.ago.beginning_of_month
+    end_date = Time.current.end_of_month
+    
+    # Get users with their earliest payment dates
+    # Users with PayPal payments
+    paypal_user_dates = PaypalPayment.joins(:user)
+                                      .where(users: { active: true })
+                                      .where.not(transaction_time: nil)
+                                      .group('users.id')
+                                      .minimum('paypal_payments.transaction_time')
+    
+    # Users with Recharge payments
+    recharge_user_dates = RechargePayment.joins(:user)
+                                         .where(users: { active: true })
+                                         .where.not(processed_at: nil)
+                                         .group('users.id')
+                                         .minimum('recharge_payments.processed_at')
+    
+    # Combine to get earliest payment date per user
+    user_earliest_payment = {}
+    paypal_user_dates.each do |user_id, date|
+      user_earliest_payment[user_id] = [user_earliest_payment[user_id], date].compact.min
+    end
+    recharge_user_dates.each do |user_id, date|
+      user_earliest_payment[user_id] = [user_earliest_payment[user_id], date].compact.min
+    end
+    
+    # Get all active users created dates
+    active_user_created = User.where(active: true).pluck(:id, :created_at).to_h
+    
+    (start_date.to_date..end_date.to_date).select { |d| d.day == 1 }.each do |month_start|
+      month_key = month_start.strftime('%Y-%m')
+      month_end = month_start.end_of_month
+      
+      # Count users who:
+      # 1. Are currently active, AND
+      # 2. Have a payment on or before this month, OR
+      # 3. Were created on or before this month (for users without payments yet)
+      count = active_user_created.count do |user_id, created_at|
+        earliest_payment = user_earliest_payment[user_id]
+        (earliest_payment && earliest_payment <= month_end) || created_at <= month_end
+      end
+      
+      @active_members_data[month_key] = count
+    end
+    
+    # Revenue per month (PayPal and Recharge)
+    @revenue_data = { paypal: {}, recharge: {} }
+    
+    # PayPal revenue by month
+    PaypalPayment.where.not(transaction_time: nil)
+                 .where.not(amount: nil)
+                 .where('transaction_time >= ?', start_date)
+                 .group_by { |p| p.transaction_time.beginning_of_month.strftime('%Y-%m') }
+                 .each do |month, payments|
+      @revenue_data[:paypal][month] = payments.sum(&:amount).to_f
+    end
+    
+    # Recharge revenue by month
+    RechargePayment.where.not(processed_at: nil)
+                   .where.not(amount: nil)
+                   .where('processed_at >= ?', start_date)
+                   .group_by { |p| p.processed_at.beginning_of_month.strftime('%Y-%m') }
+                   .each do |month, payments|
+      @revenue_data[:recharge][month] = payments.sum(&:amount).to_f
+    end
+    
+    # Ensure all months are represented in both datasets
+    all_months = (@active_members_data.keys + @revenue_data[:paypal].keys + @revenue_data[:recharge].keys).uniq.sort
+    all_months.each do |month|
+      @active_members_data[month] ||= 0
+      @revenue_data[:paypal][month] ||= 0
+      @revenue_data[:recharge][month] ||= 0
+    end
+    
+    # Convert to arrays for Chart.js
+    @chart_months = all_months
+    @active_members_counts = all_months.map { |m| @active_members_data[m] }
+    @paypal_revenue = all_months.map { |m| @revenue_data[:paypal][m] }
+    @recharge_revenue = all_months.map { |m| @revenue_data[:recharge][m] }
   end
 
   def view_all

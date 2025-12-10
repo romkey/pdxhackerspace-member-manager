@@ -4,8 +4,9 @@
 </div>
 
 <% 
-  active_tab = params[:tab] || 'membership-status-unknown'
+  active_tab = params[:tab] || 'charts'
   tabs = [
+    { id: 'charts', name: 'Charts', count: nil },
     { id: 'membership-status-unknown', name: 'Membership', count: @membership_status_unknown_count },
     { id: 'payment-type-unknown', name: 'Payment', count: @payment_type_unknown_count },
     { id: 'dues-status-unknown', name: 'Dues', count: @dues_status_unknown_count },
@@ -33,6 +34,38 @@
 </ul>
 
 <div class="tab-content">
+  <!-- Charts -->
+  <div class="tab-pane fade <%= 'show active' if active_tab == 'charts' %>" 
+       id="charts-pane" 
+       role="tabpanel" 
+       aria-labelledby="charts-tab">
+    <div class="row g-4">
+      <!-- Active Members Chart -->
+      <div class="col-12">
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-body-tertiary">
+            <h2 class="h5 mb-0">Active Members per Month</h2>
+          </div>
+          <div class="card-body">
+            <canvas id="activeMembersChart" height="80"></canvas>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Revenue Chart -->
+      <div class="col-12">
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-body-tertiary">
+            <h2 class="h5 mb-0">Revenue per Month</h2>
+          </div>
+          <div class="card-body">
+            <canvas id="revenueChart" height="80"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Membership Status Unknown -->
   <div class="tab-pane fade <%= 'show active' if active_tab == 'membership-status-unknown' %>" 
        id="membership-status-unknown-pane" 
@@ -223,6 +256,7 @@
 <%= render partial: 'paypal_modals', locals: { payments: @unmatched_paypal_payments } %>
 <%= render partial: 'recharge_modals', locals: { payments: @unmatched_recharge_payments } %>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
   // Update URL when tab changes
   document.addEventListener('DOMContentLoaded', function() {
@@ -233,18 +267,136 @@
         const url = new URL(window.location);
         url.searchParams.set('tab', tabId);
         window.history.pushState({}, '', url);
+        
+        // Initialize charts when charts tab is shown
+        if (tabId === 'charts') {
+          initializeCharts();
+        }
       });
     });
     
     // Set active tab from URL parameter
     const urlParams = new URLSearchParams(window.location.search);
-    const tabParam = urlParams.get('tab');
-    if (tabParam) {
-      const tabButton = document.querySelector('[data-bs-target="#' + tabParam + '-pane"]');
-      if (tabButton) {
-        const tab = new bootstrap.Tab(tabButton);
+    const tabParam = urlParams.get('tab') || 'charts';
+    const tabButton = document.querySelector('[data-bs-target="#' + tabParam + '-pane"]');
+    if (tabButton) {
+      const tab = new bootstrap.Tab(tabButton);
+      tab.show();
+      
+      // Initialize charts if charts tab is active
+      if (tabParam === 'charts') {
+        setTimeout(initializeCharts, 100);
+      }
+    } else {
+      // Default to charts tab
+      const chartsTab = document.querySelector('[data-bs-target="#charts-pane"]');
+      if (chartsTab) {
+        const tab = new bootstrap.Tab(chartsTab);
         tab.show();
+        setTimeout(initializeCharts, 100);
       }
     }
   });
+  
+  function initializeCharts() {
+    // Active Members Chart
+    const activeMembersCtx = document.getElementById('activeMembersChart');
+    if (activeMembersCtx && typeof Chart !== 'undefined') {
+      new Chart(activeMembersCtx, {
+        type: 'line',
+        data: {
+          labels: <%= raw @chart_months.to_json %>,
+          datasets: [{
+            label: 'Active Members',
+            data: <%= raw @active_members_counts.to_json %>,
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            tension: 0.1,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top'
+            },
+            tooltip: {
+              mode: 'index',
+              intersect: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                stepSize: 1
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    // Revenue Chart
+    const revenueCtx = document.getElementById('revenueChart');
+    if (revenueCtx && typeof Chart !== 'undefined') {
+      new Chart(revenueCtx, {
+        type: 'bar',
+        data: {
+          labels: <%= raw @chart_months.to_json %>,
+          datasets: [
+            {
+              label: 'PayPal',
+              data: <%= raw @paypal_revenue.to_json %>,
+              backgroundColor: 'rgba(0, 123, 255, 0.8)',
+              borderColor: 'rgb(0, 123, 255)',
+              borderWidth: 1
+            },
+            {
+              label: 'Recharge',
+              data: <%= raw @recharge_revenue.to_json %>,
+              backgroundColor: 'rgba(40, 167, 69, 0.8)',
+              borderColor: 'rgb(40, 167, 69)',
+              borderWidth: 1
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top'
+            },
+            tooltip: {
+              mode: 'index',
+              intersect: false,
+              callbacks: {
+                label: function(context) {
+                  return context.dataset.label + ': $' + context.parsed.y.toFixed(2);
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              stacked: false
+            },
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: function(value) {
+                  return '$' + value.toFixed(0);
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+  }
 </script>
