@@ -141,14 +141,77 @@ class SessionsController < ApplicationController
   private
 
   def upsert_user_from_auth(auth)
+    # Log all Authentik OAuth data for debugging
+    Rails.logger.info("=" * 80)
+    Rails.logger.info("Authentik OAuth Login - Full Auth Data Dump")
+    Rails.logger.info("=" * 80)
+    
+    # Log the raw auth object structure
+    Rails.logger.info("Raw auth object class: #{auth.class}")
+    Rails.logger.info("Raw auth object methods: #{auth.respond_to?(:keys) ? auth.keys.inspect : 'N/A'}")
+    
+    # Convert to hash for logging
+    auth_hash = if auth.respond_to?(:to_h)
+      auth.to_h
+    elsif auth.respond_to?(:deep_symbolize_keys)
+      auth.deep_symbolize_keys
+    else
+      auth
+    end
+    
+    # Log the entire auth hash as JSON for readability
+    begin
+      Rails.logger.info("Full auth hash (JSON):")
+      Rails.logger.info(JSON.pretty_generate(auth_hash.as_json))
+    rescue => e
+      Rails.logger.info("Could not serialize auth hash as JSON: #{e.message}")
+      Rails.logger.info("Auth hash (inspect): #{auth_hash.inspect}")
+    end
+    
     payload = auth.respond_to?(:deep_symbolize_keys) ? auth.deep_symbolize_keys : {}
     info = payload.fetch(:info, {})
-    extra = payload.fetch(:extra, {}).fetch(:raw_info, {})
-
+    extra_hash = payload.fetch(:extra, {})
+    extra = extra_hash.fetch(:raw_info, {})
+    
+    # Log individual sections
+    Rails.logger.info("-" * 80)
+    Rails.logger.info("Payload section:")
+    Rails.logger.info(JSON.pretty_generate(payload.as_json))
+    
+    Rails.logger.info("-" * 80)
+    Rails.logger.info("Info section:")
+    Rails.logger.info(JSON.pretty_generate(info.as_json))
+    
+    Rails.logger.info("-" * 80)
+    Rails.logger.info("Extra section (full):")
+    Rails.logger.info(JSON.pretty_generate(extra_hash.as_json))
+    
+    Rails.logger.info("-" * 80)
+    Rails.logger.info("Raw info section:")
+    Rails.logger.info(JSON.pretty_generate(extra.as_json))
+    
+    # Log extracted values
     authentik_id = payload[:uid].to_s
     email = info[:email] || extra[:email]
     username = info[:nickname] || info[:preferred_username] || extra[:username]
     full_name = info[:name] || build_full_name(info, extra)
+    
+    Rails.logger.info("-" * 80)
+    Rails.logger.info("Extracted values:")
+    Rails.logger.info("  authentik_id: #{authentik_id.inspect}")
+    Rails.logger.info("  email: #{email.inspect}")
+    Rails.logger.info("  username: #{username.inspect}")
+    Rails.logger.info("  full_name: #{full_name.inspect}")
+    
+    # Log all keys available in each section
+    Rails.logger.info("-" * 80)
+    Rails.logger.info("Available keys:")
+    Rails.logger.info("  payload keys: #{payload.keys.inspect}")
+    Rails.logger.info("  info keys: #{info.keys.inspect}")
+    Rails.logger.info("  extra keys: #{extra_hash.keys.inspect}")
+    Rails.logger.info("  raw_info keys: #{extra.respond_to?(:keys) ? extra.keys.inspect : 'N/A'}")
+    
+    Rails.logger.info("=" * 80)
 
     # Extract admin status from Authentik
     is_admin = extract_admin_status(info, extra)
