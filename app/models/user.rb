@@ -1,4 +1,5 @@
 class User < ApplicationRecord
+  belongs_to :membership_plan, optional: true
   has_one :sheet_entry, dependent: :nullify
   has_one :slack_user, dependent: :nullify
   has_many :paypal_payments, dependent: :nullify

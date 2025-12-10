@@ -129,7 +129,7 @@ class UsersController < AuthenticatedController
     ]
 
     if current_user_admin?
-      permitted += %i[membership_status payment_type notes active]
+      permitted += %i[membership_status payment_type notes active membership_plan_id]
       permitted << :is_admin
     end
 

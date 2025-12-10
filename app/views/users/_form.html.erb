@@ -80,6 +80,15 @@
     </div>
 
     <div>
+      <%= f.label :membership_plan_id, "Membership Plan", class: "form-label" %>
+      <%= f.select :membership_plan_id,
+          options_from_collection_for_select(MembershipPlan.ordered, :id, :display_name, @user.membership_plan_id),
+          { prompt: "No plan" },
+          { class: "form-select" } %>
+      <div class="form-text">Optional: Assign a membership plan to this user.</div>
+    </div>
+
+    <div>
       <%= f.label :notes, class: "form-label" %>
       <%= f.text_area :notes, class: "form-control", rows: 4 %>
     </div>

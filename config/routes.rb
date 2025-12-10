@@ -88,6 +88,7 @@ Rails.application.routes.draw do
 
   get "/settings", to: "settings#index", as: :settings
   resources :training_topics, only: [:index, :create, :destroy]
+  resources :membership_plans, except: [:show]
   resources :rfid_readers, except: [:show] do
     member do
       post :regenerate_key

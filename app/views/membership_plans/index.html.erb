@@ -1,0 +1,98 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0">Membership Plans</h1>
+  <%= link_to "&larr; Back to Settings".html_safe, settings_path, class: "text-decoration-none" %>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <h2 class="h5 mb-3">Add New Membership Plan</h2>
+    <% if @membership_plan&.errors&.any? %>
+      <div class="alert alert-danger">
+        <ul class="mb-0">
+          <% @membership_plan.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+    <%= form_with model: @membership_plan, url: membership_plans_path, local: true, class: "row g-3" do |f| %>
+      <div class="col-md-4">
+        <%= f.text_field :name, class: "form-control #{'is-invalid' if @membership_plan&.errors&.key?(:name)}", placeholder: "Plan name", required: true %>
+        <% if @membership_plan&.errors&.key?(:name) %>
+          <div class="invalid-feedback">
+            <%= @membership_plan.errors[:name].first %>
+          </div>
+        <% end %>
+      </div>
+      <div class="col-md-2">
+        <%= f.number_field :cost, step: 0.01, min: 0, class: "form-control #{'is-invalid' if @membership_plan&.errors&.key?(:cost)}", placeholder: "Cost", required: true %>
+        <% if @membership_plan&.errors&.key?(:cost) %>
+          <div class="invalid-feedback">
+            <%= @membership_plan.errors[:cost].first %>
+          </div>
+        <% end %>
+      </div>
+      <div class="col-md-3">
+        <%= f.select :billing_frequency, 
+            options_for_select([['Monthly', 'monthly'], ['Yearly', 'yearly'], ['One-time', 'one-time']], @membership_plan&.billing_frequency),
+            { prompt: 'Select frequency' },
+            { class: "form-select #{'is-invalid' if @membership_plan&.errors&.key?(:billing_frequency)}", required: true } %>
+        <% if @membership_plan&.errors&.key?(:billing_frequency) %>
+          <div class="invalid-feedback">
+            <%= @membership_plan.errors[:billing_frequency].first %>
+          </div>
+        <% end %>
+      </div>
+      <div class="col-md-3">
+        <%= f.submit "Add Plan", class: "btn btn-primary w-100" %>
+      </div>
+      <div class="col-12">
+        <%= f.text_area :description, class: "form-control", placeholder: "Description (optional)", rows: 2 %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <h2 class="h5 mb-3">Membership Plans</h2>
+    <% if @membership_plans.any? %>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="bg-body-tertiary">
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Cost</th>
+              <th scope="col">Billing Frequency</th>
+              <th scope="col">Description</th>
+              <th scope="col" class="text-center">Users</th>
+              <th scope="col" class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @membership_plans.each do |plan| %>
+              <tr>
+                <td><strong><%= plan.name %></strong></td>
+                <td>$<%= format('%.2f', plan.cost) %></td>
+                <td><span class="badge text-bg-secondary"><%= plan.billing_frequency.humanize %></span></td>
+                <td><%= plan.description.presence || "—" %></td>
+                <td class="text-center">
+                  <span class="badge text-bg-primary"><%= plan.users.count %></span>
+                </td>
+                <td class="text-end">
+                  <%= link_to "Edit", edit_membership_plan_path(plan), class: "btn btn-sm btn-outline-primary me-2" %>
+                  <%= button_to "Delete", membership_plan_path(plan), method: :delete, 
+                      class: "btn btn-sm btn-outline-danger",
+                      data: { confirm: "Are you sure you want to delete '#{plan.name}'? This cannot be undone if there are users assigned to it." } %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <p class="text-muted mb-0">No membership plans yet. Add one above to get started.</p>
+    <% end %>
+  </div>
+</div>
+
