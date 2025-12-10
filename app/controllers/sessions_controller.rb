@@ -150,6 +150,9 @@ class SessionsController < ApplicationController
     username = info[:nickname] || info[:preferred_username] || extra[:username]
     full_name = info[:name] || build_full_name(info, extra)
 
+    # Extract admin status from Authentik
+    is_admin = extract_admin_status(info, extra)
+
     # First, try to find by authentik_id
     user = User.find_by(authentik_id: authentik_id) if authentik_id.present?
 
@@ -174,12 +177,29 @@ class SessionsController < ApplicationController
     # Merge in username from Authentik
     user.username = username if username.present?
 
+    # Update admin status from Authentik (only if we got a value from Authentik)
+    user.is_admin = is_admin unless is_admin.nil?
+
     # Always update these fields on login
     user.active = true
     user.last_synced_at = Time.current
 
     user.save!
     user
+  end
+
+  def extract_admin_status(info, extra)
+    # Check for explicit admin claim (boolean or string)
+    # This should be set by an Authentik property mapping that checks group membership
+    admin_claim = info[:is_admin] || info[:admin] || extra[:is_admin] || extra[:admin]
+    
+    if admin_claim.present?
+      # Handle boolean, string "true"/"false", or "1"/"0"
+      return true if admin_claim == true || admin_claim.to_s.downcase.in?(%w[true 1 yes])
+      return false if admin_claim == false || admin_claim.to_s.downcase.in?(%w[false 0 no])
+    end
+
+    nil # Return nil if no admin status found (don't update the field)
   end
 
   def sync_local_account(account)

@@ -74,6 +74,29 @@ Member records also capture the raw Authentik `attributes` payload in a searchab
 User.with_attribute(:department, "Engineering")
 ```
 
+### Admin Status Configuration
+
+To set admin status for users based on Authentik group membership, create a Property Mapping in Authentik:
+
+1. Go to **Customization** → **Property Mappings** → **Create**
+2. Type: **OAuth/OpenID Scope Mapping**
+3. Name: "Member Manager Admin Status"
+4. Expression:
+   ```python
+   # Check if user is in the "admins" group (replace "admins" with your group name)
+   admin_group = "admins"
+   is_in_admin_group = any(group.name == admin_group for group in user.ak_groups.all())
+   
+   return {
+       "is_admin": is_in_admin_group
+   }
+   ```
+5. Assign this property mapping to your OAuth provider:
+   - Go to **Applications** → **Providers** → your Member Manager provider
+   - Add the property mapping to **Property Mappings** or **Scopes**
+
+Users in the specified group will have `is_admin` set to `true` when they log in. The application looks for the `is_admin` claim in the OAuth token.
+
 ## Slack Integration
 
 Set `SLACK_API_TOKEN` (bot or user token with `users:read`) to enable Slack syncing. Then run:
