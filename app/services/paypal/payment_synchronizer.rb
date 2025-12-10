@@ -8,8 +8,11 @@ module Paypal
     def call
       raise ArgumentError, 'PayPal integration disabled' unless PaypalConfig.enabled?
 
+      # Calculate start_time: 3 days before the most recent payment, or use default if no payments exist
+      start_time = calculate_start_time
+
       begin
-        payments = @client.transactions
+        payments = @client.transactions(start_time: start_time)
       rescue Faraday::ForbiddenError => e
         @logger.error('PayPal API returned 403 Forbidden - NOT_AUTHORIZED')
         @logger.error("This means your PayPal app doesn't have permission to access the Reporting API.")
@@ -64,6 +67,27 @@ module Paypal
     end
 
     private
+
+    def calculate_start_time
+      # Find the most recent payment
+      most_recent_payment = PaypalPayment.where.not(transaction_time: nil)
+                                         .order(transaction_time: :desc)
+                                         .first
+
+      if most_recent_payment&.transaction_time
+        # Start 3 days before the most recent payment
+        start_time = most_recent_payment.transaction_time - 3.days
+        @logger.info("[PayPal::PaymentSynchronizer] Most recent payment: #{most_recent_payment.transaction_time}, requesting from: #{start_time}")
+        start_time
+      else
+        # No payments exist, use default lookback
+        days = PaypalConfig.settings.transactions_lookback_days
+        days = 30 if days <= 0
+        default_start = Time.current - days.days
+        @logger.info("[PayPal::PaymentSynchronizer] No existing payments, using default lookback: #{days} days from now (#{default_start})")
+        default_start
+      end
+    end
 
     def find_user(email, name = nil)
       normalized_email = normalize_email(email)
