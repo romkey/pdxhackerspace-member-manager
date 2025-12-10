@@ -68,6 +68,8 @@ Rails.application.routes.draw do
     collection do
       post :sync
       get :test
+      get :export
+      post :import
     end
     member do
       post :link_user
