@@ -1,6 +1,7 @@
 class PaypalPaymentsController < AdminController
   def index
-    @payments = PaypalPayment.ordered
+    # Only show payments equal to $40 (with small tolerance for decimal precision)
+    @payments = PaypalPayment.where(amount: 39.99..40.01).ordered
     @payment_count = @payments.count
     @total_amount = @payments.sum(:amount)
   end
