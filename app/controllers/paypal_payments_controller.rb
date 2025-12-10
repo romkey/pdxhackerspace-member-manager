@@ -118,4 +118,184 @@ class PaypalPaymentsController < AdminController
     @total_40_payments = @payments_40.count
     @matched_count = @total_40_payments - @unmatched_payments.count
   end
+
+  def export
+    # Export all PayPal payments as complete JSON backup
+    payments_data = PaypalPayment.all.map do |payment|
+      payment_data = {
+        paypal_id: payment.paypal_id,
+        status: payment.status,
+        amount: payment.amount&.to_s, # Convert BigDecimal to string for JSON
+        currency: payment.currency,
+        transaction_time: payment.transaction_time&.iso8601,
+        transaction_type: payment.transaction_type,
+        payer_email: payment.payer_email,
+        payer_name: payment.payer_name,
+        payer_id: payment.payer_id,
+        raw_attributes: payment.raw_attributes,
+        last_synced_at: payment.last_synced_at&.iso8601,
+        created_at: payment.created_at.iso8601,
+        updated_at: payment.updated_at.iso8601
+      }
+
+      # Export user relationship by identifier
+      if payment.user
+        payment_data[:user_email] = payment.user.email
+        payment_data[:user_authentik_id] = payment.user.authentik_id
+      end
+
+      # Export sheet_entry relationship by identifier
+      if payment.sheet_entry
+        payment_data[:sheet_entry_email] = payment.sheet_entry.email
+        payment_data[:sheet_entry_name] = payment.sheet_entry.name
+      end
+
+      payment_data
+    end
+
+    export_data = {
+      version: '1.0',
+      exported_at: Time.current.iso8601,
+      count: payments_data.count,
+      payments: payments_data
+    }
+
+    send_data JSON.pretty_generate(export_data),
+              type: 'application/json',
+              disposition: "attachment; filename=paypal_payments_backup_#{Time.current.strftime('%Y%m%d_%H%M%S')}.json"
+  end
+
+  def import
+    if params[:file].blank?
+      redirect_to paypal_payments_path, alert: 'No file provided.'
+      return
+    end
+
+    begin
+      json_data = JSON.parse(params[:file].read)
+      
+      unless json_data.is_a?(Hash) && json_data['payments'].is_a?(Array)
+        redirect_to paypal_payments_path, alert: 'Invalid JSON format. Expected object with "payments" array.'
+        return
+      end
+
+      imported_count = 0
+      updated_count = 0
+      skipped_count = 0
+      errors = []
+
+      ActiveRecord::Base.transaction do
+        json_data['payments'].each do |payment_data|
+          begin
+            # Find or initialize payment by paypal_id
+            payment = PaypalPayment.find_or_initialize_by(paypal_id: payment_data['paypal_id'])
+
+            # Update all attributes
+            payment.status = payment_data['status']
+            
+            # Handle amount conversion (can be string or number)
+            if payment_data['amount'].present?
+              payment.amount = BigDecimal(payment_data['amount'].to_s)
+            end
+            
+            payment.currency = payment_data['currency']
+            
+            # Parse timestamps
+            if payment_data['transaction_time'].present?
+              payment.transaction_time = Time.parse(payment_data['transaction_time'])
+            end
+            
+            payment.transaction_type = payment_data['transaction_type']
+            payment.payer_email = payment_data['payer_email']
+            payment.payer_name = payment_data['payer_name']
+            payment.payer_id = payment_data['payer_id']
+            payment.raw_attributes = payment_data['raw_attributes'] || {}
+            
+            if payment_data['last_synced_at'].present?
+              payment.last_synced_at = Time.parse(payment_data['last_synced_at'])
+            end
+
+            # Restore user relationship
+            if payment_data['user_email'].present? || payment_data['user_authentik_id'].present?
+              user = nil
+              
+              # Try to find by email first
+              if payment_data['user_email'].present?
+                user = User.find_by('LOWER(email) = ?', payment_data['user_email'].to_s.strip.downcase)
+              end
+              
+              # Try to find by authentik_id if not found
+              if user.nil? && payment_data['user_authentik_id'].present?
+                user = User.find_by(authentik_id: payment_data['user_authentik_id'])
+              end
+              
+              payment.user = user if user
+            end
+
+            # Restore sheet_entry relationship
+            if payment_data['sheet_entry_email'].present? || payment_data['sheet_entry_name'].present?
+              sheet_entry = nil
+              
+              # Try to find by email first
+              if payment_data['sheet_entry_email'].present?
+                sheet_entry = SheetEntry.find_by('LOWER(email) = ?', payment_data['sheet_entry_email'].to_s.strip.downcase)
+              end
+              
+              # Try to find by name if not found by email
+              if sheet_entry.nil? && payment_data['sheet_entry_name'].present?
+                sheet_entry = SheetEntry.find_by(name: payment_data['sheet_entry_name'])
+              end
+              
+              # Try to find by email AND name combination
+              if sheet_entry.nil? && payment_data['sheet_entry_email'].present? && payment_data['sheet_entry_name'].present?
+                sheet_entry = SheetEntry.where('LOWER(email) = ? AND name = ?', 
+                  payment_data['sheet_entry_email'].to_s.strip.downcase,
+                  payment_data['sheet_entry_name']).first
+              end
+              
+              payment.sheet_entry = sheet_entry if sheet_entry
+            end
+
+            was_new = payment.new_record?
+            
+            # Save the payment first
+            payment.save!
+            
+            # Restore timestamps after save (Rails allows setting these directly)
+            if payment_data['created_at'].present?
+              payment.update_column(:created_at, Time.parse(payment_data['created_at']))
+            end
+            if payment_data['updated_at'].present?
+              payment.update_column(:updated_at, Time.parse(payment_data['updated_at']))
+            end
+
+            if was_new
+              imported_count += 1
+            else
+              updated_count += 1
+            end
+          rescue => e
+            skipped_count += 1
+            errors << "Payment #{payment_data['paypal_id']}: #{e.message}"
+            Rails.logger.error("Failed to import PayPal payment #{payment_data['paypal_id']}: #{e.message}")
+          end
+        end
+      end
+
+      notice_parts = ["Import complete: #{imported_count} imported, #{updated_count} updated"]
+      notice_parts << "#{skipped_count} skipped" if skipped_count > 0
+      notice = notice_parts.join(', ')
+      
+      if errors.any?
+        notice += ". Errors: #{errors.first(5).join('; ')}"
+        notice += " (#{errors.count - 5} more)" if errors.count > 5
+      end
+
+      redirect_to paypal_payments_path, notice: notice
+    rescue JSON::ParserError => e
+      redirect_to paypal_payments_path, alert: "Invalid JSON: #{e.message}"
+    rescue => e
+      redirect_to paypal_payments_path, alert: "Import failed: #{e.message}"
+    end
+  end
 end
