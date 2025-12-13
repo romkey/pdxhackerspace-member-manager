@@ -34,8 +34,26 @@ module Slack
     end
 
     def link_to_user(slack_user, attrs)
-      # Find matching users by full name (real_name)
-      matches = User.where('LOWER(full_name) = ?', attrs[:real_name].downcase)
+      # Find matching users by email or full name (real_name)
+      matches = []
+
+      # Match by email (case-insensitive)
+      if attrs[:email].present?
+        normalized_email = attrs[:email].to_s.strip.downcase
+        # Match by primary email
+        matches += User.where('LOWER(email) = ?', normalized_email)
+        # Match by extra_emails array (case-insensitive)
+        matches += User.where('EXISTS (SELECT 1 FROM unnest(extra_emails) AS email WHERE LOWER(email) = ?)',
+                              normalized_email)
+      end
+
+      # Match by full name (real_name)
+      if attrs[:real_name].present?
+        matches += User.where('LOWER(full_name) = ?', attrs[:real_name].downcase)
+      end
+
+      # Remove duplicates
+      matches = matches.uniq
 
       # Only link if exactly one match
       return unless matches.one?

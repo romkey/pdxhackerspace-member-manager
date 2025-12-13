@@ -151,9 +151,10 @@ module GoogleSheets
     end
 
     def find_existing_entry(attrs)
-      # Try to find by email first (more reliable)
+      # Try to find by email first (more reliable, case-insensitive)
       if attrs[:email].present?
-        entry = SheetEntry.find_by(email: attrs[:email].strip.downcase)
+        normalized_email = attrs[:email].to_s.strip.downcase
+        entry = SheetEntry.where('LOWER(email) = ?', normalized_email).first
         return entry if entry
       end
       

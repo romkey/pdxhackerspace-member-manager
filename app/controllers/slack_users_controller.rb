@@ -82,10 +82,26 @@ class SlackUsersController < AdminController
 
     # Only process real users (not bots)
     SlackUser.where(is_bot: false).find_each do |slack_user|
-      # Find matching users by full name (real_name)
+      # Find matching users by email or full name (real_name)
       matches = []
 
-      matches = User.where('LOWER(full_name) = ?', slack_user.real_name.downcase) if slack_user.real_name.present?
+      # Match by email (case-insensitive)
+      if slack_user.email.present?
+        normalized_email = slack_user.email.to_s.strip.downcase
+        # Match by primary email
+        matches += User.where('LOWER(email) = ?', normalized_email)
+        # Match by extra_emails array (case-insensitive)
+        matches += User.where('EXISTS (SELECT 1 FROM unnest(extra_emails) AS email WHERE LOWER(email) = ?)',
+                              normalized_email)
+      end
+
+      # Match by full name (real_name)
+      if slack_user.real_name.present?
+        matches += User.where('LOWER(full_name) = ?', slack_user.real_name.downcase)
+      end
+
+      # Remove duplicates
+      matches = matches.uniq
 
       # Only link if exactly one match (do not create new users)
       if matches.one?
