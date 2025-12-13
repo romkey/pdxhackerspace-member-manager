@@ -48,7 +48,7 @@
           <tbody>
             <% @training_topics.each do |topic| %>
               <tr>
-                <td><strong><%= topic.name %></strong></td>
+                <td><strong><%= link_to topic.name, edit_training_topic_path(topic), class: "text-decoration-none" %></strong></td>
                 <td class="text-center">
                   <span class="badge text-bg-primary"><%= topic.trainings.select(:trainee_id).distinct.count %></span>
                 </td>

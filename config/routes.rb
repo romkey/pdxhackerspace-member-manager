@@ -87,7 +87,12 @@ Rails.application.routes.draw do
   get "/search", to: "search#index", as: :search
 
   get "/settings", to: "settings#index", as: :settings
-  resources :training_topics, only: [:index, :create, :destroy]
+  resources :training_topics, only: [:index, :create, :edit, :update, :destroy] do
+    member do
+      delete :revoke_training
+      delete :revoke_trainer_capability
+    end
+  end
   resources :membership_plans, except: [:show]
   resources :rfid_readers, except: [:show] do
     member do

@@ -14,6 +14,61 @@ class TrainingTopicsController < AdminController
     end
   end
 
+  def edit
+    @training_topic = TrainingTopic.find(params[:id])
+    # Get distinct users trained in this topic
+    @trained_users = User.joins(:trainings_as_trainee)
+                         .where(trainings: { training_topic_id: @training_topic.id })
+                         .distinct
+                         .order(:full_name, :email)
+    # Get users who can train this topic
+    @trainer_users = @training_topic.trainers.order(:full_name, :email)
+  end
+
+  def update
+    @training_topic = TrainingTopic.find(params[:id])
+
+    if @training_topic.update(training_topic_params)
+      redirect_to edit_training_topic_path(@training_topic), notice: 'Training topic updated successfully.'
+    else
+      # Reload the associations for the view
+      @trained_users = User.joins(:trainings_as_trainee)
+                           .where(trainings: { training_topic_id: @training_topic.id })
+                           .distinct
+                           .order(:full_name, :email)
+      @trainer_users = @training_topic.trainers.order(:full_name, :email)
+      render :edit, status: :unprocessable_entity
+    end
+  end
+
+  def revoke_training
+    @training_topic = TrainingTopic.find(params[:id])
+    user = User.find(params[:user_id])
+
+    # Delete all trainings for this user and topic
+    deleted_count = @training_topic.trainings.where(trainee: user).delete_all
+
+    if deleted_count > 0
+      redirect_to edit_training_topic_path(@training_topic), notice: "Training revoked for #{user.display_name}."
+    else
+      redirect_to edit_training_topic_path(@training_topic), alert: "No training found to revoke for #{user.display_name}."
+    end
+  end
+
+  def revoke_trainer_capability
+    @training_topic = TrainingTopic.find(params[:id])
+    user = User.find(params[:user_id])
+
+    # Delete the trainer capability
+    trainer_capability = TrainerCapability.find_by(user: user, training_topic: @training_topic)
+
+    if trainer_capability&.destroy
+      redirect_to edit_training_topic_path(@training_topic), notice: "Trainer capability revoked for #{user.display_name}."
+    else
+      redirect_to edit_training_topic_path(@training_topic), alert: "No trainer capability found to revoke for #{user.display_name}."
+    end
+  end
+
   def destroy
     @training_topic = TrainingTopic.find(params[:id])
 

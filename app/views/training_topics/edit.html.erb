@@ -1,0 +1,81 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0">Edit Training Topic</h1>
+  <%= link_to "&larr; Back to Training Topics".html_safe, training_topics_path, class: "text-decoration-none" %>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <h2 class="h5 mb-3">Topic Name</h2>
+    <% if @training_topic.errors.any? %>
+      <div class="alert alert-danger">
+        <ul class="mb-0">
+          <% @training_topic.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+    <%= form_with model: @training_topic, url: training_topic_path(@training_topic), local: true, class: "row g-3" do |f| %>
+      <div class="col-md-8">
+        <%= f.text_field :name, class: "form-control #{'is-invalid' if @training_topic.errors.key?(:name)}", required: true %>
+        <% if @training_topic.errors.key?(:name) %>
+          <div class="invalid-feedback">
+            <%= @training_topic.errors[:name].first %>
+          </div>
+        <% end %>
+      </div>
+      <div class="col-md-4">
+        <%= f.submit "Update Topic", class: "btn btn-primary w-100" %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-6">
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <h2 class="h5 mb-3">Users Trained in This Topic</h2>
+        <% if @trained_users.any? %>
+          <ul class="list-unstyled mb-0">
+            <% @trained_users.each do |user| %>
+              <li class="mb-2 d-flex justify-content-between align-items-center">
+                <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
+                <%= button_to "Revoke", revoke_training_training_topic_path(@training_topic, user_id: user.id), 
+                    method: :delete, 
+                    class: "btn btn-sm btn-outline-danger",
+                    data: { confirm: "Are you sure you want to revoke training for #{user.display_name}?" } %>
+              </li>
+            <% end %>
+          </ul>
+        <% else %>
+          <p class="text-muted mb-0">No users have been trained in this topic yet.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <h2 class="h5 mb-3">Users Who Can Train This Topic</h2>
+        <% if @trainer_users.any? %>
+          <ul class="list-unstyled mb-0">
+            <% @trainer_users.each do |user| %>
+              <li class="mb-2 d-flex justify-content-between align-items-center">
+                <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
+                <%= button_to "Revoke", revoke_trainer_capability_training_topic_path(@training_topic, user_id: user.id), 
+                    method: :delete, 
+                    class: "btn btn-sm btn-outline-danger",
+                    data: { confirm: "Are you sure you want to revoke trainer capability for #{user.display_name}?" } %>
+              </li>
+            <% end %>
+          </ul>
+        <% else %>
+          <p class="text-muted mb-0">No users can train this topic yet.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
