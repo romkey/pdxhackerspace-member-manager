@@ -7,8 +7,8 @@
               } do |f| %>
   <div>
     <%= f.label :username, class: "form-label" %>
-    <%= f.text_field :username, class: "form-control", readonly: true %>
-    <div class="form-text">Synced from Authentik. Read-only.</div>
+    <%= f.text_field :username, class: "form-control" %>
+    <div class="form-text">Will be synced back to Authentik in the future.</div>
   </div>
 
   <div>
