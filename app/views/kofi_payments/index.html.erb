@@ -1,0 +1,180 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">Ko-Fi Payments</h1>
+    <p class="text-muted mb-0">
+      <strong><%= @payment_count %></strong> records —
+      Total <strong>$<%= number_to_currency(@total_amount || 0, unit: "") %> USD</strong>
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to "Export JSON", export_kofi_payments_path, class: "btn btn-outline-primary", data: { turbo: false } %>
+    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#importJsonModal">Import JSON</button>
+    <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#importCsvModal">Import CSV</button>
+  </div>
+</div>
+
+<!-- Import JSON Modal -->
+<div class="modal fade" id="importJsonModal" tabindex="-1" aria-labelledby="importJsonModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="importJsonModalLabel">Import Ko-Fi Payments from JSON</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <%= form_with url: import_kofi_payments_path, method: :post, multipart: true, local: true do |f| %>
+        <div class="modal-body">
+          <p class="text-muted">Select a JSON backup file to import. This will update existing payments and create new ones based on <code>kofi_transaction_id</code>.</p>
+          <div class="mb-3">
+            <%= f.file_field :file, accept: 'application/json', class: "form-control", required: true %>
+          </div>
+          <div class="alert alert-warning mb-0">
+            <strong>Warning:</strong> This operation will modify the database. Existing payments with matching <code>kofi_transaction_id</code> will be updated.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <%= f.submit "Import", class: "btn btn-primary" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<!-- Import CSV Modal -->
+<div class="modal fade" id="importCsvModal" tabindex="-1" aria-labelledby="importCsvModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="importCsvModalLabel">Import Ko-Fi Payments from CSV</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <%= form_with url: import_csv_kofi_payments_path, method: :post, multipart: true, local: true do |f| %>
+        <div class="modal-body">
+          <p class="text-muted">Select a CSV file exported from Ko-Fi. Expected columns include: Date, From, Type, Amount, Currency, Status, Message, Email, Ko-fi Transaction ID, Tier Name.</p>
+          <div class="mb-3">
+            <%= f.file_field :file, accept: '.csv,text/csv', class: "form-control", required: true %>
+          </div>
+          <div class="alert alert-info mb-0">
+            <strong>Tip:</strong> Export your payments from <a href="https://ko-fi.com/manage/payments" target="_blank" rel="noopener">Ko-Fi's Payment History</a> page.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <%= f.submit "Import CSV", class: "btn btn-success" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <div class="d-flex gap-2">
+      <input type="text" id="kofi_search" class="form-control" placeholder="Search by transaction ID, name, email, type, or message…" autocomplete="off">
+      <button type="button" id="clear_kofi_search" class="btn btn-outline-secondary" style="display: none;">Clear</button>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="table-responsive">
+    <table class="table mb-0 align-middle">
+      <thead class="bg-body-tertiary">
+        <tr>
+          <th scope="col">Transaction</th>
+          <th scope="col">Type</th>
+          <th scope="col">Amount</th>
+          <th scope="col">From</th>
+          <th scope="col">Message</th>
+          <th scope="col">Date</th>
+        </tr>
+      </thead>
+      <tbody id="kofi_payments_table_body">
+        <% @payments.each do |payment| %>
+          <tr class="kofi-payment-row"
+              data-search-text="<%= [
+                payment.kofi_transaction_id,
+                payment.from_name,
+                payment.email,
+                payment.payment_type,
+                payment.message,
+                payment.tier_name,
+                payment.amount_with_currency
+              ].compact.join(' ').downcase %>">
+            <td class="fw-semibold"><%= link_to payment.kofi_transaction_id.to_s.truncate(20), kofi_payment_path(payment) %></td>
+            <td>
+              <span class="badge text-bg-<%= payment_type_badge_class(payment.payment_type) %>">
+                <%= payment.payment_type.presence || "Unknown" %>
+              </span>
+              <% if payment.tier_name.present? %>
+                <div class="text-muted small"><%= payment.tier_name %></div>
+              <% end %>
+            </td>
+            <td><%= payment.amount_with_currency || "—" %></td>
+            <td>
+              <% if payment.from_name.present? %>
+                <div><strong><%= payment.from_name %></strong></div>
+              <% end %>
+              <% if payment.email.present? %>
+                <div class="text-muted small"><%= mail_to payment.email %></div>
+              <% end %>
+            </td>
+            <td>
+              <% if payment.message.present? %>
+                <span class="text-truncate d-inline-block" style="max-width: 200px;" title="<%= payment.message %>">
+                  <%= payment.message.truncate(50) %>
+                </span>
+              <% else %>
+                <span class="text-muted">—</span>
+              <% end %>
+            </td>
+            <td><%= payment.timestamp ? l(payment.timestamp, format: :long) : "n/a" %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const searchInput = document.getElementById('kofi_search');
+    const clearButton = document.getElementById('clear_kofi_search');
+    const tableBody = document.getElementById('kofi_payments_table_body');
+
+    if (!searchInput || !tableBody) return;
+
+    function filterPayments() {
+      const searchTerm = searchInput.value.toLowerCase().trim();
+      const rows = tableBody.querySelectorAll('.kofi-payment-row');
+
+      rows.forEach(function(row) {
+        const searchText = row.getAttribute('data-search-text');
+        if (searchText && searchText.includes(searchTerm)) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+
+      // Show/hide clear button
+      if (clearButton) {
+        if (searchTerm !== '') {
+          clearButton.style.display = '';
+        } else {
+          clearButton.style.display = 'none';
+        }
+      }
+    }
+
+    searchInput.addEventListener('input', filterPayments);
+
+    if (clearButton) {
+      clearButton.addEventListener('click', function() {
+        searchInput.value = '';
+        filterPayments();
+        searchInput.focus();
+      });
+    }
+  })();
+</script>

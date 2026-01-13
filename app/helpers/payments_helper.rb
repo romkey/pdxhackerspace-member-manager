@@ -29,6 +29,8 @@ module PaymentsHelper
       paypal_payment_path(payment)
     when RechargePayment
       recharge_payment_path(payment)
+    when KofiPayment
+      kofi_payment_path(payment)
     else
       '#'
     end
@@ -40,8 +42,25 @@ module PaymentsHelper
       'PayPal'
     when RechargePayment
       'Recharge'
+    when KofiPayment
+      'Ko-Fi'
     else
       'Payment'
+    end
+  end
+
+  def payment_type_badge_class(payment_type)
+    case payment_type.to_s.downcase
+    when 'donation'
+      'primary'
+    when 'subscription', 'membership'
+      'success'
+    when 'commission'
+      'warning'
+    when 'shop order', 'shop_order'
+      'info'
+    else
+      'secondary'
     end
   end
 end

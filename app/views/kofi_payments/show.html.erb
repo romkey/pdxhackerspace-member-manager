@@ -1,0 +1,260 @@
+<div class="mb-4">
+  <%= link_to "&larr; Back to Ko-Fi payments".html_safe, kofi_payments_path, class: "text-decoration-none" %>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <h1 class="h4 mb-3">Ko-Fi Payment <%= @payment.kofi_transaction_id %></h1>
+
+    <dl class="row mb-0">
+      <dt class="col-sm-3 text-secondary">Status</dt>
+      <dd class="col-sm-9"><span class="badge text-bg-secondary"><%= @payment.status.presence || "Unknown" %></span></dd>
+
+      <dt class="col-sm-3 text-secondary">Amount</dt>
+      <dd class="col-sm-9"><%= @payment.amount_with_currency || "—" %></dd>
+
+      <dt class="col-sm-3 text-secondary">Payment Type</dt>
+      <dd class="col-sm-9">
+        <span class="badge text-bg-<%= payment_type_badge_class(@payment.payment_type) %>">
+          <%= @payment.payment_type.presence || "Unknown" %>
+        </span>
+        <% if @payment.tier_name.present? %>
+          <span class="ms-2">Tier: <strong><%= @payment.tier_name %></strong></span>
+        <% end %>
+      </dd>
+
+      <dt class="col-sm-3 text-secondary">Date</dt>
+      <dd class="col-sm-9"><%= @payment.timestamp ? l(@payment.timestamp, format: :long) : "Unknown" %></dd>
+
+      <dt class="col-sm-3 text-secondary">From</dt>
+      <dd class="col-sm-9">
+        <% if @payment.from_name.present? %>
+          <div><%= @payment.from_name %></div>
+        <% end %>
+        <% if @payment.email.present? %>
+          <div><%= mail_to @payment.email %></div>
+        <% end %>
+        <% if @payment.from_name.blank? && @payment.email.blank? %>
+          <span class="text-muted fst-italic">Not provided</span>
+        <% end %>
+        <% if @payment.is_public == false %>
+          <div class="text-muted small">(Private supporter)</div>
+        <% end %>
+      </dd>
+
+      <% if @payment.message.present? %>
+        <dt class="col-sm-3 text-secondary">Message</dt>
+        <dd class="col-sm-9"><%= @payment.message %></dd>
+      <% end %>
+
+      <% if @payment.is_subscription_payment %>
+        <dt class="col-sm-3 text-secondary">Subscription</dt>
+        <dd class="col-sm-9">
+          <% if @payment.is_first_subscription_payment %>
+            <span class="badge text-bg-success">First Payment</span>
+          <% else %>
+            <span class="badge text-bg-info">Recurring Payment</span>
+          <% end %>
+        </dd>
+      <% end %>
+
+      <% if @payment.shop_items.present? && @payment.shop_items.any? %>
+        <dt class="col-sm-3 text-secondary">Shop Items</dt>
+        <dd class="col-sm-9">
+          <ul class="mb-0">
+            <% @payment.shop_items.each do |item| %>
+              <li><%= item.is_a?(Hash) ? item['direct_link_code'] || item.to_json : item %></li>
+            <% end %>
+          </ul>
+        </dd>
+      <% end %>
+
+      <% if @payment.url.present? %>
+        <dt class="col-sm-3 text-secondary">URL</dt>
+        <dd class="col-sm-9"><%= link_to @payment.url, @payment.url, target: "_blank", rel: "noopener" %></dd>
+      <% end %>
+
+      <dt class="col-sm-3 text-secondary">User</dt>
+      <dd class="col-sm-9">
+        <% if @user_by_email.present? %>
+          <%= link_to @user_by_email.display_name, user_path(@user_by_email), class: "text-decoration-none" %>
+          <span class="text-muted small ms-2">(matched by email)</span>
+        <% elsif @payment.email.present? %>
+          <div class="d-flex gap-2 align-items-center">
+            <span class="text-muted fst-italic">No user found with matching email</span>
+            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#linkUserModal">
+              Link User
+            </button>
+          </div>
+        <% else %>
+          <span class="text-muted fst-italic">No email available</span>
+        <% end %>
+      </dd>
+
+      <dt class="col-sm-3 text-secondary">Last synced</dt>
+      <dd class="col-sm-9"><%= @payment.last_synced_at ? l(@payment.last_synced_at, format: :long) : "Unknown" %></dd>
+
+      <dt class="col-sm-3 text-secondary">Raw data</dt>
+      <dd class="col-sm-9">
+        <pre class="bg-body-secondary rounded p-3 mb-0"><code class="text-body"><%= JSON.pretty_generate(@payment.raw_attributes) %></code></pre>
+      </dd>
+    </dl>
+  </div>
+</div>
+
+<!-- Link User Modal -->
+<% if @payment.email.present? && @user_by_email.nil? %>
+  <div class="modal fade" id="linkUserModal" tabindex="-1" aria-labelledby="linkUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="linkUserModalLabel">Link User to Payment</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <%= form_with url: link_user_kofi_payment_path(@payment), method: :post, local: true do |f| %>
+          <div class="modal-body">
+            <p class="mb-3">Select a user to link to this payment. The user's email or extra_emails may be updated if they don't have one.</p>
+            <div class="mb-3">
+              <label for="user_search" class="form-label">Search Users</label>
+              <input type="text" id="user_search" class="form-control mb-2" placeholder="Type to search users..." autocomplete="off">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Select User</label>
+              <div id="user_list" class="border rounded" style="max-height: 300px; overflow-y: auto;">
+                <% @all_users.each do |user| %>
+                  <div class="user-item p-2 border-bottom" data-user-id="<%= user.id %>" data-user-name="<%= user.display_name.downcase %>" style="cursor: pointer;">
+                    <input type="radio" name="user_id" id="user_<%= user.id %>" value="<%= user.id %>" class="form-check-input me-2" required>
+                    <label for="user_<%= user.id %>" class="form-check-label mb-0" style="cursor: pointer;">
+                      <%= user.display_name %>
+                    </label>
+                  </div>
+                <% end %>
+              </div>
+              <div id="no_results" class="text-muted text-center p-3" style="display: none;">
+                No users found matching your search.
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <%= f.submit "Link User", class: "btn btn-primary" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const modal = document.getElementById('linkUserModal');
+      if (!modal) return;
+
+      let searchHandler = null;
+
+      function filterUsers() {
+        const searchInput = document.getElementById('user_search');
+        const userList = document.getElementById('user_list');
+        const noResults = document.getElementById('no_results');
+
+        if (!searchInput || !userList) return;
+
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        const userItems = userList.querySelectorAll('.user-item');
+        let visibleCount = 0;
+
+        userItems.forEach(function(item) {
+          const userName = item.getAttribute('data-user-name');
+          if (userName && userName.includes(searchTerm)) {
+            item.style.display = '';
+            visibleCount++;
+          } else {
+            item.style.display = 'none';
+          }
+        });
+
+        if (visibleCount === 0 && searchTerm !== '') {
+          userList.style.display = 'none';
+          if (noResults) {
+            noResults.style.display = 'block';
+          }
+        } else {
+          userList.style.display = 'block';
+          if (noResults) {
+            noResults.style.display = 'none';
+          }
+        }
+      }
+
+      function resetSearch() {
+        const searchInput = document.getElementById('user_search');
+        const userList = document.getElementById('user_list');
+        const noResults = document.getElementById('no_results');
+
+        if (searchInput) {
+          searchInput.value = '';
+        }
+        if (userList) {
+          const userItems = userList.querySelectorAll('.user-item');
+          userItems.forEach(function(item) {
+            item.style.display = '';
+          });
+          userList.style.display = 'block';
+        }
+        if (noResults) {
+          noResults.style.display = 'none';
+        }
+      }
+
+      function setupClickHandlers() {
+        const userList = document.getElementById('user_list');
+        if (!userList) return;
+
+        const userItems = userList.querySelectorAll('.user-item');
+        userItems.forEach(function(item) {
+          item.addEventListener('click', function(e) {
+            if (e.target.type !== 'radio' && e.target.tagName !== 'LABEL') {
+              const radio = item.querySelector('input[type="radio"]');
+              if (radio) {
+                radio.checked = true;
+              }
+            }
+          });
+        });
+      }
+
+      modal.addEventListener('show.bs.modal', function() {
+        resetSearch();
+
+        const searchInput = document.getElementById('user_search');
+        if (searchInput) {
+          if (searchHandler) {
+            searchInput.removeEventListener('input', searchHandler);
+          }
+
+          searchHandler = function() {
+            filterUsers();
+          };
+
+          searchInput.addEventListener('input', searchHandler);
+        }
+
+        setupClickHandlers();
+      });
+
+      modal.addEventListener('shown.bs.modal', function() {
+        const searchInput = document.getElementById('user_search');
+        if (searchInput) {
+          searchInput.focus();
+        }
+      });
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+          setupClickHandlers();
+        });
+      } else {
+        setupClickHandlers();
+      }
+    })();
+  </script>
+<% end %>

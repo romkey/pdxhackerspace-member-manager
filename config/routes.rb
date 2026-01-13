@@ -18,6 +18,7 @@ Rails.application.routes.draw do
   get "/auth/failure", to: "sessions#failure"
 
   post "/webhooks/rfid", to: "webhooks#rfid"
+  post "/webhooks/kofi", to: "webhooks#kofi"
 
   resources :users, only: [:index, :show, :edit, :update, :destroy] do
     member do
@@ -70,6 +71,17 @@ Rails.application.routes.draw do
       get :test
       get :export
       post :import
+    end
+    member do
+      post :link_user
+    end
+  end
+
+  resources :kofi_payments, only: [:index, :show] do
+    collection do
+      get :export
+      post :import
+      post :import_csv
     end
     member do
       post :link_user

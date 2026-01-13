@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_11_25_171500) do
+ActiveRecord::Schema[7.1].define(version: 2026_01_12_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -89,6 +89,36 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_25_171500) do
     t.index ["user_id"], name: "index_journals_on_user_id"
   end
 
+  create_table "kofi_payments", force: :cascade do |t|
+    t.string "kofi_transaction_id", null: false
+    t.string "message_id"
+    t.string "status"
+    t.decimal "amount", precision: 12, scale: 2
+    t.string "currency"
+    t.datetime "timestamp"
+    t.string "payment_type"
+    t.string "from_name"
+    t.string "email"
+    t.text "message"
+    t.string "url"
+    t.boolean "is_public", default: false
+    t.boolean "is_subscription_payment", default: false
+    t.boolean "is_first_subscription_payment", default: false
+    t.string "tier_name"
+    t.jsonb "shop_items", default: []
+    t.jsonb "raw_attributes", default: {}, null: false
+    t.datetime "last_synced_at"
+    t.bigint "user_id"
+    t.bigint "sheet_entry_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["email"], name: "index_kofi_payments_on_email"
+    t.index ["kofi_transaction_id"], name: "index_kofi_payments_on_kofi_transaction_id", unique: true
+    t.index ["message_id"], name: "index_kofi_payments_on_message_id"
+    t.index ["sheet_entry_id"], name: "index_kofi_payments_on_sheet_entry_id"
+    t.index ["user_id"], name: "index_kofi_payments_on_user_id"
+  end
+
   create_table "local_accounts", force: :cascade do |t|
     t.string "email", null: false
     t.string "full_name"
@@ -99,6 +129,16 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_25_171500) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["email"], name: "index_local_accounts_on_email", unique: true
+  end
+
+  create_table "membership_plans", force: :cascade do |t|
+    t.string "name", null: false
+    t.decimal "cost", precision: 10, scale: 2, null: false
+    t.string "billing_frequency", null: false
+    t.text "description"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_membership_plans_on_name", unique: true
   end
 
   create_table "paypal_payments", force: :cascade do |t|
@@ -285,9 +325,11 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_25_171500) do
     t.boolean "do_not_greet", default: false, null: false
     t.string "username"
     t.boolean "is_admin", default: false, null: false
+    t.bigint "membership_plan_id"
     t.index ["authentik_attributes"], name: "index_users_on_authentik_attributes", using: :gin
     t.index ["authentik_id"], name: "index_users_on_authentik_id", unique: true
     t.index ["email"], name: "index_users_on_email", unique: true, where: "(email IS NOT NULL)"
+    t.index ["membership_plan_id"], name: "index_users_on_membership_plan_id"
     t.index ["paypal_account_id"], name: "index_users_on_paypal_account_id"
     t.index ["recharge_customer_id"], name: "index_users_on_recharge_customer_id"
     t.index ["username"], name: "index_users_on_username"
@@ -300,6 +342,8 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_25_171500) do
   add_foreign_key "application_groups_users", "users"
   add_foreign_key "journals", "users"
   add_foreign_key "journals", "users", column: "actor_user_id"
+  add_foreign_key "kofi_payments", "sheet_entries"
+  add_foreign_key "kofi_payments", "users"
   add_foreign_key "paypal_payments", "sheet_entries"
   add_foreign_key "paypal_payments", "users"
   add_foreign_key "recharge_payments", "sheet_entries"
@@ -312,4 +356,5 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_25_171500) do
   add_foreign_key "trainings", "training_topics"
   add_foreign_key "trainings", "users", column: "trainee_id"
   add_foreign_key "trainings", "users", column: "trainer_id"
+  add_foreign_key "users", "membership_plans"
 end
