@@ -23,9 +23,11 @@ module Recharge
       Rails.logger.info("[Recharge::Client] Fetching charges from #{start_iso} to #{end_iso}")
 
       loop do
+        # Use updated_at_min instead of created_at_min to catch charges that were
+        # created earlier but processed/updated recently
         params = {
-          created_at_min: start_iso,
-          created_at_max: end_iso,
+          updated_at_min: start_iso,
+          updated_at_max: end_iso,
           limit: max_limit,
           page: page
         }

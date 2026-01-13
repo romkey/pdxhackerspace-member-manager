@@ -14,12 +14,24 @@ module Recharge
       charges = @client.charges(start_time: start_time)
       now = Time.current
 
+      # Count statistics for debugging
+      status_counts = charges.group_by { |c| c[:status] }.transform_values(&:count)
+      @logger.info("[Recharge::PaymentSynchronizer] Charge status breakdown: #{status_counts.inspect}")
+
+      saved_count = 0
+      skipped_count = 0
+
       RechargePayment.transaction do
         charges.each do |attrs|
           # Only process transactions with status "SUCCESS"
-          next unless attrs[:status] == 'SUCCESS'
+          unless attrs[:status] == 'SUCCESS'
+            skipped_count += 1
+            @logger.debug { "[Recharge::PaymentSynchronizer] Skipping charge #{attrs[:recharge_id]} with status #{attrs[:status]}" }
+            next
+          end
 
           record = RechargePayment.find_or_initialize_by(recharge_id: attrs[:recharge_id])
+          is_new = record.new_record?
           record.assign_attributes(
             status: attrs[:status],
             amount: attrs[:amount],
@@ -59,6 +71,11 @@ module Recharge
           record.user = user
           record.sheet_entry = find_sheet_entry(attrs[:customer_email])
           record.save!
+          saved_count += 1
+
+          if is_new
+            @logger.debug { "[Recharge::PaymentSynchronizer] Created new payment: #{attrs[:recharge_id]} - #{attrs[:customer_email]} - #{attrs[:amount]} #{attrs[:currency]} - processed #{attrs[:processed_at]}" }
+          end
 
           # Create journal entry if payment was just linked to a user
           if user && !user_was_linked && record.user_id.present?
@@ -87,14 +104,16 @@ module Recharge
             update_user_from_payment(user, payment_date)
           end
         rescue ActiveRecord::RecordInvalid => e
-          @logger.error("Failed to sync Recharge payment #{attrs[:recharge_id]}: #{e.message}")
+          @logger.error("[Recharge::PaymentSynchronizer] Failed to sync payment #{attrs[:recharge_id]}: #{e.message}")
         end
       end
+
+      @logger.info("[Recharge::PaymentSynchronizer] Processed #{charges.count} charges: #{saved_count} saved, #{skipped_count} skipped (non-SUCCESS status)")
 
       # Update User records with Recharge information
       update_user_recharge_fields
 
-      charges.count
+      saved_count
     end
 
     private
