@@ -20,6 +20,7 @@
       <span class="badge text-bg-secondary">Unknown: <strong><%= @membership_status_unknown %></strong></span>
       <span class="badge text-bg-primary">Sponsored: <strong><%= @membership_status_sponsored %></strong></span>
       <span class="badge text-bg-info">Basic: <strong><%= @membership_status_basic %></strong></span>
+      <span class="badge text-bg-light text-dark">Applicant: <strong><%= @membership_status_applicant %></strong></span>
       <span class="badge text-bg-danger">Banned: <strong><%= @membership_status_banned %></strong></span>
       <span class="badge text-bg-dark">Deceased: <strong><%= @membership_status_deceased %></strong></span>
     </div>
@@ -98,6 +99,7 @@
                  when "banned" then "danger"
                  when "deceased" then "dark"
                  when "sponsored" then "primary"
+                 when "applicant" then "light text-dark"
                  when "unknown" then "secondary"
                  else "secondary"
                  end %>

@@ -1,0 +1,16 @@
+Account Suspended
+
+Hello <%= @user.display_name %>,
+
+We regret to inform you that your membership with <%= @organization %> has been suspended.
+
+<% if @reason.present? %>
+Reason: <%= @reason %>
+
+<% end %>
+Your access to all member facilities and resources has been immediately revoked.
+
+If you wish to appeal this decision or have questions, please contact our administration team.
+
+Regards,
+The <%= @organization %> Team

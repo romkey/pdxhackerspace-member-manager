@@ -47,3 +47,7 @@ training_topics.each do |topic_name|
 end
 
 Rails.logger.debug { "Seeded #{training_topics.count} training topics." }
+
+# Seed email templates
+EmailTemplate.seed_defaults!
+Rails.logger.debug { "Seeded #{EmailTemplate.count} email templates." }

@@ -30,6 +30,7 @@ class User < ApplicationRecord
     banned: 'banned',
     deceased: 'deceased',
     sponsored: 'sponsored',
+    applicant: 'applicant',
     unknown: 'unknown'
   }, default: 'unknown'
   validates :dues_status, inclusion: { in: %w[current lapsed inactive unknown] }

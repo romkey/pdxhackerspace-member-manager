@@ -1,0 +1,18 @@
+Membership Cancelled
+
+Hello <%= @user.display_name %>,
+
+This email confirms that your membership with <%= @organization %> has been cancelled.
+
+<% if @reason.present? %>
+Reason: <%= @reason %>
+
+<% end %>
+Your access to member-only facilities and resources has been deactivated.
+
+If you believe this was done in error, or if you'd like to rejoin in the future, please contact us.
+
+Thank you for being part of our community.
+
+Best regards,
+The <%= @organization %> Team

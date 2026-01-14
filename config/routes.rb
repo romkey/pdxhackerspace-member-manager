@@ -116,6 +116,17 @@ Rails.application.routes.draw do
   end
   resource :default_settings, only: [:show, :edit, :update], path: "settings/defaults"
   
+  resources :email_templates, only: [:index, :show, :edit, :update] do
+    member do
+      get :preview
+      post :toggle
+      post :test_send
+    end
+    collection do
+      post :seed
+    end
+  end
+  
   resources :incident_reports
 
   get "/reports", to: "reports#index", as: :reports

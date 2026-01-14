@@ -26,6 +26,7 @@ class UsersController < AuthenticatedController
     @membership_status_basic = @users.where(membership_status: 'basic').count
     @membership_status_banned = @users.where(membership_status: 'banned').count
     @membership_status_deceased = @users.where(membership_status: 'deceased').count
+    @membership_status_applicant = @users.where(membership_status: 'applicant').count
 
     # Payment type counts
     @payment_type_unknown = @users.where(payment_type: 'unknown').count

@@ -1,0 +1,14 @@
+Payment Reminder
+
+Hello <%= @user.display_name %>,
+
+This is a friendly reminder that your <%= @organization %> membership payment is past due<%= @days_overdue ? " by #{@days_overdue} days" : "" %>.
+
+To keep your membership active and maintain access to our facilities and resources, please update your payment information or make a payment as soon as possible.
+
+If you're experiencing difficulties or need to discuss payment arrangements, please contact us — we're here to help.
+
+Thank you for being part of our community!
+
+Best regards,
+The <%= @organization %> Team

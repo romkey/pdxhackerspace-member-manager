@@ -1,0 +1,14 @@
+<h1>Payment Reminder</h1>
+
+<p>Hello <%= @user.display_name %>,</p>
+
+<p>This is a friendly reminder that your <%= @organization %> membership payment is past due<%= @days_overdue ? " by #{@days_overdue} days" : "" %>.</p>
+
+<p>To keep your membership active and maintain access to our facilities and resources, please update your payment information or make a payment as soon as possible.</p>
+
+<p>If you're experiencing difficulties or need to discuss payment arrangements, please contact us — we're here to help.</p>
+
+<p>Thank you for being part of our community!</p>
+
+<p>Best regards,<br>
+The <%= @organization %> Team</p>

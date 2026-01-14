@@ -1,0 +1,113 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">Edit Email Template</h1>
+    <p class="text-muted mb-0"><%= @email_template.name %></p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to "Preview", preview_email_template_path(@email_template), class: "btn btn-outline-info", target: "_blank" %>
+    <%= link_to "Cancel", email_templates_path, class: "btn btn-secondary" %>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-lg-8">
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <%= form_with model: @email_template, local: true do |f| %>
+          <% if @email_template.errors.any? %>
+            <div class="alert alert-danger">
+              <h5 class="alert-heading">Please fix the following errors:</h5>
+              <ul class="mb-0">
+                <% @email_template.errors.full_messages.each do |msg| %>
+                  <li><%= msg %></li>
+                <% end %>
+              </ul>
+            </div>
+          <% end %>
+
+          <div class="mb-3">
+            <%= f.label :name, class: "form-label" %>
+            <%= f.text_field :name, class: "form-control" %>
+          </div>
+
+          <div class="mb-3">
+            <%= f.label :description, class: "form-label" %>
+            <%= f.text_field :description, class: "form-control" %>
+            <div class="form-text">A brief description of when this email is sent.</div>
+          </div>
+
+          <div class="mb-3">
+            <%= f.label :subject, class: "form-label" %>
+            <%= f.text_field :subject, class: "form-control" %>
+            <div class="form-text">You can use template variables like <code>{{member_name}}</code> and <code>{{organization_name}}</code>.</div>
+          </div>
+
+          <div class="mb-3">
+            <%= f.label :body_html, "HTML Body", class: "form-label" %>
+            <%= f.text_area :body_html, class: "form-control font-monospace", rows: 15 %>
+            <div class="form-text">HTML content for email clients that support it. Use template variables as needed.</div>
+          </div>
+
+          <div class="mb-3">
+            <%= f.label :body_text, "Plain Text Body", class: "form-label" %>
+            <%= f.text_area :body_text, class: "form-control font-monospace", rows: 10 %>
+            <div class="form-text">Plain text version for email clients that don't support HTML.</div>
+          </div>
+
+          <div class="mb-4">
+            <div class="form-check">
+              <%= f.check_box :enabled, class: "form-check-input" %>
+              <%= f.label :enabled, "Enable this email template", class: "form-check-label" %>
+            </div>
+            <div class="form-text">Disabled templates will not be sent.</div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <%= f.submit "Save Template", class: "btn btn-primary" %>
+            <%= link_to "Cancel", email_templates_path, class: "btn btn-outline-secondary" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-light">
+        <h5 class="card-title mb-0">Available Variables</h5>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">Click to copy a variable to your clipboard.</p>
+        <% EmailTemplate::AVAILABLE_VARIABLES.each do |var, desc| %>
+          <div class="mb-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary font-monospace copy-btn" data-variable="<%= var %>">
+              <%= var %>
+            </button>
+            <div class="text-muted small mt-1"><%= desc %></div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.copy-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        const variable = this.getAttribute('data-variable');
+        navigator.clipboard.writeText(variable).then(function() {
+          const originalText = btn.textContent;
+          btn.textContent = 'Copied!';
+          btn.classList.add('btn-success');
+          btn.classList.remove('btn-outline-secondary');
+          setTimeout(function() {
+            btn.textContent = originalText;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-secondary');
+          }, 1500);
+        });
+      });
+    });
+  });
+</script>

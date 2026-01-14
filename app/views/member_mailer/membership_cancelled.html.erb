@@ -1,0 +1,18 @@
+<h1>Membership Cancelled</h1>
+
+<p>Hello <%= @user.display_name %>,</p>
+
+<p>This email confirms that your membership with <%= @organization %> has been cancelled.</p>
+
+<% if @reason.present? %>
+<p><strong>Reason:</strong> <%= @reason %></p>
+<% end %>
+
+<p>Your access to member-only facilities and resources has been deactivated.</p>
+
+<p>If you believe this was done in error, or if you'd like to rejoin in the future, please contact us.</p>
+
+<p>Thank you for being part of our community.</p>
+
+<p>Best regards,<br>
+The <%= @organization %> Team</p>

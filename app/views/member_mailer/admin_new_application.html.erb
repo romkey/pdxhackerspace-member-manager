@@ -1,0 +1,24 @@
+<h1>New Member Application</h1>
+
+<p>A new member application has been submitted.</p>
+
+<h2>Applicant Details</h2>
+
+<table style="border-collapse: collapse; width: 100%;">
+  <tr>
+    <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Name:</strong></td>
+    <td style="padding: 8px; border-bottom: 1px solid #ddd;"><%= @user.display_name %></td>
+  </tr>
+  <tr>
+    <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Email:</strong></td>
+    <td style="padding: 8px; border-bottom: 1px solid #ddd;"><%= @user.email || 'Not provided' %></td>
+  </tr>
+  <tr>
+    <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Username:</strong></td>
+    <td style="padding: 8px; border-bottom: 1px solid #ddd;"><%= @user.username || 'Not set' %></td>
+  </tr>
+</table>
+
+<p style="margin-top: 20px;">
+  Please review this application and take appropriate action.
+</p>
