@@ -8,10 +8,18 @@ module Recharge
     def call
       raise ArgumentError, 'Recharge integration disabled' unless RechargeConfig.enabled?
 
+      processor = PaymentProcessor.for('recharge')
+
       # Determine start_time based on existing transactions
       start_time = calculate_start_time
 
-      charges = @client.charges(start_time: start_time)
+      begin
+        charges = @client.charges(start_time: start_time)
+      rescue StandardError => e
+        processor.record_failed_sync!(e.message)
+        raise
+      end
+
       now = Time.current
 
       # Count statistics for debugging
@@ -113,6 +121,7 @@ module Recharge
       # Update User records with Recharge information
       update_user_recharge_fields
 
+      processor.record_successful_sync!(saved_count)
       saved_count
     end
 

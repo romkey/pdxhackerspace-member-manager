@@ -1,0 +1,147 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">Payment Processors</h1>
+    <p class="text-muted mb-0">Monitor and manage payment processor integrations.</p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= button_to "Refresh All Stats", refresh_all_payment_processors_path, method: :post, class: "btn btn-outline-primary" %>
+    <%= button_to "Seed Defaults", seed_payment_processors_path, method: :post, class: "btn btn-outline-secondary", data: { turbo_confirm: "Create any missing default processors?" } %>
+    <%= link_to "Back to Settings", settings_path, class: "btn btn-secondary" %>
+  </div>
+</div>
+
+<% if @payment_processors.any? %>
+  <div class="row g-4">
+    <% @payment_processors.each do |processor| %>
+      <div class="col-12">
+        <div class="card shadow-sm border-0 <%= 'bg-light' unless processor.enabled? %>">
+          <div class="card-body">
+            <div class="row">
+              <!-- Header -->
+              <div class="col-12 mb-3">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div class="d-flex align-items-center gap-3">
+                    <h5 class="card-title mb-0"><%= processor.name %></h5>
+                    <span class="badge text-bg-<%= processor.status_badge_class %>"><%= processor.status_label %></span>
+                    <% unless processor.enabled? %>
+                      <span class="badge text-bg-secondary">Disabled</span>
+                    <% end %>
+                  </div>
+                  <div class="btn-group btn-group-sm">
+                    <%= link_to "View", payment_processor_path(processor), class: "btn btn-outline-primary" %>
+                    <%= link_to "Edit", edit_payment_processor_path(processor), class: "btn btn-outline-secondary" %>
+                    <%= button_to processor.enabled? ? "Disable" : "Enable", 
+                        toggle_payment_processor_path(processor), 
+                        method: :post, 
+                        class: "btn btn-outline-#{processor.enabled? ? 'warning' : 'success'}" %>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Statistics -->
+              <div class="col-md-6 col-lg-3 mb-3">
+                <div class="border rounded p-3 h-100">
+                  <h6 class="text-muted mb-2">Payments</h6>
+                  <div class="d-flex justify-content-between">
+                    <span>Total:</span>
+                    <strong><%= number_with_delimiter(processor.total_payments_count) %></strong>
+                  </div>
+                  <div class="d-flex justify-content-between text-success">
+                    <span>Matched:</span>
+                    <strong><%= number_with_delimiter(processor.matched_payments_count) %></strong>
+                  </div>
+                  <div class="d-flex justify-content-between text-warning">
+                    <span>Unmatched:</span>
+                    <strong><%= number_with_delimiter(processor.unmatched_payments_count) %></strong>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-3 mb-3">
+                <div class="border rounded p-3 h-100">
+                  <h6 class="text-muted mb-2">Amounts</h6>
+                  <div class="d-flex justify-content-between">
+                    <span>Total:</span>
+                    <strong><%= number_to_currency(processor.total_amount) %></strong>
+                  </div>
+                  <div class="d-flex justify-content-between">
+                    <span>Last 30 days:</span>
+                    <strong><%= number_to_currency(processor.amount_last_30_days) %></strong>
+                  </div>
+                  <div class="d-flex justify-content-between">
+                    <span>Average:</span>
+                    <strong><%= number_to_currency(processor.average_payment_amount) %></strong>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-3 mb-3">
+                <div class="border rounded p-3 h-100">
+                  <h6 class="text-muted mb-2">Sync Status</h6>
+                  <div class="d-flex justify-content-between">
+                    <span>Last sync:</span>
+                    <span><%= processor.last_sync_at ? time_ago_in_words(processor.last_sync_at) + " ago" : "Never" %></span>
+                  </div>
+                  <div class="d-flex justify-content-between">
+                    <span>Last success:</span>
+                    <span><%= processor.last_successful_sync_at ? time_ago_in_words(processor.last_successful_sync_at) + " ago" : "Never" %></span>
+                  </div>
+                  <% if processor.consecutive_error_count > 0 %>
+                    <div class="d-flex justify-content-between text-danger">
+                      <span>Errors:</span>
+                      <strong><%= processor.consecutive_error_count %> consecutive</strong>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-3 mb-3">
+                <div class="border rounded p-3 h-100">
+                  <h6 class="text-muted mb-2">Configuration</h6>
+                  <div class="d-flex justify-content-between">
+                    <span>API:</span>
+                    <% if processor.api_configured? %>
+                      <span class="badge text-bg-success">Configured</span>
+                    <% else %>
+                      <span class="badge text-bg-warning">Not configured</span>
+                    <% end %>
+                  </div>
+                  <div class="d-flex justify-content-between">
+                    <span>Webhook:</span>
+                    <% if processor.webhook_configured? %>
+                      <span class="badge text-bg-success">Active</span>
+                    <% else %>
+                      <span class="badge text-bg-secondary">Inactive</span>
+                    <% end %>
+                  </div>
+                  <% if processor.csv_import_count > 0 %>
+                    <div class="d-flex justify-content-between">
+                      <span>CSV imports:</span>
+                      <strong><%= processor.csv_import_count %></strong>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+
+              <!-- Error message -->
+              <% if processor.last_error_message.present? %>
+                <div class="col-12">
+                  <div class="alert alert-danger mb-0">
+                    <strong>Last Error:</strong> <%= processor.last_error_message %>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+<% else %>
+  <div class="card shadow-sm border-0">
+    <div class="card-body text-center py-5">
+      <p class="text-muted mb-3">No payment processors configured.</p>
+      <%= button_to "Create Default Processors", seed_payment_processors_path, method: :post, class: "btn btn-primary" %>
+    </div>
+  </div>
+<% end %>

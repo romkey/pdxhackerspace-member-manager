@@ -73,6 +73,11 @@ class WebhooksController < ApplicationController
 
       payment.save!
 
+      # Record webhook received in processor
+      processor = PaymentProcessor.for('kofi')
+      processor.record_webhook_received!
+      processor.refresh_statistics!
+
       Rails.logger.info("Ko-Fi webhook processed: #{transaction_id} - #{payment.payment_type} - #{payment.amount_with_currency} from #{payment.from_name}")
 
       head :ok

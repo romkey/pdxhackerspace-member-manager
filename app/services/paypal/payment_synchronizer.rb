@@ -8,6 +8,8 @@ module Paypal
     def call
       raise ArgumentError, 'PayPal integration disabled' unless PaypalConfig.enabled?
 
+      processor = PaymentProcessor.for('paypal')
+
       # Calculate start_time: 3 days before the most recent payment, or use default if no payments exist
       start_time = calculate_start_time
 
@@ -29,6 +31,10 @@ module Paypal
         elsif e.respond_to?(:message)
           @logger.error("Error message: #{e.message}")
         end
+        processor.record_failed_sync!(e.message)
+        raise
+      rescue StandardError => e
+        processor.record_failed_sync!(e.message)
         raise
       end
       now = Time.current
@@ -63,6 +69,7 @@ module Paypal
         end
       end
 
+      processor.record_successful_sync!(payments.count)
       payments.count
     end
 

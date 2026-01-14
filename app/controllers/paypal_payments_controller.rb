@@ -283,6 +283,10 @@ class PaypalPaymentsController < AdminController
         end
       end
 
+      # Record CSV import in processor
+      processor = PaymentProcessor.for('paypal')
+      processor.record_csv_import!
+
       notice_parts = ["Import complete: #{imported_count} imported, #{updated_count} updated"]
       notice_parts << "#{skipped_count} skipped" if skipped_count > 0
       notice = notice_parts.join(', ')

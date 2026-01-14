@@ -1,0 +1,169 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1"><%= @payment_processor.name %></h1>
+    <p class="text-muted mb-0">Payment processor details and statistics.</p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= button_to "Refresh Stats", refresh_stats_payment_processor_path(@payment_processor), method: :post, class: "btn btn-outline-primary" %>
+    <%= link_to "Edit", edit_payment_processor_path(@payment_processor), class: "btn btn-secondary" %>
+    <%= link_to "Back", payment_processors_path, class: "btn btn-outline-secondary" %>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Status Card -->
+  <div class="col-md-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-header bg-light">
+        <h5 class="card-title mb-0">Status</h5>
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-5">Enabled</dt>
+          <dd class="col-sm-7">
+            <% if @payment_processor.enabled? %>
+              <span class="badge text-bg-success">Yes</span>
+            <% else %>
+              <span class="badge text-bg-secondary">No</span>
+            <% end %>
+          </dd>
+
+          <dt class="col-sm-5">Sync Status</dt>
+          <dd class="col-sm-7">
+            <span class="badge text-bg-<%= @payment_processor.status_badge_class %>">
+              <%= @payment_processor.status_label %>
+            </span>
+          </dd>
+
+          <dt class="col-sm-5">API Configured</dt>
+          <dd class="col-sm-7">
+            <% if @payment_processor.api_configured? %>
+              <span class="badge text-bg-success">Yes</span>
+            <% else %>
+              <span class="badge text-bg-warning">No</span>
+            <% end %>
+          </dd>
+
+          <dt class="col-sm-5">Webhook Active</dt>
+          <dd class="col-sm-7">
+            <% if @payment_processor.webhook_configured? %>
+              <span class="badge text-bg-success">Yes</span>
+            <% else %>
+              <span class="badge text-bg-secondary">No</span>
+            <% end %>
+          </dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistics Card -->
+  <div class="col-md-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-header bg-light">
+        <h5 class="card-title mb-0">Statistics</h5>
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-5">Total Payments</dt>
+          <dd class="col-sm-7"><%= number_with_delimiter(@payment_processor.total_payments_count) %></dd>
+
+          <dt class="col-sm-5">Matched</dt>
+          <dd class="col-sm-7 text-success"><%= number_with_delimiter(@payment_processor.matched_payments_count) %></dd>
+
+          <dt class="col-sm-5">Unmatched</dt>
+          <dd class="col-sm-7 text-warning"><%= number_with_delimiter(@payment_processor.unmatched_payments_count) %></dd>
+
+          <dt class="col-sm-5">Total Amount</dt>
+          <dd class="col-sm-7"><%= number_to_currency(@payment_processor.total_amount) %></dd>
+
+          <dt class="col-sm-5">Last 30 Days</dt>
+          <dd class="col-sm-7"><%= number_to_currency(@payment_processor.amount_last_30_days) %></dd>
+
+          <dt class="col-sm-5">Average</dt>
+          <dd class="col-sm-7"><%= number_to_currency(@payment_processor.average_payment_amount) %></dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sync History Card -->
+  <div class="col-md-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-header bg-light">
+        <h5 class="card-title mb-0">Sync History</h5>
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-5">Last Sync</dt>
+          <dd class="col-sm-7">
+            <%= @payment_processor.last_sync_at ? l(@payment_processor.last_sync_at, format: :long) : "Never" %>
+          </dd>
+
+          <dt class="col-sm-5">Last Success</dt>
+          <dd class="col-sm-7">
+            <%= @payment_processor.last_successful_sync_at ? l(@payment_processor.last_successful_sync_at, format: :long) : "Never" %>
+          </dd>
+
+          <dt class="col-sm-5">Consecutive Errors</dt>
+          <dd class="col-sm-7">
+            <% if @payment_processor.consecutive_error_count > 0 %>
+              <span class="text-danger"><%= @payment_processor.consecutive_error_count %></span>
+            <% else %>
+              <span class="text-success">0</span>
+            <% end %>
+          </dd>
+
+          <% if @payment_processor.last_error_message.present? %>
+            <dt class="col-sm-5">Last Error</dt>
+            <dd class="col-sm-7 text-danger"><%= @payment_processor.last_error_message %></dd>
+          <% end %>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import History Card -->
+  <div class="col-md-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-header bg-light">
+        <h5 class="card-title mb-0">Import History</h5>
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-5">CSV Imports</dt>
+          <dd class="col-sm-7"><%= @payment_processor.csv_import_count %></dd>
+
+          <dt class="col-sm-5">Last CSV Import</dt>
+          <dd class="col-sm-7">
+            <%= @payment_processor.last_csv_import_at ? l(@payment_processor.last_csv_import_at, format: :long) : "Never" %>
+          </dd>
+
+          <dt class="col-sm-5">Webhook Last Received</dt>
+          <dd class="col-sm-7">
+            <%= @payment_processor.webhook_last_received_at ? l(@payment_processor.webhook_last_received_at, format: :long) : "Never" %>
+          </dd>
+
+          <% if @payment_processor.webhook_url.present? %>
+            <dt class="col-sm-5">Webhook URL</dt>
+            <dd class="col-sm-7"><code><%= @payment_processor.webhook_url %></code></dd>
+          <% end %>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notes Card -->
+  <% if @payment_processor.notes.present? %>
+    <div class="col-12">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">Notes</h5>
+        </div>
+        <div class="card-body">
+          <%= simple_format(@payment_processor.notes) %>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>
