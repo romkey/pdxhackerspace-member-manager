@@ -8,5 +8,12 @@ class DashboardController < AdminController
     @paypal_payment_count = PaypalPayment.count
     @recharge_payment_count = RechargePayment.count
     @users_for_search = User.ordered_by_display_name
+
+    # Highlighted journal entries from the last 2 weeks
+    @recent_highlights = Journal.highlighted
+                                .includes(:user, :actor_user)
+                                .where('changed_at >= ?', 2.weeks.ago)
+                                .order(changed_at: :desc)
+                                .limit(50)
   end
 end

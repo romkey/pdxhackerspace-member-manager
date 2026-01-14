@@ -1,81 +1,143 @@
 <div class="py-4">
-  <!-- Stats Row -->
-  <div class="card shadow-sm border-0 mb-4">
-    <div class="card-body">
-      <div class="d-flex flex-wrap justify-content-center gap-4 text-center">
-        <div>
-          <span class="text-muted">Members:</span>
-          <%= link_to "#{@active_user_count} active", users_path(filter: 'active'), class: "fw-bold text-decoration-none" %>
-          /
-          <%= link_to "#{@user_count} total", users_path, class: "fw-bold text-decoration-none" %>
+  <div class="row">
+    <!-- Main Content Column -->
+    <div class="col-lg-8">
+      <!-- Stats Row -->
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+          <div class="d-flex flex-wrap justify-content-center gap-4 text-center">
+            <div>
+              <span class="text-muted">Members:</span>
+              <%= link_to "#{@active_user_count} active", users_path(filter: 'active'), class: "fw-bold text-decoration-none" %>
+              /
+              <%= link_to "#{@user_count} total", users_path, class: "fw-bold text-decoration-none" %>
+            </div>
+            <div class="border-start ps-4">
+              <span class="text-muted">Slack:</span>
+              <%= link_to @slack_user_count, slack_users_path, class: "fw-bold text-decoration-none" %>
+            </div>
+            <div class="border-start ps-4">
+              <span class="text-muted">Sheet:</span>
+              <%= link_to @sheet_entry_count, sheet_entries_path, class: "fw-bold text-decoration-none" %>
+            </div>
+          </div>
         </div>
-        <div class="border-start ps-4">
-          <span class="text-muted">Slack:</span>
-          <%= link_to @slack_user_count, slack_users_path, class: "fw-bold text-decoration-none" %>
+      </div>
+
+      <!-- Member Search -->
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+          <label for="dashboard_member_search" class="form-label fw-semibold">Find a Member</label>
+          <div class="position-relative">
+            <input type="text" id="dashboard_member_search" class="form-control form-control-lg" 
+                   placeholder="Type to search by name, email, or username..." autocomplete="off">
+            <div id="dashboard_search_results" class="position-absolute w-100 bg-body border rounded shadow-sm mt-1" 
+                 style="max-height: 300px; overflow-y: auto; z-index: 1000; display: none;">
+              <% @users_for_search.each do |user| %>
+                <a href="<%= user_path(user) %>" 
+                   class="d-block p-3 text-decoration-none border-bottom search-result-item"
+                   data-search-text="<%= [user.display_name, user.email, user.username].compact.join(' ').downcase %>">
+                  <div class="fw-semibold"><%= user.display_name %></div>
+                  <% if user.email.present? %>
+                    <div class="text-muted small"><%= user.email %></div>
+                  <% end %>
+                </a>
+              <% end %>
+            </div>
+            <div id="dashboard_no_results" class="position-absolute w-100 bg-body border rounded shadow-sm mt-1 p-3 text-center text-muted" 
+                 style="z-index: 1000; display: none;">
+              No members found matching your search.
+            </div>
+          </div>
         </div>
-        <div class="border-start ps-4">
-          <span class="text-muted">Sheet:</span>
-          <%= link_to @sheet_entry_count, sheet_entries_path, class: "fw-bold text-decoration-none" %>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+          <div class="d-flex flex-wrap justify-content-center gap-3">
+            <%= link_to new_user_path, class: "btn btn-primary btn-lg" do %>
+              <i class="bi bi-person-plus me-2"></i>New Member
+            <% end %>
+            <%= link_to new_rfid_path, class: "btn btn-success btn-lg" do %>
+              <i class="bi bi-key me-2"></i>Add Key Fob
+            <% end %>
+            <%= link_to new_incident_report_path, class: "btn btn-warning btn-lg" do %>
+              <i class="bi bi-exclamation-triangle me-2"></i>New Incident Report
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment Reconciliation -->
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+          <div class="d-flex flex-wrap justify-content-center gap-3">
+            <%= button_to sync_paypal_payments_path, method: :post, class: "btn btn-outline-secondary btn-lg", data: { turbo_confirm: "Sync PayPal payments now?" } do %>
+              <i class="bi bi-paypal me-2"></i>Reconcile PayPal
+            <% end %>
+            <%= button_to sync_recharge_payments_path, method: :post, class: "btn btn-outline-secondary btn-lg", data: { turbo_confirm: "Sync Recharge payments now?" } do %>
+              <i class="bi bi-credit-card me-2"></i>Reconcile Recharge
+            <% end %>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Member Search -->
-  <div class="card shadow-sm border-0 mb-4">
-    <div class="card-body">
-      <label for="dashboard_member_search" class="form-label fw-semibold">Find a Member</label>
-      <div class="position-relative">
-        <input type="text" id="dashboard_member_search" class="form-control form-control-lg" 
-               placeholder="Type to search by name, email, or username..." autocomplete="off">
-        <div id="dashboard_search_results" class="position-absolute w-100 bg-body border rounded shadow-sm mt-1" 
-             style="max-height: 300px; overflow-y: auto; z-index: 1000; display: none;">
-          <% @users_for_search.each do |user| %>
-            <a href="<%= user_path(user) %>" 
-               class="d-block p-3 text-decoration-none border-bottom search-result-item"
-               data-search-text="<%= [user.display_name, user.email, user.username].compact.join(' ').downcase %>">
-              <div class="fw-semibold"><%= user.display_name %></div>
-              <% if user.email.present? %>
-                <div class="text-muted small"><%= user.email %></div>
+    <!-- Highlights Column -->
+    <div class="col-lg-4">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-header bg-warning bg-opacity-25 d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">
+            <i class="bi bi-star-fill text-warning me-2"></i>Recent Highlights
+          </h5>
+          <%= link_to "View All", journals_path(filter: 'highlights'), class: "btn btn-sm btn-outline-warning" %>
+        </div>
+        <div class="card-body p-0" style="max-height: 600px; overflow-y: auto;">
+          <% if @recent_highlights.any? %>
+            <div class="list-group list-group-flush">
+              <% @recent_highlights.each do |j| %>
+                <div class="list-group-item list-group-item-action px-3 py-2">
+                  <div class="d-flex justify-content-between align-items-start mb-1">
+                    <% badge_class = case j.action
+                                     when 'created' then 'text-bg-success'
+                                     when 'incident_report_involvement' then 'text-bg-danger'
+                                     when 'membership_status_changed', 'activated', 'deactivated' then 'text-bg-warning'
+                                     when 'banned' then 'text-bg-dark'
+                                     else 'text-bg-secondary'
+                                     end %>
+                    <span class="badge <%= badge_class %> small"><%= j.action.humanize %></span>
+                    <small class="text-muted"><%= time_ago_in_words(j.changed_at) %> ago</small>
+                  </div>
+                  <div class="fw-semibold">
+                    <%= link_to j.user.display_name, user_path(j.user), class: "text-decoration-none" %>
+                  </div>
+                  <% if j.action == 'incident_report_involvement' && j.changes_json['incident_report'].present? %>
+                    <% ir = j.changes_json['incident_report'] %>
+                    <small class="text-muted d-block">
+                      <%= ir['type'] %>: <%= truncate(ir['subject'], length: 40) %>
+                    </small>
+                  <% elsif j.changes_json.present? %>
+                    <% key_changes = j.changes_json.keys & %w[membership_status active banned deceased] %>
+                    <% if key_changes.any? %>
+                      <small class="text-muted d-block">
+                        <% key_changes.first(2).each do |field| %>
+                          <% change = j.changes_json[field] %>
+                          <%= field.humanize %>: <%= change['from'] || '(none)' %> → <%= change['to'] || '(none)' %><br>
+                        <% end %>
+                      </small>
+                    <% end %>
+                  <% end %>
+                </div>
               <% end %>
-            </a>
+            </div>
+          <% else %>
+            <div class="p-4 text-center text-muted">
+              <i class="bi bi-star display-4 mb-2 d-block opacity-25"></i>
+              No highlights in the last 2 weeks.
+            </div>
           <% end %>
         </div>
-        <div id="dashboard_no_results" class="position-absolute w-100 bg-body border rounded shadow-sm mt-1 p-3 text-center text-muted" 
-             style="z-index: 1000; display: none;">
-          No members found matching your search.
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Quick Actions -->
-  <div class="card shadow-sm border-0 mb-4">
-    <div class="card-body">
-      <div class="d-flex flex-wrap justify-content-center gap-3">
-        <%= link_to new_user_path, class: "btn btn-primary btn-lg" do %>
-          <i class="bi bi-person-plus me-2"></i>New Member
-        <% end %>
-        <%= link_to new_rfid_path, class: "btn btn-success btn-lg" do %>
-          <i class="bi bi-key me-2"></i>Add Key Fob
-        <% end %>
-        <%= link_to new_incident_report_path, class: "btn btn-warning btn-lg" do %>
-          <i class="bi bi-exclamation-triangle me-2"></i>New Incident Report
-        <% end %>
-      </div>
-    </div>
-  </div>
-
-  <!-- Payment Reconciliation -->
-  <div class="card shadow-sm border-0 mb-4">
-    <div class="card-body">
-      <div class="d-flex flex-wrap justify-content-center gap-3">
-        <%= button_to sync_paypal_payments_path, method: :post, class: "btn btn-outline-secondary btn-lg", data: { turbo_confirm: "Sync PayPal payments now?" } do %>
-          <i class="bi bi-paypal me-2"></i>Reconcile PayPal
-        <% end %>
-        <%= button_to sync_recharge_payments_path, method: :post, class: "btn btn-outline-secondary btn-lg", data: { turbo_confirm: "Sync Recharge payments now?" } do %>
-          <i class="bi bi-credit-card me-2"></i>Reconcile Recharge
-        <% end %>
       </div>
     </div>
   </div>
@@ -161,4 +223,3 @@
     });
   });
 </script>
-
