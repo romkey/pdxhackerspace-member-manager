@@ -30,4 +30,16 @@ class IncidentReport < ApplicationRecord
       INCIDENT_TYPES.find { |t| t[1] == incident_type }&.first || incident_type
     end
   end
+
+  # Create journal entries for newly involved members
+  # Call this from controller after saving with new member associations
+  def create_journal_entries_for_members(member_ids, actor: nil)
+    User.where(id: member_ids).find_each do |member|
+      Journal.record_incident_involvement!(
+        user: member,
+        incident_report: self,
+        actor: actor
+      )
+    end
+  end
 end

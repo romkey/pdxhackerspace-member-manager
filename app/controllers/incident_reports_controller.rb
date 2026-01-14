@@ -19,6 +19,11 @@ class IncidentReportsController < AdminController
     @incident_report.reporter = current_user
 
     if @incident_report.save
+      # Create journal entries for all involved members
+      @incident_report.create_journal_entries_for_members(
+        @incident_report.involved_member_ids,
+        actor: current_user
+      )
       redirect_to incident_report_path(@incident_report), notice: 'Incident report created successfully.'
     else
       @users = User.ordered_by_display_name
@@ -32,7 +37,18 @@ class IncidentReportsController < AdminController
   end
 
   def update
+    # Track which members were involved before the update
+    previous_member_ids = @incident_report.involved_member_ids.dup
+
     if @incident_report.update(incident_report_params)
+      # Create journal entries only for newly added members
+      new_member_ids = @incident_report.involved_member_ids - previous_member_ids
+      if new_member_ids.any?
+        @incident_report.create_journal_entries_for_members(
+          new_member_ids,
+          actor: current_user
+        )
+      end
       redirect_to incident_report_path(@incident_report), notice: 'Incident report updated successfully.'
     else
       @users = User.ordered_by_display_name

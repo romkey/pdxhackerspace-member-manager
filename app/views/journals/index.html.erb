@@ -1,7 +1,17 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
     <h1 class="h3 mb-1">Journal</h1>
-    <p class="text-muted mb-0"><strong><%= @journals.count %></strong> entries</p>
+    <p class="text-muted mb-0">
+      <strong><%= @journals.count %></strong> entries
+      <% highlighted_count = @journals.count(&:highlight?) %>
+      <% if highlighted_count > 0 %>
+        &middot; <span class="text-warning"><strong><%= highlighted_count %></strong> highlighted</span>
+      <% end %>
+    </p>
+  </div>
+  <div class="btn-group" role="group">
+    <%= link_to "All", journals_path, class: "btn btn-outline-secondary #{params[:filter].blank? ? 'active' : ''}" %>
+    <%= link_to "Highlights Only", journals_path(filter: 'highlights'), class: "btn btn-outline-warning #{params[:filter] == 'highlights' ? 'active' : ''}" %>
   </div>
 </div>
 
@@ -10,6 +20,7 @@
     <table class="table mb-0 align-middle">
       <thead class="bg-body-tertiary">
         <tr>
+          <th scope="col" style="width: 20px;"></th>
           <th scope="col">When</th>
           <th scope="col">User</th>
           <th scope="col">Action</th>
@@ -19,10 +30,24 @@
       </thead>
       <tbody>
         <% @journals.each do |j| %>
-          <tr>
+          <tr class="<%= 'table-warning' if j.highlight? %>">
+            <td class="text-center">
+              <% if j.highlight? %>
+                <i class="bi bi-star-fill text-warning" title="Highlighted"></i>
+              <% end %>
+            </td>
             <td><%= l(j.changed_at, format: :long) %></td>
             <td><%= link_to j.user.display_name, user_path(j.user) %></td>
-            <td><span class="badge text-bg-secondary"><%= j.action %></span></td>
+            <td>
+              <% badge_class = case j.action
+                               when 'created' then 'text-bg-success'
+                               when 'incident_report_involvement' then 'text-bg-danger'
+                               when 'membership_status_changed', 'activated', 'deactivated' then 'text-bg-warning'
+                               when 'banned' then 'text-bg-dark'
+                               else 'text-bg-secondary'
+                               end %>
+              <span class="badge <%= badge_class %>"><%= j.action.humanize %></span>
+            </td>
             <td>
               <% if j.actor_user.present? %>
                 <%= link_to j.actor_user.display_name, user_path(j.actor_user) %>
@@ -31,7 +56,18 @@
               <% end %>
             </td>
             <td>
-              <%= render_change_rows(j.changes_json) %>
+              <% if j.action == 'incident_report_involvement' && j.changes_json['incident_report'].present? %>
+                <% ir = j.changes_json['incident_report'] %>
+                <div class="small">
+                  <strong><%= ir['subject'] %></strong><br>
+                  <span class="text-muted"><%= ir['type'] %> &middot; <%= ir['date'] %></span>
+                  <% if ir['id'].present? %>
+                    <br><%= link_to "View Report", incident_report_path(ir['id']), class: "link-primary" %>
+                  <% end %>
+                </div>
+              <% else %>
+                <%= render_change_rows(j.changes_json) %>
+              <% end %>
             </td>
           </tr>
         <% end %>
@@ -39,5 +75,3 @@
     </table>
   </div>
 </div>
-
-
