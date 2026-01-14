@@ -47,6 +47,10 @@ module GoogleSheets
 
       merged = merge_rows(members, access)
       upsert_entries(merged)
+
+      # Record sync in member source
+      MemberSource.for('sheet').record_sync!
+
       merged.size
     end
 

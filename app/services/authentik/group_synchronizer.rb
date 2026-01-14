@@ -14,6 +14,9 @@ module Authentik
         deactivate_missing_members(members)
       end
 
+      # Record sync in member source
+      MemberSource.for('authentik').record_sync!
+
       members.count
     end
 

@@ -137,6 +137,17 @@ Rails.application.routes.draw do
       post :seed
     end
   end
+
+  resources :member_sources, only: [:index, :show, :edit, :update] do
+    member do
+      post :toggle
+      post :refresh_stats
+    end
+    collection do
+      post :refresh_all
+      post :seed
+    end
+  end
   
   resources :incident_reports
 

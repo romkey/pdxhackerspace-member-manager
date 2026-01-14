@@ -55,3 +55,7 @@ Rails.logger.debug { "Seeded #{EmailTemplate.count} email templates." }
 # Seed payment processors
 PaymentProcessor.seed_defaults!
 Rails.logger.debug { "Seeded #{PaymentProcessor.count} payment processors." }
+
+# Seed member sources
+MemberSource.seed_defaults!
+Rails.logger.debug { "Seeded #{MemberSource.count} member sources." }

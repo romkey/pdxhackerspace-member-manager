@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_01_14_010255) do
+ActiveRecord::Schema[7.1].define(version: 2026_01_14_110000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -104,6 +104,19 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_14_010255) do
     t.string "can_train_prefix", null: false
   end
 
+  create_table "email_templates", force: :cascade do |t|
+    t.string "key", null: false
+    t.string "name", null: false
+    t.string "description"
+    t.string "subject", null: false
+    t.text "body_html", null: false
+    t.text "body_text", null: false
+    t.boolean "enabled", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["key"], name: "index_email_templates_on_key", unique: true
+  end
+
   create_table "incident_report_members", force: :cascade do |t|
     t.bigint "incident_report_id", null: false
     t.bigint "user_id", null: false
@@ -183,6 +196,24 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_14_010255) do
     t.index ["email"], name: "index_local_accounts_on_email", unique: true
   end
 
+  create_table "member_sources", force: :cascade do |t|
+    t.string "key", null: false
+    t.string "name", null: false
+    t.boolean "enabled", default: true, null: false
+    t.integer "display_order", default: 0
+    t.boolean "api_configured", default: false
+    t.integer "entry_count", default: 0
+    t.integer "linked_count", default: 0
+    t.integer "unlinked_count", default: 0
+    t.datetime "last_sync_at"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["display_order"], name: "index_member_sources_on_display_order"
+    t.index ["enabled"], name: "index_member_sources_on_enabled"
+    t.index ["key"], name: "index_member_sources_on_key", unique: true
+  end
+
   create_table "membership_plans", force: :cascade do |t|
     t.string "name", null: false
     t.decimal "cost", precision: 10, scale: 2, null: false
@@ -191,6 +222,36 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_14_010255) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["name"], name: "index_membership_plans_on_name", unique: true
+  end
+
+  create_table "payment_processors", force: :cascade do |t|
+    t.string "key", null: false
+    t.string "name", null: false
+    t.boolean "enabled", default: true, null: false
+    t.integer "display_order", default: 0
+    t.datetime "last_sync_at"
+    t.datetime "last_successful_sync_at"
+    t.string "last_error_message"
+    t.integer "consecutive_error_count", default: 0
+    t.string "sync_status", default: "unknown"
+    t.integer "total_payments_count", default: 0
+    t.integer "matched_payments_count", default: 0
+    t.integer "unmatched_payments_count", default: 0
+    t.decimal "total_amount", precision: 12, scale: 2, default: "0.0"
+    t.decimal "amount_last_30_days", precision: 12, scale: 2, default: "0.0"
+    t.decimal "average_payment_amount", precision: 12, scale: 2, default: "0.0"
+    t.boolean "api_configured", default: false
+    t.boolean "webhook_configured", default: false
+    t.string "webhook_url"
+    t.datetime "webhook_last_received_at"
+    t.datetime "last_csv_import_at"
+    t.integer "csv_import_count", default: 0
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["display_order"], name: "index_payment_processors_on_display_order"
+    t.index ["enabled"], name: "index_payment_processors_on_enabled"
+    t.index ["key"], name: "index_payment_processors_on_key", unique: true
   end
 
   create_table "paypal_payments", force: :cascade do |t|

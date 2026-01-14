@@ -17,6 +17,9 @@ module Slack
         deactivate_missing_members(synced_ids)
       end
 
+      # Record sync in member source
+      MemberSource.for('slack').record_sync!
+
       synced_ids.count
     end
 
