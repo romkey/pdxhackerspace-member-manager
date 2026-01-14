@@ -12,6 +12,8 @@ class User < ApplicationRecord
   has_many :trainings_as_trainee, class_name: 'Training', foreign_key: 'trainee_id', dependent: :destroy
   has_many :trainings_as_trainer, class_name: 'Training', foreign_key: 'trainer_id', dependent: :destroy
   has_and_belongs_to_many :application_groups
+  has_many :reported_incidents, class_name: 'IncidentReport', foreign_key: 'reporter_id', dependent: :nullify
+  has_and_belongs_to_many :incident_reports, join_table: 'incident_report_members'
   validates :authentik_id, uniqueness: true, allow_blank: true
   validates :email,
             allow_blank: true,
@@ -20,7 +22,7 @@ class User < ApplicationRecord
               with: URI::MailTo::EMAIL_REGEXP,
               allow_blank: true
             }
-  validates :payment_type, inclusion: { in: %w[unknown sponsored paypal recharge cash inactive] }
+  validates :payment_type, inclusion: { in: %w[unknown sponsored paypal recharge kofi cash inactive] }
   enum :membership_status, {
     coworking: 'coworking',
     basic: 'basic',

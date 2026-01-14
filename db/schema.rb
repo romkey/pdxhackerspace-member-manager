@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_01_12_000000) do
+ActiveRecord::Schema[7.1].define(version: 2026_01_14_010255) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -27,6 +27,34 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_12_000000) do
     t.index ["logged_at"], name: "index_access_logs_on_logged_at"
     t.index ["name"], name: "index_access_logs_on_name"
     t.index ["user_id"], name: "index_access_logs_on_user_id"
+  end
+
+  create_table "active_storage_attachments", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "record_type", null: false
+    t.bigint "record_id", null: false
+    t.bigint "blob_id", null: false
+    t.datetime "created_at", null: false
+    t.index ["blob_id"], name: "index_active_storage_attachments_on_blob_id"
+    t.index ["record_type", "record_id", "name", "blob_id"], name: "index_active_storage_attachments_uniqueness", unique: true
+  end
+
+  create_table "active_storage_blobs", force: :cascade do |t|
+    t.string "key", null: false
+    t.string "filename", null: false
+    t.string "content_type"
+    t.text "metadata"
+    t.string "service_name", null: false
+    t.bigint "byte_size", null: false
+    t.string "checksum"
+    t.datetime "created_at", null: false
+    t.index ["key"], name: "index_active_storage_blobs_on_key", unique: true
+  end
+
+  create_table "active_storage_variant_records", force: :cascade do |t|
+    t.bigint "blob_id", null: false
+    t.string "variation_digest", null: false
+    t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
   create_table "application_groups", force: :cascade do |t|
@@ -74,6 +102,30 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_12_000000) do
     t.datetime "updated_at", null: false
     t.string "trained_on_prefix", null: false
     t.string "can_train_prefix", null: false
+  end
+
+  create_table "incident_report_members", force: :cascade do |t|
+    t.bigint "incident_report_id", null: false
+    t.bigint "user_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["incident_report_id", "user_id"], name: "idx_incident_report_members_unique", unique: true
+    t.index ["incident_report_id"], name: "index_incident_report_members_on_incident_report_id"
+    t.index ["user_id"], name: "index_incident_report_members_on_user_id"
+  end
+
+  create_table "incident_reports", force: :cascade do |t|
+    t.date "incident_date", null: false
+    t.string "subject", null: false
+    t.string "incident_type", null: false
+    t.string "other_type_explanation"
+    t.text "description"
+    t.bigint "reporter_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["incident_date"], name: "index_incident_reports_on_incident_date"
+    t.index ["incident_type"], name: "index_incident_reports_on_incident_type"
+    t.index ["reporter_id"], name: "index_incident_reports_on_reporter_id"
   end
 
   create_table "journals", force: :cascade do |t|
@@ -336,10 +388,15 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_12_000000) do
   end
 
   add_foreign_key "access_logs", "users"
+  add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "application_groups", "applications"
   add_foreign_key "application_groups", "training_topics"
   add_foreign_key "application_groups_users", "application_groups"
   add_foreign_key "application_groups_users", "users"
+  add_foreign_key "incident_report_members", "incident_reports"
+  add_foreign_key "incident_report_members", "users"
+  add_foreign_key "incident_reports", "users", column: "reporter_id"
   add_foreign_key "journals", "users"
   add_foreign_key "journals", "users", column: "actor_user_id"
   add_foreign_key "kofi_payments", "sheet_entries"

@@ -1,0 +1,10 @@
+<div class="mb-4">
+  <%= link_to "&larr; Back to Incident Report".html_safe, incident_report_path(@incident_report), class: "text-decoration-none" %>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <h1 class="h4 mb-3">Edit Incident Report</h1>
+    <%= render "form" %>
+  </div>
+</div>

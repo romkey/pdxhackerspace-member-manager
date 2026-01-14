@@ -1,0 +1,109 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">Incident Reports</h1>
+    <p class="text-muted mb-0">
+      <strong><%= @incident_count %></strong> reports
+    </p>
+  </div>
+  <div>
+    <%= link_to "New Incident Report", new_incident_report_path, class: "btn btn-primary" %>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <div class="d-flex gap-2">
+      <input type="text" id="incident_search" class="form-control" placeholder="Search by subject, type, reporter, or involved members…" autocomplete="off">
+      <button type="button" id="clear_incident_search" class="btn btn-outline-secondary" style="display: none;">Clear</button>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="table-responsive">
+    <table class="table mb-0 align-middle">
+      <thead class="bg-body-tertiary">
+        <tr>
+          <th scope="col">Date</th>
+          <th scope="col">Subject</th>
+          <th scope="col">Type</th>
+          <th scope="col">Reporter</th>
+          <th scope="col">Involved Members</th>
+        </tr>
+      </thead>
+      <tbody id="incident_reports_table_body">
+        <% @incident_reports.each do |report| %>
+          <tr class="incident-report-row"
+              data-search-text="<%= [
+                report.subject,
+                report.incident_type_display,
+                report.reporter&.display_name,
+                report.involved_members.map(&:display_name).join(' ')
+              ].compact.join(' ').downcase %>">
+            <td><%= report.incident_date.strftime('%Y-%m-%d') %></td>
+            <td class="fw-semibold"><%= link_to report.subject, incident_report_path(report) %></td>
+            <td>
+              <span class="badge text-bg-<%= incident_type_badge_class(report.incident_type) %>">
+                <%= report.incident_type_display %>
+              </span>
+            </td>
+            <td>
+              <% if report.reporter %>
+                <%= link_to report.reporter.display_name, user_path(report.reporter), class: "text-decoration-none" %>
+              <% else %>
+                <span class="text-muted">Unknown</span>
+              <% end %>
+            </td>
+            <td>
+              <% if report.involved_members.any? %>
+                <% report.involved_members.each_with_index do |member, idx| %>
+                  <%= link_to member.display_name, user_path(member), class: "text-decoration-none" %><%= ',' unless idx == report.involved_members.size - 1 %>
+                <% end %>
+              <% else %>
+                <span class="text-muted">None</span>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const searchInput = document.getElementById('incident_search');
+    const clearButton = document.getElementById('clear_incident_search');
+    const tableBody = document.getElementById('incident_reports_table_body');
+
+    if (!searchInput || !tableBody) return;
+
+    function filterReports() {
+      const searchTerm = searchInput.value.toLowerCase().trim();
+      const rows = tableBody.querySelectorAll('.incident-report-row');
+
+      rows.forEach(function(row) {
+        const searchText = row.getAttribute('data-search-text');
+        if (searchText && searchText.includes(searchTerm)) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+
+      if (clearButton) {
+        clearButton.style.display = searchTerm !== '' ? '' : 'none';
+      }
+    }
+
+    searchInput.addEventListener('input', filterReports);
+
+    if (clearButton) {
+      clearButton.addEventListener('click', function() {
+        searchInput.value = '';
+        filterReports();
+        searchInput.focus();
+      });
+    }
+  })();
+</script>

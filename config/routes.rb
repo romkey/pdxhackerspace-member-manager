@@ -113,6 +113,8 @@ Rails.application.routes.draw do
   end
   resource :default_settings, only: [:show, :edit, :update], path: "settings/defaults"
   
+  resources :incident_reports
+
   get "/reports", to: "reports#index", as: :reports
   get "/reports/:report_type/all", to: "reports#view_all", as: :reports_view_all
   post "/reports/update_user", to: "reports#update_user", as: :reports_update_user

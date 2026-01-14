@@ -54,6 +54,9 @@
                   <%= link_to "Reports", reports_path, class: "nav-link #{current_page?(reports_path) ? 'active' : ''}" %>
                 </li>
                 <li class="nav-item">
+                  <%= link_to "Incidents", incident_reports_path, class: "nav-link #{controller_name == 'incident_reports' ? 'active' : ''}" %>
+                </li>
+                <li class="nav-item">
                   <%= link_to "Settings", settings_path, class: "nav-link #{current_page?(settings_path) || current_page?(training_topics_path) || current_page?(applications_path) || controller_name == 'applications' || controller_name == 'application_groups' ? 'active' : ''}" %>
                 </li>
                 <li class="nav-item">

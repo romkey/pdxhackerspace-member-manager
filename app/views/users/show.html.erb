@@ -422,6 +422,50 @@
     </div>
   </div>
 
+  <% user_incidents = @user.incident_reports.includes(:reporter).ordered %>
+  <% if user_incidents.any? %>
+    <div class="card shadow-sm border-0 mt-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h2 class="h6 mb-0">Incident Reports Involving This Member</h2>
+          <%= link_to "View All", incident_reports_path, class: "btn btn-outline-secondary btn-sm" %>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead class="bg-body-tertiary">
+              <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Subject</th>
+                <th scope="col">Type</th>
+                <th scope="col">Reporter</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% user_incidents.each do |report| %>
+                <tr>
+                  <td><%= report.incident_date.strftime('%Y-%m-%d') %></td>
+                  <td><%= link_to report.subject, incident_report_path(report), class: "text-decoration-none" %></td>
+                  <td>
+                    <span class="badge text-bg-<%= incident_type_badge_class(report.incident_type) %>">
+                      <%= report.incident_type_display %>
+                    </span>
+                  </td>
+                  <td>
+                    <% if report.reporter %>
+                      <%= link_to report.reporter.display_name, user_path(report.reporter), class: "text-decoration-none" %>
+                    <% else %>
+                      <span class="text-muted">Unknown</span>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
   <div class="card shadow-sm border-0 mt-4">
     <div class="card-body">
       <h2 class="h6 mb-3">Journal</h2>

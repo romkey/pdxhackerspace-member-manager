@@ -1,0 +1,118 @@
+<%= form_with model: @incident_report, local: true, class: "vstack gap-3" do |f| %>
+  <div>
+    <%= f.label :incident_date, "Date of Incident", class: "form-label" %>
+    <%= f.date_field :incident_date, class: "form-control", required: true %>
+  </div>
+
+  <div>
+    <%= f.label :subject, class: "form-label" %>
+    <%= f.text_field :subject, class: "form-control", required: true, placeholder: "Brief summary of the incident" %>
+  </div>
+
+  <div>
+    <%= f.label :incident_type, "Incident Type", class: "form-label" %>
+    <%= f.select :incident_type, 
+        options_for_select(IncidentReport::INCIDENT_TYPES, @incident_report.incident_type),
+        { prompt: "Select a type..." },
+        { class: "form-select", required: true, id: "incident_type_select" } %>
+  </div>
+
+  <div id="other_explanation_field" style="<%= 'display: none;' unless @incident_report.incident_type == 'other' %>">
+    <%= f.label :other_type_explanation, "Please explain", class: "form-label" %>
+    <%= f.text_field :other_type_explanation, class: "form-control", placeholder: "Describe the type of incident" %>
+  </div>
+
+  <div>
+    <%= f.label :involved_member_ids, "Involved Members", class: "form-label" %>
+    <div class="form-text mb-2">Select any members involved in this incident. Leave empty if only non-members were involved.</div>
+    <div class="mb-2">
+      <input type="text" id="member_search" class="form-control" placeholder="Search members..." autocomplete="off">
+    </div>
+    <div id="member_list" class="border rounded" style="max-height: 200px; overflow-y: auto;">
+      <% @users.each do |user| %>
+        <div class="member-item p-2 border-bottom" data-user-name="<%= user.display_name.downcase %>">
+          <div class="form-check">
+            <%= check_box_tag "incident_report[involved_member_ids][]", user.id, 
+                @incident_report.involved_members.include?(user),
+                class: "form-check-input", id: "member_#{user.id}" %>
+            <%= label_tag "member_#{user.id}", user.display_name, class: "form-check-label" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <div>
+    <%= f.label :description, class: "form-label" %>
+    <%= f.text_area :description, class: "form-control", rows: 6, placeholder: "Detailed description of the incident..." %>
+  </div>
+
+  <div>
+    <%= f.label :photos, class: "form-label" %>
+    <%= f.file_field :photos, multiple: true, class: "form-control", accept: "image/*" %>
+    <div class="form-text">You can select multiple photos. Accepted formats: JPEG, PNG, GIF, WebP.</div>
+    
+    <% if @incident_report.photos.attached? %>
+      <div class="mt-2">
+        <strong>Current photos:</strong>
+        <div class="d-flex flex-wrap gap-2 mt-2">
+          <% @incident_report.photos.each do |photo| %>
+            <div class="position-relative">
+              <% if photo.content_type.start_with?('image/') %>
+                <%= image_tag rails_blob_path(photo, disposition: 'inline'), 
+                    class: "rounded", 
+                    style: "max-width: 100px; max-height: 100px; object-fit: cover;" %>
+              <% else %>
+                <span class="badge text-bg-secondary"><%= photo.filename %></span>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+        <div class="form-text mt-1">Note: Uploading new photos will add to existing ones.</div>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="d-flex gap-2">
+    <%= f.submit @incident_report.persisted? ? "Update" : "Create", class: "btn btn-primary" %>
+    <%= link_to "Cancel", @incident_report.persisted? ? incident_report_path(@incident_report) : incident_reports_path, class: "btn btn-outline-secondary" %>
+  </div>
+<% end %>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Show/hide other explanation field based on incident type
+    const typeSelect = document.getElementById('incident_type_select');
+    const otherField = document.getElementById('other_explanation_field');
+
+    if (typeSelect && otherField) {
+      typeSelect.addEventListener('change', function() {
+        if (this.value === 'other') {
+          otherField.style.display = '';
+        } else {
+          otherField.style.display = 'none';
+        }
+      });
+    }
+
+    // Member search functionality
+    const memberSearch = document.getElementById('member_search');
+    const memberList = document.getElementById('member_list');
+
+    if (memberSearch && memberList) {
+      memberSearch.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase().trim();
+        const items = memberList.querySelectorAll('.member-item');
+
+        items.forEach(function(item) {
+          const name = item.getAttribute('data-user-name');
+          if (name && name.includes(searchTerm)) {
+            item.style.display = '';
+          } else {
+            item.style.display = 'none';
+          }
+        });
+      });
+    }
+  });
+</script>

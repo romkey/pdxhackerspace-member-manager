@@ -1,0 +1,90 @@
+<div class="mb-4">
+  <%= link_to "&larr; Back to Incident Reports".html_safe, incident_reports_path, class: "text-decoration-none" %>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+      <h1 class="h4 mb-0"><%= @incident_report.subject %></h1>
+      <div class="d-flex gap-2">
+        <%= link_to "Edit", edit_incident_report_path(@incident_report), class: "btn btn-outline-primary btn-sm" %>
+        <%= button_to "Delete", incident_report_path(@incident_report), method: :delete, 
+            class: "btn btn-outline-danger btn-sm",
+            data: { turbo_confirm: "Are you sure you want to delete this incident report?" } %>
+      </div>
+    </div>
+
+    <dl class="row mb-0">
+      <dt class="col-sm-3 text-secondary">Date</dt>
+      <dd class="col-sm-9"><%= @incident_report.incident_date.strftime('%B %d, %Y') %></dd>
+
+      <dt class="col-sm-3 text-secondary">Type</dt>
+      <dd class="col-sm-9">
+        <span class="badge text-bg-<%= incident_type_badge_class(@incident_report.incident_type) %>">
+          <%= @incident_report.incident_type_display %>
+        </span>
+      </dd>
+
+      <dt class="col-sm-3 text-secondary">Reporter</dt>
+      <dd class="col-sm-9">
+        <% if @incident_report.reporter %>
+          <%= link_to @incident_report.reporter.display_name, user_path(@incident_report.reporter), class: "text-decoration-none" %>
+        <% else %>
+          <span class="text-muted">Unknown</span>
+        <% end %>
+      </dd>
+
+      <dt class="col-sm-3 text-secondary">Involved Members</dt>
+      <dd class="col-sm-9">
+        <% if @incident_report.involved_members.any? %>
+          <ul class="list-unstyled mb-0">
+            <% @incident_report.involved_members.each do |member| %>
+              <li><%= link_to member.display_name, user_path(member), class: "text-decoration-none" %></li>
+            <% end %>
+          </ul>
+        <% else %>
+          <span class="text-muted fst-italic">No members involved (may involve non-members)</span>
+        <% end %>
+      </dd>
+
+      <dt class="col-sm-3 text-secondary">Description</dt>
+      <dd class="col-sm-9">
+        <% if @incident_report.description.present? %>
+          <div class="bg-body-secondary rounded p-3">
+            <%= simple_format(@incident_report.description) %>
+          </div>
+        <% else %>
+          <span class="text-muted fst-italic">No description provided</span>
+        <% end %>
+      </dd>
+
+      <% if @incident_report.photos.attached? %>
+        <dt class="col-sm-3 text-secondary">Photos</dt>
+        <dd class="col-sm-9">
+          <div class="d-flex flex-wrap gap-2">
+            <% @incident_report.photos.each do |photo| %>
+              <% if photo.content_type.start_with?('image/') %>
+                <%= link_to rails_blob_path(photo, disposition: 'inline'), target: '_blank', rel: 'noopener' do %>
+                  <%= image_tag rails_blob_path(photo, disposition: 'inline'), 
+                      class: "rounded", 
+                      style: "max-width: 200px; max-height: 200px; object-fit: cover;" %>
+                <% end %>
+              <% else %>
+                <%= link_to photo.filename, rails_blob_path(photo, disposition: 'attachment'), 
+                    class: "btn btn-outline-secondary btn-sm" %>
+              <% end %>
+            <% end %>
+          </div>
+        </dd>
+      <% end %>
+
+      <dt class="col-sm-3 text-secondary">Created</dt>
+      <dd class="col-sm-9"><%= l(@incident_report.created_at, format: :long) %></dd>
+
+      <% if @incident_report.updated_at != @incident_report.created_at %>
+        <dt class="col-sm-3 text-secondary">Last Updated</dt>
+        <dd class="col-sm-9"><%= l(@incident_report.updated_at, format: :long) %></dd>
+      <% end %>
+    </dl>
+  </div>
+</div>
