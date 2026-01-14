@@ -36,7 +36,7 @@ class PaymentProcessor < ApplicationRecord
     
     # Get the timestamp field name (varies by processor)
     time_field = case key
-                 when 'paypal' then :processed_time
+                 when 'paypal' then :transaction_time
                  when 'recharge' then :processed_at
                  when 'kofi' then :timestamp
                  end
