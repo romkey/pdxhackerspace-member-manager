@@ -25,20 +25,46 @@
   <div>
     <%= f.label :involved_member_ids, "Involved Members", class: "form-label" %>
     <div class="form-text mb-2">Select any members involved in this incident. Leave empty if only non-members were involved.</div>
-    <div class="mb-2">
-      <input type="text" id="member_search" class="form-control" placeholder="Search members..." autocomplete="off">
+    
+    <!-- Selected members display -->
+    <div id="selected_members" class="d-flex flex-wrap gap-2 mb-2">
+      <% @incident_report.involved_members.each do |member| %>
+        <span class="badge bg-primary d-flex align-items-center gap-1 selected-member-badge" data-user-id="<%= member.id %>">
+          <%= member.display_name %>
+          <button type="button" class="btn-close btn-close-white ms-1" style="font-size: 0.6rem;" aria-label="Remove"></button>
+        </span>
+      <% end %>
     </div>
-    <div id="member_list" class="border rounded" style="max-height: 200px; overflow-y: auto;">
+    
+    <!-- Hidden inputs for selected members -->
+    <div id="selected_member_inputs">
+      <% @incident_report.involved_members.each do |member| %>
+        <input type="hidden" name="incident_report[involved_member_ids][]" value="<%= member.id %>" data-user-id="<%= member.id %>">
+      <% end %>
+    </div>
+    
+    <!-- Search input -->
+    <div class="mb-2">
+      <input type="text" id="member_search" class="form-control" placeholder="Type to search and add members..." autocomplete="off">
+    </div>
+    
+    <!-- Search results dropdown -->
+    <div id="member_search_results" class="border rounded" style="max-height: 200px; overflow-y: auto; display: none;">
       <% @users.each do |user| %>
-        <div class="member-item p-2 border-bottom" data-user-name="<%= user.display_name.downcase %>">
-          <div class="form-check">
-            <%= check_box_tag "incident_report[involved_member_ids][]", user.id, 
-                @incident_report.involved_members.include?(user),
-                class: "form-check-input", id: "member_#{user.id}" %>
-            <%= label_tag "member_#{user.id}", user.display_name, class: "form-check-label" %>
-          </div>
+        <div class="member-result p-2 border-bottom" 
+             data-user-id="<%= user.id %>" 
+             data-user-name="<%= user.display_name.downcase %>"
+             data-user-display="<%= user.display_name %>"
+             style="cursor: pointer;">
+          <span class="member-name"><%= user.display_name %></span>
+          <% if user.email.present? %>
+            <span class="text-muted small ms-2"><%= user.email %></span>
+          <% end %>
         </div>
       <% end %>
+    </div>
+    <div id="no_member_results" class="text-muted text-center p-3 border rounded" style="display: none;">
+      No members found matching your search.
     </div>
   </div>
 
@@ -95,24 +121,147 @@
       });
     }
 
-    // Member search functionality
+    // Member search and selection functionality
     const memberSearch = document.getElementById('member_search');
-    const memberList = document.getElementById('member_list');
+    const searchResults = document.getElementById('member_search_results');
+    const noResults = document.getElementById('no_member_results');
+    const selectedMembers = document.getElementById('selected_members');
+    const selectedInputs = document.getElementById('selected_member_inputs');
 
-    if (memberSearch && memberList) {
-      memberSearch.addEventListener('input', function() {
-        const searchTerm = this.value.toLowerCase().trim();
-        const items = memberList.querySelectorAll('.member-item');
+    if (!memberSearch || !searchResults || !selectedMembers || !selectedInputs) return;
 
-        items.forEach(function(item) {
-          const name = item.getAttribute('data-user-name');
-          if (name && name.includes(searchTerm)) {
-            item.style.display = '';
-          } else {
-            item.style.display = 'none';
-          }
-        });
+    // Get currently selected member IDs
+    function getSelectedIds() {
+      const ids = new Set();
+      selectedInputs.querySelectorAll('input[type="hidden"]').forEach(function(input) {
+        ids.add(input.value);
       });
+      return ids;
     }
+
+    // Filter and show search results
+    function filterMembers() {
+      const searchTerm = memberSearch.value.toLowerCase().trim();
+      const selectedIds = getSelectedIds();
+      const results = searchResults.querySelectorAll('.member-result');
+      let visibleCount = 0;
+
+      if (searchTerm === '') {
+        searchResults.style.display = 'none';
+        noResults.style.display = 'none';
+        return;
+      }
+
+      results.forEach(function(result) {
+        const name = result.getAttribute('data-user-name');
+        const userId = result.getAttribute('data-user-id');
+        const isSelected = selectedIds.has(userId);
+        
+        if (!isSelected && name && name.includes(searchTerm)) {
+          result.style.display = '';
+          visibleCount++;
+        } else {
+          result.style.display = 'none';
+        }
+      });
+
+      if (visibleCount === 0) {
+        searchResults.style.display = 'none';
+        noResults.style.display = 'block';
+      } else {
+        searchResults.style.display = 'block';
+        noResults.style.display = 'none';
+      }
+    }
+
+    // Add a member to the selection
+    function addMember(userId, displayName) {
+      // Check if already selected
+      if (getSelectedIds().has(userId)) return;
+
+      // Add hidden input
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'incident_report[involved_member_ids][]';
+      input.value = userId;
+      input.setAttribute('data-user-id', userId);
+      selectedInputs.appendChild(input);
+
+      // Add badge
+      const badge = document.createElement('span');
+      badge.className = 'badge bg-primary d-flex align-items-center gap-1 selected-member-badge';
+      badge.setAttribute('data-user-id', userId);
+      badge.innerHTML = displayName + 
+        '<button type="button" class="btn-close btn-close-white ms-1" style="font-size: 0.6rem;" aria-label="Remove"></button>';
+      selectedMembers.appendChild(badge);
+
+      // Add click handler for remove button
+      badge.querySelector('.btn-close').addEventListener('click', function() {
+        removeMember(userId);
+      });
+
+      // Clear search and hide results
+      memberSearch.value = '';
+      searchResults.style.display = 'none';
+      noResults.style.display = 'none';
+    }
+
+    // Remove a member from the selection
+    function removeMember(userId) {
+      // Remove hidden input
+      const input = selectedInputs.querySelector('input[data-user-id="' + userId + '"]');
+      if (input) input.remove();
+
+      // Remove badge
+      const badge = selectedMembers.querySelector('.selected-member-badge[data-user-id="' + userId + '"]');
+      if (badge) badge.remove();
+    }
+
+    // Event listeners
+    memberSearch.addEventListener('input', filterMembers);
+    memberSearch.addEventListener('focus', filterMembers);
+
+    // Click to add member from search results
+    searchResults.querySelectorAll('.member-result').forEach(function(result) {
+      result.addEventListener('click', function() {
+        const userId = this.getAttribute('data-user-id');
+        const displayName = this.getAttribute('data-user-display');
+        addMember(userId, displayName);
+      });
+
+      // Hover effect
+      result.addEventListener('mouseenter', function() {
+        this.classList.add('bg-body-secondary');
+      });
+      result.addEventListener('mouseleave', function() {
+        this.classList.remove('bg-body-secondary');
+      });
+    });
+
+    // Remove member when clicking badge close button (for pre-existing selections)
+    selectedMembers.querySelectorAll('.selected-member-badge .btn-close').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        const badge = this.closest('.selected-member-badge');
+        const userId = badge.getAttribute('data-user-id');
+        removeMember(userId);
+      });
+    });
+
+    // Hide results when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!memberSearch.contains(e.target) && !searchResults.contains(e.target)) {
+        searchResults.style.display = 'none';
+        noResults.style.display = 'none';
+      }
+    });
+
+    // Keyboard navigation
+    memberSearch.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        searchResults.style.display = 'none';
+        noResults.style.display = 'none';
+        memberSearch.blur();
+      }
+    });
   });
 </script>
