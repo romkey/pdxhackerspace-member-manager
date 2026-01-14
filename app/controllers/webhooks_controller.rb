@@ -85,6 +85,64 @@ class WebhooksController < ApplicationController
     end
   end
 
+  # Access control webhook endpoint
+  # Receives access log lines in the same format as the log files
+  # POST /webhooks/access
+  # Parameters:
+  #   - line: The log line to process (required)
+  #   - key: API key for authentication (optional, uses ACCESS_WEBHOOK_KEY env var)
+  def access
+    # Verify API key if configured
+    api_key = ENV['ACCESS_WEBHOOK_KEY']
+    if api_key.present?
+      provided_key = params[:key] || request.headers['X-Access-Key']
+      unless ActiveSupport::SecurityUtils.secure_compare(provided_key.to_s, api_key)
+        Rails.logger.warn("Access webhook: invalid API key from #{client_ip}")
+        head :unauthorized
+        return
+      end
+    end
+
+    # Get the log line
+    line = params[:line]
+    if line.blank?
+      render json: { error: 'line parameter is required' }, status: :bad_request
+      return
+    end
+
+    begin
+      parser = AccessLogParser.new(line)
+
+      # Skip system messages
+      if parser.should_skip?
+        Rails.logger.debug("Access webhook: skipping system message: #{line.truncate(100)}")
+        render json: { status: 'skipped', reason: 'system message' }, status: :ok
+        return
+      end
+
+      # Parse and create the access log
+      access_log = parser.create_access_log!
+
+      Rails.logger.info("Access webhook: created log entry - #{access_log.name || 'unknown'} #{access_log.action} #{access_log.location}")
+
+      render json: {
+        status: 'created',
+        id: access_log.id,
+        name: access_log.name,
+        action: access_log.action,
+        location: access_log.location,
+        user_id: access_log.user_id,
+        logged_at: access_log.logged_at&.iso8601
+      }, status: :created
+    rescue ActiveRecord::RecordInvalid => e
+      Rails.logger.error("Access webhook: validation error: #{e.message}")
+      render json: { error: e.message }, status: :unprocessable_entity
+    rescue => e
+      Rails.logger.error("Access webhook error: #{e.message}\n#{e.backtrace.first(5).join("\n")}")
+      render json: { error: 'Internal error' }, status: :internal_server_error
+    end
+  end
+
   def rfid
     unless ip_whitelisted?
       Rails.logger.warn("Webhook request from non-whitelisted IP: #{client_ip}")

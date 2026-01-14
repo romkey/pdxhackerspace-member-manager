@@ -1,0 +1,168 @@
+<div class="mb-4">
+  <%= link_to "&larr; Back to dashboard".html_safe, root_path, class: "text-decoration-none" %>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <h1 class="h4 mb-3">Add Key Fob</h1>
+
+    <%= form_with model: @rfid, local: true, class: "vstack gap-3" do |f| %>
+      <div>
+        <label class="form-label">Member <span class="text-danger">*</span></label>
+        
+        <!-- Selected member display -->
+        <div id="selected_member" class="mb-2" style="display: none;">
+          <span class="badge bg-primary d-inline-flex align-items-center gap-1 fs-6 py-2 px-3">
+            <span id="selected_member_name"></span>
+            <button type="button" class="btn-close btn-close-white ms-2" style="font-size: 0.6rem;" aria-label="Remove" id="clear_member"></button>
+          </span>
+        </div>
+        
+        <!-- Hidden input for selected member -->
+        <%= f.hidden_field :user_id, id: "rfid_user_id" %>
+        
+        <!-- Search input -->
+        <div id="member_search_container">
+          <input type="text" id="member_search" class="form-control" placeholder="Type to search for a member..." autocomplete="off">
+        </div>
+        
+        <!-- Search results dropdown -->
+        <div id="member_search_results" class="border rounded mt-1" style="max-height: 250px; overflow-y: auto; display: none;">
+          <% @users.each do |user| %>
+            <div class="member-result p-2 border-bottom" 
+                 data-user-id="<%= user.id %>" 
+                 data-user-name="<%= [user.display_name, user.email, user.username].compact.join(' ').downcase %>"
+                 data-user-display="<%= user.display_name %>"
+                 style="cursor: pointer;">
+              <div class="fw-semibold"><%= user.display_name %></div>
+              <% if user.email.present? %>
+                <div class="text-muted small"><%= user.email %></div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+        <div id="no_member_results" class="text-muted text-center p-3 border rounded mt-1" style="display: none;">
+          No members found matching your search.
+        </div>
+      </div>
+
+      <div>
+        <%= f.label :rfid, "RFID Code", class: "form-label" %> <span class="text-danger">*</span>
+        <%= f.text_field :rfid, class: "form-control", required: true, placeholder: "Enter the key fob RFID code" %>
+        <div class="form-text">The unique identifier from the key fob.</div>
+      </div>
+
+      <div>
+        <%= f.label :notes, class: "form-label" %>
+        <%= f.text_area :notes, class: "form-control", rows: 2, placeholder: "Optional notes about this key fob..." %>
+      </div>
+
+      <div class="d-flex gap-2">
+        <%= f.submit "Add Key Fob", class: "btn btn-success" %>
+        <%= link_to "Cancel", root_path, class: "btn btn-outline-secondary" %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const memberSearch = document.getElementById('member_search');
+    const memberSearchContainer = document.getElementById('member_search_container');
+    const searchResults = document.getElementById('member_search_results');
+    const noResults = document.getElementById('no_member_results');
+    const selectedMember = document.getElementById('selected_member');
+    const selectedMemberName = document.getElementById('selected_member_name');
+    const userIdInput = document.getElementById('rfid_user_id');
+    const clearMemberBtn = document.getElementById('clear_member');
+
+    if (!memberSearch || !searchResults || !selectedMember || !userIdInput) return;
+
+    function filterMembers() {
+      const searchTerm = memberSearch.value.toLowerCase().trim();
+      const results = searchResults.querySelectorAll('.member-result');
+      let visibleCount = 0;
+
+      if (searchTerm === '' || searchTerm.length < 2) {
+        searchResults.style.display = 'none';
+        noResults.style.display = 'none';
+        return;
+      }
+
+      results.forEach(function(result) {
+        const name = result.getAttribute('data-user-name');
+        if (name && name.includes(searchTerm)) {
+          result.style.display = '';
+          visibleCount++;
+        } else {
+          result.style.display = 'none';
+        }
+      });
+
+      if (visibleCount === 0) {
+        searchResults.style.display = 'none';
+        noResults.style.display = 'block';
+      } else {
+        searchResults.style.display = 'block';
+        noResults.style.display = 'none';
+      }
+    }
+
+    function selectMember(userId, displayName) {
+      userIdInput.value = userId;
+      selectedMemberName.textContent = displayName;
+      selectedMember.style.display = 'block';
+      memberSearchContainer.style.display = 'none';
+      searchResults.style.display = 'none';
+      noResults.style.display = 'none';
+    }
+
+    function clearSelection() {
+      userIdInput.value = '';
+      selectedMemberName.textContent = '';
+      selectedMember.style.display = 'none';
+      memberSearchContainer.style.display = 'block';
+      memberSearch.value = '';
+      memberSearch.focus();
+    }
+
+    memberSearch.addEventListener('input', filterMembers);
+    memberSearch.addEventListener('focus', filterMembers);
+
+    // Click to select member
+    searchResults.querySelectorAll('.member-result').forEach(function(result) {
+      result.addEventListener('click', function() {
+        const userId = this.getAttribute('data-user-id');
+        const displayName = this.getAttribute('data-user-display');
+        selectMember(userId, displayName);
+      });
+
+      result.addEventListener('mouseenter', function() {
+        this.classList.add('bg-body-secondary');
+      });
+      result.addEventListener('mouseleave', function() {
+        this.classList.remove('bg-body-secondary');
+      });
+    });
+
+    // Clear selection
+    clearMemberBtn.addEventListener('click', clearSelection);
+
+    // Hide results when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!memberSearch.contains(e.target) && !searchResults.contains(e.target)) {
+        searchResults.style.display = 'none';
+        noResults.style.display = 'none';
+      }
+    });
+
+    // Keyboard navigation
+    memberSearch.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        searchResults.style.display = 'none';
+        noResults.style.display = 'none';
+        memberSearch.blur();
+      }
+    });
+  });
+</script>

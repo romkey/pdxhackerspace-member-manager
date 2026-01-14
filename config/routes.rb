@@ -19,8 +19,9 @@ Rails.application.routes.draw do
 
   post "/webhooks/rfid", to: "webhooks#rfid"
   post "/webhooks/kofi", to: "webhooks#kofi"
+  post "/webhooks/access", to: "webhooks#access"
 
-  resources :users, only: [:index, :show, :edit, :update, :destroy] do
+  resources :users, only: [:index, :show, :new, :create, :edit, :update, :destroy] do
     member do
       post :activate
       post :deactivate
@@ -31,6 +32,8 @@ Rails.application.routes.draw do
       post :sync
     end
   end
+
+  resources :rfids, only: [:new, :create, :destroy]
 
   resources :slack_users, only: [:index, :show] do
     collection do

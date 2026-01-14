@@ -102,7 +102,7 @@
 
   <div class="d-flex gap-2">
     <%= f.submit "Save", class: "btn btn-primary" %>
-    <%= link_to "Cancel", user_path(@user), class: "btn btn-outline-secondary" %>
+    <%= link_to "Cancel", @user.persisted? ? user_path(@user) : users_path, class: "btn btn-outline-secondary" %>
   </div>
 <% end %>
 
