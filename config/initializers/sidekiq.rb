@@ -22,14 +22,14 @@ Sidekiq.configure_server do |config|
   end
   
   # Schedule recurring jobs (only runs in Sidekiq server process)
-  queue_name = Rails.env.production? ? "#{Rails.application.config.active_job.queue_name_prefix}_default" : 'default'
+  # Note: When using active_job: true, don't specify a prefixed queue name -
+  # ActiveJob will apply its own prefix automatically
   
   # PayPal Payment Sync - Daily at 6am
   Sidekiq::Cron::Job.create(
     name: 'PayPal Payment Sync - Daily at 6am',
     cron: '0 6 * * *',
     class: 'Paypal::PaymentSyncJob',
-    queue: queue_name,
     active_job: true
   )
   
@@ -38,7 +38,6 @@ Sidekiq.configure_server do |config|
     name: 'Recharge Payment Sync - Daily at 6am',
     cron: '0 6 * * *',
     class: 'Recharge::PaymentSyncJob',
-    queue: queue_name,
     active_job: true
   )
 end
