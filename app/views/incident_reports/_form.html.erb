@@ -113,57 +113,57 @@
     <% end %>
   </div>
 
-  <% if @incident_report.persisted? %>
-    <!-- Links Section (only for existing reports) -->
-    <div>
-      <label class="form-label">Links</label>
-      <div class="form-text mb-2">Add links to related documents, tickets, or external resources.</div>
-      
-      <% if @incident_report.links.any? %>
-        <ul class="list-group mb-3">
-          <% @incident_report.links.ordered.each do |link| %>
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-              <div>
-                <i class="bi bi-link-45deg text-muted me-1"></i>
-                <%= link_to link.title, link.url, target: '_blank', rel: 'noopener', class: "text-decoration-none" %>
-                <span class="text-muted small ms-2"><%= truncate(link.url, length: 50) %></span>
-              </div>
-              <%= button_to remove_link_incident_report_path(@incident_report, link_id: link.id), 
-                  method: :delete, 
-                  class: "btn btn-sm btn-outline-danger",
-                  data: { turbo_confirm: "Remove this link?" } do %>
-                <i class="bi bi-trash"></i>
-              <% end %>
-            </li>
-          <% end %>
-        </ul>
-      <% end %>
-
-      <!-- Add Link Form -->
-      <div class="card bg-body-tertiary">
-        <div class="card-body">
-          <h6 class="card-subtitle mb-2 text-muted">Add a new link</h6>
-          <%= form_with url: add_link_incident_report_path(@incident_report), method: :post, local: true, class: "row g-2 align-items-end" do %>
-            <div class="col-md-4">
-              <label class="form-label small">Title</label>
-              <input type="text" name="incident_report_link[title]" class="form-control form-control-sm" placeholder="Link title" required>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label small">URL</label>
-              <input type="url" name="incident_report_link[url]" class="form-control form-control-sm" placeholder="https://..." required>
-            </div>
-            <div class="col-md-2">
-              <button type="submit" class="btn btn-primary btn-sm w-100">Add Link</button>
-            </div>
-          <% end %>
-        </div>
-      </div>
-    </div>
-  <% end %>
-
   <div class="d-flex gap-2">
     <%= f.submit @incident_report.persisted? ? "Update" : "Create", class: "btn btn-primary" %>
     <%= link_to "Cancel", @incident_report.persisted? ? incident_report_path(@incident_report) : incident_reports_path, class: "btn btn-outline-secondary" %>
+  </div>
+<% end %>
+
+<% if @incident_report.persisted? %>
+  <!-- Links Section (outside main form to avoid nested forms) -->
+  <div class="mt-4">
+    <label class="form-label">Links</label>
+    <div class="form-text mb-2">Add links to related documents, tickets, or external resources.</div>
+    
+    <% if @incident_report.links.any? %>
+      <ul class="list-group mb-3">
+        <% @incident_report.links.ordered.each do |link| %>
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+              <i class="bi bi-link-45deg text-muted me-1"></i>
+              <%= link_to link.title, link.url, target: '_blank', rel: 'noopener', class: "text-decoration-none" %>
+              <span class="text-muted small ms-2"><%= truncate(link.url, length: 50) %></span>
+            </div>
+            <%= button_to remove_link_incident_report_path(@incident_report, link_id: link.id), 
+                method: :delete, 
+                class: "btn btn-sm btn-outline-danger",
+                data: { turbo_confirm: "Remove this link?" } do %>
+              <i class="bi bi-trash"></i>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+
+    <!-- Add Link Form -->
+    <div class="card bg-body-tertiary">
+      <div class="card-body">
+        <h6 class="card-subtitle mb-2 text-muted">Add a new link</h6>
+        <%= form_with url: add_link_incident_report_path(@incident_report), method: :post, local: true, class: "row g-2 align-items-end" do %>
+          <div class="col-md-4">
+            <label class="form-label small">Title</label>
+            <input type="text" name="incident_report_link[title]" class="form-control form-control-sm" placeholder="Link title" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small">URL</label>
+            <input type="url" name="incident_report_link[url]" class="form-control form-control-sm" placeholder="https://..." required>
+          </div>
+          <div class="col-md-2">
+            <button type="submit" class="btn btn-primary btn-sm w-100">Add Link</button>
+          </div>
+        <% end %>
+      </div>
+    </div>
   </div>
 <% end %>
 
