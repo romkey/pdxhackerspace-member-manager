@@ -149,7 +149,12 @@ Rails.application.routes.draw do
     end
   end
   
-  resources :incident_reports
+  resources :incident_reports do
+    member do
+      post :add_link
+      delete 'links/:link_id', action: :remove_link, as: :remove_link
+    end
+  end
 
   get "/reports", to: "reports#index", as: :reports
   get "/reports/:report_type/all", to: "reports#view_all", as: :reports_view_all

@@ -10,6 +10,32 @@
   </div>
 </div>
 
+<!-- Status Filter Tabs -->
+<div class="mb-4">
+  <ul class="nav nav-pills">
+    <li class="nav-item">
+      <%= link_to incident_reports_path, class: "nav-link #{params[:status].blank? ? 'active' : ''}" do %>
+        All <span class="badge text-bg-secondary ms-1"><%= @status_counts[:all] %></span>
+      <% end %>
+    </li>
+    <li class="nav-item">
+      <%= link_to incident_reports_path(status: 'draft'), class: "nav-link #{params[:status] == 'draft' ? 'active' : ''}" do %>
+        Draft <span class="badge text-bg-secondary ms-1"><%= @status_counts[:draft] %></span>
+      <% end %>
+    </li>
+    <li class="nav-item">
+      <%= link_to incident_reports_path(status: 'in_progress'), class: "nav-link #{params[:status] == 'in_progress' ? 'active' : ''}" do %>
+        In Progress <span class="badge text-bg-warning ms-1"><%= @status_counts[:in_progress] %></span>
+      <% end %>
+    </li>
+    <li class="nav-item">
+      <%= link_to incident_reports_path(status: 'resolved'), class: "nav-link #{params[:status] == 'resolved' ? 'active' : ''}" do %>
+        Resolved <span class="badge text-bg-success ms-1"><%= @status_counts[:resolved] %></span>
+      <% end %>
+    </li>
+  </ul>
+</div>
+
 <div class="card shadow-sm border-0 mb-4">
   <div class="card-body">
     <div class="d-flex gap-2">
@@ -26,6 +52,7 @@
         <tr>
           <th scope="col">Date</th>
           <th scope="col">Subject</th>
+          <th scope="col">Status</th>
           <th scope="col">Type</th>
           <th scope="col">Reporter</th>
           <th scope="col">Involved Members</th>
@@ -37,11 +64,21 @@
               data-search-text="<%= [
                 report.subject,
                 report.incident_type_display,
+                report.status_display,
                 report.reporter&.display_name,
                 report.involved_members.map(&:display_name).join(' ')
               ].compact.join(' ').downcase %>">
             <td><%= report.incident_date.strftime('%Y-%m-%d') %></td>
             <td class="fw-semibold"><%= link_to report.subject, incident_report_path(report) %></td>
+            <td>
+              <% status_class = case report.status
+                                when 'draft' then 'secondary'
+                                when 'in_progress' then 'warning'
+                                when 'resolved' then 'success'
+                                else 'secondary'
+                                end %>
+              <span class="badge text-bg-<%= status_class %>"><%= report.status_display %></span>
+            </td>
             <td>
               <span class="badge text-bg-<%= incident_type_badge_class(report.incident_type) %>">
                 <%= report.incident_type_display %>

@@ -23,6 +23,14 @@
   </div>
 
   <div>
+    <%= f.label :status, class: "form-label" %>
+    <%= f.select :status, 
+        options_for_select(IncidentReport::STATUSES, @incident_report.status),
+        {},
+        { class: "form-select" } %>
+  </div>
+
+  <div>
     <%= f.label :involved_member_ids, "Involved Members", class: "form-label" %>
     <div class="form-text mb-2">Select any members involved in this incident. Leave empty if only non-members were involved.</div>
     
@@ -71,6 +79,12 @@
   <div>
     <%= f.label :description, class: "form-label" %>
     <%= f.text_area :description, class: "form-control", rows: 6, placeholder: "Detailed description of the incident..." %>
+  </div>
+
+  <div>
+    <%= f.label :resolution, class: "form-label" %>
+    <%= f.text_area :resolution, class: "form-control", rows: 4, placeholder: "How was this incident resolved? (Optional - can be filled in later)" %>
+    <div class="form-text">Document any actions taken, outcomes, or follow-up required.</div>
   </div>
 
   <div>

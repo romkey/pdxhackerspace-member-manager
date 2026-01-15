@@ -5,7 +5,16 @@
 <div class="card shadow-sm border-0">
   <div class="card-body">
     <div class="d-flex justify-content-between align-items-start mb-3">
-      <h1 class="h4 mb-0"><%= @incident_report.subject %></h1>
+      <div>
+        <h1 class="h4 mb-1"><%= @incident_report.subject %></h1>
+        <% status_class = case @incident_report.status
+                          when 'draft' then 'secondary'
+                          when 'in_progress' then 'warning'
+                          when 'resolved' then 'success'
+                          else 'secondary'
+                          end %>
+        <span class="badge text-bg-<%= status_class %>"><%= @incident_report.status_display %></span>
+      </div>
       <div class="d-flex gap-2">
         <%= link_to "Edit", edit_incident_report_path(@incident_report), class: "btn btn-outline-primary btn-sm" %>
         <%= button_to "Delete", incident_report_path(@incident_report), method: :delete, 
@@ -58,6 +67,17 @@
         <% end %>
       </dd>
 
+      <dt class="col-sm-3 text-secondary">Resolution</dt>
+      <dd class="col-sm-9">
+        <% if @incident_report.resolution.present? %>
+          <div class="bg-success-subtle rounded p-3">
+            <%= simple_format(@incident_report.resolution) %>
+          </div>
+        <% else %>
+          <span class="text-muted fst-italic">Not yet resolved</span>
+        <% end %>
+      </dd>
+
       <% if @incident_report.photos.attached? %>
         <dt class="col-sm-3 text-secondary">Photos</dt>
         <dd class="col-sm-9">
@@ -77,6 +97,50 @@
           </div>
         </dd>
       <% end %>
+
+      <dt class="col-sm-3 text-secondary">Links</dt>
+      <dd class="col-sm-9">
+        <% if @incident_report.links.any? %>
+          <ul class="list-unstyled mb-2">
+            <% @incident_report.links.ordered.each do |link| %>
+              <li class="d-flex align-items-center gap-2 mb-1">
+                <i class="bi bi-link-45deg text-muted"></i>
+                <%= link_to link.title, link.url, target: '_blank', rel: 'noopener', class: "text-decoration-none" %>
+                <%= button_to remove_link_incident_report_path(@incident_report, link_id: link.id), 
+                    method: :delete, 
+                    class: "btn btn-sm btn-outline-danger py-0 px-1",
+                    data: { turbo_confirm: "Remove this link?" } do %>
+                  <i class="bi bi-x"></i>
+                <% end %>
+              </li>
+            <% end %>
+          </ul>
+        <% else %>
+          <span class="text-muted fst-italic mb-2 d-block">No links added</span>
+        <% end %>
+
+        <!-- Add Link Form -->
+        <div class="mt-2">
+          <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#addLinkForm">
+            <i class="bi bi-plus me-1"></i>Add Link
+          </button>
+          <div class="collapse mt-2" id="addLinkForm">
+            <%= form_with url: add_link_incident_report_path(@incident_report), method: :post, local: true, class: "card card-body bg-body-tertiary" do %>
+              <div class="row g-2">
+                <div class="col-md-4">
+                  <input type="text" name="incident_report_link[title]" class="form-control form-control-sm" placeholder="Link title" required>
+                </div>
+                <div class="col-md-6">
+                  <input type="url" name="incident_report_link[url]" class="form-control form-control-sm" placeholder="https://..." required>
+                </div>
+                <div class="col-md-2">
+                  <button type="submit" class="btn btn-primary btn-sm w-100">Add</button>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </dd>
 
       <dt class="col-sm-3 text-secondary">Created</dt>
       <dd class="col-sm-9"><%= l(@incident_report.created_at, format: :long) %></dd>
