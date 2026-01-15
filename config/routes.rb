@@ -148,6 +148,12 @@ Rails.application.routes.draw do
       post :seed
     end
   end
+
+  resources :access_controllers do
+    member do
+      post :toggle
+    end
+  end
   
   resources :incident_reports do
     member do

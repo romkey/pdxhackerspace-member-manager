@@ -1,0 +1,53 @@
+class AccessController < ApplicationRecord
+  SYNC_STATUSES = %w[unknown success failed syncing].freeze
+
+  validates :name, presence: true, uniqueness: true
+  validates :hostname, presence: true
+  validates :sync_status, inclusion: { in: SYNC_STATUSES }
+
+  scope :enabled, -> { where(enabled: true) }
+  scope :ordered, -> { order(:display_order, :name) }
+
+  # Record a successful sync
+  def record_sync_success!(message = nil)
+    update!(
+      last_sync_at: Time.current,
+      sync_status: 'success',
+      last_sync_message: message
+    )
+  end
+
+  # Record a failed sync
+  def record_sync_failure!(message)
+    update!(
+      last_sync_at: Time.current,
+      sync_status: 'failed',
+      last_sync_message: message.to_s.truncate(500)
+    )
+  end
+
+  # Mark as syncing (in progress)
+  def mark_syncing!
+    update!(sync_status: 'syncing')
+  end
+
+  # Human-readable status
+  def status_label
+    case sync_status
+    when 'success' then 'Success'
+    when 'failed' then 'Failed'
+    when 'syncing' then 'Syncing...'
+    else 'Unknown'
+    end
+  end
+
+  # Status badge class for UI
+  def status_badge_class
+    case sync_status
+    when 'success' then 'success'
+    when 'failed' then 'danger'
+    when 'syncing' then 'info'
+    else 'secondary'
+    end
+  end
+end

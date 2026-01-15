@@ -1,0 +1,48 @@
+<%= form_with model: @access_controller, local: true do |f| %>
+  <% if @access_controller.errors.any? %>
+    <div class="alert alert-danger">
+      <h5 class="alert-heading">Please fix the following errors:</h5>
+      <ul class="mb-0">
+        <% @access_controller.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="mb-3">
+    <%= f.label :name, class: "form-label" %>
+    <%= f.text_field :name, class: "form-control", required: true, placeholder: "e.g., Front Door, Shop Access" %>
+    <div class="form-text">A unique name to identify this access controller.</div>
+  </div>
+
+  <div class="mb-3">
+    <%= f.label :hostname, "Hostname / IP Address", class: "form-label" %>
+    <%= f.text_field :hostname, class: "form-control", required: true, placeholder: "e.g., 192.168.1.100 or door1.local" %>
+    <div class="form-text">The IP address or domain name used to connect via SSH.</div>
+  </div>
+
+  <div class="mb-3">
+    <%= f.label :description, class: "form-label" %>
+    <%= f.text_area :description, class: "form-control", rows: 3, placeholder: "Optional description or notes about this controller..." %>
+  </div>
+
+  <div class="mb-3">
+    <%= f.label :display_order, class: "form-label" %>
+    <%= f.number_field :display_order, class: "form-control", min: 0, style: "max-width: 100px;" %>
+    <div class="form-text">Lower numbers appear first in lists.</div>
+  </div>
+
+  <div class="mb-4">
+    <div class="form-check">
+      <%= f.check_box :enabled, class: "form-check-input" %>
+      <%= f.label :enabled, "Enabled", class: "form-check-label" %>
+    </div>
+    <div class="form-text">Disabled controllers will not receive RFID key updates.</div>
+  </div>
+
+  <div class="d-flex gap-2">
+    <%= f.submit @access_controller.persisted? ? "Update" : "Create", class: "btn btn-primary" %>
+    <%= link_to "Cancel", access_controllers_path, class: "btn btn-outline-secondary" %>
+  </div>
+<% end %>

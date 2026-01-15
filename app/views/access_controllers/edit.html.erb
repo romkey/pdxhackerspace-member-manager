@@ -1,0 +1,52 @@
+<div class="mb-4">
+  <%= link_to "&larr; Back to Access Controllers".html_safe, access_controllers_path, class: "text-decoration-none" %>
+</div>
+
+<div class="row">
+  <div class="col-lg-8">
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <h1 class="h4 mb-4">Edit Access Controller</h1>
+        <%= render "form" %>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-light">
+        <h5 class="card-title mb-0">Sync Status</h5>
+      </div>
+      <div class="card-body">
+        <dl class="mb-0">
+          <dt>Status</dt>
+          <dd>
+            <span class="badge text-bg-<%= @access_controller.status_badge_class %>">
+              <%= @access_controller.status_label %>
+            </span>
+          </dd>
+
+          <dt>Last Sync</dt>
+          <dd>
+            <% if @access_controller.last_sync_at %>
+              <%= l(@access_controller.last_sync_at, format: :long) %>
+              <br><span class="text-muted small">(<%= time_ago_in_words(@access_controller.last_sync_at) %> ago)</span>
+            <% else %>
+              <span class="text-muted">Never synced</span>
+            <% end %>
+          </dd>
+
+          <% if @access_controller.last_sync_message.present? %>
+            <dt>Last Message</dt>
+            <dd class="<%= 'text-danger' if @access_controller.sync_status == 'failed' %>">
+              <%= @access_controller.last_sync_message %>
+            </dd>
+          <% end %>
+
+          <dt>Created</dt>
+          <dd><%= l(@access_controller.created_at, format: :long) %></dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>
