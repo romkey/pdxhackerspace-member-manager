@@ -24,19 +24,19 @@ Sidekiq.configure_server do |config|
   # Schedule recurring jobs (only runs in Sidekiq server process)
   queue_name = Rails.env.production? ? "#{Rails.application.config.active_job.queue_name_prefix}_default" : 'default'
   
-  # PayPal Payment Sync - Daily at 7am
+  # PayPal Payment Sync - Daily at 6am
   Sidekiq::Cron::Job.create(
-    name: 'PayPal Payment Sync - Daily at 7am',
-    cron: '0 7 * * *',
+    name: 'PayPal Payment Sync - Daily at 6am',
+    cron: '0 6 * * *',
     class: 'Paypal::PaymentSyncJob',
     queue: queue_name,
     active_job: true
   )
   
-  # Recharge Payment Sync - Daily at 7am
+  # Recharge Payment Sync - Daily at 6am
   Sidekiq::Cron::Job.create(
-    name: 'Recharge Payment Sync - Daily at 7am',
-    cron: '0 7 * * *',
+    name: 'Recharge Payment Sync - Daily at 6am',
+    cron: '0 6 * * *',
     class: 'Recharge::PaymentSyncJob',
     queue: queue_name,
     active_job: true
