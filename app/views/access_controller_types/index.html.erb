@@ -1,0 +1,71 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">Access Controller Types</h1>
+    <p class="text-muted mb-0">Manage controller types and SSH script configuration.</p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to "New Access Controller Type", new_access_controller_type_path, class: "btn btn-primary" %>
+    <%= link_to "Back to Settings", settings_path, class: "btn btn-secondary" %>
+  </div>
+</div>
+
+<% if @access_controller_types.any? %>
+  <div class="card shadow-sm border-0">
+    <div class="table-responsive">
+      <table class="table mb-0 align-middle">
+        <thead class="bg-body-tertiary">
+          <tr>
+            <th scope="col">Name</th>
+            <th scope="col">Script Path</th>
+            <th scope="col">ACCESS_TOKEN</th>
+            <th scope="col">Enabled</th>
+            <th scope="col" class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @access_controller_types.each do |type| %>
+            <tr class="<%= 'table-secondary' unless type.enabled? %>">
+              <td><strong><%= type.name %></strong></td>
+              <td><code><%= type.script_path %></code></td>
+              <td>
+                <% if type.access_token.present? %>
+                  <span class="badge text-bg-success">Set</span>
+                <% else %>
+                  <span class="text-muted">Not set</span>
+                <% end %>
+              </td>
+              <td>
+                <% if type.enabled? %>
+                  <span class="badge text-bg-success">Enabled</span>
+                <% else %>
+                  <span class="badge text-bg-secondary">Disabled</span>
+                <% end %>
+              </td>
+              <td class="text-end">
+                <div class="btn-group btn-group-sm">
+                  <%= link_to "Edit", edit_access_controller_type_path(type), class: "btn btn-outline-secondary" %>
+                  <%= button_to type.enabled? ? "Disable" : "Enable",
+                      toggle_access_controller_type_path(type),
+                      method: :post,
+                      class: "btn btn-outline-#{type.enabled? ? 'warning' : 'success'}" %>
+                  <%= button_to "Delete", access_controller_type_path(type),
+                      method: :delete,
+                      class: "btn btn-outline-danger",
+                      data: { turbo_confirm: "Delete access controller type '#{type.name}'?" } %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% else %>
+  <div class="card shadow-sm border-0">
+    <div class="card-body text-center py-5">
+      <i class="bi bi-gear display-4 text-muted mb-3 d-block"></i>
+      <p class="text-muted mb-3">No access controller types configured yet.</p>
+      <%= link_to "Add Your First Type", new_access_controller_type_path, class: "btn btn-primary" %>
+    </div>
+  </div>
+<% end %>

@@ -1,13 +1,21 @@
 class AccessControllerTypesController < AdminController
   before_action :set_access_controller_type, only: [:edit, :update, :destroy, :toggle]
 
+  def index
+    @access_controller_types = AccessControllerType.ordered
+  end
+
+  def new
+    @access_controller_type = AccessControllerType.new
+  end
+
   def create
     @access_controller_type = AccessControllerType.new(access_controller_type_params)
 
     if @access_controller_type.save
-      redirect_to access_controllers_path, notice: "Access controller type '#{@access_controller_type.name}' created."
+      redirect_to access_controller_types_path, notice: "Access controller type '#{@access_controller_type.name}' created."
     else
-      redirect_to access_controllers_path, alert: @access_controller_type.errors.full_messages.to_sentence
+      render :new, status: :unprocessable_entity
     end
   end
 
@@ -15,7 +23,7 @@ class AccessControllerTypesController < AdminController
 
   def update
     if @access_controller_type.update(access_controller_type_params)
-      redirect_to access_controllers_path, notice: "Access controller type '#{@access_controller_type.name}' updated."
+      redirect_to access_controller_types_path, notice: "Access controller type '#{@access_controller_type.name}' updated."
     else
       render :edit, status: :unprocessable_entity
     end
@@ -24,16 +32,16 @@ class AccessControllerTypesController < AdminController
   def destroy
     name = @access_controller_type.name
     if @access_controller_type.destroy
-      redirect_to access_controllers_path, notice: "Access controller type '#{name}' deleted."
+      redirect_to access_controller_types_path, notice: "Access controller type '#{name}' deleted."
     else
-      redirect_to access_controllers_path, alert: @access_controller_type.errors.full_messages.to_sentence
+      redirect_to access_controller_types_path, alert: @access_controller_type.errors.full_messages.to_sentence
     end
   end
 
   def toggle
     @access_controller_type.update!(enabled: !@access_controller_type.enabled)
     status = @access_controller_type.enabled? ? 'enabled' : 'disabled'
-    redirect_to access_controllers_path, notice: "Access controller type '#{@access_controller_type.name}' #{status}."
+    redirect_to access_controller_types_path, notice: "Access controller type '#{@access_controller_type.name}' #{status}."
   end
 
   private

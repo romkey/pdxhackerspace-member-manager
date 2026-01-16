@@ -3,8 +3,6 @@ class AccessControllersController < AdminController
 
   def index
     @access_controllers = AccessController.includes(:access_controller_type).ordered
-    @access_controller_types = AccessControllerType.ordered
-    @new_access_controller_type = AccessControllerType.new
   end
 
   def show; end
