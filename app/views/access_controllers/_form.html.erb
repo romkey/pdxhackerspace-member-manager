@@ -23,6 +23,22 @@
   </div>
 
   <div class="mb-3">
+    <%= f.label :access_controller_type_id, "Controller Type", class: "form-label" %>
+    <% if @access_controller_types.present? %>
+      <%= f.collection_select :access_controller_type_id,
+          @access_controller_types,
+          :id,
+          :name,
+          { prompt: "Select a type..." },
+          { class: "form-select", required: true } %>
+      <div class="form-text">Select the controller type (defines the SSH script path and token).</div>
+    <% else %>
+      <div class="alert alert-warning mb-2">No access controller types exist yet. Create a type first.</div>
+      <%= f.select :access_controller_type_id, [], {}, class: "form-select", disabled: true %>
+    <% end %>
+  </div>
+
+  <div class="mb-3">
     <%= f.label :description, class: "form-label" %>
     <%= f.text_area :description, class: "form-control", rows: 3, placeholder: "Optional description or notes about this controller..." %>
   </div>

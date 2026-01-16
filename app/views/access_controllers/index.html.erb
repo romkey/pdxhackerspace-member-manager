@@ -9,82 +9,165 @@
   </div>
 </div>
 
-<% if @access_controllers.any? %>
-  <div class="card shadow-sm border-0">
-    <div class="table-responsive">
-      <table class="table mb-0 align-middle">
-        <thead class="bg-body-tertiary">
-          <tr>
-            <th scope="col">Name</th>
-            <th scope="col">Hostname</th>
-            <th scope="col">Status</th>
-            <th scope="col">Last Sync</th>
-            <th scope="col">Enabled</th>
-            <th scope="col" class="text-end">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% @access_controllers.each do |controller| %>
-            <tr class="<%= 'table-secondary' unless controller.enabled? %>">
-              <td>
-                <strong><%= controller.name %></strong>
-                <% if controller.description.present? %>
-                  <br><span class="text-muted small"><%= truncate(controller.description, length: 60) %></span>
-                <% end %>
-              </td>
-              <td><code><%= controller.hostname %></code></td>
-              <td>
-                <span class="badge text-bg-<%= controller.status_badge_class %>">
-                  <%= controller.status_label %>
-                </span>
-                <% if controller.last_sync_message.present? && controller.sync_status == 'failed' %>
-                  <i class="bi bi-info-circle text-danger ms-1" 
-                     data-bs-toggle="tooltip" 
-                     title="<%= controller.last_sync_message %>"></i>
-                <% end %>
-              </td>
-              <td>
-                <% if controller.last_sync_at %>
-                  <%= time_ago_in_words(controller.last_sync_at) %> ago
-                <% else %>
-                  <span class="text-muted">Never</span>
-                <% end %>
-              </td>
-              <td>
-                <% if controller.enabled? %>
-                  <span class="badge text-bg-success">Enabled</span>
-                <% else %>
-                  <span class="badge text-bg-secondary">Disabled</span>
-                <% end %>
-              </td>
-              <td class="text-end">
-                <div class="btn-group btn-group-sm">
-                  <%= link_to "Edit", edit_access_controller_path(controller), class: "btn btn-outline-secondary" %>
-                  <%= button_to controller.enabled? ? "Disable" : "Enable",
-                      toggle_access_controller_path(controller),
-                      method: :post,
-                      class: "btn btn-outline-#{controller.enabled? ? 'warning' : 'success'}" %>
-                  <%= button_to "Delete", access_controller_path(controller),
-                      method: :delete,
-                      class: "btn btn-outline-danger",
-                      data: { turbo_confirm: "Are you sure you want to delete '#{controller.name}'?" } %>
+<div class="row g-4">
+  <div class="col-lg-8">
+    <% if @access_controllers.any? %>
+      <div class="card shadow-sm border-0">
+        <div class="table-responsive">
+          <table class="table mb-0 align-middle">
+            <thead class="bg-body-tertiary">
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Hostname</th>
+                <th scope="col">Type</th>
+                <th scope="col">Status</th>
+                <th scope="col">Last Sync</th>
+                <th scope="col">Enabled</th>
+                <th scope="col" class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @access_controllers.each do |controller| %>
+                <tr class="<%= 'table-secondary' unless controller.enabled? %>">
+                  <td>
+                    <strong><%= controller.name %></strong>
+                    <% if controller.description.present? %>
+                      <br><span class="text-muted small"><%= truncate(controller.description, length: 60) %></span>
+                    <% end %>
+                  </td>
+                  <td><code><%= controller.hostname %></code></td>
+                  <td>
+                    <% if controller.access_controller_type %>
+                      <span class="badge text-bg-info"><%= controller.access_controller_type.name %></span>
+                    <% else %>
+                      <span class="text-muted">—</span>
+                    <% end %>
+                  </td>
+                  <td>
+                    <span class="badge text-bg-<%= controller.status_badge_class %>">
+                      <%= controller.status_label %>
+                    </span>
+                    <% if controller.last_sync_message.present? && controller.sync_status == 'failed' %>
+                      <i class="bi bi-info-circle text-danger ms-1" 
+                         data-bs-toggle="tooltip" 
+                         title="<%= controller.last_sync_message %>"></i>
+                    <% end %>
+                  </td>
+                  <td>
+                    <% if controller.last_sync_at %>
+                      <%= time_ago_in_words(controller.last_sync_at) %> ago
+                    <% else %>
+                      <span class="text-muted">Never</span>
+                    <% end %>
+                  </td>
+                  <td>
+                    <% if controller.enabled? %>
+                      <span class="badge text-bg-success">Enabled</span>
+                    <% else %>
+                      <span class="badge text-bg-secondary">Disabled</span>
+                    <% end %>
+                  </td>
+                  <td class="text-end">
+                    <div class="btn-group btn-group-sm">
+                      <%= link_to "Edit", edit_access_controller_path(controller), class: "btn btn-outline-secondary" %>
+                      <%= button_to controller.enabled? ? "Disable" : "Enable",
+                          toggle_access_controller_path(controller),
+                          method: :post,
+                          class: "btn btn-outline-#{controller.enabled? ? 'warning' : 'success'}" %>
+                      <%= button_to "Delete", access_controller_path(controller),
+                          method: :delete,
+                          class: "btn btn-outline-danger",
+                          data: { turbo_confirm: "Are you sure you want to delete '#{controller.name}'?" } %>
+                    </div>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% else %>
+      <div class="card shadow-sm border-0">
+        <div class="card-body text-center py-5">
+          <i class="bi bi-router display-4 text-muted mb-3 d-block"></i>
+          <p class="text-muted mb-3">No access controllers configured yet.</p>
+          <%= link_to "Add Your First Access Controller", new_access_controller_path, class: "btn btn-primary" %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Access Controller Types</h5>
+      </div>
+      <div class="card-body">
+        <% if @access_controller_types.any? %>
+          <div class="list-group mb-3">
+            <% @access_controller_types.each do |type| %>
+              <div class="list-group-item">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <strong><%= type.name %></strong>
+                    <% unless type.enabled? %>
+                      <span class="badge text-bg-secondary ms-1">Disabled</span>
+                    <% end %>
+                    <div class="text-muted small mt-1"><code><%= type.script_path %></code></div>
+                    <% if type.access_token.present? %>
+                      <div class="text-muted small">ACCESS_TOKEN set</div>
+                    <% else %>
+                      <div class="text-muted small">No ACCESS_TOKEN</div>
+                    <% end %>
+                  </div>
+                  <div class="btn-group btn-group-sm">
+                    <%= link_to "Edit", edit_access_controller_type_path(type), class: "btn btn-outline-secondary" %>
+                    <%= button_to type.enabled? ? "Disable" : "Enable",
+                        toggle_access_controller_type_path(type),
+                        method: :post,
+                        class: "btn btn-outline-#{type.enabled? ? 'warning' : 'success'}" %>
+                    <%= button_to "Delete", access_controller_type_path(type),
+                        method: :delete,
+                        class: "btn btn-outline-danger",
+                        data: { turbo_confirm: "Delete access controller type '#{type.name}'?" } %>
+                  </div>
                 </div>
-              </td>
-            </tr>
-          <% end %>
-        </tbody>
-      </table>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <p class="text-muted">No access controller types yet.</p>
+        <% end %>
+
+        <hr>
+
+        <h6 class="mb-3">Add New Type</h6>
+        <%= form_with model: @new_access_controller_type, url: access_controller_types_path, local: true do |f| %>
+          <div class="mb-2">
+            <%= f.label :name, class: "form-label small" %>
+            <%= f.text_field :name, class: "form-control form-control-sm", required: true %>
+          </div>
+          <div class="mb-2">
+            <%= f.label :script_path, "Script Path", class: "form-label small" %>
+            <%= f.text_field :script_path, class: "form-control form-control-sm", required: true, placeholder: "/opt/access/update_keys.sh" %>
+          </div>
+          <div class="mb-2">
+            <%= f.label :access_token, "Access Token (optional)", class: "form-label small" %>
+            <%= f.text_field :access_token, class: "form-control form-control-sm", placeholder: "Will be passed as ACCESS_TOKEN" %>
+            <div class="form-text">If set, the token will be passed via ENV as ACCESS_TOKEN.</div>
+          </div>
+          <div class="mb-3">
+            <div class="form-check">
+              <%= f.check_box :enabled, class: "form-check-input", checked: true %>
+              <%= f.label :enabled, "Enabled", class: "form-check-label" %>
+            </div>
+          </div>
+          <%= f.submit "Create Type", class: "btn btn-primary btn-sm w-100" %>
+        <% end %>
+      </div>
     </div>
   </div>
-<% else %>
-  <div class="card shadow-sm border-0">
-    <div class="card-body text-center py-5">
-      <i class="bi bi-router display-4 text-muted mb-3 d-block"></i>
-      <p class="text-muted mb-3">No access controllers configured yet.</p>
-      <%= link_to "Add Your First Access Controller", new_access_controller_path, class: "btn btn-primary" %>
-    </div>
-  </div>
-<% end %>
+</div>
 
 <script>
   // Initialize Bootstrap tooltips

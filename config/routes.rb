@@ -154,6 +154,12 @@ Rails.application.routes.draw do
       post :toggle
     end
   end
+
+  resources :access_controller_types, only: [:create, :edit, :update, :destroy] do
+    member do
+      post :toggle
+    end
+  end
   
   resources :incident_reports do
     member do

@@ -10,9 +10,20 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_01_15_010000) do
+ActiveRecord::Schema[7.1].define(version: 2026_01_15_020002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "access_controller_types", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "script_path", null: false
+    t.string "access_token"
+    t.boolean "enabled", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["enabled"], name: "index_access_controller_types_on_enabled"
+    t.index ["name"], name: "index_access_controller_types_on_name", unique: true
+  end
 
   create_table "access_controllers", force: :cascade do |t|
     t.string "name", null: false
@@ -25,6 +36,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_15_010000) do
     t.integer "display_order", default: 0
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "access_controller_type_id"
+    t.index ["access_controller_type_id"], name: "index_access_controllers_on_access_controller_type_id"
     t.index ["enabled"], name: "index_access_controllers_on_enabled"
     t.index ["hostname"], name: "index_access_controllers_on_hostname"
     t.index ["name"], name: "index_access_controllers_on_name", unique: true
@@ -480,6 +493,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_15_010000) do
     t.index ["username"], name: "index_users_on_username"
   end
 
+  add_foreign_key "access_controllers", "access_controller_types"
   add_foreign_key "access_logs", "users"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
