@@ -154,6 +154,10 @@ Rails.application.routes.draw do
   resources :access_controllers do
     member do
       post :toggle
+      post :sync
+    end
+    collection do
+      post :sync_all
     end
   end
 

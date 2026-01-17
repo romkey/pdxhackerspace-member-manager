@@ -1,5 +1,5 @@
 class AccessControllersController < AdminController
-  before_action :set_access_controller, only: [:show, :edit, :update, :destroy, :toggle]
+  before_action :set_access_controller, only: [:show, :edit, :update, :destroy, :toggle, :sync]
 
   def index
     @access_controllers = AccessController.includes(:access_controller_type).ordered
@@ -46,6 +46,21 @@ class AccessControllersController < AdminController
     @access_controller.update!(enabled: !@access_controller.enabled)
     status = @access_controller.enabled? ? 'enabled' : 'disabled'
     redirect_to access_controllers_path, notice: "Access controller '#{@access_controller.name}' #{status}."
+  end
+
+  def sync
+    if @access_controller.enabled?
+      AccessControllerSyncJob.perform_later(@access_controller.id)
+      redirect_to access_controllers_path, notice: "Sync started for '#{@access_controller.name}'."
+    else
+      redirect_to access_controllers_path, alert: "Access controller '#{@access_controller.name}' is disabled."
+    end
+  end
+
+  def sync_all
+    enabled = AccessController.enabled
+    enabled.find_each { |controller| AccessControllerSyncJob.perform_later(controller.id) }
+    redirect_to access_controllers_path, notice: "Sync started for #{enabled.count} access controller(s)."
   end
 
   private
