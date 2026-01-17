@@ -10,6 +10,11 @@ class SlackUsersController < AdminController
     user_names = User.where.not(full_name: nil).pluck(:full_name)
     @shared_email_count = SlackUser.where(email: user_emails).count
     @shared_name_count = SlackUser.where(real_name: user_names).or(SlackUser.where(display_name: user_names)).count
+    @admin_count = scope.where(is_admin: true).count
+    @bot_count = scope.where(is_bot: true).count
+    @deactivated_count = scope.where(deleted: true).count
+    inactive_threshold = 1.year.ago
+    @inactive_count = scope.where('last_active_at IS NULL OR last_active_at < ?', inactive_threshold).count
   end
 
   def show

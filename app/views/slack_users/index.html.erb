@@ -6,6 +6,12 @@
       <strong><%= @shared_email_count %></strong> share emails and
       <strong><%= @shared_name_count %></strong> share names with Authentik users
     </p>
+    <p class="text-muted mb-0">
+      <strong><%= @admin_count %></strong> admins —
+      <strong><%= @bot_count %></strong> bots —
+      <strong><%= @deactivated_count %></strong> deactivated —
+      <strong><%= @inactive_count %></strong> inactive (no activity in last year)
+    </p>
   </div>
   <div class="d-flex gap-2">
     <%= button_to "Sync Slack users", sync_slack_users_path, method: :post, class: "btn btn-primary", data: { turbo: false } %>
