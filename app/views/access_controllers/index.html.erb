@@ -27,7 +27,7 @@
         </thead>
         <tbody>
           <% @access_controllers.each do |controller| %>
-            <tr class="<%= 'table-secondary' unless controller.enabled? %>">
+            <tr class="<%= 'text-body-secondary opacity-75' unless controller.enabled? %>">
               <td>
                 <strong><%= controller.name %></strong>
                 <% if controller.description.present? %>

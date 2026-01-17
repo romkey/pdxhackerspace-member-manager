@@ -1,5 +1,5 @@
 class AccessLog < ApplicationRecord
   belongs_to :user, optional: true
 
-  scope :recent, -> { order(logged_at: :desc) }
+  scope :recent, -> { where.not(logged_at: nil).order(logged_at: :desc) }
 end
