@@ -10,6 +10,64 @@
   <div class="d-flex gap-2">
     <%= button_to "Sync Slack users", sync_slack_users_path, method: :post, class: "btn btn-primary", data: { turbo: false } %>
     <%= button_to "Sync to Users", sync_to_users_slack_users_path, method: :post, class: "btn btn-outline-primary", data: { turbo: false } %>
+    <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#importSlackMembersModal">Import Members</button>
+    <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#importSlackAnalyticsModal">Import Analytics</button>
+  </div>
+</div>
+
+<!-- Import Members Modal -->
+<div class="modal fade" id="importSlackMembersModal" tabindex="-1" aria-labelledby="importSlackMembersModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="importSlackMembersModalLabel">Import Slack Members from CSV</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <%= form_with url: import_members_slack_users_path, method: :post, multipart: true, local: true do |f| %>
+        <div class="modal-body">
+          <p class="text-muted mb-2">Select the Slack CSV export for members. Expected columns:</p>
+          <code class="d-block mb-3">username,email,status,billing-active,has-2fa,has-sso,userid,fullname,displayname,expiration-timestamp</code>
+          <div class="mb-3">
+            <%= f.file_field :file, accept: '.csv,text/csv', class: "form-control", required: true %>
+          </div>
+          <div class="alert alert-warning mb-0">
+            <strong>Note:</strong> Users are matched by <code>userid</code>. Existing Slack users will be updated.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <%= f.submit "Import CSV", class: "btn btn-success" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<!-- Import Analytics Modal -->
+<div class="modal fade" id="importSlackAnalyticsModal" tabindex="-1" aria-labelledby="importSlackAnalyticsModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="importSlackAnalyticsModalLabel">Import Slack Analytics from CSV</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <%= form_with url: import_analytics_slack_users_path, method: :post, multipart: true, local: true do |f| %>
+        <div class="modal-body">
+          <p class="text-muted mb-2">Select the Slack analytics CSV export. Expected headers:</p>
+          <code class="d-block mb-3">Name,What I Do,User ID,Username,Display name,Email,Account type,Account created (UTC),Days active,Days active (Desktop),Days active (Android),Days active (iOS),Messages posted,Last active (UTC),Last active (Desktop) (UTC),Last active (Android) (UTC),Last active (iOS) (UTC)</code>
+          <div class="mb-3">
+            <%= f.file_field :file, accept: '.csv,text/csv', class: "form-control", required: true %>
+          </div>
+          <div class="alert alert-warning mb-0">
+            <strong>Note:</strong> Rows are matched by <code>User ID</code> or <code>Username</code>. <code>Last active (UTC)</code> is stored as midnight UTC for that date.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <%= f.submit "Import CSV", class: "btn btn-success" %>
+        </div>
+      <% end %>
+    </div>
   </div>
 </div>
 

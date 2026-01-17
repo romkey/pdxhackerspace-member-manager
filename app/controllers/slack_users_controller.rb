@@ -1,3 +1,5 @@
+require 'csv'
+
 class SlackUsersController < AdminController
   def index
     @show_bots = ActiveModel::Type::Boolean.new.cast(params[:show_bots])
@@ -156,5 +158,40 @@ class SlackUsersController < AdminController
              end
 
     redirect_to slack_users_path, notice: notice
+  end
+
+  def import_members
+    if params[:file].blank?
+      redirect_to slack_users_path, alert: 'Please choose a CSV file to import.'
+      return
+    end
+
+    counts = Slack::CsvMemberImporter.new.call(params[:file])
+
+    parts = []
+    parts << "#{counts[:imported]} imported"
+    parts << "#{counts[:updated]} updated"
+    parts << "#{counts[:skipped]} skipped" if counts[:skipped].positive?
+
+    redirect_to slack_users_path, notice: "Import complete: #{parts.join(', ')}."
+  rescue CSV::MalformedCSVError => e
+    redirect_to slack_users_path, alert: "Invalid CSV: #{e.message}"
+  end
+
+  def import_analytics
+    if params[:file].blank?
+      redirect_to slack_users_path, alert: 'Please choose a CSV file to import.'
+      return
+    end
+
+    counts = Slack::CsvAnalyticsImporter.new.call(params[:file])
+
+    parts = []
+    parts << "#{counts[:updated]} updated"
+    parts << "#{counts[:skipped]} skipped" if counts[:skipped].positive?
+
+    redirect_to slack_users_path, notice: "Analytics import complete: #{parts.join(', ')}."
+  rescue CSV::MalformedCSVError => e
+    redirect_to slack_users_path, alert: "Invalid CSV: #{e.message}"
   end
 end

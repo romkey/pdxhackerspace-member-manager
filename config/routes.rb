@@ -39,6 +39,8 @@ Rails.application.routes.draw do
     collection do
       post :sync
       post :sync_to_users
+      post :import_members
+      post :import_analytics
     end
     member do
       post :link_user
