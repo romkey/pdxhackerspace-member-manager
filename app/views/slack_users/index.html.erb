@@ -16,7 +16,7 @@
   </div>
   <div class="d-flex gap-2">
     <%= button_to "Sync Slack users", sync_slack_users_path, method: :post, class: "btn btn-primary", data: { turbo: false } %>
-    <%= button_to "Sync to Users", sync_to_users_slack_users_path, method: :post, class: "btn btn-outline-primary", data: { turbo: false } %>
+    <%= button_to "Sync to Members", sync_to_users_slack_users_path, method: :post, class: "btn btn-outline-primary", data: { turbo: false } %>
     <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#importSlackMembersModal">Import Members</button>
     <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#importSlackAnalyticsModal">Import Analytics</button>
   </div>
