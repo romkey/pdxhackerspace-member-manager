@@ -15,6 +15,7 @@ class SlackUsersController < AdminController
     @deactivated_count = scope.where(deleted: true).count
     inactive_threshold = 1.year.ago
     @inactive_count = scope.where('last_active_at IS NULL OR last_active_at < ?', inactive_threshold).count
+    @active_count = scope.where(deleted: false).where('last_active_at >= ?', inactive_threshold).count
   end
 
   def show
