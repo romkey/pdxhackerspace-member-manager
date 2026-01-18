@@ -84,6 +84,20 @@
                       class: "btn btn-outline-danger",
                       data: { turbo_confirm: "Are you sure you want to delete '#{controller.name}'?" } %>
                 </div>
+                <% verbs = Array(controller.access_controller_type&.verbs).map(&:to_s).reject(&:blank?).uniq.sort %>
+                <% if verbs.any? %>
+                  <div class="mt-2 d-flex flex-wrap gap-1 justify-content-end">
+                    <% verbs.each do |verb| %>
+                      <% tooltip = controller.last_command == verb ? controller.last_command_output : nil %>
+                      <%= button_to verb,
+                          run_verb_access_controller_path(controller, verb: verb),
+                          method: :post,
+                          class: "btn btn-outline-info btn-sm",
+                          data: tooltip.present? ? { bs_toggle: "tooltip", bs_title: tooltip, turbo: false } : { turbo: false },
+                          disabled: !controller.enabled? %>
+                    <% end %>
+                  </div>
+                <% end %>
               </td>
             </tr>
           <% end %>

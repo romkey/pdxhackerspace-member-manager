@@ -45,6 +45,11 @@
               <td class="text-end">
                 <div class="btn-group btn-group-sm">
                   <%= link_to "Edit", edit_access_controller_type_path(type), class: "btn btn-outline-secondary" %>
+                  <%= button_to "Probe",
+                      probe_access_controller_type_path(type),
+                      method: :post,
+                      class: "btn btn-outline-primary",
+                      data: { turbo: false } %>
                   <%= button_to type.enabled? ? "Disable" : "Enable",
                       toggle_access_controller_type_path(type),
                       method: :post,

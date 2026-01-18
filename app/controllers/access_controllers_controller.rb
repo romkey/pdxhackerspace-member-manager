@@ -1,5 +1,5 @@
 class AccessControllersController < AdminController
-  before_action :set_access_controller, only: [:show, :edit, :update, :destroy, :toggle, :sync]
+  before_action :set_access_controller, only: [:show, :edit, :update, :destroy, :toggle, :sync, :run_verb]
 
   def index
     @access_controllers = AccessController.includes(:access_controller_type).ordered
@@ -52,6 +52,23 @@ class AccessControllersController < AdminController
     if @access_controller.enabled?
       AccessControllerSyncJob.perform_later(@access_controller.id)
       redirect_to access_controllers_path, notice: "Sync started for '#{@access_controller.name}'."
+    else
+      redirect_to access_controllers_path, alert: "Access controller '#{@access_controller.name}' is disabled."
+    end
+  end
+
+  def run_verb
+    verb = params[:verb].to_s.strip
+    verbs = Array(@access_controller.access_controller_type&.verbs)
+
+    if verb.blank? || !verbs.include?(verb)
+      redirect_to access_controllers_path, alert: 'Invalid access controller verb.'
+      return
+    end
+
+    if @access_controller.enabled?
+      AccessControllerVerbJob.perform_later(@access_controller.id, verb)
+      redirect_to access_controllers_path, notice: "Command '#{verb}' started for '#{@access_controller.name}'."
     else
       redirect_to access_controllers_path, alert: "Access controller '#{@access_controller.name}' is disabled."
     end

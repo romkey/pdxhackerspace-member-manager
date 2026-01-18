@@ -1,5 +1,5 @@
 class AccessControllerTypesController < AdminController
-  before_action :set_access_controller_type, only: [:edit, :update, :destroy, :toggle]
+  before_action :set_access_controller_type, only: [:edit, :update, :destroy, :toggle, :probe]
 
   def index
     @access_controller_types = AccessControllerType.ordered
@@ -51,6 +51,11 @@ class AccessControllerTypesController < AdminController
       type: 'application/json',
       disposition: 'attachment'
     )
+  end
+
+  def probe
+    AccessControllerProbeJob.perform_later(@access_controller_type.id)
+    redirect_to access_controller_types_path, notice: "Probe started for '#{@access_controller_type.name}'."
   end
 
   private

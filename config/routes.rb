@@ -155,6 +155,7 @@ Rails.application.routes.draw do
     member do
       post :toggle
       post :sync
+      post :run_verb
     end
     collection do
       post :sync_all
@@ -164,6 +165,7 @@ Rails.application.routes.draw do
   resources :access_controller_types, only: [:index, :new, :create, :edit, :update, :destroy] do
     member do
       post :toggle
+      post :probe
     end
     collection do
       get :export_users
