@@ -165,6 +165,9 @@ Rails.application.routes.draw do
     member do
       post :toggle
     end
+    collection do
+      get :export_users
+    end
   end
   
   resources :incident_reports do

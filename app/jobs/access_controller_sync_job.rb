@@ -22,7 +22,7 @@ class AccessControllerSyncJob < ApplicationJob
       return
     end
 
-    payload = build_payload
+    payload = AccessControllerPayloadBuilder.call
     env = build_env(type)
 
     stdout, stderr, status = Open3.capture3(env, script_path, access_controller.hostname, stdin_data: payload)
@@ -39,22 +39,6 @@ class AccessControllerSyncJob < ApplicationJob
   end
 
   private
-
-  def build_payload
-    users = User.active.includes(:rfids, trainings_as_trainee: :training_topic)
-
-    data = users.map do |user|
-      {
-        name: user.full_name.presence || user.display_name,
-        uid: user.authentik_id.presence || user.id,
-        greeting_name: user.greeting_name,
-        rfids: user.rfids.map(&:rfid),
-        permissions: user.trainings_as_trainee.map { |training| training.training_topic&.name }.compact.uniq
-      }
-    end
-
-    JSON.generate(data)
-  end
 
   def build_env(access_controller_type)
     env = {}

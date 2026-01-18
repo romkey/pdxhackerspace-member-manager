@@ -44,6 +44,15 @@ class AccessControllerTypesController < AdminController
     redirect_to access_controller_types_path, notice: "Access controller type '#{@access_controller_type.name}' #{status}."
   end
 
+  def export_users
+    send_data(
+      AccessControllerPayloadBuilder.call,
+      filename: 'users.json',
+      type: 'application/json',
+      disposition: 'attachment'
+    )
+  end
+
   private
 
   def set_access_controller_type
