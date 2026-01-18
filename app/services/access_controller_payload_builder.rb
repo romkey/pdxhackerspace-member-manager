@@ -2,8 +2,10 @@ class AccessControllerPayloadBuilder
   def self.call
     users = User.active.includes(:rfids, trainings_as_trainee: :training_topic)
 
-    data = users.map do |user|
-      {
+    data = users.each_with_object([]) do |user, entries|
+      next unless user.rfids.any?
+
+      entries << {
         name: user.full_name.presence || user.display_name,
         uid: user.authentik_id.presence || user.id,
         greeting_name: user.greeting_name,
