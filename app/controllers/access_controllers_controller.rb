@@ -58,17 +58,17 @@ class AccessControllersController < AdminController
   end
 
   def run_verb
-    verb = params[:verb].to_s.strip
-    verbs = Array(@access_controller.access_controller_type&.verbs)
+    action = params[:action_name].to_s.strip
+    actions = Array(@access_controller.access_controller_type&.actions)
 
-    if verb.blank? || !verbs.include?(verb)
+    if action.blank? || !actions.include?(action)
       redirect_to access_controllers_path, alert: 'Invalid access controller verb.'
       return
     end
 
     if @access_controller.enabled?
-      AccessControllerVerbJob.perform_later(@access_controller.id, verb)
-      redirect_to access_controllers_path, notice: "Command '#{verb}' started for '#{@access_controller.name}'."
+      AccessControllerVerbJob.perform_later(@access_controller.id, action)
+      redirect_to access_controllers_path, notice: "Command '#{action}' started for '#{@access_controller.name}'."
     else
       redirect_to access_controllers_path, alert: "Access controller '#{@access_controller.name}' is disabled."
     end

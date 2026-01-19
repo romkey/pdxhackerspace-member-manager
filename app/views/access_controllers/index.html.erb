@@ -68,12 +68,6 @@
               </td>
               <td class="text-end">
                 <div class="btn-group btn-group-sm">
-                  <%= button_to "Sync",
-                      sync_access_controller_path(controller),
-                      method: :post,
-                      class: "btn btn-outline-primary",
-                      data: { turbo: false },
-                      disabled: !controller.enabled? %>
                   <%= link_to "Edit", edit_access_controller_path(controller), class: "btn btn-outline-secondary" %>
                   <%= button_to controller.enabled? ? "Disable" : "Enable",
                       toggle_access_controller_path(controller),
@@ -84,13 +78,13 @@
                       class: "btn btn-outline-danger",
                       data: { turbo_confirm: "Are you sure you want to delete '#{controller.name}'?" } %>
                 </div>
-                <% verbs = Array(controller.access_controller_type&.verbs).map(&:to_s).reject(&:blank?).uniq.sort %>
-                <% if verbs.any? %>
+                <% actions = Array(controller.access_controller_type&.actions).map(&:to_s).reject(&:blank?).uniq.sort %>
+                <% if actions.any? %>
                   <div class="mt-2 d-flex flex-wrap gap-1 justify-content-end">
-                    <% verbs.each do |verb| %>
-                      <% tooltip = controller.last_command == verb ? controller.last_command_output : nil %>
-                      <%= button_to verb,
-                          run_verb_access_controller_path(controller, verb: verb),
+                    <% actions.each do |action| %>
+                      <% tooltip = controller.last_command == action ? controller.last_command_output : nil %>
+                      <%= button_to action,
+                          run_verb_access_controller_path(controller, action_name: action),
                           method: :post,
                           class: "btn btn-outline-info btn-sm",
                           data: tooltip.present? ? { bs_toggle: "tooltip", bs_title: tooltip, turbo: false } : { turbo: false },

@@ -85,7 +85,8 @@ class KofiPaymentsController < AdminController
           begin
             # Ko-Fi CSV columns vary, but typically include:
             # Date, From, Type, Amount, Currency, Status, Message, Email, Ko-fi Transaction ID, Tier Name
-            transaction_id = row['Ko-fi Transaction ID'] || row['Transaction ID'] || row['kofi_transaction_id']
+            # New export includes: TransactionId, TransactionType, BuyerEmail, DateTime (UTC)
+            transaction_id = row['Ko-fi Transaction ID'] || row['Transaction ID'] || row['TransactionId'] || row['kofi_transaction_id']
 
             if transaction_id.blank?
               skipped_count += 1
@@ -96,7 +97,7 @@ class KofiPaymentsController < AdminController
             payment = KofiPayment.find_or_initialize_by(kofi_transaction_id: transaction_id)
 
             # Parse amount (remove currency symbols if present)
-            amount_str = row['Amount'] || row['amount']
+            amount_str = row['Amount'] || row['Received'] || row['amount']
             if amount_str.present?
               # Remove currency symbols and commas
               amount_str = amount_str.to_s.gsub(/[^\d.]/, '')
@@ -105,16 +106,16 @@ class KofiPaymentsController < AdminController
 
             payment.currency = row['Currency'] || row['currency'] || 'USD'
             payment.from_name = row['From'] || row['from_name'] || row['Name']
-            payment.email = row['Email'] || row['email']
-            payment.payment_type = row['Type'] || row['type'] || row['Payment Type']
+            payment.email = row['Email'] || row['BuyerEmail'] || row['email']
+            payment.payment_type = row['Type'] || row['TransactionType'] || row['type'] || row['Payment Type']
             payment.message = row['Message'] || row['message']
-            payment.tier_name = row['Tier Name'] || row['tier_name'] || row['Tier']
+            payment.tier_name = row['Tier Name'] || row['Item'] || row['tier_name'] || row['Tier']
             payment.status = row['Status'] || row['status'] || 'completed'
 
             # Parse date
-            date_str = row['Date'] || row['date'] || row['Timestamp']
+            date_str = row['Date'] || row['date'] || row['Timestamp'] || row['DateTime (UTC)']
             if date_str.present?
-              payment.timestamp = Time.parse(date_str) rescue nil
+              payment.timestamp = parse_kofi_timestamp(date_str)
             end
 
             # Store original CSV row in raw_attributes
@@ -330,5 +331,20 @@ class KofiPaymentsController < AdminController
     rescue => e
       redirect_to kofi_payments_path, alert: "Import failed: #{e.message}"
     end
+  end
+
+  def parse_kofi_timestamp(value)
+    return nil if value.blank?
+
+    value = value.to_s.strip
+    if value.match?(%r{\A\d{1,2}/\d{1,2}/\d{4}\s+\d{1,2}:\d{2}\z})
+      Time.use_zone('UTC') do
+        Time.zone.strptime(value, '%m/%d/%Y %H:%M')
+      end
+    else
+      Time.parse(value)
+    end
+  rescue ArgumentError, TypeError
+    nil
   end
 end

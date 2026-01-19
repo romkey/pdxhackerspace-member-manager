@@ -8,13 +8,14 @@ class AccessControllerProbeJob < ApplicationJob
     script_path = access_controller_type.script_path.to_s.strip
     return if script_path.blank?
 
-    stdout, stderr, status = Open3.capture3(script_path, '--verbs')
+    stdout, stderr, status = Open3.capture3(script_path, 'actions')
     output = [stdout, stderr].map(&:to_s).join("\n")
 
     return unless status.success?
 
-    verbs = output.split(/[\r\n,]+/).map(&:strip).reject(&:blank?).uniq.sort
-    access_controller_type.update!(verbs: verbs)
+    actions = output.split(/[\r\n,]+/).map(&:strip).reject(&:blank?).uniq
+    actions = actions.reject { |action| action.casecmp('actions').zero? }.sort
+    access_controller_type.update!(actions: actions)
   rescue StandardError => e
     Rails.logger.error("AccessControllerProbeJob failed for type #{access_controller_type_id}: #{e.message}")
   end
