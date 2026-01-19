@@ -29,20 +29,42 @@
                 <li class="nav-item">
                   <%= link_to "Members", users_path, class: "nav-link #{current_page?(users_path) ? 'active' : ''}" %>
                 </li>
-                <li class="nav-item">
-                  <%= link_to "Sheet", sheet_entries_path, class: "nav-link #{current_page?(sheet_entries_path) ? 'active' : ''}" %>
+                <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle <%= (current_page?(sheet_entries_path) || current_page?(slack_users_path)) ? 'active' : '' %>"
+                     href="#"
+                     role="button"
+                     data-bs-toggle="dropdown"
+                     aria-expanded="false">
+                    Members
+                  </a>
+                  <ul class="dropdown-menu">
+                    <li>
+                      <%= link_to "Sheet", sheet_entries_path, class: "dropdown-item #{current_page?(sheet_entries_path) ? 'active' : ''}" %>
+                    </li>
+                    <li>
+                      <%= link_to "Slack", slack_users_path, class: "dropdown-item #{current_page?(slack_users_path) ? 'active' : ''}" %>
+                    </li>
+                  </ul>
                 </li>
-                <li class="nav-item">
-                  <%= link_to "Slack", slack_users_path, class: "nav-link #{current_page?(slack_users_path) ? 'active' : ''}" %>
-                </li>
-                <li class="nav-item">
-                  <%= link_to "PayPal", paypal_payments_path, class: "nav-link #{current_page?(paypal_payments_path) ? 'active' : ''}" %>
-                </li>
-                <li class="nav-item">
-                  <%= link_to "Recharge", recharge_payments_path, class: "nav-link #{current_page?(recharge_payments_path) ? 'active' : ''}" %>
-                </li>
-                <li class="nav-item">
-                  <%= link_to "Ko-Fi", kofi_payments_path, class: "nav-link #{current_page?(kofi_payments_path) ? 'active' : ''}" %>
+                <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle <%= (current_page?(paypal_payments_path) || current_page?(recharge_payments_path) || current_page?(kofi_payments_path)) ? 'active' : '' %>"
+                     href="#"
+                     role="button"
+                     data-bs-toggle="dropdown"
+                     aria-expanded="false">
+                    Payments
+                  </a>
+                  <ul class="dropdown-menu">
+                    <li>
+                      <%= link_to "PayPal", paypal_payments_path, class: "dropdown-item #{current_page?(paypal_payments_path) ? 'active' : ''}" %>
+                    </li>
+                    <li>
+                      <%= link_to "Recharge", recharge_payments_path, class: "dropdown-item #{current_page?(recharge_payments_path) ? 'active' : ''}" %>
+                    </li>
+                    <li>
+                      <%= link_to "Ko-Fi", kofi_payments_path, class: "dropdown-item #{current_page?(kofi_payments_path) ? 'active' : ''}" %>
+                    </li>
+                  </ul>
                 </li>
                 <li class="nav-item">
                   <%= link_to "Journal", journals_path, class: "nav-link #{current_page?(journals_path) ? 'active' : ''}" %>

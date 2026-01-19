@@ -79,15 +79,15 @@
         <% if @user_by_email.present? %>
           <%= link_to @user_by_email.display_name, user_path(@user_by_email), class: "text-decoration-none" %>
           <span class="text-muted small ms-2">(matched by email)</span>
-        <% elsif @payment.email.present? %>
-          <div class="d-flex gap-2 align-items-center">
-            <span class="text-muted fst-italic">No user found with matching email</span>
+        <% else %>
+          <div class="d-flex gap-2 align-items-center flex-wrap">
+            <span class="text-muted fst-italic">
+              <%= @payment.email.present? ? "No user found with matching email" : "No email available" %>
+            </span>
             <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#linkUserModal">
               Link User
             </button>
           </div>
-        <% else %>
-          <span class="text-muted fst-italic">No email available</span>
         <% end %>
       </dd>
 
@@ -103,7 +103,7 @@
 </div>
 
 <!-- Link User Modal -->
-<% if @payment.email.present? && @user_by_email.nil? %>
+<% if @user_by_email.nil? %>
   <div class="modal fade" id="linkUserModal" tabindex="-1" aria-labelledby="linkUserModalLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
@@ -113,7 +113,14 @@
         </div>
         <%= form_with url: link_user_kofi_payment_path(@payment), method: :post, local: true do |f| %>
           <div class="modal-body">
-            <p class="mb-3">Select a user to link to this payment. The user's email or extra_emails may be updated if they don't have one.</p>
+            <p class="mb-3">
+              Select a user to link to this payment.
+              <% if @payment.email.present? %>
+                The user's email or extra_emails may be updated if they don't have one.
+              <% else %>
+                This payment has no email, so the user record will not be updated with an email.
+              <% end %>
+            </p>
             <div class="mb-3">
               <label for="user_search" class="form-label">Search Users</label>
               <input type="text" id="user_search" class="form-control mb-2" placeholder="Type to search users..." autocomplete="off">

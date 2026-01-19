@@ -25,44 +25,58 @@ class KofiPaymentsController < AdminController
     @payment = KofiPayment.find(params[:id])
     user = User.find(params[:user_id])
 
-    if @payment.email.present?
-      updates = {}
+    updates = {}
 
-      # Copy email from payment if user doesn't have one
+    # Link payment to user regardless of email availability
+    @payment.update!(user: user)
+
+    # Copy email from payment if user doesn't have one
+    if @payment.email.present?
       if user.email.blank?
         updates[:email] = @payment.email
+      elsif user.email.downcase != @payment.email.downcase
+        extra_emails = user.extra_emails || []
+        unless extra_emails.map(&:downcase).include?(@payment.email.downcase)
+          extra_emails << @payment.email
+          updates[:extra_emails] = extra_emails
+        end
       end
+    end
 
-      # Set payment_type to 'kofi'
-      updates[:payment_type] = 'kofi' if user.payment_type != 'kofi'
+    # Set payment_type to 'kofi'
+    updates[:payment_type] = 'kofi' if user.payment_type != 'kofi'
 
-      # Find the most recent payment for this user (by email)
-      most_recent_payment = KofiPayment.where('LOWER(email) = ?', @payment.email.downcase)
+    # Find the most recent payment for this user (by email or user_id)
+    most_recent_payment = if @payment.email.present?
+                            KofiPayment.where('LOWER(email) = ?', @payment.email.downcase)
                                        .where.not(timestamp: nil)
                                        .order(timestamp: :desc)
                                        .first
+                          else
+                            KofiPayment.where(user_id: user.id)
+                                       .where.not(timestamp: nil)
+                                       .order(timestamp: :desc)
+                                       .first
+                          end
 
-      if most_recent_payment&.timestamp
-        payment_date = most_recent_payment.timestamp.to_date
+    if most_recent_payment&.timestamp
+      payment_date = most_recent_payment.timestamp.to_date
 
-        # Update last_payment_date to the most recent payment date
-        updates[:last_payment_date] = payment_date if user.last_payment_date.nil? || payment_date > user.last_payment_date
+      # Update last_payment_date to the most recent payment date
+      updates[:last_payment_date] = payment_date if user.last_payment_date.nil? || payment_date > user.last_payment_date
 
-        # If payment is within the last 32 days, mark user as active, set membership_status to basic, and dues_status to current
-        if payment_date >= 32.days.ago.to_date
-          updates[:active] = true unless user.active?
-          updates[:membership_status] = 'basic' if user.membership_status != 'basic'
-          updates[:dues_status] = 'current' if user.dues_status != 'current'
-        end
+      # If payment is within the last 32 days, mark user as active, set membership_status to basic, and dues_status to current
+      if payment_date >= 32.days.ago.to_date
+        updates[:active] = true unless user.active?
+        updates[:membership_status] = 'basic' if user.membership_status != 'basic'
+        updates[:dues_status] = 'current' if user.dues_status != 'current'
       end
-
-      user.update!(updates) if updates.present?
-
-      redirect_to kofi_payment_path(@payment),
-                  notice: "Linked to user #{user.display_name}."
-    else
-      redirect_to kofi_payment_path(@payment), alert: 'Cannot link: payment has no email.'
     end
+
+    user.update!(updates) if updates.present?
+
+    redirect_to kofi_payment_path(@payment),
+                notice: "Linked to user #{user.display_name}."
   end
 
   def import_csv
