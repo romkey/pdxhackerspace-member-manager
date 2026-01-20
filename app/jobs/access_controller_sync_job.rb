@@ -23,7 +23,7 @@ class AccessControllerSyncJob < ApplicationJob
     end
 
     payload = AccessControllerPayloadBuilder.call
-    env = build_env(type)
+    env = build_env(access_controller)
 
     stdout, stderr, status = Open3.capture3(env, script_path, access_controller.hostname, stdin_data: payload)
     output = [stdout, stderr].map(&:to_s).map(&:strip).reject(&:blank?).join("\n")
@@ -40,10 +40,10 @@ class AccessControllerSyncJob < ApplicationJob
 
   private
 
-  def build_env(access_controller_type)
+  def build_env(access_controller)
     env = {}
-    if access_controller_type.access_token.present?
-      env['ACCESS_TOKEN'] = access_controller_type.access_token
+    if access_controller.access_token.present?
+      env['ACCESS_TOKEN'] = access_controller.access_token
     end
     env
   end

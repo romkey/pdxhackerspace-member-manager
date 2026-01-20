@@ -18,7 +18,6 @@
           <tr>
             <th scope="col">Name</th>
             <th scope="col">Script Path</th>
-            <th scope="col">ACCESS_TOKEN</th>
             <th scope="col">Enabled</th>
             <th scope="col" class="text-end">Actions</th>
           </tr>
@@ -28,13 +27,6 @@
             <tr class="<%= 'table-secondary' unless type.enabled? %>">
               <td><strong><%= type.name %></strong></td>
               <td><code><%= type.script_path %></code></td>
-              <td>
-                <% if type.access_token.present? %>
-                  <span class="badge text-bg-success">Set</span>
-                <% else %>
-                  <span class="text-muted">Not set</span>
-                <% end %>
-              </td>
               <td>
                 <% if type.enabled? %>
                   <span class="badge text-bg-success">Enabled</span>

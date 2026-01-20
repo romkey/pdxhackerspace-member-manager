@@ -19,6 +19,7 @@
             <th scope="col">Name</th>
             <th scope="col">Hostname</th>
             <th scope="col">Type</th>
+            <th scope="col">ACCESS_TOKEN</th>
             <th scope="col">Status</th>
             <th scope="col">Last Sync</th>
             <th scope="col">Enabled</th>
@@ -40,6 +41,13 @@
                   <span class="badge text-bg-info"><%= controller.access_controller_type.name %></span>
                 <% else %>
                   <span class="text-muted">—</span>
+                <% end %>
+              </td>
+              <td>
+                <% if controller.access_token.present? %>
+                  <span class="badge text-bg-success">Set</span>
+                <% else %>
+                  <span class="text-muted">Not set</span>
                 <% end %>
               </td>
               <td>

@@ -14,7 +14,7 @@ class AccessControllerVerbJob < ApplicationJob
     return if script_path.blank?
 
     env = {}
-    env['ACCESS_TOKEN'] = type.access_token if type.access_token.present?
+    env['ACCESS_TOKEN'] = access_controller.access_token if access_controller.access_token.present?
 
     payload = AccessControllerPayloadBuilder.call
     stdout, stderr, status = Open3.capture3(env, script_path, action, access_controller.hostname, stdin_data: payload)

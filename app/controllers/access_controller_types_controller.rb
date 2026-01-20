@@ -65,6 +65,6 @@ class AccessControllerTypesController < AdminController
   end
 
   def access_controller_type_params
-    params.require(:access_controller_type).permit(:name, :script_path, :access_token, :enabled)
+    params.require(:access_controller_type).permit(:name, :script_path, :enabled)
   end
 end
