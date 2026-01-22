@@ -49,4 +49,9 @@ class AccessLogsController < AdminController
       disposition: 'attachment'
     )
   end
+
+  def import
+    AccessLogsImportJob.perform_later
+    redirect_to access_logs_path, notice: 'Access log import started.'
+  end
 end

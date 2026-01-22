@@ -98,6 +98,7 @@ Rails.application.routes.draw do
   resources :access_logs, only: [:index] do
     collection do
       get :generate_users_json
+      post :import
     end
   end
 
