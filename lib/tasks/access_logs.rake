@@ -21,6 +21,7 @@ namespace :access_logs do
 
     imported_count = 0
     skipped_count = 0
+    duplicate_count = 0
     error_count = 0
 
     Dir.glob(File.join(directory, '*.log')).each do |file_path|
@@ -51,6 +52,11 @@ namespace :access_logs do
             # Try to find matching user by name
             user = find_user_by_name(parsed[:name]) if parsed[:name].present?
 
+            if AccessLog.exists?(raw_text: parsed[:raw_text], logged_at: parsed[:logged_at])
+              duplicate_count += 1
+              next
+            end
+
             AccessLog.create!(
               user: user,
               name: parsed[:name],
@@ -62,6 +68,11 @@ namespace :access_logs do
 
           else
             # Store unmatched lines in raw_text only
+            if AccessLog.exists?(raw_text: original_line, logged_at: nil)
+              duplicate_count += 1
+              next
+            end
+
             AccessLog.create!(
               raw_text: original_line,
               logged_at: nil
@@ -78,6 +89,7 @@ namespace :access_logs do
     puts "\nImport complete:"
     puts "  Imported: #{imported_count}"
     puts "  Skipped files: #{skipped_count}"
+    puts "  Duplicates: #{duplicate_count}"
     puts "  Errors: #{error_count}"
   end
 end
