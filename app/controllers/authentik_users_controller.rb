@@ -29,8 +29,6 @@ class AuthentikUsersController < AdminController
     when 'inactive'
       @authentik_users = @authentik_users.inactive
     end
-
-    @authentik_users = @authentik_users.page(params[:page]).per(50)
   end
 
   def show

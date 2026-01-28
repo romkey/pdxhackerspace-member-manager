@@ -111,12 +111,6 @@
   </div>
 </div>
 
-<% if @authentik_users.respond_to?(:total_pages) && @authentik_users.total_pages > 1 %>
-  <div class="d-flex justify-content-center mt-4">
-    <%= paginate @authentik_users %>
-  </div>
-<% end %>
-
 <script>
   (function() {
     const searchInput = document.getElementById('authentik_search');
