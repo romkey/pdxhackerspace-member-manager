@@ -72,7 +72,7 @@ class MemberSource < ApplicationRecord
   private
 
   def refresh_authentik_stats!
-    # If AuthentikUser table exists, use it for statistics
+    # Use AuthentikUser table for statistics (the source of truth for Authentik data)
     if defined?(AuthentikUser) && ActiveRecord::Base.connection.table_exists?('authentik_users')
       total = AuthentikUser.count
       linked = AuthentikUser.linked.count
@@ -86,17 +86,11 @@ class MemberSource < ApplicationRecord
         last_sync_at: last_sync
       )
     else
-      # Fallback: Authentik users are tracked in the User model via authentik_id
-      total = User.where.not(authentik_id: nil).count
-      # All Authentik users are "linked" by definition since they ARE users
-      # But we can check for ones that might have incomplete data
-      linked = User.where.not(authentik_id: nil).where.not(email: [nil, '']).count
-      unlinked = total - linked
-
+      # Table doesn't exist yet - show zeros
       update!(
-        entry_count: total,
-        linked_count: linked,
-        unlinked_count: unlinked
+        entry_count: 0,
+        linked_count: 0,
+        unlinked_count: 0
       )
     end
   end
