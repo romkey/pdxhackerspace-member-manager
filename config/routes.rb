@@ -20,6 +20,7 @@ Rails.application.routes.draw do
   post "/webhooks/rfid", to: "webhooks#rfid"
   post "/webhooks/kofi", to: "webhooks#kofi"
   post "/webhooks/access", to: "webhooks#access"
+  post "/webhooks/authentik", to: "webhooks#authentik"
 
   resources :users, only: [:index, :show, :new, :create, :edit, :update, :destroy] do
     member do
@@ -44,6 +45,17 @@ Rails.application.routes.draw do
     end
     member do
       post :link_user
+    end
+  end
+
+  resources :authentik_users, only: [:index, :show] do
+    collection do
+      post :sync
+    end
+    member do
+      post :link_user
+      post :accept_changes
+      post :push_to_authentik
     end
   end
 

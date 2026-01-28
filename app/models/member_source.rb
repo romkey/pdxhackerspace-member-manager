@@ -72,18 +72,33 @@ class MemberSource < ApplicationRecord
   private
 
   def refresh_authentik_stats!
-    # Authentik users are tracked in the User model via authentik_id
-    total = User.where.not(authentik_id: nil).count
-    # All Authentik users are "linked" by definition since they ARE users
-    # But we can check for ones that might have incomplete data
-    linked = User.where.not(authentik_id: nil).where.not(email: [nil, '']).count
-    unlinked = total - linked
+    # If AuthentikUser table exists, use it for statistics
+    if defined?(AuthentikUser) && ActiveRecord::Base.connection.table_exists?('authentik_users')
+      total = AuthentikUser.count
+      linked = AuthentikUser.linked.count
+      unlinked = AuthentikUser.unlinked.count
+      last_sync = AuthentikUser.maximum(:last_synced_at)
 
-    update!(
-      entry_count: total,
-      linked_count: linked,
-      unlinked_count: unlinked
-    )
+      update!(
+        entry_count: total,
+        linked_count: linked,
+        unlinked_count: unlinked,
+        last_sync_at: last_sync
+      )
+    else
+      # Fallback: Authentik users are tracked in the User model via authentik_id
+      total = User.where.not(authentik_id: nil).count
+      # All Authentik users are "linked" by definition since they ARE users
+      # But we can check for ones that might have incomplete data
+      linked = User.where.not(authentik_id: nil).where.not(email: [nil, '']).count
+      unlinked = total - linked
+
+      update!(
+        entry_count: total,
+        linked_count: linked,
+        unlinked_count: unlinked
+      )
+    end
   end
 
   def refresh_member_manager_stats!

@@ -1,0 +1,161 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">Authentik Users</h1>
+    <p class="text-muted mb-0">
+      <strong><%= @total_count %></strong> total —
+      <strong><%= @linked_count %></strong> linked —
+      <strong><%= @unlinked_count %></strong> unlinked —
+      <strong><%= @active_count %></strong> active —
+      <strong><%= @inactive_count %></strong> inactive
+      <% if @discrepancy_count > 0 %>
+        — <strong class="text-warning"><%= @discrepancy_count %></strong> with discrepancies
+      <% end %>
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= button_to "Sync from Authentik", sync_authentik_users_path, method: :post, class: "btn btn-primary", data: { turbo: false } %>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <div class="d-flex gap-3 align-items-center flex-wrap">
+      <div class="flex-grow-1" style="min-width: 300px;">
+        <input type="text" id="authentik_search" class="form-control" placeholder="Search by name, email, or username…" autocomplete="off">
+      </div>
+      <div class="d-flex gap-2 align-items-center flex-wrap">
+        <button type="button" id="clear_authentik_search" class="btn btn-outline-secondary" style="display: none;">Clear</button>
+        <div class="btn-group" role="group" aria-label="Filter options">
+          <%= link_to "All", authentik_users_path, class: "btn btn-outline-secondary btn-sm #{params[:filter].blank? ? 'active' : ''}" %>
+          <%= link_to "Linked", authentik_users_path(filter: 'linked'), class: "btn btn-outline-secondary btn-sm #{params[:filter] == 'linked' ? 'active' : ''}" %>
+          <%= link_to "Unlinked", authentik_users_path(filter: 'unlinked'), class: "btn btn-outline-secondary btn-sm #{params[:filter] == 'unlinked' ? 'active' : ''}" %>
+          <%= link_to "Discrepancies", authentik_users_path(filter: 'discrepancies'), class: "btn btn-outline-warning btn-sm #{params[:filter] == 'discrepancies' ? 'active' : ''}" %>
+          <%= link_to "Active", authentik_users_path(filter: 'active'), class: "btn btn-outline-secondary btn-sm #{params[:filter] == 'active' ? 'active' : ''}" %>
+          <%= link_to "Inactive", authentik_users_path(filter: 'inactive'), class: "btn btn-outline-secondary btn-sm #{params[:filter] == 'inactive' ? 'active' : ''}" %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="table-responsive">
+    <table class="table mb-0 align-middle">
+      <thead class="bg-body-tertiary">
+        <tr>
+          <th scope="col">Name</th>
+          <th scope="col">Email</th>
+          <th scope="col">Username</th>
+          <th scope="col">Linked User</th>
+          <th scope="col">Status</th>
+          <th scope="col">Last Synced</th>
+        </tr>
+      </thead>
+      <tbody id="authentik_users_table_body">
+        <% @authentik_users.each do |authentik_user| %>
+          <tr class="authentik-user-row <%= authentik_user.has_discrepancies? ? 'table-warning' : '' %>"
+              data-search-text="<%= [
+                authentik_user.full_name,
+                authentik_user.email,
+                authentik_user.username,
+                authentik_user.user&.display_name
+              ].compact.join(' ').downcase %>">
+            <td class="fw-semibold">
+              <%= link_to authentik_user.display_name, authentik_user_path(authentik_user), class: "text-decoration-none" %>
+              <% if authentik_user.has_discrepancies? %>
+                <span class="badge text-bg-warning ms-1" title="Has discrepancies with linked user">
+                  <i class="bi bi-exclamation-triangle"></i>
+                </span>
+              <% end %>
+            </td>
+            <td>
+              <% if authentik_user.email.present? %>
+                <%= mail_to authentik_user.email %>
+              <% else %>
+                <span class="text-muted fst-italic">Not provided</span>
+              <% end %>
+            </td>
+            <td>
+              <%= authentik_user.username.presence || "—" %>
+            </td>
+            <td>
+              <% if authentik_user.user.present? %>
+                <%= link_to authentik_user.user.display_name, user_path(authentik_user.user), class: "text-decoration-none" %>
+              <% else %>
+                <span class="text-muted fst-italic">Not linked</span>
+              <% end %>
+            </td>
+            <td>
+              <% if authentik_user.is_active? %>
+                <span class="badge text-bg-success">Active</span>
+              <% else %>
+                <span class="badge text-bg-secondary">Inactive</span>
+              <% end %>
+              <% if authentik_user.is_superuser? %>
+                <span class="badge text-bg-info">Superuser</span>
+              <% end %>
+            </td>
+            <td>
+              <% if authentik_user.last_synced_at %>
+                <span title="<%= authentik_user.last_synced_at.strftime('%Y-%m-%d %H:%M:%S %Z') %>">
+                  <%= time_ago_in_words(authentik_user.last_synced_at) %> ago
+                </span>
+              <% else %>
+                <span class="text-muted fst-italic">Never</span>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<% if @authentik_users.respond_to?(:total_pages) && @authentik_users.total_pages > 1 %>
+  <div class="d-flex justify-content-center mt-4">
+    <%= paginate @authentik_users %>
+  </div>
+<% end %>
+
+<script>
+  (function() {
+    const searchInput = document.getElementById('authentik_search');
+    const clearButton = document.getElementById('clear_authentik_search');
+    const tableBody = document.getElementById('authentik_users_table_body');
+    
+    if (!searchInput || !tableBody) return;
+    
+    function filterUsers() {
+      const searchTerm = searchInput.value.toLowerCase().trim();
+      const rows = tableBody.querySelectorAll('.authentik-user-row');
+      
+      rows.forEach(function(row) {
+        const searchText = row.getAttribute('data-search-text');
+        if (searchText && searchText.includes(searchTerm)) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+      
+      // Show/hide clear button
+      if (clearButton) {
+        if (searchTerm !== '') {
+          clearButton.style.display = '';
+        } else {
+          clearButton.style.display = 'none';
+        }
+      }
+    }
+    
+    searchInput.addEventListener('input', filterUsers);
+    
+    if (clearButton) {
+      clearButton.addEventListener('click', function() {
+        searchInput.value = '';
+        filterUsers();
+        searchInput.focus();
+      });
+    }
+  })();
+</script>

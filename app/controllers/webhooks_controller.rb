@@ -148,6 +148,32 @@ class WebhooksController < ApplicationController
     end
   end
 
+  # Authentik webhook endpoint
+  # Receives user change notifications from Authentik's event system
+  # See: https://docs.goauthentik.io/docs/sys-mgmt/events/transports
+  def authentik
+    unless valid_authentik_webhook?
+      Rails.logger.warn("[Authentik Webhook] Unauthorized request from #{client_ip}")
+      render json: { error: 'Unauthorized' }, status: :unauthorized
+      return
+    end
+
+    begin
+      payload = JSON.parse(request.body.read)
+      Rails.logger.info("[Authentik Webhook] Received payload from #{client_ip}")
+
+      result = Authentik::WebhookHandler.new.call(payload)
+
+      render json: { status: 'ok' }.merge(result)
+    rescue JSON::ParserError => e
+      Rails.logger.error("[Authentik Webhook] JSON parse error: #{e.message}")
+      render json: { error: 'Invalid JSON' }, status: :bad_request
+    rescue StandardError => e
+      Rails.logger.error("[Authentik Webhook] Error: #{e.message}\n#{e.backtrace.first(5).join("\n")}")
+      render json: { error: 'Processing error' }, status: :unprocessable_entity
+    end
+  end
+
   def rfid
     unless ip_whitelisted?
       Rails.logger.warn("Webhook request from non-whitelisted IP: #{client_ip}")
@@ -190,6 +216,16 @@ class WebhooksController < ApplicationController
   end
 
   private
+
+  def valid_authentik_webhook?
+    secret = ENV.fetch('AUTHENTIK_WEBHOOK_SECRET', nil)
+    return true if secret.blank? # Skip validation if not configured
+
+    provided = request.headers['X-Authentik-Secret'] || params[:secret]
+    return false if provided.blank?
+
+    ActiveSupport::SecurityUtils.secure_compare(secret, provided.to_s)
+  end
 
   def ip_whitelisted?
     whitelist = ENV['RFID_WEBHOOK_IP_WHITELIST']
