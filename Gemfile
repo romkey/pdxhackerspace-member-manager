@@ -51,6 +51,9 @@ gem 'sidekiq-cron', '~> 1.12'
 gem 'prawn', '~> 2.5'
 gem 'prawn-table', '~> 0.2'
 
+# QR code generation
+gem 'rqrcode', '~> 2.2'
+
 gem 'bcrypt', '~> 3.1'
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem

@@ -4,6 +4,7 @@
 
 require 'prawn'
 require 'prawn/table'
+require 'rqrcode'
 
 class IncidentReportPdf
   include Prawn::View
@@ -109,10 +110,38 @@ class IncidentReportPdf
     move_down 8
 
     @incident_report.links.ordered.each do |link|
-      text "• #{link.title}", size: 11, style: :bold
-      text "  #{link.url}", size: 10, color: '0066CC'
-      move_down 4
+      # Create a row with QR code on the left and link info on the right
+      qr_size = 50
+
+      bounding_box([0, cursor], width: bounds.width) do
+        # Generate and render QR code
+        qr_png = generate_qr_png(link.url)
+        if qr_png
+          image StringIO.new(qr_png), at: [0, cursor], width: qr_size, height: qr_size
+        end
+
+        # Link text to the right of the QR code
+        bounding_box([qr_size + 10, cursor], width: bounds.width - qr_size - 10) do
+          text link.title, size: 11, style: :bold
+          move_down 2
+          text link.url, size: 9, color: '0066CC'
+        end
+      end
+      move_down qr_size + 8
     end
+  end
+
+  def generate_qr_png(url)
+    qr = RQRCode::QRCode.new(url)
+    qr.as_png(
+      size: 200,
+      border_modules: 1,
+      color: '000000',
+      fill: 'ffffff'
+    ).to_s
+  rescue StandardError => e
+    Rails.logger.error("Failed to generate QR code for #{url}: #{e.message}")
+    nil
   end
 
   def section_header(title)
