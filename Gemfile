@@ -47,6 +47,10 @@ gem 'redis', '>= 4.0.1'
 gem 'sidekiq', '~> 7.0'
 gem 'sidekiq-cron', '~> 1.12'
 
+# PDF generation
+gem 'prawn', '~> 2.5'
+gem 'prawn-table', '~> 0.2'
+
 gem 'bcrypt', '~> 3.1'
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem

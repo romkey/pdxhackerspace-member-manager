@@ -1,5 +1,5 @@
 class IncidentReportsController < AdminController
-  before_action :set_incident_report, only: [:show, :edit, :update, :destroy, :add_link, :remove_link]
+  before_action :set_incident_report, only: [:show, :edit, :update, :destroy, :add_link, :remove_link, :download_pdf]
 
   def index
     @incident_reports = IncidentReport.includes(:reporter, :involved_members).ordered
@@ -87,6 +87,16 @@ class IncidentReportsController < AdminController
     @link = @incident_report.links.find(params[:link_id])
     @link.destroy
     redirect_to incident_report_path(@incident_report), notice: 'Link removed.'
+  end
+
+  def download_pdf
+    pdf = IncidentReportPdf.new(@incident_report)
+    filename = "incident_report_#{@incident_report.id}_#{@incident_report.incident_date.strftime('%Y%m%d')}.pdf"
+
+    send_data pdf.render,
+              filename: filename,
+              type: 'application/pdf',
+              disposition: 'attachment'
   end
 
   private

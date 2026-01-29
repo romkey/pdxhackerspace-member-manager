@@ -189,6 +189,7 @@ Rails.application.routes.draw do
     member do
       post :add_link
       delete 'links/:link_id', action: :remove_link, as: :remove_link
+      get :download_pdf
     end
   end
 
