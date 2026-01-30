@@ -84,18 +84,27 @@
       <% if @incident_report.photos.attached? %>
         <dt class="col-sm-3 text-secondary">Photos</dt>
         <dd class="col-sm-9">
-          <div class="d-flex flex-wrap gap-2">
+          <div class="d-flex flex-wrap gap-3">
             <% @incident_report.photos.each do |photo| %>
-              <% if photo.content_type.start_with?('image/') %>
-                <%= link_to rails_blob_path(photo, disposition: 'inline'), target: '_blank', rel: 'noopener' do %>
-                  <%= image_tag rails_blob_path(photo, disposition: 'inline'), 
-                      class: "rounded", 
-                      style: "max-width: 200px; max-height: 200px; object-fit: cover;" %>
+              <div class="position-relative">
+                <% if photo.content_type.start_with?('image/') %>
+                  <%= link_to rails_blob_path(photo, disposition: 'inline'), target: '_blank', rel: 'noopener' do %>
+                    <%= image_tag rails_blob_path(photo, disposition: 'inline'), 
+                        class: "rounded", 
+                        style: "max-width: 200px; max-height: 200px; object-fit: cover;" %>
+                  <% end %>
+                <% else %>
+                  <%= link_to photo.filename, rails_blob_path(photo, disposition: 'attachment'), 
+                      class: "btn btn-outline-secondary btn-sm" %>
                 <% end %>
-              <% else %>
-                <%= link_to photo.filename, rails_blob_path(photo, disposition: 'attachment'), 
-                    class: "btn btn-outline-secondary btn-sm" %>
-              <% end %>
+                <%= button_to remove_photo_incident_report_path(@incident_report, photo_id: photo.id), 
+                    method: :delete,
+                    class: "btn btn-danger btn-sm position-absolute top-0 end-0",
+                    style: "transform: translate(25%, -25%);",
+                    data: { turbo_confirm: "Delete this photo?" } do %>
+                  <i class="bi bi-x"></i>
+                <% end %>
+              </div>
             <% end %>
           </div>
         </dd>

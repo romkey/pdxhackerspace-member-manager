@@ -1,5 +1,5 @@
 class IncidentReportsController < AdminController
-  before_action :set_incident_report, only: [:show, :edit, :update, :destroy, :add_link, :remove_link, :download_pdf]
+  before_action :set_incident_report, only: [:show, :edit, :update, :destroy, :add_link, :remove_link, :remove_photo, :download_pdf]
 
   def index
     @incident_reports = IncidentReport.includes(:reporter, :involved_members).ordered
@@ -87,6 +87,12 @@ class IncidentReportsController < AdminController
     @link = @incident_report.links.find(params[:link_id])
     @link.destroy
     redirect_to incident_report_path(@incident_report), notice: 'Link removed.'
+  end
+
+  def remove_photo
+    photo = @incident_report.photos.find(params[:photo_id])
+    photo.purge
+    redirect_to incident_report_path(@incident_report), notice: 'Photo removed.'
   end
 
   def download_pdf
