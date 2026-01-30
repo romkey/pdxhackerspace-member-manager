@@ -5,6 +5,8 @@
 require 'prawn'
 require 'prawn/table'
 require 'rqrcode'
+require 'stringio'
+require 'tempfile'
 
 class IncidentReportPdf
   include Prawn::View
@@ -160,39 +162,42 @@ class IncidentReportPdf
     qr_size = 60
 
     @incident_report.links.ordered.each do |link|
-      # Remember the starting position
-      start_y = cursor
+      # Generate QR code to temp file
+      qr_tempfile = generate_qr_tempfile(link.url)
 
-      # Generate QR code
-      qr_png = generate_qr_png(link.url)
+      if qr_tempfile
+        begin
+          # Draw QR code at current position
+          image qr_tempfile.path, width: qr_size, height: qr_size, position: :left
 
-      if qr_png
-        # Draw QR code at current position
-        image StringIO.new(qr_png), width: qr_size, height: qr_size, position: :left
+          # Move back up to draw text next to QR code
+          move_up qr_size - 5
 
-        # Move back up to draw text next to QR code
-        move_up qr_size - 5
+          # Draw text indented past the QR code
+          indent(qr_size + 15) do
+            text link.title, size: 11, style: :bold
+            move_down 3
+            text link.url, size: 9, color: '0066CC'
+          end
 
-        # Draw text indented past the QR code
-        indent(qr_size + 15) do
-          text link.title, size: 11, style: :bold
-          move_down 3
-          text link.url, size: 9, color: '0066CC'
+          # Move down past the QR code
+          move_down 15
+        ensure
+          qr_tempfile.close
+          qr_tempfile.unlink
         end
-
-        # Ensure we move past the QR code
-        move_down [0, start_y - cursor - qr_size - 10].min.abs
       else
         # No QR code, just show text
         text "• #{link.title}", size: 11, style: :bold
         text "  #{link.url}", size: 9, color: '0066CC'
+        move_down 8
       end
 
-      move_down 12
+      move_down 8
     end
   end
 
-  def generate_qr_png(url)
+  def generate_qr_tempfile(url)
     qr = RQRCode::QRCode.new(url)
     png = qr.as_png(
       size: 200,
@@ -200,7 +205,12 @@ class IncidentReportPdf
       color: '000000',
       fill: 'ffffff'
     )
-    png.to_s
+
+    tempfile = Tempfile.new(['qrcode', '.png'])
+    tempfile.binmode
+    tempfile.write(png.to_s)
+    tempfile.rewind
+    tempfile
   rescue StandardError => e
     Rails.logger.error("Failed to generate QR code for #{url}: #{e.message}\n#{e.backtrace.first(3).join("\n")}")
     nil
