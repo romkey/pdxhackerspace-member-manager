@@ -33,6 +33,8 @@ class IncidentReportPdf
     move_down 20
     resolution_section if @incident_report.resolution.present?
     move_down 20
+    photos_section if @incident_report.photos.attached?
+    move_down 20
     links_section if @incident_report.links.any?
     footer
   end
@@ -103,6 +105,52 @@ class IncidentReportPdf
       end
     end
     move_down 10
+  end
+
+  def photos_section
+    section_header('Photos')
+    move_down 8
+
+    # Calculate image dimensions - fit 2 per row with some spacing
+    max_width = (bounds.width - 20) / 2
+    max_height = 200
+
+    photos = @incident_report.photos.select { |p| p.content_type.start_with?('image/') }
+
+    photos.each_slice(2) do |photo_pair|
+      row_height = 0
+
+      photo_pair.each_with_index do |photo, index|
+        x_position = index * (max_width + 20)
+
+        begin
+          # Download the photo data
+          photo_data = photo.download
+
+          # Create a temporary file for the image
+          tempfile = Tempfile.new(['photo', File.extname(photo.filename.to_s)])
+          tempfile.binmode
+          tempfile.write(photo_data)
+          tempfile.rewind
+
+          # Calculate dimensions to fit within max bounds while preserving aspect ratio
+          img = image tempfile.path, at: [x_position, cursor], fit: [max_width, max_height]
+
+          # Track the tallest image in this row
+          row_height = [row_height, img.scaled_height].max
+
+          tempfile.close
+          tempfile.unlink
+        rescue StandardError => e
+          Rails.logger.error("Failed to embed photo #{photo.filename}: #{e.message}")
+          # Show placeholder text for failed images
+          text_box "Photo: #{photo.filename}", at: [x_position, cursor], width: max_width, size: 9, color: '888888'
+          row_height = [row_height, 20].max
+        end
+      end
+
+      move_down row_height + 15
+    end
   end
 
   def links_section
