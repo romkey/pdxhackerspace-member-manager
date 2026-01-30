@@ -74,11 +74,18 @@ class AuthentikUsersController < AdminController
     if updates.any?
       @authentik_user.user.update!(updates)
 
-      JournalEntry.create!(
+      Journal.create!(
         user: @authentik_user.user,
+        actor_user: current_user,
         action: 'authentik_sync',
-        description: "Accepted Authentik values for: #{updates.keys.join(', ')}",
-        metadata: { updates: updates, authentik_user_id: @authentik_user.id }
+        changes_json: {
+          'authentik_sync' => {
+            'fields' => updates.keys,
+            'updates' => updates,
+            'authentik_user_id' => @authentik_user.id
+          }
+        },
+        changed_at: Time.current
       )
 
       redirect_to @authentik_user, notice: "Updated user with Authentik values: #{updates.keys.join(', ')}."

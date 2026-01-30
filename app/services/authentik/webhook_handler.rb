@@ -132,14 +132,17 @@ module Authentik
     def create_discrepancy_journal_entry(authentik_user)
       discrepancy_fields = authentik_user.discrepancies.map { |d| d[:field] }.join(', ')
 
-      JournalEntry.create!(
+      Journal.create!(
         user: authentik_user.user,
         action: 'authentik_discrepancy',
-        description: "Authentik data differs from MemberManager: #{discrepancy_fields}",
-        metadata: {
-          authentik_user_id: authentik_user.id,
-          discrepancies: authentik_user.discrepancies
+        changes_json: {
+          'authentik_discrepancy' => {
+            'fields' => discrepancy_fields,
+            'authentik_user_id' => authentik_user.id,
+            'discrepancies' => authentik_user.discrepancies
+          }
         },
+        changed_at: Time.current,
         highlight: true
       )
     end
