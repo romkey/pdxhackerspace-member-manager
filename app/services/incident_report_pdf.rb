@@ -109,38 +109,52 @@ class IncidentReportPdf
     section_header('Related Links')
     move_down 8
 
+    qr_size = 60
+
     @incident_report.links.ordered.each do |link|
-      # Create a row with QR code on the left and link info on the right
-      qr_size = 50
+      # Remember the starting position
+      start_y = cursor
 
-      bounding_box([0, cursor], width: bounds.width) do
-        # Generate and render QR code
-        qr_png = generate_qr_png(link.url)
-        if qr_png
-          image StringIO.new(qr_png), at: [0, cursor], width: qr_size, height: qr_size
-        end
+      # Generate QR code
+      qr_png = generate_qr_png(link.url)
 
-        # Link text to the right of the QR code
-        bounding_box([qr_size + 10, cursor], width: bounds.width - qr_size - 10) do
+      if qr_png
+        # Draw QR code at current position
+        image StringIO.new(qr_png), width: qr_size, height: qr_size, position: :left
+
+        # Move back up to draw text next to QR code
+        move_up qr_size - 5
+
+        # Draw text indented past the QR code
+        indent(qr_size + 15) do
           text link.title, size: 11, style: :bold
-          move_down 2
+          move_down 3
           text link.url, size: 9, color: '0066CC'
         end
+
+        # Ensure we move past the QR code
+        move_down [0, start_y - cursor - qr_size - 10].min.abs
+      else
+        # No QR code, just show text
+        text "• #{link.title}", size: 11, style: :bold
+        text "  #{link.url}", size: 9, color: '0066CC'
       end
-      move_down qr_size + 8
+
+      move_down 12
     end
   end
 
   def generate_qr_png(url)
     qr = RQRCode::QRCode.new(url)
-    qr.as_png(
+    png = qr.as_png(
       size: 200,
       border_modules: 1,
       color: '000000',
       fill: 'ffffff'
-    ).to_s
+    )
+    png.to_s
   rescue StandardError => e
-    Rails.logger.error("Failed to generate QR code for #{url}: #{e.message}")
+    Rails.logger.error("Failed to generate QR code for #{url}: #{e.message}\n#{e.backtrace.first(3).join("\n")}")
     nil
   end
 
