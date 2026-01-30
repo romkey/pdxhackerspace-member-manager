@@ -162,58 +162,49 @@ class IncidentReportPdf
     qr_size = 60
 
     @incident_report.links.ordered.each do |link|
-      # Generate QR code to temp file
-      qr_tempfile = generate_qr_tempfile(link.url)
+      start_y = cursor
 
-      if qr_tempfile
-        begin
-          # Draw QR code at current position
-          image qr_tempfile.path, width: qr_size, height: qr_size, position: :left
+      # Draw QR code directly using Prawn rectangles
+      draw_qr_code(link.url, 0, cursor, qr_size)
 
-          # Move back up to draw text next to QR code
-          move_up qr_size - 5
-
-          # Draw text indented past the QR code
-          indent(qr_size + 15) do
-            text link.title, size: 11, style: :bold
-            move_down 3
-            text link.url, size: 9, color: '0066CC'
-          end
-
-          # Move down past the QR code
-          move_down 15
-        ensure
-          qr_tempfile.close
-          qr_tempfile.unlink
-        end
-      else
-        # No QR code, just show text
-        text "• #{link.title}", size: 11, style: :bold
-        text "  #{link.url}", size: 9, color: '0066CC'
-        move_down 8
+      # Draw text to the right of QR code
+      bounding_box([qr_size + 15, start_y], width: bounds.width - qr_size - 15) do
+        text link.title, size: 11, style: :bold
+        move_down 3
+        text link.url, size: 9, color: '0066CC'
       end
+
+      # Move cursor below the QR code
+      move_cursor_to [start_y - qr_size - 12, cursor].min
 
       move_down 8
     end
   end
 
-  def generate_qr_tempfile(url)
+  def draw_qr_code(url, x, y, size)
     qr = RQRCode::QRCode.new(url)
-    png = qr.as_png(
-      size: 200,
-      border_modules: 1,
-      color: '000000',
-      fill: 'ffffff'
-    )
+    modules = qr.modules
+    module_count = modules.size
+    module_size = size.to_f / module_count
 
-    tempfile = Tempfile.new(['qrcode', '.png'])
-    tempfile.binmode
-    tempfile.write(png.to_s)
-    tempfile.rewind
-    tempfile
+    modules.each_with_index do |row, row_idx|
+      row.each_with_index do |dark, col_idx|
+        if dark
+          # Draw a filled rectangle for dark modules
+          fill_color '000000'
+          fill_rectangle(
+            [x + (col_idx * module_size), y - (row_idx * module_size)],
+            module_size,
+            module_size
+          )
+        end
+      end
+    end
+
+    # Reset fill color
+    fill_color '000000'
   rescue StandardError => e
-    Rails.logger.error("Failed to generate QR code for #{url}: #{e.message}\n#{e.backtrace.first(3).join("\n")}")
-    nil
+    Rails.logger.error("Failed to draw QR code for #{url}: #{e.message}\n#{e.backtrace.first(3).join("\n")}")
   end
 
   def section_header(title)
