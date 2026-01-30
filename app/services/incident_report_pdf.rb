@@ -159,7 +159,7 @@ class IncidentReportPdf
     section_header('Related Links')
     move_down 8
 
-    qr_size = 60
+    qr_size = 30
 
     @incident_report.links.ordered.each do |link|
       start_y = cursor
