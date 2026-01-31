@@ -175,51 +175,68 @@
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('training_member_search');
-    const searchResults = document.getElementById('training_search_results');
-    const noResults = document.getElementById('training_no_results');
+  (function() {
+    function initTrainingSearch() {
+      const searchInput = document.getElementById('training_member_search');
+      const searchResults = document.getElementById('training_search_results');
+      const noResults = document.getElementById('training_no_results');
 
-    if (!searchInput || !searchResults) return;
+      if (!searchInput || !searchResults) return;
 
-    function filterMembers() {
-      const searchTerm = searchInput.value.toLowerCase().trim();
-      const results = searchResults.querySelectorAll('.search-result-item');
-      let visibleCount = 0;
+      // Prevent double-binding
+      if (searchInput.dataset.initialized) return;
+      searchInput.dataset.initialized = 'true';
 
-      if (searchTerm === '' || searchTerm.length < 2) {
-        searchResults.style.display = 'none';
-        noResults.style.display = 'none';
-        return;
+      function filterMembers() {
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        const results = searchResults.querySelectorAll('.search-result-item');
+        let visibleCount = 0;
+
+        if (searchTerm === '' || searchTerm.length < 2) {
+          searchResults.style.display = 'none';
+          noResults.style.display = 'none';
+          return;
+        }
+
+        results.forEach(function(result) {
+          const text = result.getAttribute('data-search-text');
+          if (text && text.includes(searchTerm)) {
+            result.style.display = '';
+            visibleCount++;
+          } else {
+            result.style.display = 'none';
+          }
+        });
+
+        if (visibleCount === 0) {
+          searchResults.style.display = 'none';
+          noResults.style.display = 'block';
+        } else {
+          searchResults.style.display = 'block';
+          noResults.style.display = 'none';
+        }
       }
 
-      results.forEach(function(result) {
-        const text = result.getAttribute('data-search-text');
-        if (text && text.includes(searchTerm)) {
-          result.style.display = '';
-          visibleCount++;
-        } else {
-          result.style.display = 'none';
+      searchInput.addEventListener('input', filterMembers);
+      searchInput.addEventListener('focus', function() {
+        if (searchInput.value.length >= 2) {
+          filterMembers();
         }
       });
 
-      if (visibleCount === 0) {
-        searchResults.style.display = 'none';
-        noResults.style.display = 'block';
-      } else {
-        searchResults.style.display = 'block';
-        noResults.style.display = 'none';
-      }
+      // Auto-focus search input
+      searchInput.focus();
     }
 
-    searchInput.addEventListener('input', filterMembers);
-    searchInput.addEventListener('focus', function() {
-      if (searchInput.value.length >= 2) {
-        filterMembers();
-      }
-    });
+    // Run on initial page load
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initTrainingSearch);
+    } else {
+      initTrainingSearch();
+    }
 
-    // Auto-focus search input
-    searchInput.focus();
-  });
+    // Run on Turbo page navigation
+    document.addEventListener('turbo:load', initTrainingSearch);
+    document.addEventListener('turbo:render', initTrainingSearch);
+  })();
 </script>
