@@ -73,7 +73,7 @@
                     <% @trainable_topics.each do |topic| %>
                       <% is_trained = trained_topic_ids.include?(topic.id) %>
                       <div class="d-inline-flex align-items-center border rounded px-3 py-2 <%= is_trained ? 'bg-success-subtle border-success' : 'bg-body-secondary' %>">
-                        <span class="me-2"><%= topic.name %></span>
+                        <%= link_to topic.name, edit_training_topic_path(topic), class: "me-2 text-decoration-none" %>
                         <% if is_trained %>
                           <%= button_to remove_training_path(user_id: selected_user.id, topic_id: topic.id), 
                               method: :delete,
@@ -105,7 +105,7 @@
                     </div>
                     <div class="d-flex flex-wrap gap-2">
                       <% TrainingTopic.where(id: non_trainable_trained_ids).order(:name).each do |topic| %>
-                        <span class="badge text-bg-primary fs-6 px-3 py-2"><%= topic.name %></span>
+                        <%= link_to topic.name, edit_training_topic_path(topic), class: "badge text-bg-primary fs-6 px-3 py-2 text-decoration-none" %>
                       <% end %>
                     </div>
                   <% end %>
@@ -125,7 +125,7 @@
                     <% all_topics.each do |topic| %>
                       <% is_trainer = trainer_topic_ids.include?(topic.id) %>
                       <div class="d-inline-flex align-items-center border rounded px-3 py-2 <%= is_trainer ? 'bg-info-subtle border-info' : 'bg-body-secondary' %>">
-                        <span class="me-2"><%= topic.name %></span>
+                        <%= link_to topic.name, edit_training_topic_path(topic), class: "me-2 text-decoration-none" %>
                         <% if is_trainer %>
                           <%= button_to remove_trainer_capability_path(user_id: selected_user.id, topic_id: topic.id), 
                               method: :delete,
@@ -164,7 +164,7 @@
                       <tbody>
                         <% trainings.each do |training| %>
                           <tr>
-                            <td><span class="badge text-bg-primary"><%= training.training_topic.name %></span></td>
+                            <td><%= link_to training.training_topic.name, edit_training_topic_path(training.training_topic), class: "badge text-bg-primary text-decoration-none" %></td>
                             <td>
                               <% if training.trainer %>
                                 <%= link_to training.trainer.display_name, user_path(training.trainer), class: "text-decoration-none" %>

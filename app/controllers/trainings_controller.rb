@@ -95,6 +95,16 @@ class TrainingsController < AuthenticatedController
     capability = TrainerCapability.new(user: @trainee, training_topic: @training_topic)
 
     if capability.save
+      # Also mark them as trained if not already
+      unless Training.exists?(trainee: @trainee, training_topic: @training_topic)
+        Training.create!(
+          trainee: @trainee,
+          trainer: current_user,
+          training_topic: @training_topic,
+          trained_at: Time.current
+        )
+      end
+
       Journal.create!(
         user: @trainee,
         actor_user: current_user,
