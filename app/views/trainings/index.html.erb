@@ -20,10 +20,10 @@
           <div class="card-body">
             <input type="text" id="training_member_search" class="form-control form-control-lg" 
                    placeholder="Type to search by name, email, or username..." autocomplete="off">
-            <div id="training_search_results" class="mt-2" style="max-height: 400px; overflow-y: auto; display: none;">
+            <div id="training_search_results" class="mt-2 d-none" style="max-height: 400px; overflow-y: auto;">
               <% @users_for_search.each do |user| %>
                 <a href="<%= train_member_path(user_id: user.id) %>" 
-                   class="d-block p-3 text-decoration-none border-bottom search-result-item <%= 'bg-primary-subtle border-primary' if params[:user_id].to_i == user.id %>"
+                   class="search-result-item d-none d-block p-3 text-decoration-none border-bottom <%= 'bg-primary-subtle border-primary' if params[:user_id].to_i == user.id %>"
                    data-search-text="<%= [user.display_name, user.email, user.username].compact.join(' ').downcase %>"
                    data-user-id="<%= user.id %>">
                   <div class="fw-semibold"><%= user.display_name %></div>
@@ -33,7 +33,7 @@
                 </a>
               <% end %>
             </div>
-            <div id="training_no_results" class="mt-2 p-3 text-center text-muted border rounded" style="display: none;">
+            <div id="training_no_results" class="mt-2 p-3 text-center text-muted border rounded d-none">
               No members found matching your search.
             </div>
           </div>
@@ -211,37 +211,51 @@
 </div>
 
 <script>
-  // Training member search - use inline handler to avoid Turbo issues
-  document.getElementById('training_member_search').oninput = function() {
-    const searchInput = this;
-    const searchResults = document.getElementById('training_search_results');
-    const noResults = document.getElementById('training_no_results');
-    const searchTerm = searchInput.value.toLowerCase().trim();
-    const results = searchResults.querySelectorAll('.search-result-item');
-    let visibleCount = 0;
+  // Training member search
+  (function() {
+    var searchInput = document.getElementById('training_member_search');
+    var searchResults = document.getElementById('training_search_results');
+    var noResults = document.getElementById('training_no_results');
+    
+    if (!searchInput || !searchResults) return;
+    
+    var results = searchResults.querySelectorAll('.search-result-item');
+    
+    function doFilter() {
+      var searchTerm = searchInput.value.toLowerCase().trim();
+      var visibleCount = 0;
 
-    if (searchTerm === '' || searchTerm.length < 2) {
-      searchResults.style.display = 'none';
-      noResults.style.display = 'none';
-      return;
-    }
-
-    results.forEach(function(result) {
-      const text = result.getAttribute('data-search-text');
-      if (text && text.includes(searchTerm)) {
-        result.style.display = '';
-        visibleCount++;
-      } else {
-        result.style.display = 'none';
+      if (searchTerm === '' || searchTerm.length < 2) {
+        searchResults.classList.add('d-none');
+        noResults.classList.add('d-none');
+        // Hide all results
+        for (var i = 0; i < results.length; i++) {
+          results[i].classList.add('d-none');
+        }
+        return;
       }
-    });
 
-    if (visibleCount === 0) {
-      searchResults.style.display = 'none';
-      noResults.style.display = 'block';
-    } else {
-      searchResults.style.display = 'block';
-      noResults.style.display = 'none';
+      for (var i = 0; i < results.length; i++) {
+        var result = results[i];
+        var text = result.getAttribute('data-search-text');
+        if (text && text.indexOf(searchTerm) !== -1) {
+          result.classList.remove('d-none');
+          visibleCount++;
+        } else {
+          result.classList.add('d-none');
+        }
+      }
+
+      if (visibleCount === 0) {
+        searchResults.classList.add('d-none');
+        noResults.classList.remove('d-none');
+      } else {
+        searchResults.classList.remove('d-none');
+        noResults.classList.add('d-none');
+      }
     }
-  };
+
+    searchInput.addEventListener('input', doFilter);
+    searchInput.addEventListener('keyup', doFilter);
+  })();
 </script>
