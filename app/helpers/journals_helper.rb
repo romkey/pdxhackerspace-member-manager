@@ -2,6 +2,15 @@ module JournalsHelper
   def render_change_rows(changes_hash)
     return content_tag(:span, 'No field changes recorded', class: 'text-muted') if changes_hash.blank?
 
+    # Handle special training-related entries
+    if changes_hash['training'].is_a?(Hash)
+      return render_training_change(changes_hash['training'])
+    end
+
+    if changes_hash['trainer_capability'].is_a?(Hash)
+      return render_trainer_capability_change(changes_hash['trainer_capability'])
+    end
+
     content_tag(:div, class: 'table-responsive') do
       content_tag(:table, class: 'table table-sm mb-0 align-middle') do
         thead = content_tag(:thead, class: 'bg-body-tertiary') do
@@ -24,6 +33,34 @@ module JournalsHelper
 
         thead + tbody
       end
+    end
+  end
+
+  def render_training_change(training_data)
+    topic = training_data['topic']
+    content_tag(:div, class: 'small') do
+      content_tag(:span, topic, class: 'badge text-bg-primary me-2') +
+        if training_data['trainer'].present?
+          content_tag(:span, "trained by #{training_data['trainer']}", class: 'text-muted')
+        elsif training_data['removed_by'].present?
+          content_tag(:span, "removed by #{training_data['removed_by']}", class: 'text-muted')
+        else
+          ''.html_safe
+        end
+    end
+  end
+
+  def render_trainer_capability_change(capability_data)
+    topic = capability_data['topic']
+    content_tag(:div, class: 'small') do
+      content_tag(:span, topic, class: 'badge text-bg-info me-2') +
+        if capability_data['granted_by'].present?
+          content_tag(:span, "can now train others (granted by #{capability_data['granted_by']})", class: 'text-muted')
+        elsif capability_data['revoked_by'].present?
+          content_tag(:span, "trainer capability revoked by #{capability_data['revoked_by']}", class: 'text-muted')
+        else
+          ''.html_safe
+        end
     end
   end
 

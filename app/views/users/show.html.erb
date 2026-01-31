@@ -498,6 +498,8 @@
                                      when 'incident_report_involvement' then 'text-bg-danger'
                                      when 'membership_status_changed', 'activated', 'deactivated' then 'text-bg-warning'
                                      when 'banned' then 'text-bg-dark'
+                                     when 'training_added', 'training_removed' then 'text-bg-primary'
+                                     when 'trainer_capability_added', 'trainer_capability_removed' then 'text-bg-info'
                                      else 'text-bg-secondary'
                                      end %>
                     <span class="badge <%= badge_class %>"><%= j.action.humanize %></span>

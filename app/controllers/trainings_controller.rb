@@ -41,7 +41,8 @@ class TrainingsController < AuthenticatedController
             'trained_at' => training.trained_at.iso8601
           }
         },
-        changed_at: Time.current
+        changed_at: Time.current,
+        highlight: true
       )
       redirect_to train_member_path(user_id: @trainee.id), notice: "#{@trainee.display_name} has been marked as trained in #{@training_topic.name}."
     else
@@ -72,7 +73,8 @@ class TrainingsController < AuthenticatedController
             'removed_at' => Time.current.iso8601
           }
         },
-        changed_at: Time.current
+        changed_at: Time.current,
+        highlight: true
       )
       redirect_to train_member_path(user_id: @trainee.id), notice: "Removed #{@training_topic.name} training from #{@trainee.display_name}."
     else
@@ -116,7 +118,8 @@ class TrainingsController < AuthenticatedController
             'granted_at' => Time.current.iso8601
           }
         },
-        changed_at: Time.current
+        changed_at: Time.current,
+        highlight: true
       )
       redirect_to train_member_path(user_id: @trainee.id), notice: "#{@trainee.display_name} can now train others in #{@training_topic.name}."
     else
@@ -144,7 +147,8 @@ class TrainingsController < AuthenticatedController
             'revoked_at' => Time.current.iso8601
           }
         },
-        changed_at: Time.current
+        changed_at: Time.current,
+        highlight: true
       )
       redirect_to train_member_path(user_id: @trainee.id), notice: "Removed #{@training_topic.name} trainer capability from #{@trainee.display_name}."
     else
