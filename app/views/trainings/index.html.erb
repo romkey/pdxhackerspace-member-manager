@@ -111,6 +111,42 @@
                   <% end %>
                 <% end %>
 
+                <% # Trainer capabilities (admin only) %>
+                <% if current_user_admin? %>
+                  <hr class="my-4">
+                  <div class="mb-3">
+                    <label class="form-label fw-semibold text-muted small">
+                      <i class="bi bi-person-badge me-1"></i>Can Train Others In (Admin Only)
+                    </label>
+                  </div>
+                  <% trainer_topic_ids = selected_user.training_topics.pluck(:id) %>
+                  <% all_topics = TrainingTopic.order(:name) %>
+                  <div class="d-flex flex-wrap gap-2">
+                    <% all_topics.each do |topic| %>
+                      <% is_trainer = trainer_topic_ids.include?(topic.id) %>
+                      <div class="d-inline-flex align-items-center border rounded px-3 py-2 <%= is_trainer ? 'bg-info-subtle border-info' : 'bg-body-secondary' %>">
+                        <span class="me-2"><%= topic.name %></span>
+                        <% if is_trainer %>
+                          <%= button_to remove_trainer_capability_path(user_id: selected_user.id, topic_id: topic.id), 
+                              method: :delete,
+                              class: "btn btn-sm btn-outline-danger ms-1",
+                              title: "Remove trainer capability",
+                              data: { turbo_confirm: "Remove #{topic.name} trainer capability from #{selected_user.display_name}?" } do %>
+                            <i class="bi bi-x-lg"></i>
+                          <% end %>
+                        <% else %>
+                          <%= button_to add_trainer_capability_path(user_id: selected_user.id, topic_id: topic.id), 
+                              method: :post,
+                              class: "btn btn-sm btn-outline-info ms-1",
+                              title: "Grant trainer capability" do %>
+                            <i class="bi bi-plus-lg"></i>
+                          <% end %>
+                        <% end %>
+                      </div>
+                    <% end %>
+                  </div>
+                <% end %>
+
                 <% # Training history %>
                 <% trainings = selected_user.trainings_as_trainee.includes(:training_topic, :trainer).order(trained_at: :desc).limit(10) %>
                 <% if trainings.any? %>

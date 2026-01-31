@@ -111,6 +111,8 @@ Rails.application.routes.draw do
   get "/train", to: "trainings#index", as: :train_member
   post "/train/:user_id/add/:topic_id", to: "trainings#add_training", as: :add_training
   delete "/train/:user_id/remove/:topic_id", to: "trainings#remove_training", as: :remove_training
+  post "/train/:user_id/trainer/:topic_id", to: "trainings#add_trainer_capability", as: :add_trainer_capability
+  delete "/train/:user_id/trainer/:topic_id", to: "trainings#remove_trainer_capability", as: :remove_trainer_capability
 
   resources :access_logs, only: [:index] do
     collection do
