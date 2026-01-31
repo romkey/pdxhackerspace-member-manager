@@ -8,6 +8,9 @@ class SearchController < AdminController
     @users = User.where(
       "LOWER(COALESCE(full_name, '')) LIKE :p OR LOWER(COALESCE(email, '')) LIKE :p OR LOWER(authentik_id) LIKE :p", p: pattern
     ).order(:full_name).limit(25)
+    @authentik_users = AuthentikUser.where(
+      "LOWER(COALESCE(full_name, '')) LIKE :p OR LOWER(COALESCE(email, '')) LIKE :p OR LOWER(COALESCE(username, '')) LIKE :p OR LOWER(authentik_id) LIKE :p", p: pattern
+    ).order(:full_name).limit(25)
     @sheet_entries = SheetEntry.where("LOWER(COALESCE(name, '')) LIKE :p OR LOWER(COALESCE(email, '')) LIKE :p",
                                       p: pattern).order(:name).limit(25)
     @slack_users = SlackUser.where(
@@ -19,5 +22,8 @@ class SearchController < AdminController
     @recharge_payments = RechargePayment.where(
       "LOWER(COALESCE(customer_email, '')) LIKE :p OR LOWER(COALESCE(customer_name, '')) LIKE :p OR LOWER(recharge_id) LIKE :p", p: pattern
     ).order(processed_at: :desc).limit(25)
+    @kofi_payments = KofiPayment.where(
+      "LOWER(COALESCE(email, '')) LIKE :p OR LOWER(COALESCE(from_name, '')) LIKE :p OR LOWER(kofi_transaction_id) LIKE :p", p: pattern
+    ).order(timestamp: :desc).limit(25)
   end
 end

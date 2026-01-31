@@ -6,7 +6,7 @@
 </div>
 
 <% if @q.blank? %>
-  <p class="text-muted">Enter a name or email to search users, sheet entries, Slack users, and payments.</p>
+  <p class="text-muted">Enter a name or email to search users, Authentik users, sheet entries, Slack users, and payments.</p>
   <% return %>
 <% end %>
 
@@ -49,6 +49,48 @@
                   <span class="badge text-bg-<%= badge_class %>">
                     <%= u.membership_status.humanize %>
                   </span>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<% if @authentik_users.present? %>
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <h2 class="h6 mb-3">Authentik Users (<%= @authentik_users.size %>)</h2>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="bg-body-tertiary">
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Email</th>
+              <th scope="col">Username</th>
+              <th scope="col">Linked User</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @authentik_users.each do |a| %>
+              <tr>
+                <td class="fw-semibold"><%= link_to a.display_name, authentik_user_path(a) %></td>
+                <td>
+                  <% if a.email.present? %>
+                    <%= mail_to a.email %>
+                  <% else %>
+                    <span class="text-muted fst-italic">Not provided</span>
+                  <% end %>
+                </td>
+                <td><%= a.username.presence || content_tag(:span, "—", class: "text-muted") %></td>
+                <td>
+                  <% if a.user %>
+                    <%= link_to a.user.display_name, user_path(a.user) %>
+                  <% else %>
+                    <span class="text-muted fst-italic">Not linked</span>
+                  <% end %>
                 </td>
               </tr>
             <% end %>
@@ -205,7 +247,43 @@
   </div>
 <% end %>
 
-<% if @users.blank? && @sheet_entries.blank? && @slack_users.blank? && @paypal_payments.blank? && @recharge_payments.blank? %>
+<% if @kofi_payments.present? %>
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <h2 class="h6 mb-3">Ko-Fi Payments (<%= @kofi_payments.size %>)</h2>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="bg-body-tertiary">
+            <tr>
+              <th scope="col">Transaction</th>
+              <th scope="col">From</th>
+              <th scope="col">Email</th>
+              <th scope="col">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @kofi_payments.each do |k| %>
+              <tr>
+                <td class="fw-semibold"><%= link_to k.kofi_transaction_id, kofi_payment_path(k) %></td>
+                <td><%= k.from_name.presence || content_tag(:span, "—", class: "text-muted") %></td>
+                <td>
+                  <% if k.email.present? %>
+                    <%= mail_to k.email %>
+                  <% else %>
+                    <span class="text-muted fst-italic">Not provided</span>
+                  <% end %>
+                </td>
+                <td><%= number_to_currency(k.amount, unit: k.currency == 'USD' ? '$' : k.currency) if k.amount %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<% if @users.blank? && @authentik_users.blank? && @sheet_entries.blank? && @slack_users.blank? && @paypal_payments.blank? && @recharge_payments.blank? && @kofi_payments.blank? %>
   <p class="text-muted">No results.</p>
 <% end %>
 
