@@ -129,6 +129,7 @@ Rails.application.routes.draw do
       delete :revoke_training
       delete :revoke_trainer_capability
     end
+    resources :links, controller: 'training_topic_links', only: [:create, :update, :destroy]
   end
   resources :membership_plans, except: [:show]
   resources :rfid_readers, except: [:show] do

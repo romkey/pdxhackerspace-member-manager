@@ -211,80 +211,37 @@
 </div>
 
 <script>
-  (function() {
-    function initTrainingSearch() {
-      const searchInput = document.getElementById('training_member_search');
-      const searchResults = document.getElementById('training_search_results');
-      const noResults = document.getElementById('training_no_results');
+  // Training member search - use inline handler to avoid Turbo issues
+  document.getElementById('training_member_search').oninput = function() {
+    const searchInput = this;
+    const searchResults = document.getElementById('training_search_results');
+    const noResults = document.getElementById('training_no_results');
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    const results = searchResults.querySelectorAll('.search-result-item');
+    let visibleCount = 0;
 
-      if (!searchInput || !searchResults) return;
+    if (searchTerm === '' || searchTerm.length < 2) {
+      searchResults.style.display = 'none';
+      noResults.style.display = 'none';
+      return;
+    }
 
-      // Prevent double-binding
-      if (searchInput.dataset.initialized) return;
-      searchInput.dataset.initialized = 'true';
-
-      const allResults = searchResults.querySelectorAll('.search-result-item');
-
-      // Hide all results initially
-      allResults.forEach(function(result) {
+    results.forEach(function(result) {
+      const text = result.getAttribute('data-search-text');
+      if (text && text.includes(searchTerm)) {
+        result.style.display = '';
+        visibleCount++;
+      } else {
         result.style.display = 'none';
-      });
-
-      function filterMembers() {
-        const searchTerm = searchInput.value.toLowerCase().trim();
-        let visibleCount = 0;
-
-        // If search term is too short, hide everything
-        if (searchTerm === '' || searchTerm.length < 2) {
-          searchResults.style.display = 'none';
-          noResults.style.display = 'none';
-          allResults.forEach(function(result) {
-            result.style.display = 'none';
-          });
-          return;
-        }
-
-        // Filter results
-        allResults.forEach(function(result) {
-          const text = result.getAttribute('data-search-text');
-          if (text && text.includes(searchTerm)) {
-            result.style.display = 'block';
-            visibleCount++;
-          } else {
-            result.style.display = 'none';
-          }
-        });
-
-        // Show/hide containers based on results
-        if (visibleCount === 0) {
-          searchResults.style.display = 'none';
-          noResults.style.display = 'block';
-        } else {
-          searchResults.style.display = 'block';
-          noResults.style.display = 'none';
-        }
       }
+    });
 
-      searchInput.addEventListener('input', filterMembers);
-      searchInput.addEventListener('focus', function() {
-        if (searchInput.value.length >= 2) {
-          filterMembers();
-        }
-      });
-
-      // Auto-focus search input
-      searchInput.focus();
-    }
-
-    // Run on initial page load
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initTrainingSearch);
+    if (visibleCount === 0) {
+      searchResults.style.display = 'none';
+      noResults.style.display = 'block';
     } else {
-      initTrainingSearch();
+      searchResults.style.display = 'block';
+      noResults.style.display = 'none';
     }
-
-    // Run on Turbo page navigation
-    document.addEventListener('turbo:load', initTrainingSearch);
-    document.addEventListener('turbo:render', initTrainingSearch);
-  })();
+  };
 </script>
