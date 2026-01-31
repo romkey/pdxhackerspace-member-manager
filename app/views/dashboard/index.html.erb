@@ -65,6 +65,11 @@
             <%= link_to new_incident_report_path, class: "btn btn-warning btn-lg" do %>
               <i class="bi bi-exclamation-triangle me-2"></i>New Incident Report
             <% end %>
+            <% if current_user_admin? || current_user&.trainer_capabilities&.any? %>
+              <%= link_to train_member_path, class: "btn btn-info btn-lg" do %>
+                <i class="bi bi-mortarboard me-2"></i>Train a Member
+              <% end %>
+            <% end %>
           </div>
         </div>
       </div>

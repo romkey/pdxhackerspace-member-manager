@@ -1,0 +1,225 @@
+<div class="py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Train a Member</h1>
+    <%= link_to "&larr; Dashboard".html_safe, root_path, class: "text-decoration-none" %>
+  </div>
+
+  <% if @trainable_topics.empty? %>
+    <div class="alert alert-warning">
+      <i class="bi bi-exclamation-triangle me-2"></i>
+      No training topics are available. <% if current_user_admin? %>Please create some training topics first.<% end %>
+    </div>
+  <% else %>
+    <div class="row">
+      <!-- Member Search -->
+      <div class="col-lg-5 mb-4">
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-body-tertiary">
+            <h5 class="mb-0"><i class="bi bi-search me-2"></i>Find a Member</h5>
+          </div>
+          <div class="card-body">
+            <input type="text" id="training_member_search" class="form-control form-control-lg" 
+                   placeholder="Type to search by name, email, or username..." autocomplete="off">
+            <div id="training_search_results" class="mt-2" style="max-height: 400px; overflow-y: auto; display: none;">
+              <% @users_for_search.each do |user| %>
+                <a href="<%= train_member_path(user_id: user.id) %>" 
+                   class="d-block p-3 text-decoration-none border-bottom search-result-item <%= 'bg-primary-subtle border-primary' if params[:user_id].to_i == user.id %>"
+                   data-search-text="<%= [user.display_name, user.email, user.username].compact.join(' ').downcase %>"
+                   data-user-id="<%= user.id %>">
+                  <div class="fw-semibold"><%= user.display_name %></div>
+                  <% if user.email.present? %>
+                    <div class="text-muted small"><%= user.email %></div>
+                  <% end %>
+                </a>
+              <% end %>
+            </div>
+            <div id="training_no_results" class="mt-2 p-3 text-center text-muted border rounded" style="display: none;">
+              No members found matching your search.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Training Topics Management -->
+      <div class="col-lg-7 mb-4">
+        <% if params[:user_id].present? %>
+          <% selected_user = User.find_by(id: params[:user_id]) %>
+          <% if selected_user %>
+            <div class="card shadow-sm border-0">
+              <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                  <i class="bi bi-mortarboard me-2"></i>
+                  Training for <%= selected_user.display_name %>
+                </h5>
+                <%= link_to user_path(selected_user), class: "btn btn-outline-secondary btn-sm" do %>
+                  <i class="bi bi-person"></i> View Profile
+                <% end %>
+              </div>
+              <div class="card-body">
+                <% trained_topic_ids = selected_user.trainings_as_trainee.pluck(:training_topic_id).uniq %>
+                
+                <% if @trainable_topics.any? %>
+                  <div class="mb-3">
+                    <label class="form-label fw-semibold text-muted small">
+                      <% if current_user_admin? %>
+                        All Topics (Admin)
+                      <% else %>
+                        Topics You Can Train
+                      <% end %>
+                    </label>
+                  </div>
+
+                  <div class="d-flex flex-wrap gap-2">
+                    <% @trainable_topics.each do |topic| %>
+                      <% is_trained = trained_topic_ids.include?(topic.id) %>
+                      <div class="d-inline-flex align-items-center border rounded px-3 py-2 <%= is_trained ? 'bg-success-subtle border-success' : 'bg-body-secondary' %>">
+                        <span class="me-2"><%= topic.name %></span>
+                        <% if is_trained %>
+                          <%= button_to remove_training_path(user_id: selected_user.id, topic_id: topic.id), 
+                              method: :delete,
+                              class: "btn btn-sm btn-outline-danger ms-1",
+                              title: "Remove training",
+                              data: { turbo_confirm: "Remove #{topic.name} training from #{selected_user.display_name}?" } do %>
+                            <i class="bi bi-x-lg"></i>
+                          <% end %>
+                        <% else %>
+                          <%= button_to add_training_path(user_id: selected_user.id, topic_id: topic.id), 
+                              method: :post,
+                              class: "btn btn-sm btn-outline-success ms-1",
+                              title: "Add training" do %>
+                            <i class="bi bi-plus-lg"></i>
+                          <% end %>
+                        <% end %>
+                      </div>
+                    <% end %>
+                  </div>
+
+                  <% # Show topics the user is trained in but the trainer can't modify %>
+                  <% non_trainable_trained_ids = trained_topic_ids - @trainable_topics.pluck(:id) %>
+                  <% if non_trainable_trained_ids.any? %>
+                    <hr class="my-4">
+                    <div class="mb-3">
+                      <label class="form-label fw-semibold text-muted small">
+                        Other Training (View Only)
+                      </label>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                      <% TrainingTopic.where(id: non_trainable_trained_ids).order(:name).each do |topic| %>
+                        <span class="badge text-bg-primary fs-6 px-3 py-2"><%= topic.name %></span>
+                      <% end %>
+                    </div>
+                  <% end %>
+                <% end %>
+
+                <% # Training history %>
+                <% trainings = selected_user.trainings_as_trainee.includes(:training_topic, :trainer).order(trained_at: :desc).limit(10) %>
+                <% if trainings.any? %>
+                  <hr class="my-4">
+                  <h6 class="text-muted mb-3">Recent Training History</h6>
+                  <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                      <thead class="bg-body-tertiary">
+                        <tr>
+                          <th>Topic</th>
+                          <th>Trained By</th>
+                          <th>Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <% trainings.each do |training| %>
+                          <tr>
+                            <td><span class="badge text-bg-primary"><%= training.training_topic.name %></span></td>
+                            <td>
+                              <% if training.trainer %>
+                                <%= link_to training.trainer.display_name, user_path(training.trainer), class: "text-decoration-none" %>
+                              <% else %>
+                                <span class="text-muted fst-italic">Unknown</span>
+                              <% end %>
+                            </td>
+                            <td><%= training.trained_at.strftime('%Y-%m-%d') %></td>
+                          </tr>
+                        <% end %>
+                      </tbody>
+                    </table>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          <% else %>
+            <div class="alert alert-warning">
+              <i class="bi bi-exclamation-triangle me-2"></i>
+              Member not found. Please search for a member.
+            </div>
+          <% end %>
+        <% else %>
+          <div class="card shadow-sm border-0 h-100">
+            <div class="card-body d-flex align-items-center justify-content-center text-center">
+              <div class="py-5">
+                <i class="bi bi-arrow-left display-4 text-muted mb-3 d-block"></i>
+                <h5 class="text-muted">Search for a member to manage their training</h5>
+                <p class="text-muted small mb-0">
+                  You can train members in 
+                  <% if current_user_admin? %>
+                    <strong>all topics</strong> (Admin)
+                  <% else %>
+                    <strong><%= @trainable_topics.map(&:name).join(', ') %></strong>
+                  <% end %>
+                </p>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('training_member_search');
+    const searchResults = document.getElementById('training_search_results');
+    const noResults = document.getElementById('training_no_results');
+
+    if (!searchInput || !searchResults) return;
+
+    function filterMembers() {
+      const searchTerm = searchInput.value.toLowerCase().trim();
+      const results = searchResults.querySelectorAll('.search-result-item');
+      let visibleCount = 0;
+
+      if (searchTerm === '' || searchTerm.length < 2) {
+        searchResults.style.display = 'none';
+        noResults.style.display = 'none';
+        return;
+      }
+
+      results.forEach(function(result) {
+        const text = result.getAttribute('data-search-text');
+        if (text && text.includes(searchTerm)) {
+          result.style.display = '';
+          visibleCount++;
+        } else {
+          result.style.display = 'none';
+        }
+      });
+
+      if (visibleCount === 0) {
+        searchResults.style.display = 'none';
+        noResults.style.display = 'block';
+      } else {
+        searchResults.style.display = 'block';
+        noResults.style.display = 'none';
+      }
+    }
+
+    searchInput.addEventListener('input', filterMembers);
+    searchInput.addEventListener('focus', function() {
+      if (searchInput.value.length >= 2) {
+        filterMembers();
+      }
+    });
+
+    // Auto-focus search input
+    searchInput.focus();
+  });
+</script>

@@ -107,6 +107,11 @@ Rails.application.routes.draw do
 
   resources :journals, only: [:index]
 
+  # Training members
+  get "/train", to: "trainings#index", as: :train_member
+  post "/train/:user_id/add/:topic_id", to: "trainings#add_training", as: :add_training
+  delete "/train/:user_id/remove/:topic_id", to: "trainings#remove_training", as: :remove_training
+
   resources :access_logs, only: [:index] do
     collection do
       get :generate_users_json
