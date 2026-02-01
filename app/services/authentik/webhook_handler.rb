@@ -6,17 +6,24 @@ module Authentik
   class WebhookHandler
     def call(payload)
       event_type = extract_event_type(payload)
+      model_type = extract_model_type(payload)
 
-      Rails.logger.info("[Authentik Webhook] Processing event type: #{event_type}")
+      Rails.logger.info("[Authentik Webhook] Processing event type: #{event_type}, model: #{model_type}")
 
-      case event_type
-      when 'model_updated', 'model_created', 'user_write'
-        handle_user_change(payload)
-      when 'model_deleted'
-        handle_user_deletion(payload)
+      # Check if this event is for a group we care about
+      unless should_process_event?(payload)
+        Rails.logger.info("[Authentik Webhook] Skipping event - not for a synced group")
+        return { status: 'filtered', reason: 'not_synced_group' }
+      end
+
+      case model_type
+      when 'user'
+        handle_user_event(event_type, payload)
+      when 'group'
+        handle_group_event(event_type, payload)
       else
-        Rails.logger.info("[Authentik Webhook] Ignoring event type: #{event_type}")
-        { status: 'ignored', event_type: event_type }
+        # Fall back to original behavior for unknown models
+        handle_user_event(event_type, payload)
       end
     end
 
@@ -28,6 +35,132 @@ module Authentik
         payload.dig('event', 'action') ||
         payload['action'] ||
         'unknown'
+    end
+
+    def extract_model_type(payload)
+      # Try to determine what model this event is for
+      model_app = payload.dig('context', 'model_app') ||
+                  payload.dig('event', 'context', 'model_app') ||
+                  payload['model_app']
+
+      model_name = payload.dig('context', 'model_name') ||
+                   payload.dig('event', 'context', 'model_name') ||
+                   payload['model_name']
+
+      return 'group' if model_name&.downcase == 'group' || model_app&.include?('group')
+      return 'user' if model_name&.downcase == 'user' || model_app&.include?('user')
+
+      # Check if payload contains user-like or group-like data
+      model_data = payload.dig('context', 'model') || {}
+      return 'user' if model_data['username'].present? || model_data['email'].present?
+      return 'group' if model_data['users'].present? || (model_data['name'].present? && model_data['users_obj'].present?)
+
+      'unknown'
+    end
+
+    def should_process_event?(payload)
+      synced_group_ids = AuthentikConfig.settings.synced_group_ids
+
+      # If no synced groups configured, process all events (backward compatible)
+      return true if synced_group_ids.blank?
+
+      # Also always allow if the main group_id is in the event
+      main_group_id = AuthentikConfig.settings.group_id
+      synced_group_ids = synced_group_ids + [main_group_id] if main_group_id.present?
+
+      # Extract group IDs from the event
+      event_group_ids = extract_group_ids_from_event(payload)
+
+      # If we can't determine groups, process anyway (to be safe)
+      return true if event_group_ids.empty?
+
+      # Check if any of the event's groups are in our synced list
+      (event_group_ids & synced_group_ids).any?
+    end
+
+    def extract_group_ids_from_event(payload)
+      group_ids = []
+
+      # For group events, the group ID is the model PK
+      model_data = payload.dig('context', 'model') || {}
+      if model_data['users'].present? || model_data['users_obj'].present?
+        group_ids << model_data['pk'].to_s if model_data['pk'].present?
+      end
+
+      # For user events, check the user's groups
+      if model_data['groups'].present?
+        model_data['groups'].each do |group|
+          group_ids << (group.is_a?(Hash) ? group['pk'].to_s : group.to_s)
+        end
+      end
+
+      # Check for group in other payload locations
+      payload_group = payload.dig('context', 'group') || payload['group']
+      group_ids << payload_group['pk'].to_s if payload_group.is_a?(Hash) && payload_group['pk'].present?
+      group_ids << payload_group.to_s if payload_group.is_a?(String) && payload_group.present?
+
+      group_ids.compact.uniq
+    end
+
+    def handle_user_event(event_type, payload)
+      case event_type
+      when 'model_updated', 'model_created', 'user_write'
+        handle_user_change(payload)
+      when 'model_deleted'
+        handle_user_deletion(payload)
+      else
+        Rails.logger.info("[Authentik Webhook] Ignoring user event type: #{event_type}")
+        { status: 'ignored', event_type: event_type }
+      end
+    end
+
+    def handle_group_event(event_type, payload)
+      case event_type
+      when 'model_updated'
+        handle_group_membership_change(payload)
+      when 'model_deleted'
+        handle_group_deletion(payload)
+      else
+        Rails.logger.info("[Authentik Webhook] Ignoring group event type: #{event_type}")
+        { status: 'ignored', event_type: event_type, model: 'group' }
+      end
+    end
+
+    def handle_group_membership_change(payload)
+      group_data = payload.dig('context', 'model') || {}
+      group_id = group_data['pk']&.to_s
+      group_name = group_data['name']
+
+      if group_id.blank?
+        Rails.logger.warn("[Authentik Webhook] No group ID found in membership change payload")
+        return { status: 'skipped', reason: 'no_group_id' }
+      end
+
+      Rails.logger.info("[Authentik Webhook] Group membership change detected for group: #{group_name} (#{group_id})")
+
+      # Trigger a sync for this group to update user memberships
+      # This will be handled by the existing sync infrastructure
+      Authentik::GroupSyncJob.perform_later
+
+      { status: 'sync_queued', group_id: group_id, group_name: group_name }
+    end
+
+    def handle_group_deletion(payload)
+      group_data = payload.dig('context', 'model') || {}
+      group_id = group_data['pk']&.to_s
+      group_name = group_data['name']
+
+      if group_id.blank?
+        Rails.logger.warn("[Authentik Webhook] No group ID found in deletion payload")
+        return { status: 'skipped', reason: 'no_group_id' }
+      end
+
+      Rails.logger.warn("[Authentik Webhook] Group deleted: #{group_name} (#{group_id})")
+
+      # Log this as a significant event - group deletion may affect members
+      # You may want to notify admins or take other action here
+
+      { status: 'group_deleted', group_id: group_id, group_name: group_name }
     end
 
     def handle_user_change(payload)

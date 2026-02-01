@@ -59,6 +59,11 @@ Rails.application.routes.draw do
     end
   end
 
+  # Authentik webhook configuration
+  get "/settings/authentik_webhooks", to: "authentik_webhooks#index", as: :authentik_webhooks
+  post "/settings/authentik_webhooks/setup", to: "authentik_webhooks#setup", as: :setup_authentik_webhooks
+  delete "/settings/authentik_webhooks/teardown", to: "authentik_webhooks#teardown", as: :teardown_authentik_webhooks
+
   resources :sheet_entries, only: [:index, :show] do
     collection do
       post :sync
