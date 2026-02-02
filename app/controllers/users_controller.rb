@@ -46,9 +46,13 @@ class UsersController < AuthenticatedController
 
   def show
     # Determine view level based on viewer and profile settings
-    @view_level = determine_view_level
+    @natural_view_level = determine_view_level
+    @view_level = determine_effective_view_level
 
-    # Admin-only data
+    # Set up view preview options for admins and profile owners
+    setup_view_preview_options
+
+    # Admin-only data (load when viewing as admin OR when admin is previewing other views)
     if current_user_admin?
       @payments = PaymentHistory.for_user(@user)
       @journals = @user.journals.includes(:actor_user).order(changed_at: :desc, created_at: :desc)
@@ -223,6 +227,43 @@ class UsersController < AuthenticatedController
     return :members if user_signed_in?
 
     :public
+  end
+
+  def determine_effective_view_level
+    # Check if user is requesting a specific view level via params
+    requested_view = params[:view_as]&.to_sym
+
+    return @natural_view_level unless requested_view.present?
+
+    # Validate that the user can access the requested view level
+    allowed_views = allowed_preview_views
+    return @natural_view_level unless allowed_views.include?(requested_view)
+
+    requested_view
+  end
+
+  def allowed_preview_views
+    # Admins can preview all views
+    return %i[public members self admin] if current_user_admin?
+
+    # Profile owners can preview public, members, and self views
+    return %i[public members self] if user_signed_in? && @user == current_user
+
+    # Others cannot preview
+    []
+  end
+
+  def setup_view_preview_options
+    @can_preview_views = allowed_preview_views.length > 1
+    @available_views = allowed_preview_views.map do |level|
+      label = case level
+              when :public then 'Public (not logged in)'
+              when :members then 'Other Members'
+              when :self then 'Profile Owner'
+              when :admin then 'Admin'
+              end
+      [label, level]
+    end
   end
 
   def user_params

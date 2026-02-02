@@ -1,3 +1,30 @@
+<%# View Preview Selector - for admins and profile owners %>
+<% if @can_preview_views %>
+  <div class="card border-info mb-4">
+    <div class="card-body py-2">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-eye text-info"></i>
+          <span class="text-muted small">Preview profile as:</span>
+          <%= form_with url: user_path(@user), method: :get, local: true, class: "d-inline-flex align-items-center gap-2" do %>
+            <%= select_tag :view_as, 
+                options_for_select(@available_views, @view_level), 
+                class: "form-select form-select-sm", 
+                style: "width: auto;",
+                onchange: "this.form.submit();" %>
+          <% end %>
+        </div>
+        <% if @view_level != @natural_view_level %>
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-info">Previewing</span>
+            <%= link_to "Exit Preview", user_path(@user), class: "btn btn-outline-info btn-sm" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>
+
 <%# Header/Navigation based on view level %>
 <% if @view_level == :admin %>
   <div class="mb-4">
