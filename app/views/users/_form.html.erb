@@ -22,6 +22,11 @@
   </div>
 
   <div>
+    <%= f.label :pronouns, class: "form-label" %>
+    <%= f.text_field :pronouns, class: "form-control", placeholder: "e.g., they/them, she/her, he/him" %>
+  </div>
+
+  <div>
     <%= f.label :greeting_name, "Greeting Name", class: "form-label" %>
     <small class="text-muted d-block mb-2">Name used on signs on entry</small>
     <%= f.text_field :greeting_name, class: "form-control", id: "user_greeting_name" %>

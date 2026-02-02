@@ -181,7 +181,7 @@ class UsersController < AuthenticatedController
 
   def user_params
     permitted = %i[
-      username full_name email greeting_name use_full_name_for_greeting
+      username full_name email pronouns greeting_name use_full_name_for_greeting
       use_username_for_greeting do_not_greet
     ]
 
