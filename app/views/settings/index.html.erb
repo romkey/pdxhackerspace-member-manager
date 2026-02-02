@@ -24,6 +24,15 @@
   <div class="col-md-6 col-lg-4">
     <div class="card shadow-sm border-0 h-100">
       <div class="card-body d-flex flex-column">
+        <h5 class="card-title">Application Group Defaults</h5>
+        <p class="card-text text-muted">Configure default prefixes and group names used for application groups.</p>
+        <%= link_to "Manage Defaults", default_settings_path, class: "btn btn-primary mt-auto" %>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-lg-4">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body d-flex flex-column">
         <h5 class="card-title">Applications</h5>
         <p class="card-text text-muted">Manage applications and their groups, and assign members to application groups.</p>
         <%= link_to "Manage Applications", applications_path, class: "btn btn-primary mt-auto" %>
@@ -33,18 +42,18 @@
   <div class="col-md-6 col-lg-4">
     <div class="card shadow-sm border-0 h-100">
       <div class="card-body d-flex flex-column">
-        <h5 class="card-title">Email Templates</h5>
-        <p class="card-text text-muted">Customize the email messages sent to members for applications, approvals, payments, and more.</p>
-        <%= link_to "Manage Email Templates", email_templates_path, class: "btn btn-primary mt-auto" %>
+        <h5 class="card-title">Authentik Webhooks</h5>
+        <p class="card-text text-muted">Configure automatic webhook notifications from Authentik for user and group changes.</p>
+        <%= link_to "Manage Webhooks", authentik_webhooks_path, class: "btn btn-primary mt-auto" %>
       </div>
     </div>
   </div>
   <div class="col-md-6 col-lg-4">
     <div class="card shadow-sm border-0 h-100">
       <div class="card-body d-flex flex-column">
-        <h5 class="card-title">Manage Defaults</h5>
-        <p class="card-text text-muted">Configure default prefixes and group names used throughout the application.</p>
-        <%= link_to "Manage Defaults", default_settings_path, class: "btn btn-primary mt-auto" %>
+        <h5 class="card-title">Email Templates</h5>
+        <p class="card-text text-muted">Customize the email messages sent to members for applications, approvals, payments, and more.</p>
+        <%= link_to "Manage Email Templates", email_templates_path, class: "btn btn-primary mt-auto" %>
       </div>
     </div>
   </div>
@@ -63,6 +72,15 @@
         <h5 class="card-title">Membership Plans</h5>
         <p class="card-text text-muted">Manage membership plans with costs, billing frequencies, and descriptions.</p>
         <%= link_to "Manage Membership Plans", membership_plans_path, class: "btn btn-primary mt-auto" %>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-lg-4">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body d-flex flex-column">
+        <h5 class="card-title">Membership Settings</h5>
+        <p class="card-text text-muted">Configure payment grace periods and reactivation windows for memberships.</p>
+        <%= link_to "Manage Settings", membership_settings_path, class: "btn btn-primary mt-auto" %>
       </div>
     </div>
   </div>
@@ -90,15 +108,6 @@
         <h5 class="card-title">Training Topics</h5>
         <p class="card-text text-muted">Manage the list of training topics that members can be trained on or can train others in.</p>
         <%= link_to "Manage Training Topics", training_topics_path, class: "btn btn-primary mt-auto" %>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-6 col-lg-4">
-    <div class="card shadow-sm border-0 h-100">
-      <div class="card-body d-flex flex-column">
-        <h5 class="card-title">Authentik Webhooks</h5>
-        <p class="card-text text-muted">Configure automatic webhook notifications from Authentik for user and group changes.</p>
-        <%= link_to "Manage Webhooks", authentik_webhooks_path, class: "btn btn-primary mt-auto" %>
       </div>
     </div>
   </div>

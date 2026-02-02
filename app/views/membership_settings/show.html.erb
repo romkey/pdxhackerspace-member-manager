@@ -1,0 +1,50 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">Membership Settings</h1>
+    <p class="text-muted mb-0">Configure system-wide membership grace periods.</p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to "Edit", edit_membership_settings_path, class: "btn btn-primary" %>
+    <%= link_to "Back to Settings", settings_path, class: "btn btn-secondary" %>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-lg-8">
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-6">Payment Grace Period</dt>
+          <dd class="col-sm-6">
+            <strong><%= @membership_setting.payment_grace_period_days %></strong> days
+            <div class="form-text">Days after payment due date before membership is marked as lapsed.</div>
+          </dd>
+
+          <dt class="col-sm-6 mt-3">Reactivation Grace Period</dt>
+          <dd class="col-sm-6 mt-3">
+            <strong><%= @membership_setting.reactivation_grace_period_months %></strong> months
+            <div class="form-text">Months a lapsed member can reactivate without needing to reapply.</div>
+          </dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-light">
+        <h5 class="card-title mb-0">About Grace Periods</h5>
+      </div>
+      <div class="card-body">
+        <p class="small text-muted mb-2">
+          <strong>Payment Grace Period:</strong> When a member's payment is overdue, they have this many days 
+          before their membership status changes to lapsed.
+        </p>
+        <p class="small text-muted mb-0">
+          <strong>Reactivation Grace Period:</strong> After a membership lapses, members have this many months 
+          to resume their membership without going through the full application process again.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

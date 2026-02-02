@@ -50,6 +50,6 @@ class PaymentProcessorsController < AdminController
   end
 
   def payment_processor_params
-    params.require(:payment_processor).permit(:name, :enabled, :display_order, :webhook_url, :notes)
+    params.require(:payment_processor).permit(:name, :enabled, :display_order, :payment_link, :webhook_url, :notes)
   end
 end

@@ -19,12 +19,20 @@
             <div class="row">
               <!-- Header -->
               <div class="col-12 mb-3">
-                <div class="d-flex justify-content-between align-items-center">
-                  <div class="d-flex align-items-center gap-3">
-                    <h5 class="card-title mb-0"><%= processor.name %></h5>
-                    <span class="badge text-bg-<%= processor.status_badge_class %>"><%= processor.status_label %></span>
-                    <% unless processor.enabled? %>
-                      <span class="badge text-bg-secondary">Disabled</span>
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <div class="d-flex align-items-center gap-3 mb-1">
+                      <h5 class="card-title mb-0"><%= processor.name %></h5>
+                      <span class="badge text-bg-<%= processor.status_badge_class %>"><%= processor.status_label %></span>
+                      <% unless processor.enabled? %>
+                        <span class="badge text-bg-secondary">Disabled</span>
+                      <% end %>
+                    </div>
+                    <% if processor.payment_link.present? %>
+                      <small class="text-muted">
+                        <i class="bi bi-link-45deg"></i>
+                        <%= link_to processor.payment_link, processor.payment_link, target: "_blank", rel: "noopener", class: "text-decoration-none" %>
+                      </small>
                     <% end %>
                   </div>
                   <div class="btn-group btn-group-sm">

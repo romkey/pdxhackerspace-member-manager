@@ -1,0 +1,65 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">Edit Membership Settings</h1>
+    <p class="text-muted mb-0">Configure system-wide membership grace periods.</p>
+  </div>
+  <div>
+    <%= link_to "Cancel", membership_settings_path, class: "btn btn-secondary" %>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-lg-8">
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <%= form_with model: @membership_setting, url: membership_settings_path, method: :patch, local: true do |f| %>
+          <% if @membership_setting.errors.any? %>
+            <div class="alert alert-danger">
+              <h5 class="alert-heading">Please fix the following errors:</h5>
+              <ul class="mb-0">
+                <% @membership_setting.errors.full_messages.each do |msg| %>
+                  <li><%= msg %></li>
+                <% end %>
+              </ul>
+            </div>
+          <% end %>
+
+          <div class="mb-3">
+            <%= f.label :payment_grace_period_days, "Payment Grace Period (days)", class: "form-label" %>
+            <%= f.number_field :payment_grace_period_days, class: "form-control", min: 0, style: "max-width: 150px;" %>
+            <div class="form-text">Days after payment due date before membership is marked as lapsed.</div>
+          </div>
+
+          <div class="mb-4">
+            <%= f.label :reactivation_grace_period_months, "Reactivation Grace Period (months)", class: "form-label" %>
+            <%= f.number_field :reactivation_grace_period_months, class: "form-control", min: 0, style: "max-width: 150px;" %>
+            <div class="form-text">Months a lapsed member can reactivate without needing to reapply.</div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <%= f.submit "Save Settings", class: "btn btn-primary" %>
+            <%= link_to "Cancel", membership_settings_path, class: "btn btn-outline-secondary" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-light">
+        <h5 class="card-title mb-0">About Grace Periods</h5>
+      </div>
+      <div class="card-body">
+        <p class="small text-muted mb-2">
+          <strong>Payment Grace Period:</strong> When a member's payment is overdue, they have this many days 
+          before their membership status changes to lapsed.
+        </p>
+        <p class="small text-muted mb-0">
+          <strong>Reactivation Grace Period:</strong> After a membership lapses, members have this many months 
+          to resume their membership without going through the full application process again.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

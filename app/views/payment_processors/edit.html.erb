@@ -36,6 +36,12 @@
           </div>
 
           <div class="mb-3">
+            <%= f.label :payment_link, "Payment Link", class: "form-label" %>
+            <%= f.url_field :payment_link, class: "form-control", placeholder: "https://..." %>
+            <div class="form-text">Public URL where members can make payments (e.g., PayPal.me link).</div>
+          </div>
+
+          <div class="mb-3">
             <%= f.label :webhook_url, "Webhook URL", class: "form-label" %>
             <%= f.text_field :webhook_url, class: "form-control", placeholder: "https://..." %>
             <div class="form-text">The URL where this processor sends webhook notifications (for reference).</div>

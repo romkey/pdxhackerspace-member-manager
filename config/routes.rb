@@ -145,6 +145,7 @@ Rails.application.routes.draw do
     end
   end
   resource :default_settings, only: [:show, :edit, :update], path: "settings/defaults"
+  resource :membership_settings, only: [:show, :edit, :update], path: "settings/membership"
   
   resources :email_templates, only: [:index, :show, :edit, :update] do
     member do
