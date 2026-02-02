@@ -110,7 +110,23 @@
 
 <div class="card shadow-sm border-0">
   <div class="card-body">
-    <h1 class="h4 mb-3"><%= @user.display_name %></h1>
+    <!-- Name and Photo Header -->
+    <div class="d-flex align-items-center gap-4 mb-4">
+      <% if image_url.present? %>
+        <img src="<%= image_url %>" alt="<%= @user.display_name %>" class="rounded-circle" style="width: 96px; height: 96px; object-fit: cover;">
+      <% else %>
+        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center" style="width: 96px; height: 96px;">
+          <i class="bi bi-person-fill text-white" style="font-size: 48px;"></i>
+        </div>
+      <% end %>
+      <div>
+        <h1 class="h3 mb-1"><%= @user.display_name %></h1>
+        <% if @user.pronouns.present? %>
+          <span class="text-muted"><%= @user.pronouns %></span>
+        <% end %>
+      </div>
+    </div>
+
     <% if current_user_admin? %>
       <div class="row">
       <div class="col-md-8">
@@ -143,9 +159,6 @@
 
       <dt class="col-sm-3 text-secondary">Full name</dt>
       <dd class="col-sm-9"><%= @user.full_name.presence || content_tag(:span, "Not provided", class: "text-muted fst-italic") %></dd>
-
-      <dt class="col-sm-3 text-secondary">Pronouns</dt>
-      <dd class="col-sm-9"><%= @user.pronouns.presence || content_tag(:span, "Not set", class: "text-muted fst-italic") %></dd>
 
       <dt class="col-sm-3 text-secondary">About</dt>
       <dd class="col-sm-9">
@@ -213,48 +226,6 @@
         <% else %>
           <span class="text-muted fst-italic">Not linked</span>
         <% end %>
-      </dd>
-
-      <dt class="col-sm-3 text-secondary">Membership Status</dt>
-      <dd class="col-sm-9">
-        <% badge_class = case @user.membership_status
-           when "paying" then "success"
-           when "guest" then "warning"
-           when "banned" then "danger"
-           when "deceased" then "dark"
-           when "sponsored" then "primary"
-           when "applicant" then "light text-dark"
-           when "cancelled" then "secondary"
-           when "unknown" then "secondary"
-           else "secondary"
-           end %>
-        <span class="badge text-bg-<%= badge_class %>">
-          <%= @user.membership_status.humanize %>
-        </span>
-        <% if @user.active? %>
-          <span class="badge text-bg-success ms-2">Active</span>
-        <% end %>
-        <% member_status = (@user.authentik_attributes || {})["memberStatus"] %>
-        <% if member_status.present? %>
-          <span class="badge text-bg-info ms-2"><%= member_status %></span>
-        <% end %>
-      </dd>
-
-      <dt class="col-sm-3 text-secondary">Payment Type</dt>
-      <dd class="col-sm-9">
-        <span class="badge text-bg-info"><%= @user.payment_type.humanize %></span>
-      </dd>
-
-      <dt class="col-sm-3 text-secondary">Dues Status</dt>
-      <dd class="col-sm-9">
-        <% dues_badge_class = case @user.dues_status
-           when "current" then "success"
-           when "lapsed" then "warning"
-           when "inactive" then "secondary"
-           when "unknown" then "secondary"
-           else "secondary"
-           end %>
-        <span class="badge text-bg-<%= dues_badge_class %>"><%= @user.dues_status.humanize %></span>
       </dd>
 
       <dt class="col-sm-3 text-secondary">Trained on</dt>
@@ -337,12 +308,78 @@
         </dl>
       </div>
       <div class="col-md-4">
-        <div class="text-center">
-          <% if image_url.present? %>
-            <img src="<%= image_url %>" alt="<%= @user.display_name %>" class="img-fluid rounded" style="max-width: 192px; max-height: 192px;">
-          <% else %>
-            <div style="width: 192px; height: 192px; border-radius: 8px; background-color: #dee2e6; display: inline-block;"></div>
-          <% end %>
+        <!-- Status Panel -->
+        <div class="card border-0 bg-body-tertiary">
+          <div class="card-body text-center">
+            <!-- Active/Inactive Status -->
+            <div class="mb-4">
+              <% if @user.active? %>
+                <div class="display-6 text-success mb-2">
+                  <i class="bi bi-check-circle-fill"></i>
+                </div>
+                <h4 class="text-success mb-0">Active</h4>
+              <% else %>
+                <div class="display-6 text-secondary mb-2">
+                  <i class="bi bi-x-circle-fill"></i>
+                </div>
+                <h4 class="text-secondary mb-0">Inactive</h4>
+              <% end %>
+            </div>
+
+            <hr>
+
+            <!-- Membership Details -->
+            <div class="text-start">
+              <% if @user.membership_status == 'sponsored' %>
+                <div class="mb-3">
+                  <small class="text-muted d-block">Sponsorship</small>
+                  <span class="badge text-bg-primary fs-6">Sponsored</span>
+                </div>
+              <% end %>
+
+              <div class="mb-3">
+                <small class="text-muted d-block">Payment Type</small>
+                <span class="badge text-bg-info fs-6"><%= @user.payment_type.humanize %></span>
+              </div>
+
+              <% if @user.membership_plan.present? %>
+                <div class="mb-3">
+                  <small class="text-muted d-block">Membership Plan</small>
+                  <strong><%= @user.membership_plan.name %></strong>
+                  <br>
+                  <span class="text-muted">$<%= format('%.2f', @user.membership_plan.cost) %>/<%= @user.membership_plan.billing_frequency %></span>
+                </div>
+              <% end %>
+
+              <div class="mb-3">
+                <small class="text-muted d-block">Dues Status</small>
+                <% dues_badge_class = case @user.dues_status
+                   when "current" then "success"
+                   when "lapsed" then "warning"
+                   when "inactive" then "secondary"
+                   when "unknown" then "secondary"
+                   else "secondary"
+                   end %>
+                <span class="badge text-bg-<%= dues_badge_class %> fs-6"><%= @user.dues_status.humanize %></span>
+              </div>
+
+              <div>
+                <small class="text-muted d-block">Membership Status</small>
+                <% badge_class = case @user.membership_status
+                   when "paying" then "success"
+                   when "guest" then "warning"
+                   when "banned" then "danger"
+                   when "deceased" then "dark"
+                   when "sponsored" then "primary"
+                   when "applicant" then "light text-dark"
+                   when "cancelled" then "secondary"
+                   when "unknown" then "secondary"
+                   else "secondary"
+                   end %>
+                <span class="badge text-bg-<%= badge_class %> fs-6"><%= @user.membership_status.humanize %></span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -364,9 +401,6 @@
 
           <dt class="col-sm-3 text-secondary">Full name</dt>
           <dd class="col-sm-9"><%= @user.full_name.presence || content_tag(:span, "Not provided", class: "text-muted fst-italic") %></dd>
-
-          <dt class="col-sm-3 text-secondary">Pronouns</dt>
-          <dd class="col-sm-9"><%= @user.pronouns.presence || content_tag(:span, "Not set", class: "text-muted fst-italic") %></dd>
 
           <dt class="col-sm-3 text-secondary">About</dt>
           <dd class="col-sm-9">
@@ -412,28 +446,6 @@
             <% end %>
           </dd>
 
-          <dt class="col-sm-3 text-secondary">Membership Status</dt>
-          <dd class="col-sm-9">
-            <% badge_class = case @user.membership_status
-               when "paying" then "success"
-               when "guest" then "warning"
-               when "banned" then "danger"
-               when "deceased" then "dark"
-               when "sponsored" then "primary"
-               when "applicant" then "light text-dark"
-               when "unknown" then "secondary"
-               else "secondary"
-               end %>
-            <span class="badge text-bg-<%= badge_class %>">
-              <%= @user.membership_status.humanize %>
-            </span>
-          </dd>
-
-          <dt class="col-sm-3 text-secondary">Payment Type</dt>
-          <dd class="col-sm-9">
-            <span class="badge text-bg-info"><%= @user.payment_type.humanize %></span>
-          </dd>
-
           <dt class="col-sm-3 text-secondary">Trained on</dt>
           <dd class="col-sm-9">
             <% trained_topics = @user.trainings_as_trainee.map(&:training_topic).uniq %>
@@ -459,12 +471,66 @@
         </dl>
       </div>
       <div class="col-md-4">
-        <div class="text-center">
-          <% if image_url.present? %>
-            <img src="<%= image_url %>" alt="<%= @user.display_name %>" class="img-fluid rounded" style="max-width: 192px; max-height: 192px;">
-          <% else %>
-            <div style="width: 192px; height: 192px; border-radius: 8px; background-color: #dee2e6; display: inline-block;"></div>
-          <% end %>
+        <!-- Status Panel -->
+        <div class="card border-0 bg-body-tertiary">
+          <div class="card-body text-center">
+            <!-- Active/Inactive Status -->
+            <div class="mb-4">
+              <% if @user.active? %>
+                <div class="display-6 text-success mb-2">
+                  <i class="bi bi-check-circle-fill"></i>
+                </div>
+                <h4 class="text-success mb-0">Active</h4>
+              <% else %>
+                <div class="display-6 text-secondary mb-2">
+                  <i class="bi bi-x-circle-fill"></i>
+                </div>
+                <h4 class="text-secondary mb-0">Inactive</h4>
+              <% end %>
+            </div>
+
+            <hr>
+
+            <!-- Membership Details -->
+            <div class="text-start">
+              <% if @user.membership_status == 'sponsored' %>
+                <div class="mb-3">
+                  <small class="text-muted d-block">Sponsorship</small>
+                  <span class="badge text-bg-primary fs-6">Sponsored</span>
+                </div>
+              <% end %>
+
+              <div class="mb-3">
+                <small class="text-muted d-block">Payment Type</small>
+                <span class="badge text-bg-info fs-6"><%= @user.payment_type.humanize %></span>
+              </div>
+
+              <% if @user.membership_plan.present? %>
+                <div class="mb-3">
+                  <small class="text-muted d-block">Membership Plan</small>
+                  <strong><%= @user.membership_plan.name %></strong>
+                  <br>
+                  <span class="text-muted">$<%= format('%.2f', @user.membership_plan.cost) %>/<%= @user.membership_plan.billing_frequency %></span>
+                </div>
+              <% end %>
+
+              <div>
+                <small class="text-muted d-block">Membership Status</small>
+                <% badge_class = case @user.membership_status
+                   when "paying" then "success"
+                   when "guest" then "warning"
+                   when "banned" then "danger"
+                   when "deceased" then "dark"
+                   when "sponsored" then "primary"
+                   when "applicant" then "light text-dark"
+                   when "cancelled" then "secondary"
+                   when "unknown" then "secondary"
+                   else "secondary"
+                   end %>
+                <span class="badge text-bg-<%= badge_class %> fs-6"><%= @user.membership_status.humanize %></span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
