@@ -53,17 +53,10 @@
   <% if anchor == 'membership-status-unknown' || anchor == 'dues-status-unknown' || anchor == 'dues-status-lapsed' %>
     <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
       <%= hidden_field_tag :user_id, user.id %>
-      <%= hidden_field_tag :action_type, 'basic' %>
+      <%= hidden_field_tag :action_type, 'paying' %>
       <%= hidden_field_tag :anchor, anchor %>
       <%= hidden_field_tag :from_view_all, 'true' if local_assigns[:from_view_all] %>
-      <%= f.submit "Basic", class: "btn btn-sm btn-outline-info" %>
-    <% end %>
-    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-      <%= hidden_field_tag :user_id, user.id %>
-      <%= hidden_field_tag :action_type, 'coworking' %>
-      <%= hidden_field_tag :anchor, anchor %>
-      <%= hidden_field_tag :from_view_all, 'true' if local_assigns[:from_view_all] %>
-      <%= f.submit "Coworking", class: "btn btn-sm btn-outline-success" %>
+      <%= f.submit "Paying", class: "btn btn-sm btn-outline-success" %>
     <% end %>
     <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
       <%= hidden_field_tag :user_id, user.id %>

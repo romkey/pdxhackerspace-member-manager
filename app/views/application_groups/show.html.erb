@@ -113,8 +113,7 @@
                 </td>
                 <td>
                   <% badge_class = case user.membership_status
-                     when "coworking" then "success"
-                     when "basic" then "info"
+                     when "paying" then "success"
                      when "guest" then "warning"
                      when "banned" then "danger"
                      when "deceased" then "dark"
@@ -192,8 +191,7 @@
                 </td>
                 <td>
                   <% badge_class = case user.membership_status
-                     when "coworking" then "success"
-                     when "basic" then "info"
+                     when "paying" then "success"
                      when "guest" then "warning"
                      when "banned" then "danger"
                      when "deceased" then "dark"
@@ -279,8 +277,7 @@
                   </td>
                   <td>
                     <% badge_class = case user.membership_status
-                       when "coworking" then "success"
-                       when "basic" then "info"
+                       when "paying" then "success"
                        when "guest" then "warning"
                        when "banned" then "danger"
                        when "deceased" then "dark"

@@ -23,7 +23,7 @@ class UsersController < AuthenticatedController
     # Membership status counts
     @membership_status_unknown = @users.where(membership_status: 'unknown').count
     @membership_status_sponsored = @users.where(membership_status: 'sponsored').count
-    @membership_status_basic = @users.where(membership_status: 'basic').count
+    @membership_status_paying = @users.where(membership_status: 'paying').count
     @membership_status_banned = @users.where(membership_status: 'banned').count
     @membership_status_deceased = @users.where(membership_status: 'deceased').count
     @membership_status_applicant = @users.where(membership_status: 'applicant').count
@@ -181,7 +181,7 @@ class UsersController < AuthenticatedController
 
   def user_params
     permitted = %i[
-      username full_name email pronouns greeting_name use_full_name_for_greeting
+      username full_name email pronouns profile_visibility greeting_name use_full_name_for_greeting
       use_username_for_greeting do_not_greet
     ]
 

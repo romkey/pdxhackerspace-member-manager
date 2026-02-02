@@ -24,8 +24,7 @@ class User < ApplicationRecord
             }
   validates :payment_type, inclusion: { in: %w[unknown sponsored paypal recharge kofi cash inactive] }
   enum :membership_status, {
-    coworking: 'coworking',
-    basic: 'basic',
+    paying: 'paying',
     guest: 'guest',
     banned: 'banned',
     deceased: 'deceased',
@@ -33,6 +32,9 @@ class User < ApplicationRecord
     applicant: 'applicant',
     unknown: 'unknown'
   }, default: 'unknown'
+
+  PROFILE_VISIBILITY_OPTIONS = %w[public members private].freeze
+  validates :profile_visibility, inclusion: { in: PROFILE_VISIBILITY_OPTIONS }
   validates :dues_status, inclusion: { in: %w[current lapsed inactive unknown] }
   validate :extra_emails_format
 

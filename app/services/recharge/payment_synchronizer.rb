@@ -206,7 +206,7 @@ module Recharge
       # If payment is within the last 32 days, mark user as active, set membership_status to basic, and dues_status to current
       if payment_date >= 32.days.ago.to_date
         updates[:active] = true unless user.active?
-        updates[:membership_status] = 'basic' if user.membership_status != 'basic'
+        updates[:membership_status] = 'paying' if user.membership_status != 'paying'
         updates[:dues_status] = 'current' if user.dues_status != 'current'
       end
 
@@ -246,7 +246,7 @@ module Recharge
         if payment_date && payment_date >= 32.days.ago.to_date
           status_updates = {}
           status_updates[:active] = true unless user.active?
-          status_updates[:membership_status] = 'basic' if user.membership_status != 'basic'
+          status_updates[:membership_status] = 'paying' if user.membership_status != 'paying'
           status_updates[:dues_status] = 'current' if user.dues_status != 'current'
           user.update!(status_updates) if status_updates.any?
         end

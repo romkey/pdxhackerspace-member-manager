@@ -209,12 +209,9 @@ class ReportsController < AdminController
     when 'deceased'
       user.update!(membership_status: 'deceased', active: false, payment_type: 'inactive')
       notice = "#{user.display_name} marked as deceased."
-    when 'basic'
-      user.update!(membership_status: 'basic')
-      notice = "#{user.display_name} membership status set to basic."
-    when 'coworking'
-      user.update!(membership_status: 'coworking')
-      notice = "#{user.display_name} membership status set to coworking."
+    when 'paying'
+      user.update!(membership_status: 'paying')
+      notice = "#{user.display_name} membership status set to paying."
     when 'sponsored'
       if anchor == 'payment-type-unknown'
         user.update!(payment_type: 'sponsored')

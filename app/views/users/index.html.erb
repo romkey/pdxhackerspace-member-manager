@@ -19,7 +19,7 @@
     <div class="d-flex flex-wrap gap-3 mb-3">
       <span class="badge text-bg-secondary">Unknown: <strong><%= @membership_status_unknown %></strong></span>
       <span class="badge text-bg-primary">Sponsored: <strong><%= @membership_status_sponsored %></strong></span>
-      <span class="badge text-bg-info">Basic: <strong><%= @membership_status_basic %></strong></span>
+      <span class="badge text-bg-success">Paying: <strong><%= @membership_status_paying %></strong></span>
       <span class="badge text-bg-light text-dark">Applicant: <strong><%= @membership_status_applicant %></strong></span>
       <span class="badge text-bg-danger">Banned: <strong><%= @membership_status_banned %></strong></span>
       <span class="badge text-bg-dark">Deceased: <strong><%= @membership_status_deceased %></strong></span>
@@ -93,8 +93,7 @@
             </td>
             <td>
               <% badge_class = case user.membership_status
-                 when "coworking" then "success"
-                 when "basic" then "info"
+                 when "paying" then "success"
                  when "guest" then "warning"
                  when "banned" then "danger"
                  when "deceased" then "dark"

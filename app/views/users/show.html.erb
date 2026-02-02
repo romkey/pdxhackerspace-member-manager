@@ -147,6 +147,17 @@
       <dt class="col-sm-3 text-secondary">Pronouns</dt>
       <dd class="col-sm-9"><%= @user.pronouns.presence || content_tag(:span, "Not set", class: "text-muted fst-italic") %></dd>
 
+      <dt class="col-sm-3 text-secondary">Profile Visibility</dt>
+      <dd class="col-sm-9">
+        <% visibility_label = case @user.profile_visibility
+           when 'public' then 'Public'
+           when 'members' then 'Other Members'
+           when 'private' then 'Private'
+           else @user.profile_visibility.humanize
+           end %>
+        <%= visibility_label %>
+      </dd>
+
       <dt class="col-sm-3 text-secondary">Sheet Entry</dt>
       <dd class="col-sm-9">
         <% if @user.sheet_entry.present? %>
@@ -177,8 +188,7 @@
       <dt class="col-sm-3 text-secondary">Membership Status</dt>
       <dd class="col-sm-9">
         <% badge_class = case @user.membership_status
-           when "coworking" then "success"
-           when "basic" then "info"
+           when "paying" then "success"
            when "guest" then "warning"
            when "banned" then "danger"
            when "deceased" then "dark"
@@ -327,6 +337,17 @@
           <dt class="col-sm-3 text-secondary">Pronouns</dt>
           <dd class="col-sm-9"><%= @user.pronouns.presence || content_tag(:span, "Not set", class: "text-muted fst-italic") %></dd>
 
+          <dt class="col-sm-3 text-secondary">Profile Visibility</dt>
+          <dd class="col-sm-9">
+            <% visibility_label = case @user.profile_visibility
+               when 'public' then 'Public'
+               when 'members' then 'Other Members'
+               when 'private' then 'Private'
+               else @user.profile_visibility.humanize
+               end %>
+            <%= visibility_label %>
+          </dd>
+
           <dt class="col-sm-3 text-secondary">Greeting Name</dt>
           <dd class="col-sm-9">
             <% if @user.greeting_name.present? %>
@@ -339,8 +360,7 @@
           <dt class="col-sm-3 text-secondary">Membership Status</dt>
           <dd class="col-sm-9">
             <% badge_class = case @user.membership_status
-               when "coworking" then "success"
-               when "basic" then "info"
+               when "paying" then "success"
                when "guest" then "warning"
                when "banned" then "danger"
                when "deceased" then "dark"

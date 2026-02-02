@@ -29,8 +29,7 @@
                   <%= mail_to mismatch[:user_email] %>
                         <% unless mismatch[:user].active? %>
                     <% badge_class = case mismatch[:user].membership_status
-                       when "coworking" then "success"
-                       when "basic" then "info"
+                       when "paying" then "success"
                        when "guest" then "warning"
                        when "banned" then "danger"
                        when "deceased" then "dark"
@@ -78,8 +77,7 @@
                   <strong><%= link_to mismatch[:user_name], user_path(mismatch[:user]), class: "text-decoration-none" %></strong>
                         <% unless mismatch[:user].active? %>
                     <% badge_class = case mismatch[:user].membership_status
-                       when "coworking" then "success"
-                       when "basic" then "info"
+                       when "paying" then "success"
                        when "guest" then "warning"
                        when "banned" then "danger"
                        when "deceased" then "dark"
@@ -142,8 +140,7 @@
                   <% end %>
                         <% unless mismatch[:user].active? %>
                     <% badge_class = case mismatch[:user].membership_status
-                       when "coworking" then "success"
-                       when "basic" then "info"
+                       when "paying" then "success"
                        when "guest" then "warning"
                        when "banned" then "danger"
                        when "deceased" then "dark"

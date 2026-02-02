@@ -27,6 +27,19 @@
   </div>
 
   <div>
+    <%= f.label :profile_visibility, "Profile Visibility", class: "form-label" %>
+    <%= f.select :profile_visibility,
+        options_for_select([
+          ["Public (visible to anyone)", "public"],
+          ["Other Members (visible to logged-in members)", "members"],
+          ["Private (only visible to admins)", "private"]
+        ], @user.profile_visibility),
+        {},
+        { class: "form-select" } %>
+    <div class="form-text">Controls who can see your profile information.</div>
+  </div>
+
+  <div>
     <%= f.label :greeting_name, "Greeting Name", class: "form-label" %>
     <small class="text-muted d-block mb-2">Name used on signs on entry</small>
     <%= f.text_field :greeting_name, class: "form-control", id: "user_greeting_name" %>
@@ -52,8 +65,7 @@
       <%= f.label :membership_status, "Membership Status", class: "form-label" %>
       <%= f.select :membership_status, 
           options_for_select([
-            ["Coworking", "coworking"],
-            ["Basic", "basic"],
+            ["Paying", "paying"],
             ["Guest", "guest"],
             ["Banned", "banned"],
             ["Deceased", "deceased"],
