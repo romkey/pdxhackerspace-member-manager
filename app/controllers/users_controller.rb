@@ -1,6 +1,6 @@
 class UsersController < AuthenticatedController
   before_action :set_user_for_show, only: [:show]
-  before_action :set_user, only: [:edit, :update, :activate, :deactivate, :ban, :mark_deceased, :destroy]
+  before_action :set_user, only: [:edit, :update, :activate, :deactivate, :ban, :mark_deceased, :destroy, :sync_to_authentik, :sync_from_authentik]
   before_action :require_admin!, except: [:show, :edit, :update]
   before_action :authorize_self_or_admin, only: [:show, :edit, :update]
 
@@ -118,6 +118,47 @@ class UsersController < AuthenticatedController
   def destroy
     @user.destroy!
     redirect_to users_path, notice: 'User deleted successfully.'
+  end
+
+  def sync_to_authentik
+    if @user.authentik_id.blank?
+      redirect_to user_path(@user), alert: 'User does not have an Authentik ID.'
+      return
+    end
+
+    sync = Authentik::UserSync.new(@user)
+    result = sync.sync_to_authentik!
+
+    case result[:status]
+    when 'synced'
+      redirect_to user_path(@user), notice: 'User synced to Authentik successfully.'
+    when 'skipped'
+      redirect_to user_path(@user), notice: "Sync skipped: #{result[:reason]}"
+    when 'error'
+      redirect_to user_path(@user), alert: "Sync failed: #{result[:error]}"
+    end
+  end
+
+  def sync_from_authentik
+    if @user.authentik_id.blank?
+      redirect_to user_path(@user), alert: 'User does not have an Authentik ID.'
+      return
+    end
+
+    # Prevent sync loop
+    Current.skip_authentik_sync = true
+    sync = Authentik::UserSync.new(@user)
+    result = sync.sync_from_authentik!
+    Current.skip_authentik_sync = false
+
+    case result[:status]
+    when 'updated'
+      redirect_to user_path(@user), notice: "User updated from Authentik: #{result[:changes].join(', ')}"
+    when 'no_changes'
+      redirect_to user_path(@user), notice: 'No changes from Authentik.'
+    when 'error'
+      redirect_to user_path(@user), alert: "Sync failed: #{result[:error]}"
+    end
   end
 
   private

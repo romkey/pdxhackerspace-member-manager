@@ -28,6 +28,8 @@ Rails.application.routes.draw do
       post :deactivate
       post :ban
       post :mark_deceased
+      post :sync_to_authentik
+      post :sync_from_authentik
     end
     collection do
       post :sync

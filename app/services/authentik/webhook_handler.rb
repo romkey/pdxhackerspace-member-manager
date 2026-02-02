@@ -195,6 +195,9 @@ module Authentik
 
       authentik_user.save!
 
+      # Sync changes to the linked User record (if any)
+      user_sync_result = sync_to_linked_user(authentik_user, user_data)
+
       # Create journal entry if there are discrepancies with linked user
       if authentik_user.has_discrepancies? && authentik_user.user
         create_discrepancy_journal_entry(authentik_user)
@@ -204,7 +207,7 @@ module Authentik
       MemberSource.for('authentik').refresh_statistics!
 
       Rails.logger.info("[Authentik Webhook] #{was_new ? 'Created' : 'Updated'} AuthentikUser: #{authentik_id}")
-      { status: was_new ? 'created' : 'updated', authentik_id: authentik_id }
+      { status: was_new ? 'created' : 'updated', authentik_id: authentik_id, user_sync: user_sync_result }
     end
 
     def handle_user_deletion(payload)
@@ -261,6 +264,25 @@ module Authentik
       merged['webhook_received_at'] = Time.current.iso8601
       merged['full_payload'] = full_payload if full_payload.present?
       merged
+    end
+
+    def sync_to_linked_user(authentik_user, user_data)
+      user = authentik_user.user
+      return { status: 'skipped', reason: 'no_linked_user' } unless user
+
+      # Prevent sync loop - don't sync back to Authentik when we update the User
+      Current.skip_authentik_sync = true
+
+      sync = Authentik::UserSync.new(user)
+      result = sync.apply_authentik_data(user_data)
+
+      Rails.logger.info("[Authentik Webhook] Synced to User #{user.id}: #{result[:status]}")
+      result
+    rescue StandardError => e
+      Rails.logger.error("[Authentik Webhook] Failed to sync to User: #{e.message}")
+      { status: 'error', error: e.message }
+    ensure
+      Current.skip_authentik_sync = false
     end
 
     def create_discrepancy_journal_entry(authentik_user)

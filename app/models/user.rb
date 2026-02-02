@@ -69,6 +69,7 @@ class User < ApplicationRecord
   after_save :update_greeting_name_on_source_change
   after_create_commit :journal_created!
   after_update_commit :journal_updated!
+  after_update_commit :sync_to_authentik_if_needed
 
   private
 
@@ -165,5 +166,17 @@ class User < ApplicationRecord
     end
 
     self.do_not_greet = false if use_full_name_for_greeting? || use_username_for_greeting?
+  end
+
+  def sync_to_authentik_if_needed
+    return if authentik_id.blank?
+    return if Current.skip_authentik_sync
+
+    # Check if any syncable fields changed
+    changed_fields = saved_changes.keys & Authentik::UserSync::SYNCABLE_FIELDS
+    return if changed_fields.empty?
+
+    # Perform sync asynchronously to avoid blocking
+    Authentik::UserSyncJob.perform_later(id, changed_fields)
   end
 end

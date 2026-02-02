@@ -41,6 +41,39 @@ module Authentik
       members
     end
 
+    # ========== Users ==========
+
+    def get_user(user_pk)
+      validate_api_config!
+      response = connection.get("#{API_PREFIX}/core/users/#{user_pk}/")
+      handle_error!(response)
+      JSON.parse(response.body)
+    end
+
+    def find_user_by_username(username)
+      validate_api_config!
+      users = get_paginated("#{API_PREFIX}/core/users/", { username: username })
+      users.find { |u| u['username'] == username }
+    end
+
+    def update_user(user_pk, **attrs)
+      validate_api_config!
+      patch_json("#{API_PREFIX}/core/users/#{user_pk}/", attrs)
+    end
+
+    def create_user(username:, name:, email: nil, is_active: true, attributes: {})
+      validate_api_config!
+      body = {
+        username: username,
+        name: name,
+        is_active: is_active,
+        attributes: attributes
+      }
+      body[:email] = email if email.present?
+
+      post_json("#{API_PREFIX}/core/users/", body)
+    end
+
     # ========== Notification Transports ==========
 
     def list_notification_transports(name: nil)

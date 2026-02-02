@@ -69,6 +69,20 @@
             confirm_message: "WARNING: This will permanently delete #{@user.display_name} and all associated data. This action cannot be undone. Consider deactivating the user instead. Are you absolutely sure you want to delete this user?"
           },
           onclick: "return confirm(this.dataset.confirmMessage);" %>
+
+      <% if @user.authentik_id.present? %>
+        <span class="ms-4"></span>
+        <%= button_to sync_to_authentik_user_path(@user), method: :post, class: "btn btn-outline-primary",
+            title: "Push local changes to Authentik",
+            data: { turbo: false } do %>
+          <i class="bi bi-cloud-upload"></i> Push to Authentik
+        <% end %>
+        <%= button_to sync_from_authentik_user_path(@user), method: :post, class: "btn btn-outline-primary",
+            title: "Pull changes from Authentik",
+            data: { turbo: false } do %>
+          <i class="bi bi-cloud-download"></i> Pull from Authentik
+        <% end %>
+      <% end %>
     </div>
   </div>
 <% else %>
