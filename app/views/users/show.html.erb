@@ -193,15 +193,21 @@
 
       <dt class="col-sm-3 text-secondary">Slack</dt>
       <dd class="col-sm-9">
-        <% if @user.slack_handle.present? %>
+        <% if @user.slack_handle.present? || @user.slack_id.present? %>
           <% if @user.slack_id.present? && @user.slack_user&.team_id.present? %>
             <% slack_url = "slack://user?team=#{@user.slack_user.team_id}&id=#{@user.slack_id}" %>
-            <%= link_to "@#{@user.slack_handle}", slack_url, target: "_blank", rel: "noopener", class: "text-decoration-none" %>
-            <span class="text-muted small ms-2">(ID: <%= @user.slack_id %>)</span>
+            <% if @user.slack_handle.present? %>
+              <%= link_to "@#{@user.slack_handle}", slack_url, target: "_blank", rel: "noopener", class: "text-decoration-none" %>
+              <span class="text-muted small ms-2">(ID: <%= link_to @user.slack_id, slack_url, class: "text-decoration-none" %>)</span>
+            <% else %>
+              <%= link_to @user.slack_id, slack_url, target: "_blank", rel: "noopener", class: "text-decoration-none" %>
+            <% end %>
           <% else %>
-            <span>@<%= @user.slack_handle %></span>
+            <% if @user.slack_handle.present? %>
+              <span>@<%= @user.slack_handle %></span>
+            <% end %>
             <% if @user.slack_id.present? %>
-              <span class="text-muted small ms-2">(ID: <%= @user.slack_id %>)</span>
+              <span class="text-muted small <%= 'ms-2' if @user.slack_handle.present? %>">(ID: <%= @user.slack_id %>)</span>
             <% end %>
           <% end %>
         <% else %>
