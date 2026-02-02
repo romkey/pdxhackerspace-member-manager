@@ -45,7 +45,7 @@ class MembershipPlansController < AdminController
   end
 
   def membership_plan_params
-    params.require(:membership_plan).permit(:name, :cost, :billing_frequency, :description)
+    params.require(:membership_plan).permit(:name, :cost, :billing_frequency, :description, :payment_link)
   end
 end
 

@@ -46,8 +46,11 @@
       <div class="col-md-3">
         <%= f.submit "Add Plan", class: "btn btn-primary w-100" %>
       </div>
-      <div class="col-12">
+      <div class="col-md-6">
         <%= f.text_area :description, class: "form-control", placeholder: "Description (optional)", rows: 2 %>
+      </div>
+      <div class="col-md-6">
+        <%= f.url_field :payment_link, class: "form-control", placeholder: "Payment link URL (optional)" %>
       </div>
     <% end %>
   </div>
@@ -64,6 +67,7 @@
               <th scope="col">Name</th>
               <th scope="col">Cost</th>
               <th scope="col">Billing Frequency</th>
+              <th scope="col">Payment Link</th>
               <th scope="col">Description</th>
               <th scope="col" class="text-center">Users</th>
               <th scope="col" class="text-end">Actions</th>
@@ -75,6 +79,13 @@
                 <td><strong><%= plan.name %></strong></td>
                 <td>$<%= format('%.2f', plan.cost) %></td>
                 <td><span class="badge text-bg-secondary"><%= plan.billing_frequency.humanize %></span></td>
+                <td>
+                  <% if plan.payment_link.present? %>
+                    <%= link_to plan.payment_link, plan.payment_link, target: "_blank", rel: "noopener", class: "text-decoration-none small" %>
+                  <% else %>
+                    <span class="text-muted">—</span>
+                  <% end %>
+                </td>
                 <td><%= plan.description.presence || "—" %></td>
                 <td class="text-center">
                   <span class="badge text-bg-primary"><%= plan.users.count %></span>

@@ -47,6 +47,11 @@
         <% end %>
       </div>
       <div class="col-12">
+        <%= f.label :payment_link, "Payment Link", class: "form-label" %>
+        <%= f.url_field :payment_link, class: "form-control", placeholder: "https://..." %>
+        <div class="form-text">Public URL where members can pay for this plan.</div>
+      </div>
+      <div class="col-12">
         <%= f.label :description, "Description", class: "form-label" %>
         <%= f.text_area :description, class: "form-control", rows: 3 %>
       </div>
