@@ -19,6 +19,31 @@ class ApplicationGroup < ApplicationRecord
     use_default_members_group? || use_default_admins_group? || use_can_train? || use_trained_in?
   end
 
+  # Returns the effective members for this group based on its configuration
+  def effective_members
+    if use_default_members_group?
+      User.active
+    elsif use_default_admins_group?
+      User.admin
+    elsif use_can_train? && training_topic
+      training_topic.trainers
+    elsif use_trained_in? && training_topic
+      User.joins(:trainings_received).where(trainings: { training_topic_id: training_topic_id }).distinct
+    else
+      users
+    end
+  end
+
+  # Returns members with Authentik IDs (can be synced)
+  def syncable_members
+    effective_members.where.not(authentik_id: [nil, ''])
+  end
+
+  # Returns members without Authentik IDs (cannot be synced)
+  def unsyncable_members
+    effective_members.where(authentik_id: [nil, ''])
+  end
+
   private
 
   def ensure_mutual_exclusivity

@@ -4,8 +4,16 @@
     <p class="text-muted mb-0">Application: <%= link_to @application.name, application_path(@application), class: "text-decoration-none" %></p>
   </div>
   <div class="d-flex gap-2">
+    <%= button_to "Sync to Authentik", sync_to_authentik_application_application_group_path(@application, @application_group),
+        method: :post,
+        class: "btn btn-outline-primary",
+        data: { turbo_confirm: "Sync this group to Authentik?" } %>
     <%= link_to "Edit", edit_application_application_group_path(@application, @application_group), class: "btn btn-outline-secondary" %>
-    <%= link_to "&larr; Back to application".html_safe, application_path(@application), class: "text-decoration-none" %>
+    <%= button_to "Delete", application_application_group_path(@application, @application_group),
+        method: :delete,
+        class: "btn btn-outline-danger",
+        data: { turbo_confirm: "Are you sure you want to delete this group? This will also remove it from Authentik." } %>
+    <%= link_to "&larr; Back to application".html_safe, application_path(@application), class: "text-decoration-none ms-2" %>
   </div>
 </div>
 
@@ -33,18 +41,39 @@
         <%= @application_group.note.presence || content_tag(:span, "No note", class: "text-muted fst-italic") %>
       </dd>
 
-      <dt class="col-sm-3 text-secondary">Users</dt>
+      <dt class="col-sm-3 text-secondary">Members</dt>
       <dd class="col-sm-9">
-        <span class="badge text-bg-info"><%= @application_group.users.count %> users</span>
+        <span class="badge text-bg-info"><%= @users.count %> members</span>
+        <% syncable_count = @application_group.syncable_members.count %>
+        <% if syncable_count < @users.count %>
+          <span class="badge text-bg-warning ms-1"><%= syncable_count %> can sync</span>
+        <% end %>
       </dd>
     </dl>
   </div>
 </div>
 
+<% if @unsyncable_members.any? %>
+  <div class="alert alert-warning mb-4">
+    <h6 class="alert-heading"><i class="bi bi-exclamation-triangle me-2"></i>Members Without Authentik IDs</h6>
+    <p class="mb-2">
+      The following <%= @unsyncable_members.count %> member(s) do not have Authentik IDs and cannot be synced to the Authentik group:
+    </p>
+    <ul class="mb-0">
+      <% @unsyncable_members.limit(10).each do |user| %>
+        <li><%= link_to user.display_name, user_path(user), class: "alert-link" %></li>
+      <% end %>
+      <% if @unsyncable_members.count > 10 %>
+        <li class="text-muted">... and <%= @unsyncable_members.count - 10 %> more</li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>
+
 <% if @application_group.uses_default_group? %>
   <div class="card shadow-sm border-0 mb-4">
     <div class="card-body">
-      <div class="alert alert-info mb-0">
+      <div class="alert alert-info mb-3">
         <% if @application_group.use_default_members_group? %>
           <strong>This group uses the default active members group.</strong> It automatically includes all active members and cannot have individual users added or removed.
         <% elsif @application_group.use_default_admins_group? %>
@@ -55,17 +84,9 @@
           <strong>This group uses members who are trained in <%= @application_group.training_topic.name %>.</strong> It automatically includes all members who have been trained in this topic and cannot have individual users added or removed.
         <% end %>
       </div>
-    </div>
-  </div>
-<% else %>
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2 class="h5 mb-0">Users in Group</h2>
-    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">
-      Add User
-    </button>
-  </div>
 
-  <div class="card shadow-sm border-0 mb-4">
+      <h6 class="text-muted mb-3">Current Members (<%= @users.count %>)</h6>
+    </div>
     <div class="table-responsive">
       <table class="table mb-0 align-middle">
         <thead class="bg-body-tertiary">
@@ -73,7 +94,7 @@
             <th scope="col">Name</th>
             <th scope="col">Email</th>
             <th scope="col">Status</th>
-            <th scope="col">Actions</th>
+            <th scope="col">Authentik</th>
           </tr>
         </thead>
         <tbody>
@@ -110,17 +131,109 @@
                   <% end %>
                 </td>
                 <td>
-                  <%= button_to "Remove", remove_user_application_application_group_path(@application, @application_group, user_id: user.id), 
-                      method: :delete, 
-                      class: "btn btn-sm btn-outline-danger", 
-                      data: { turbo: false, confirm: "Are you sure you want to remove #{user.display_name} from this group?" } %>
+                  <% if user.authentik_id.present? %>
+                    <span class="badge text-bg-success" title="<%= user.authentik_id %>">
+                      <i class="bi bi-check-lg"></i> Linked
+                    </span>
+                  <% else %>
+                    <span class="badge text-bg-warning" title="Cannot sync to Authentik">
+                      <i class="bi bi-x-lg"></i> No ID
+                    </span>
+                  <% end %>
                 </td>
               </tr>
             <% end %>
           <% else %>
             <tr>
               <td colspan="4" class="text-center text-muted py-4">
-                No users in this group yet. Click "Add User" to add some.
+                No members match the criteria for this group.
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% else %>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="h5 mb-0">Users in Group</h2>
+    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">
+      Add User
+    </button>
+  </div>
+
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="table-responsive">
+      <table class="table mb-0 align-middle">
+        <thead class="bg-body-tertiary">
+          <tr>
+            <th scope="col">Name</th>
+            <th scope="col">Email</th>
+            <th scope="col">Status</th>
+            <th scope="col">Authentik</th>
+            <% unless @application_group.uses_default_group? %>
+              <th scope="col">Actions</th>
+            <% end %>
+          </tr>
+        </thead>
+        <tbody>
+          <% if @users.any? %>
+            <% @users.each do |user| %>
+              <tr>
+                <td class="fw-semibold">
+                  <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
+                </td>
+                <td>
+                  <% if user.email.present? %>
+                    <%= mail_to user.email %>
+                  <% else %>
+                    <span class="text-muted fst-italic">Not provided</span>
+                  <% end %>
+                </td>
+                <td>
+                  <% badge_class = case user.membership_status
+                     when "coworking" then "success"
+                     when "basic" then "info"
+                     when "guest" then "warning"
+                     when "banned" then "danger"
+                     when "deceased" then "dark"
+                     when "sponsored" then "primary"
+                     when "applicant" then "light text-dark"
+                     when "unknown" then "secondary"
+                     else "secondary"
+                     end %>
+                  <span class="badge text-bg-<%= badge_class %>">
+                    <%= user.membership_status.humanize %>
+                  </span>
+                  <% if user.active? %>
+                    <span class="badge text-bg-success ms-1">Active</span>
+                  <% end %>
+                </td>
+                <td>
+                  <% if user.authentik_id.present? %>
+                    <span class="badge text-bg-success" title="<%= user.authentik_id %>">
+                      <i class="bi bi-check-lg"></i> Linked
+                    </span>
+                  <% else %>
+                    <span class="badge text-bg-warning" title="Cannot sync to Authentik">
+                      <i class="bi bi-x-lg"></i> No ID
+                    </span>
+                  <% end %>
+                </td>
+                <% unless @application_group.uses_default_group? %>
+                  <td>
+                    <%= button_to "Remove", remove_user_application_application_group_path(@application, @application_group, user_id: user.id), 
+                        method: :delete, 
+                        class: "btn btn-sm btn-outline-danger", 
+                        data: { turbo: false, confirm: "Are you sure you want to remove #{user.display_name} from this group?" } %>
+                  </td>
+                <% end %>
+              </tr>
+            <% end %>
+          <% else %>
+            <tr>
+              <td colspan="<%= @application_group.uses_default_group? ? 4 : 5 %>" class="text-center text-muted py-4">
+                No users in this group yet.<%= ' Click "Add User" to add some.' unless @application_group.uses_default_group? %>
               </td>
             </tr>
           <% end %>

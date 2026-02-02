@@ -1,10 +1,11 @@
 class ApplicationGroupsController < AdminController
   before_action :set_application
-  before_action :set_application_group, only: %i[show edit update add_user remove_user]
+  before_action :set_application_group, only: %i[show edit update destroy add_user remove_user sync_to_authentik]
 
   def show
-    @users = @application_group.users.merge(User.ordered_by_display_name)
+    @users = @application_group.effective_members.merge(User.ordered_by_display_name)
     @all_users = User.ordered_by_display_name
+    @unsyncable_members = @application_group.unsyncable_members
   end
 
   def new
@@ -30,9 +31,14 @@ class ApplicationGroupsController < AdminController
     set_authentik_name_from_checkboxes(@application_group)
 
     if @application_group.save
-      redirect_to application_application_group_path(@application, @application_group),
-                  notice: 'Application group created successfully.'
+      # Create group in Authentik
+      sync_result = sync_group_to_authentik(@application_group)
+      notice = build_sync_notice('Application group created successfully.', sync_result)
+
+      redirect_to application_application_group_path(@application, @application_group), notice: notice
     else
+      @training_topics = TrainingTopic.order(:name)
+      @default_settings = DefaultSetting.instance
       flash.now[:alert] = 'Unable to create application group.'
       render :new, status: :unprocessable_content
     end
@@ -44,12 +50,34 @@ class ApplicationGroupsController < AdminController
     set_authentik_name_from_checkboxes(@application_group)
 
     if @application_group.save
-      redirect_to application_application_group_path(@application, @application_group),
-                  notice: 'Application group updated successfully.'
+      # Sync to Authentik
+      sync_result = sync_group_to_authentik(@application_group)
+      notice = build_sync_notice('Application group updated successfully.', sync_result)
+
+      redirect_to application_application_group_path(@application, @application_group), notice: notice
     else
+      @training_topics = TrainingTopic.order(:name)
+      @default_settings = DefaultSetting.instance
       flash.now[:alert] = 'Unable to update application group.'
       render :edit, status: :unprocessable_content
     end
+  end
+
+  def destroy
+    group_name = @application_group.name
+
+    # Delete from Authentik first
+    if @application_group.authentik_group_id.present?
+      begin
+        sync = Authentik::GroupSync.new(@application_group)
+        sync.delete!
+      rescue StandardError => e
+        Rails.logger.error("[ApplicationGroupsController] Failed to delete group from Authentik: #{e.message}")
+      end
+    end
+
+    @application_group.destroy
+    redirect_to application_path(@application), notice: "Application group '#{group_name}' deleted."
   end
 
   def add_user
@@ -66,7 +94,12 @@ class ApplicationGroupsController < AdminController
                   alert: 'User is already in this group.'
     else
       @application_group.users << user
-      redirect_to application_application_group_path(@application, @application_group), notice: 'User added to group.'
+
+      # Sync membership to Authentik
+      sync_result = sync_group_members(@application_group)
+      notice = build_sync_notice('User added to group.', sync_result)
+
+      redirect_to application_application_group_path(@application, @application_group), notice: notice
     end
   end
 
@@ -79,7 +112,24 @@ class ApplicationGroupsController < AdminController
 
     user = User.find(params[:user_id])
     @application_group.users.delete(user)
-    redirect_to application_application_group_path(@application, @application_group), notice: 'User removed from group.'
+
+    # Sync membership to Authentik
+    sync_result = sync_group_members(@application_group)
+    notice = build_sync_notice('User removed from group.', sync_result)
+
+    redirect_to application_application_group_path(@application, @application_group), notice: notice
+  end
+
+  def sync_to_authentik
+    sync_result = sync_group_to_authentik(@application_group)
+
+    if sync_result[:status] == 'error'
+      redirect_to application_application_group_path(@application, @application_group),
+                  alert: "Sync failed: #{sync_result[:error]}"
+    else
+      notice = build_sync_notice('Group synced to Authentik.', sync_result)
+      redirect_to application_application_group_path(@application, @application_group), notice: notice
+    end
   end
 
   private
@@ -132,6 +182,55 @@ class ApplicationGroupsController < AdminController
     elsif group.use_trained_in? && group.training_topic
       topic_slug = group.training_topic.name.downcase.gsub(/\s+/, '-')
       group.authentik_name = "#{defaults.trained_on_prefix}:#{topic_slug}"
+    end
+  end
+
+  def sync_group_to_authentik(group)
+    return { status: 'skipped', reason: 'api_not_configured' } unless authentik_api_configured?
+
+    sync = Authentik::GroupSync.new(group)
+    sync.sync!
+  rescue StandardError => e
+    Rails.logger.error("[ApplicationGroupsController] Authentik sync failed: #{e.message}")
+    { status: 'error', error: e.message }
+  end
+
+  def sync_group_members(group)
+    return { status: 'skipped', reason: 'no_authentik_group_id' } if group.authentik_group_id.blank?
+    return { status: 'skipped', reason: 'api_not_configured' } unless authentik_api_configured?
+
+    sync = Authentik::GroupSync.new(group)
+    sync.sync_members!
+  rescue StandardError => e
+    Rails.logger.error("[ApplicationGroupsController] Authentik member sync failed: #{e.message}")
+    { status: 'error', error: e.message }
+  end
+
+  def authentik_api_configured?
+    AuthentikConfig.settings.api_token.present? && AuthentikConfig.settings.api_base_url.present?
+  end
+
+  def build_sync_notice(base_message, sync_result)
+    return base_message if sync_result.nil?
+
+    case sync_result[:status]
+    when 'created'
+      "#{base_message} Group created in Authentik."
+    when 'exists'
+      "#{base_message} Linked to existing Authentik group."
+    when 'updated', 'synced'
+      members_info = sync_result[:members] || sync_result
+      if members_info[:added].to_i > 0 || members_info[:removed].to_i > 0
+        "#{base_message} Authentik sync: +#{members_info[:added]} / -#{members_info[:removed]} members."
+      else
+        "#{base_message} Synced to Authentik."
+      end
+    when 'skipped'
+      base_message
+    when 'error'
+      "#{base_message} Warning: Authentik sync failed - #{sync_result[:error]}"
+    else
+      base_message
     end
   end
 end

@@ -177,6 +177,62 @@ module Authentik
       JSON.parse(response.body)
     end
 
+    def find_group_by_name(name)
+      groups = list_groups(name: name)
+      groups.find { |g| g['name'] == name }
+    end
+
+    def create_group(name:, attributes: {}, is_superuser: false, parent: nil, users: [])
+      validate_api_config!
+      body = {
+        name: name,
+        is_superuser: is_superuser,
+        attributes: attributes
+      }
+      body[:parent] = parent if parent.present?
+      body[:users] = users if users.present?
+
+      post_json("#{API_PREFIX}/core/groups/", body)
+    end
+
+    def update_group(group_id, **attrs)
+      validate_api_config!
+      patch_json("#{API_PREFIX}/core/groups/#{group_id}/", attrs)
+    end
+
+    def delete_group(group_id)
+      validate_api_config!
+      delete_resource("#{API_PREFIX}/core/groups/#{group_id}/")
+    end
+
+    def add_user_to_group(group_id, user_pk)
+      validate_api_config!
+      log_request("POST #{API_PREFIX}/core/groups/#{group_id}/add_user/")
+      response = json_connection.post("#{API_PREFIX}/core/groups/#{group_id}/add_user/", { pk: user_pk.to_i })
+      # 204 No Content is success, but Faraday may return empty body
+      return true if response.status == 204
+
+      handle_error!(response)
+      true
+    end
+
+    def remove_user_from_group(group_id, user_pk)
+      validate_api_config!
+      log_request("POST #{API_PREFIX}/core/groups/#{group_id}/remove_user/")
+      response = json_connection.post("#{API_PREFIX}/core/groups/#{group_id}/remove_user/", { pk: user_pk.to_i })
+      # 204 No Content is success
+      return true if response.status == 204
+
+      handle_error!(response)
+      true
+    end
+
+    def set_group_users(group_id, user_pks)
+      validate_api_config!
+      # Update group with the complete list of user PKs
+      update_group(group_id, users: user_pks.map(&:to_i))
+    end
+
     private
 
     def validate_api_config!
