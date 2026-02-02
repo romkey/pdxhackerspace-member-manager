@@ -18,6 +18,16 @@
       <dt class="col-sm-3 text-secondary">Authentik Name</dt>
       <dd class="col-sm-9"><code><%= @application_group.authentik_name %></code></dd>
 
+      <dt class="col-sm-3 text-secondary">Authentik Group ID</dt>
+      <dd class="col-sm-9">
+        <% if @application_group.authentik_group_id.present? %>
+          <code><%= @application_group.authentik_group_id %></code>
+          <span class="badge text-bg-success ms-2">Webhook Sync Enabled</span>
+        <% else %>
+          <span class="text-muted fst-italic">Not configured</span>
+        <% end %>
+      </dd>
+
       <dt class="col-sm-3 text-secondary">Note</dt>
       <dd class="col-sm-9">
         <%= @application_group.note.presence || content_tag(:span, "No note", class: "text-muted fst-italic") %>

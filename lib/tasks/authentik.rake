@@ -59,12 +59,15 @@ namespace :authentik do
       end
 
       puts
-      synced_groups = AuthentikConfig.settings.synced_group_ids
-      if synced_groups.present?
-        puts "Synced Group IDs: #{synced_groups.join(', ')}"
+      synced_groups = ApplicationGroup.with_authentik_group_id.includes(:application)
+      if synced_groups.any?
+        puts "Synced Groups (#{synced_groups.count}):"
+        synced_groups.each do |group|
+          puts "  - #{group.application.name} / #{group.name}: #{group.authentik_group_id}"
+        end
       else
-        puts 'Synced Group IDs: (all groups - no filter configured)'
-        puts '  Set AUTHENTIK_SYNCED_GROUP_IDS to filter events by group'
+        puts 'Synced Groups: (all events - no Application Groups have Authentik Group IDs)'
+        puts '  Set Authentik Group ID on Application Groups to filter events.'
       end
     end
 

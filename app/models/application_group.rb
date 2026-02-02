@@ -9,6 +9,12 @@ class ApplicationGroup < ApplicationRecord
 
   before_save :ensure_mutual_exclusivity
 
+  scope :with_authentik_group_id, -> { where.not(authentik_group_id: [nil, '']) }
+
+  def self.synced_authentik_group_ids
+    with_authentik_group_id.pluck(:authentik_group_id).compact.uniq
+  end
+
   def uses_default_group?
     use_default_members_group? || use_default_admins_group? || use_can_train? || use_trained_in?
   end

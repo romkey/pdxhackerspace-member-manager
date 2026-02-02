@@ -93,7 +93,7 @@ class ApplicationGroupsController < AdminController
   end
 
   def application_group_params
-    params.require(:application_group).permit(:name, :authentik_name, :note, :use_default_members_group, :use_default_admins_group, :use_can_train, :use_trained_in, :training_topic_id)
+    params.require(:application_group).permit(:name, :authentik_name, :authentik_group_id, :note, :use_default_members_group, :use_default_admins_group, :use_can_train, :use_trained_in, :training_topic_id)
   end
 
   def ensure_mutual_exclusivity(group)

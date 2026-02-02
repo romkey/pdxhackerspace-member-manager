@@ -59,7 +59,8 @@ module Authentik
     end
 
     def should_process_event?(payload)
-      synced_group_ids = AuthentikConfig.settings.synced_group_ids
+      # Get synced group IDs from ApplicationGroups in the database
+      synced_group_ids = ApplicationGroup.synced_authentik_group_ids
 
       # If no synced groups configured, process all events (backward compatible)
       return true if synced_group_ids.blank?

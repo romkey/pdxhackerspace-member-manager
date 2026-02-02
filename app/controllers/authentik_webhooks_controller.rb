@@ -2,7 +2,7 @@ class AuthentikWebhooksController < AdminController
   def index
     @webhook_setup = Authentik::WebhookSetup.new
     @status = @webhook_setup.status
-    @synced_group_ids = AuthentikConfig.settings.synced_group_ids
+    @synced_groups = ApplicationGroup.with_authentik_group_id.includes(:application).order('applications.name', :name)
     @member_manager_base_url = ENV['MEMBER_MANAGER_BASE_URL']
   end
 
