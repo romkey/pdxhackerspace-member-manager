@@ -100,7 +100,7 @@
               <% end %>
             <% end %>
             <% if user_signed_in? %>
-              <span class="text-muted small"><%= current_user.display_name %></span>
+              <%= link_to current_user.display_name, user_path(current_user), class: "text-muted small text-decoration-none" %>
               <%= button_to "Sign out", logout_path, method: :delete, class: "btn btn-outline-secondary btn-sm" %>
             <% else %>
               <%= link_to "Sign in", login_path, class: "btn btn-primary btn-sm" %>
