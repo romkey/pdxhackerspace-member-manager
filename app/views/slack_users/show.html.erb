@@ -50,6 +50,9 @@
           <dt class="col-sm-3 text-secondary">Real name</dt>
           <dd class="col-sm-9"><%= @slack_user.real_name.presence || "—" %></dd>
 
+          <dt class="col-sm-3 text-secondary">Pronouns</dt>
+          <dd class="col-sm-9"><%= @slack_user.pronouns.presence || "—" %></dd>
+
           <dt class="col-sm-3 text-secondary">Username</dt>
           <dd class="col-sm-9"><%= @slack_user.username.presence || "—" %></dd>
 

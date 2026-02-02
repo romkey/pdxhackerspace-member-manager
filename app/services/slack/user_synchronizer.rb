@@ -86,6 +86,11 @@ module Slack
       updates[:slack_id] = attrs[:slack_id] if user.slack_id.blank?
       updates[:slack_handle] = attrs[:username] if user.slack_handle.blank?
 
+      # Sync pronouns from Slack if user doesn't have pronouns set
+      if attrs[:pronouns].present? && user.pronouns.blank?
+        updates[:pronouns] = attrs[:pronouns]
+      end
+
       # Set avatar from Slack profile image_192 if image_original exists (indicating a custom image)
       profile = attrs[:raw_attributes]&.dig('profile') || {}
       if profile['image_original'].present?

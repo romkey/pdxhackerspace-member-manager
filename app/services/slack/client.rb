@@ -60,6 +60,7 @@ module Slack
           real_name: member.dig('profile', 'real_name'),
           display_name: member.dig('profile', 'display_name'),
           email: normalize_email(member.dig('profile', 'email')),
+          pronouns: member.dig('profile', 'pronouns').presence,
           title: member.dig('profile', 'title'),
           phone: member.dig('profile', 'phone'),
           tz: member['tz'],
