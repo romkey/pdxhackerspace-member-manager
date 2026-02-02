@@ -39,6 +39,14 @@
     <div class="form-text">Controls who can see your profile information.</div>
   </div>
 
+  <div data-controller="rich-editor" data-rich-editor-variables-value="[]">
+    <%= f.label :bio, "About Me", class: "form-label" %>
+    <div class="mb-2">
+      <small class="text-muted">Tell others about yourself, your interests, and what you're working on.</small>
+    </div>
+    <%= f.text_area :bio, class: "form-control", rows: 5, data: { rich_editor_target: "editor" } %>
+  </div>
+
   <div>
     <%= f.label :greeting_name, "Greeting Name", class: "form-label" %>
     <small class="text-muted d-block mb-2">Name used on signs on entry</small>
@@ -122,6 +130,70 @@
   <div class="d-flex gap-2">
     <%= f.submit "Save", class: "btn btn-primary" %>
     <%= link_to "Cancel", @user.persisted? ? user_path(@user) : users_path, class: "btn btn-outline-secondary" %>
+  </div>
+<% end %>
+
+<% if @user.persisted? %>
+  <div class="card shadow-sm border-0 mt-4" id="links">
+    <div class="card-header bg-body-tertiary">
+      <h5 class="card-title mb-0">Profile Links</h5>
+    </div>
+    <div class="card-body">
+      <p class="text-muted small mb-3">Add links to your website, social media, GitHub, and other profiles.</p>
+
+      <% if @user.user_links.any? %>
+        <div class="list-group mb-4">
+          <% @user.user_links.ordered.each do |link| %>
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+              <div class="d-flex align-items-center gap-3">
+                <i class="bi <%= link.icon_class %> fs-5"></i>
+                <div>
+                  <strong><%= link.title %></strong>
+                  <br>
+                  <a href="<%= link.url %>" target="_blank" rel="noopener" class="text-muted small text-decoration-none"><%= truncate(link.url, length: 50) %></a>
+                </div>
+              </div>
+              <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#edit-link-<%= link.id %>">
+                  Edit
+                </button>
+                <%= button_to user_user_link_path(@user, link), method: :delete, class: "btn btn-sm btn-outline-danger", data: { turbo_confirm: "Remove this link?" } do %>
+                  <i class="bi bi-trash"></i>
+                <% end %>
+              </div>
+            </div>
+            <div class="collapse" id="edit-link-<%= link.id %>">
+              <div class="card card-body border-0 bg-body-tertiary">
+                <%= form_with model: link, url: user_user_link_path(@user, link), method: :patch, local: true, class: "row g-2" do |lf| %>
+                  <div class="col-md-4">
+                    <%= lf.text_field :title, class: "form-control form-control-sm", placeholder: "Title" %>
+                  </div>
+                  <div class="col-md-6">
+                    <%= lf.url_field :url, class: "form-control form-control-sm", placeholder: "https://..." %>
+                  </div>
+                  <div class="col-md-2">
+                    <%= lf.submit "Update", class: "btn btn-sm btn-primary w-100" %>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+
+      <h6 class="text-muted">Add New Link</h6>
+      <%= form_with model: UserLink.new, url: user_user_links_path(@user), local: true, class: "row g-2" do |lf| %>
+        <div class="col-md-4">
+          <%= lf.text_field :title, class: "form-control", placeholder: "Title (e.g., GitHub, Website)" %>
+        </div>
+        <div class="col-md-6">
+          <%= lf.url_field :url, class: "form-control", placeholder: "https://..." %>
+        </div>
+        <div class="col-md-2">
+          <%= lf.submit "Add Link", class: "btn btn-primary w-100" %>
+        </div>
+      <% end %>
+    </div>
   </div>
 <% end %>
 

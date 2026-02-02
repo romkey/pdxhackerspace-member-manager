@@ -147,6 +147,30 @@
       <dt class="col-sm-3 text-secondary">Pronouns</dt>
       <dd class="col-sm-9"><%= @user.pronouns.presence || content_tag(:span, "Not set", class: "text-muted fst-italic") %></dd>
 
+      <dt class="col-sm-3 text-secondary">About</dt>
+      <dd class="col-sm-9">
+        <% if @user.bio.present? %>
+          <div class="small"><%= sanitize(@user.bio, tags: %w[p br strong b em i u s ul ol li a h1 h2 h3 h4 h5 h6 span div], attributes: %w[href target style]) %></div>
+        <% else %>
+          <span class="text-muted fst-italic">Not provided</span>
+        <% end %>
+      </dd>
+
+      <dt class="col-sm-3 text-secondary">Links</dt>
+      <dd class="col-sm-9">
+        <% if @user.user_links.any? %>
+          <div class="d-flex flex-wrap gap-2">
+            <% @user.user_links.ordered.each do |link| %>
+              <a href="<%= link.url %>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">
+                <i class="bi <%= link.icon_class %> me-1"></i><%= link.title %>
+              </a>
+            <% end %>
+          </div>
+        <% else %>
+          <span class="text-muted fst-italic">None</span>
+        <% end %>
+      </dd>
+
       <dt class="col-sm-3 text-secondary">Profile Visibility</dt>
       <dd class="col-sm-9">
         <% visibility_label = case @user.profile_visibility
@@ -337,6 +361,30 @@
 
           <dt class="col-sm-3 text-secondary">Pronouns</dt>
           <dd class="col-sm-9"><%= @user.pronouns.presence || content_tag(:span, "Not set", class: "text-muted fst-italic") %></dd>
+
+          <dt class="col-sm-3 text-secondary">About</dt>
+          <dd class="col-sm-9">
+            <% if @user.bio.present? %>
+              <div class="small"><%= sanitize(@user.bio, tags: %w[p br strong b em i u s ul ol li a h1 h2 h3 h4 h5 h6 span div], attributes: %w[href target style]) %></div>
+            <% else %>
+              <span class="text-muted fst-italic">Not provided</span>
+            <% end %>
+          </dd>
+
+          <dt class="col-sm-3 text-secondary">Links</dt>
+          <dd class="col-sm-9">
+            <% if @user.user_links.any? %>
+              <div class="d-flex flex-wrap gap-2">
+                <% @user.user_links.ordered.each do |link| %>
+                  <a href="<%= link.url %>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi <%= link.icon_class %> me-1"></i><%= link.title %>
+                  </a>
+                <% end %>
+              </div>
+            <% else %>
+              <span class="text-muted fst-italic">None</span>
+            <% end %>
+          </dd>
 
           <dt class="col-sm-3 text-secondary">Profile Visibility</dt>
           <dd class="col-sm-9">

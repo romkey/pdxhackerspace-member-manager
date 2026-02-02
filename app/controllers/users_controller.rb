@@ -164,7 +164,7 @@ class UsersController < AuthenticatedController
   private
 
   def set_user_for_show
-    @user = User.includes(:sheet_entry, :slack_user, :rfids, trainings_as_trainee: :training_topic,
+    @user = User.includes(:sheet_entry, :slack_user, :rfids, :user_links, trainings_as_trainee: :training_topic,
                            training_topics: []).find(params[:id])
   end
 
@@ -181,7 +181,7 @@ class UsersController < AuthenticatedController
 
   def user_params
     permitted = %i[
-      username full_name email pronouns profile_visibility greeting_name use_full_name_for_greeting
+      username full_name email pronouns profile_visibility bio greeting_name use_full_name_for_greeting
       use_username_for_greeting do_not_greet
     ]
 

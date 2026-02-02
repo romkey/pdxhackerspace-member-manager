@@ -9,6 +9,7 @@ class User < ApplicationRecord
   has_many :rfids, dependent: :destroy
   has_many :trainer_capabilities, dependent: :destroy
   has_many :training_topics, through: :trainer_capabilities
+  has_many :user_links, dependent: :destroy
   has_many :trainings_as_trainee, class_name: 'Training', foreign_key: 'trainee_id', dependent: :destroy
   has_many :trainings_as_trainer, class_name: 'Training', foreign_key: 'trainer_id', dependent: :destroy
   has_and_belongs_to_many :application_groups

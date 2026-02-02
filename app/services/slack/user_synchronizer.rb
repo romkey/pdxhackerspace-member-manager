@@ -98,7 +98,15 @@ module Slack
         updates[:avatar] = image_192_url if image_192_url.present?
       end
 
+      # Sync bio from Slack title field if user doesn't have bio set
+      if attrs[:title].present? && user.bio.blank?
+        updates[:bio] = attrs[:title]
+      end
+
       user.update!(updates) if updates.any?
+
+      # Sync profile links from Slack custom fields if available
+      sync_profile_links(user, profile)
     end
 
     def deactivate_missing_members(synced_ids)
@@ -106,6 +114,62 @@ module Slack
 
       SlackUser.where.not(slack_id: synced_ids).where(deleted: false).update_all(deleted: true,
                                                                                  updated_at: Time.current)
+    end
+
+    def sync_profile_links(user, profile)
+      return if user.user_links.any? # Don't overwrite existing links
+
+      links_to_create = []
+
+      # Check for common profile fields that might contain URLs
+      fields = profile['fields'] || {}
+      fields.each do |_field_id, field_data|
+        next unless field_data.is_a?(Hash)
+
+        value = field_data['value'].to_s.strip
+        label = field_data['label'].to_s.strip
+
+        # Check if value looks like a URL
+        next unless value.match?(%r{^https?://})
+
+        # Determine title from label or URL
+        title = label.presence || extract_title_from_url(value)
+        links_to_create << { title: title, url: value }
+      end
+
+      # Create links if we found any
+      links_to_create.each_with_index do |link_attrs, index|
+        user.user_links.create!(
+          title: link_attrs[:title],
+          url: link_attrs[:url],
+          position: index
+        )
+      rescue ActiveRecord::RecordInvalid => e
+        @logger.warn("Failed to create user link for #{user.id}: #{e.message}")
+      end
+    end
+
+    def extract_title_from_url(url)
+      case url.downcase
+      when /github\.com/
+        'GitHub'
+      when /linkedin\.com/
+        'LinkedIn'
+      when /twitter\.com|x\.com/
+        'Twitter/X'
+      when /instagram\.com/
+        'Instagram'
+      when /facebook\.com/
+        'Facebook'
+      when /youtube\.com/
+        'YouTube'
+      when /mastodon|hachyderm|fosstodon/
+        'Mastodon'
+      when /gitlab\.com/
+        'GitLab'
+      else
+        'Website'
+      end
     end
   end
 end

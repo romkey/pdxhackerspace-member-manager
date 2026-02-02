@@ -35,6 +35,7 @@ Rails.application.routes.draw do
     collection do
       post :sync
     end
+    resources :user_links, only: [:create, :update, :destroy]
   end
 
   resources :rfids, only: [:new, :create, :destroy]
