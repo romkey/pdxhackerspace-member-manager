@@ -51,9 +51,12 @@
         <%= f.url_field :payment_link, class: "form-control", placeholder: "https://..." %>
         <div class="form-text">Public URL where members can pay for this plan.</div>
       </div>
-      <div class="col-12">
+      <div class="col-12" data-controller="rich-editor" data-rich-editor-variables-value="[]">
         <%= f.label :description, "Description", class: "form-label" %>
-        <%= f.text_area :description, class: "form-control", rows: 3 %>
+        <div class="mb-2">
+          <small class="text-muted">Use the toolbar to format, or click "Source Code" (&lt;&gt;) to edit raw HTML.</small>
+        </div>
+        <%= f.text_area :description, class: "form-control", rows: 5, data: { rich_editor_target: "editor" } %>
       </div>
       <div class="col-12">
         <%= f.submit "Update Plan", class: "btn btn-primary" %>
