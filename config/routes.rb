@@ -7,6 +7,7 @@ Rails.application.routes.draw do
   root "dashboard#index"
 
   get "/login", to: "sessions#new"
+  get "/apply", to: "pages#apply"
   post "/local_login", to: "sessions#create_local"
   post "/rfid_login", to: "sessions#create_rfid"
   get "/rfid_login/wait", to: "sessions#rfid_wait", as: :rfid_wait
