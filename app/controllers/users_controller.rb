@@ -1,8 +1,10 @@
 class UsersController < AuthenticatedController
+  skip_before_action :require_authenticated_user!, only: [:show]
   before_action :set_user_for_show, only: [:show]
   before_action :set_user, only: [:edit, :update, :activate, :deactivate, :ban, :mark_deceased, :destroy, :sync_to_authentik, :sync_from_authentik]
   before_action :require_admin!, except: [:show, :edit, :update]
-  before_action :authorize_self_or_admin, only: [:show, :edit, :update]
+  before_action :authorize_profile_view, only: [:show]
+  before_action :authorize_self_or_admin, only: [:edit, :update]
 
   def index
     @users = User.ordered_by_display_name
@@ -43,23 +45,27 @@ class UsersController < AuthenticatedController
   end
 
   def show
-    return unless current_user_admin?
+    # Determine view level based on viewer and profile settings
+    @view_level = determine_view_level
 
-    @payments = PaymentHistory.for_user(@user)
-    @journals = @user.journals.includes(:actor_user).order(changed_at: :desc, created_at: :desc)
-    @most_recent_access = @user.access_logs.order(logged_at: :desc).first
-    @recent_accesses = @user.access_logs.order(logged_at: :desc).limit(10)
+    # Admin-only data
+    if current_user_admin?
+      @payments = PaymentHistory.for_user(@user)
+      @journals = @user.journals.includes(:actor_user).order(changed_at: :desc, created_at: :desc)
+      @most_recent_access = @user.access_logs.order(logged_at: :desc).first
+      @recent_accesses = @user.access_logs.order(logged_at: :desc).limit(10)
 
-    # Find previous and next users using the same ordering as index
-    ordered_ids = User.ordered_by_display_name.pluck(:id)
-    current_index = ordered_ids.index(@user.id)
+      # Find previous and next users using the same ordering as index
+      ordered_ids = User.ordered_by_display_name.pluck(:id)
+      current_index = ordered_ids.index(@user.id)
 
-    if current_index
-      @previous_user = current_index.positive? ? User.find(ordered_ids[current_index - 1]) : nil
-      @next_user = current_index < ordered_ids.length - 1 ? User.find(ordered_ids[current_index + 1]) : nil
-    else
-      @previous_user = nil
-      @next_user = nil
+      if current_index
+        @previous_user = current_index.positive? ? User.find(ordered_ids[current_index - 1]) : nil
+        @next_user = current_index < ordered_ids.length - 1 ? User.find(ordered_ids[current_index + 1]) : nil
+      else
+        @previous_user = nil
+        @next_user = nil
+      end
     end
   end
 
@@ -176,7 +182,47 @@ class UsersController < AuthenticatedController
     return if current_user_admin?
     return if @user == current_user
 
-    redirect_to user_path(current_user), alert: 'You may only view and edit your own profile.'
+    redirect_to user_path(current_user), alert: 'You may only edit your own profile.'
+  end
+
+  def authorize_profile_view
+    # Admins can see everything
+    return if current_user_admin?
+
+    # Users can see their own profile
+    return if user_signed_in? && @user == current_user
+
+    # Check profile visibility settings
+    case @user.profile_visibility
+    when 'public'
+      # Anyone can view
+      true
+    when 'members'
+      # Must be logged in
+      unless user_signed_in?
+        redirect_to login_path, alert: 'Please sign in to view this profile.'
+      end
+    when 'private'
+      # Only admin or self (already checked above)
+      if user_signed_in?
+        redirect_to user_path(current_user), alert: 'This profile is private.'
+      else
+        redirect_to login_path, alert: 'Please sign in to view this profile.'
+      end
+    end
+  end
+
+  def determine_view_level
+    # :admin - full access to everything
+    # :self - user viewing their own profile (same as members view + edit)
+    # :members - logged in member viewing another member's profile
+    # :public - not logged in viewing a public profile
+
+    return :admin if current_user_admin?
+    return :self if user_signed_in? && @user == current_user
+    return :members if user_signed_in?
+
+    :public
   end
 
   def user_params
