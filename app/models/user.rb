@@ -16,6 +16,7 @@ class User < ApplicationRecord
   has_many :reported_incidents, class_name: 'IncidentReport', foreign_key: 'reporter_id', dependent: :nullify
   has_and_belongs_to_many :incident_reports, join_table: 'incident_report_members'
   validates :authentik_id, uniqueness: true, allow_blank: true
+  validates :username, uniqueness: true, allow_blank: true
   validates :email,
             allow_blank: true,
             uniqueness: true,
@@ -66,6 +67,17 @@ class User < ApplicationRecord
     is_admin?
   end
 
+  # Use username in URLs instead of ID
+  def to_param
+    username.presence || id.to_s
+  end
+
+  # Find user by username or ID
+  def self.find_by_param(param)
+    find_by(username: param) || find(param)
+  end
+
+  before_validation :generate_username_if_blank
   before_save :ensure_greeting_name_mutual_exclusivity
   before_save :clear_greeting_name_if_do_not_greet
   before_save :auto_fill_greeting_name
@@ -76,6 +88,30 @@ class User < ApplicationRecord
   after_update_commit :sync_to_authentik_if_needed
 
   private
+
+  def generate_username_if_blank
+    return if self[:username].present?
+    return if full_name.blank?
+
+    # Generate base username from full name: lowercase, remove special chars and spaces
+    base_username = full_name.downcase
+                             .gsub(/[^a-z0-9\s]/, '') # Remove special characters
+                             .gsub(/\s+/, '')         # Remove all whitespace
+                             .truncate(50, omission: '') # Limit length
+
+    return if base_username.blank?
+
+    # Find a unique username
+    candidate = base_username
+    counter = 1
+
+    while User.where(username: candidate).where.not(id: id).exists?
+      candidate = "#{base_username}#{counter}"
+      counter += 1
+    end
+
+    self.username = candidate
+  end
 
   def journal_created!
     changes = saved_changes_to_json_hash

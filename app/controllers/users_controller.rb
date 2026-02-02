@@ -165,11 +165,11 @@ class UsersController < AuthenticatedController
 
   def set_user_for_show
     @user = User.includes(:sheet_entry, :slack_user, :rfids, :user_links, trainings_as_trainee: :training_topic,
-                           training_topics: []).find(params[:id])
+                           training_topics: []).find_by_param(params[:id])
   end
 
   def set_user
-    @user = User.find(params[:id])
+    @user = User.find_by_param(params[:id])
   end
 
   def authorize_self_or_admin
