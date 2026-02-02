@@ -30,6 +30,7 @@ class User < ApplicationRecord
     deceased: 'deceased',
     sponsored: 'sponsored',
     applicant: 'applicant',
+    cancelled: 'cancelled',
     unknown: 'unknown'
   }, default: 'unknown'
 
