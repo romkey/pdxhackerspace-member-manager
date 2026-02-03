@@ -267,8 +267,8 @@ class UsersController < AuthenticatedController
   end
 
   def allowed_preview_views
-    # True admins can always preview all views (even when impersonating)
-    return %i[public members self admin] if true_user_admin?
+    # Admins can preview all views
+    return %i[public members self admin] if current_user_admin?
 
     # Profile owners can preview public, members, and self views
     return %i[public members self] if user_signed_in? && @user == current_user
@@ -278,7 +278,8 @@ class UsersController < AuthenticatedController
   end
 
   def setup_view_preview_options
-    @can_preview_views = allowed_preview_views.length > 1
+    # Don't show preview selector when impersonating - show exact user view
+    @can_preview_views = !impersonating? && allowed_preview_views.length > 1
     @available_views = allowed_preview_views.map do |level|
       label = case level
               when :public then 'Public (not logged in)'
