@@ -1,0 +1,43 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">Manage Text</h1>
+    <p class="text-muted mb-0">Edit HTML content fragments used throughout the Member Manager.</p>
+  </div>
+  <div>
+    <%= button_to "Seed Defaults", seed_text_fragments_path, method: :post, class: "btn btn-outline-primary", data: { turbo: false } %>
+  </div>
+</div>
+
+<% if @text_fragments.empty? %>
+  <div class="alert alert-info">
+    <i class="bi bi-info-circle me-2"></i>
+    No text fragments have been created yet. Click "Seed Defaults" to create the default fragments.
+  </div>
+<% else %>
+  <div class="card shadow-sm border-0">
+    <div class="table-responsive">
+      <table class="table mb-0 align-middle">
+        <thead class="bg-body-tertiary">
+          <tr>
+            <th scope="col">Title</th>
+            <th scope="col">Key</th>
+            <th scope="col">Last Updated</th>
+            <th scope="col" style="width: 100px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @text_fragments.each do |fragment| %>
+            <tr>
+              <td class="fw-semibold"><%= fragment.title %></td>
+              <td><code><%= fragment.key %></code></td>
+              <td><%= l(fragment.updated_at, format: :long) %></td>
+              <td>
+                <%= link_to "Edit", edit_text_fragment_path(fragment), class: "btn btn-outline-primary btn-sm" %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% end %>

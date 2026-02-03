@@ -35,6 +35,7 @@ Rails.application.routes.draw do
       post :mark_deceased
       post :sync_to_authentik
       post :sync_from_authentik
+      post :mark_help_seen
     end
     collection do
       post :sync
@@ -159,6 +160,12 @@ Rails.application.routes.draw do
       post :toggle
       post :test_send
     end
+    collection do
+      post :seed
+    end
+  end
+
+  resources :text_fragments, only: [:index, :edit, :update] do
     collection do
       post :seed
     end

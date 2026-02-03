@@ -163,7 +163,14 @@
         </div>
       <% end %>
       <div>
-        <h1 class="h3 mb-1"><%= @user.display_name %></h1>
+        <div class="d-flex align-items-center gap-2">
+          <h1 class="h3 mb-1"><%= @user.display_name %></h1>
+          <% if @member_help_content.present? && current_user && current_user.id == @user.id %>
+            <button type="button" class="btn btn-link p-0 text-info" data-bs-toggle="modal" data-bs-target="#memberHelpModal" title="Help">
+              <i class="bi bi-question-circle-fill fs-4"></i>
+            </button>
+          <% end %>
+        </div>
         <% if @user.pronouns.present? %>
           <span class="text-muted"><%= @user.pronouns %></span>
         <% end %>
@@ -280,4 +287,46 @@
 <% else %>
   <%# ===== PUBLIC VIEW - NO TABS ===== %>
   <%= render 'users/tab_profile_public', user: @user %>
+<% end %>
+
+<%# Member Help Modal %>
+<% if @member_help_content.present? && current_user && current_user.id == @user.id %>
+  <div class="modal fade" id="memberHelpModal" tabindex="-1" aria-labelledby="memberHelpModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="memberHelpModalLabel">
+            <i class="bi bi-question-circle me-2"></i>Member Help
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <%= sanitize(@member_help_content, tags: %w[h1 h2 h3 h4 h5 h6 p br strong b em i u s ul ol li a div span hr], attributes: %w[href target class style]) %>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Got it!</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <% if @show_member_help_auto %>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        var helpModal = new bootstrap.Modal(document.getElementById('memberHelpModal'));
+        helpModal.show();
+        
+        // Mark help as seen when modal is closed
+        document.getElementById('memberHelpModal').addEventListener('hidden.bs.modal', function() {
+          fetch('<%= mark_help_seen_user_path(@user) %>', {
+            method: 'POST',
+            headers: {
+              'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content,
+              'Accept': 'application/json'
+            }
+          });
+        });
+      });
+    </script>
+  <% end %>
 <% end %>

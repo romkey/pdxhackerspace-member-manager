@@ -1,8 +1,8 @@
 class UsersController < AuthenticatedController
   skip_before_action :require_authenticated_user!, only: [:show]
   before_action :set_user_for_show, only: [:show]
-  before_action :set_user, only: [:edit, :update, :activate, :deactivate, :ban, :mark_deceased, :destroy, :sync_to_authentik, :sync_from_authentik]
-  before_action :require_admin!, except: [:show, :edit, :update]
+  before_action :set_user, only: [:edit, :update, :activate, :deactivate, :ban, :mark_deceased, :destroy, :sync_to_authentik, :sync_from_authentik, :mark_help_seen]
+  before_action :require_admin!, except: [:show, :edit, :update, :mark_help_seen]
   before_action :authorize_profile_view, only: [:show]
   before_action :authorize_self_or_admin, only: [:edit, :update]
 
@@ -149,6 +149,16 @@ class UsersController < AuthenticatedController
       @nav_params[:sort] = params[:sort] if params[:sort].present?
       @nav_params[:direction] = params[:direction] if params[:direction].present?
     end
+
+    # Member help - show to users viewing their own profile
+    # Use true_user to ensure impersonation doesn't trigger the help for the admin
+    @member_help_content = TextFragment.content_for('member_help')
+    @show_member_help_auto = false
+    
+    if @member_help_content.present? && true_user && true_user.id == @user.id && !impersonating?
+      # Show automatically on first view (use true_user to not affect impersonated users)
+      @show_member_help_auto = !true_user.seen_member_help
+    end
   end
 
   def new
@@ -246,6 +256,17 @@ class UsersController < AuthenticatedController
       redirect_to user_path(@user), notice: 'No changes from Authentik.'
     when 'error'
       redirect_to user_path(@user), alert: "Sync failed: #{result[:error]}"
+    end
+  end
+
+  # Mark member help as seen (only for the user themselves)
+  def mark_help_seen
+    # Use true_user to ensure impersonation doesn't mark the impersonated user's help as seen
+    if true_user && true_user.id == @user.id
+      true_user.update_column(:seen_member_help, true)
+      head :ok
+    else
+      head :forbidden
     end
   end
 
