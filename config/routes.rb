@@ -23,6 +23,10 @@ Rails.application.routes.draw do
   post "/webhooks/access", to: "webhooks#access"
   post "/webhooks/authentik", to: "webhooks#authentik"
 
+  # Impersonation
+  post "/impersonate/:user_id", to: "impersonations#create", as: :impersonate_user
+  delete "/impersonate", to: "impersonations#destroy", as: :stop_impersonation
+
   resources :users, only: [:index, :show, :new, :create, :edit, :update, :destroy] do
     member do
       post :activate

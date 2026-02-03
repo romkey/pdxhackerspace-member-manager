@@ -5,14 +5,27 @@ class ApplicationController < ActionController::Base
 
   add_flash_types :success, :info
 
-  helper_method :current_user, :user_signed_in?, :local_auth_enabled?, :authentik_enabled?, :current_user_admin?, :pagy_nav
+  helper_method :current_user, :user_signed_in?, :local_auth_enabled?, :authentik_enabled?, 
+                :current_user_admin?, :pagy_nav, :impersonating?, :true_user
 
   private
 
   def current_user
     return @current_user if defined?(@current_user)
 
-    @current_user = User.find_by(id: session[:user_id])
+    # If impersonating, return the impersonated user
+    if session[:impersonated_user_id].present?
+      @current_user = User.find_by(id: session[:impersonated_user_id])
+    else
+      @current_user = User.find_by(id: session[:user_id])
+    end
+  end
+
+  # The actual logged-in admin (even when impersonating)
+  def true_user
+    return @true_user if defined?(@true_user)
+
+    @true_user = User.find_by(id: session[:user_id])
   end
 
   before_action do
@@ -21,6 +34,11 @@ class ApplicationController < ActionController::Base
 
   def user_signed_in?
     current_user.present?
+  end
+
+  # Check if currently impersonating another user
+  def impersonating?
+    session[:impersonated_user_id].present?
   end
 
   def require_authenticated_user!
@@ -38,11 +56,18 @@ class ApplicationController < ActionController::Base
   end
 
   def current_user_admin?
-    current_user&.is_admin?
+    # When impersonating, check the TRUE user's admin status for admin actions
+    # But for display purposes, we use current_user
+    if impersonating?
+      true_user&.is_admin?
+    else
+      current_user&.is_admin?
+    end
   end
 
   def require_admin!
-    return if current_user_admin?
+    # Always check true_user for admin access (can't bypass by impersonating)
+    return if true_user&.is_admin?
 
     if current_user
       redirect_to user_path(current_user), alert: 'You do not have access to that section.'

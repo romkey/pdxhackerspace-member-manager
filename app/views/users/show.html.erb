@@ -51,6 +51,13 @@
         <% end %>
         
         <%= link_to "Edit user", edit_user_path(@user), class: "btn btn-outline-secondary" %>
+        <% unless impersonating? || @user == true_user %>
+          <%= button_to impersonate_user_path(@user), method: :post, class: "btn btn-outline-info", 
+              data: { turbo: false, confirm_message: "View the site as #{@user.display_name}? You can stop impersonating at any time." },
+              onclick: "return confirm(this.dataset.confirmMessage);" do %>
+            <i class="bi bi-person-badge me-1"></i> Impersonate
+          <% end %>
+        <% end %>
       </div>
       
       <div>
