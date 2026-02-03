@@ -62,25 +62,27 @@ class UsersController < AuthenticatedController
       @pagy_payments, @payments = pagy_array(payments_query.to_a, limit: 20, page_param: :payments_page)
     end
 
-    # Admin-only data
-    if current_user_admin?
-      # Journals (paginated)
-      journals_query = @user.journals.includes(:actor_user).order(changed_at: :desc, created_at: :desc)
-      @journals_count = journals_query.count
-      @pagy_journals, @journals = pagy(journals_query, limit: 20, page_param: :journal_page)
+    # Admin-only data (true admins, even when impersonating)
+    if true_user_admin?
+      # Journals (paginated) - only load for admin view
+      if @view_level == :admin
+        journals_query = @user.journals.includes(:actor_user).order(changed_at: :desc, created_at: :desc)
+        @journals_count = journals_query.count
+        @pagy_journals, @journals = pagy(journals_query, limit: 20, page_param: :journal_page)
 
-      # Access logs (paginated)
-      access_query = @user.access_logs.order(logged_at: :desc)
-      @access_count = access_query.count
-      @most_recent_access = access_query.first
-      @pagy_accesses, @recent_accesses = pagy(access_query, limit: 20, page_param: :access_page)
+        # Access logs (paginated)
+        access_query = @user.access_logs.order(logged_at: :desc)
+        @access_count = access_query.count
+        @most_recent_access = access_query.first
+        @pagy_accesses, @recent_accesses = pagy(access_query, limit: 20, page_param: :access_page)
 
-      # Incidents (paginated)
-      incidents_query = @user.incident_reports.includes(:reporter).ordered
-      @incidents_count = incidents_query.count
-      @pagy_incidents, @user_incidents = pagy(incidents_query, limit: 20, page_param: :incidents_page)
+        # Incidents (paginated)
+        incidents_query = @user.incident_reports.includes(:reporter).ordered
+        @incidents_count = incidents_query.count
+        @pagy_incidents, @user_incidents = pagy(incidents_query, limit: 20, page_param: :incidents_page)
+      end
 
-      # Find previous and next users using the same ordering as index
+      # Find previous and next users for navigation (always for admin toolbar)
       ordered_ids = User.ordered_by_display_name.pluck(:id)
       current_index = ordered_ids.index(@user.id)
 
@@ -204,15 +206,16 @@ class UsersController < AuthenticatedController
   end
 
   def authorize_self_or_admin
-    return if current_user_admin?
+    # True admins can edit anyone (even when impersonating)
+    return if true_user_admin?
     return if @user == current_user
 
     redirect_to user_path(current_user), alert: 'You may only edit your own profile.'
   end
 
   def authorize_profile_view
-    # Admins can see everything
-    return if current_user_admin?
+    # True admins can see everything (even when impersonating)
+    return if true_user_admin?
 
     # Users can see their own profile
     return if user_signed_in? && @user == current_user
@@ -264,8 +267,8 @@ class UsersController < AuthenticatedController
   end
 
   def allowed_preview_views
-    # Admins can preview all views
-    return %i[public members self admin] if current_user_admin?
+    # True admins can always preview all views (even when impersonating)
+    return %i[public members self admin] if true_user_admin?
 
     # Profile owners can preview public, members, and self views
     return %i[public members self] if user_signed_in? && @user == current_user

@@ -25,8 +25,8 @@
   </div>
 <% end %>
 
-<%# Header/Navigation based on view level %>
-<% if @view_level == :admin %>
+<%# Admin Toolbar - shown to true admins regardless of impersonation %>
+<% if true_user_admin? %>
   <div class="mb-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div class="d-flex gap-2 align-items-center">
@@ -103,6 +103,10 @@
       <% end %>
     </div>
   </div>
+<% end %>
+
+<%# Profile content based on view level %>
+<% if @view_level == :admin %>
 <% elsif @view_level == :self %>
   <div class="mb-4">
     <div class="d-flex justify-content-between align-items-center">
