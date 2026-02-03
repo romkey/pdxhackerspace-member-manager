@@ -1,4 +1,5 @@
 <%# Access Tab %>
+<%# Params: recent_accesses, pagy, user %>
 <div class="card shadow-sm border-0">
   <div class="card-body">
     <h2 class="h6 mb-3">Access Logs</h2>
@@ -25,6 +26,9 @@
           </tbody>
         </table>
       </div>
+      <% if local_assigns[:pagy] && local_assigns[:user] %>
+        <%= render 'shared/pagination', pagy: pagy, user: user, tab: :access %>
+      <% end %>
     <% else %>
       <p class="text-muted mb-0">No access logs recorded yet.</p>
     <% end %>

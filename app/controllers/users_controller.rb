@@ -55,17 +55,30 @@ class UsersController < AuthenticatedController
     # Default tab
     @active_tab = params[:tab]&.to_sym || :profile
 
-    # Load payment history for admin and self views
+    # Load payment history for admin and self views (paginated)
     if @view_level == :admin || @view_level == :self
-      @payments = PaymentHistory.for_user(@user)
+      payments_query = PaymentHistory.for_user(@user)
+      @payments_count = payments_query.count
+      @pagy_payments, @payments = pagy_array(payments_query.to_a, limit: 20, page_param: :payments_page)
     end
 
     # Admin-only data
     if current_user_admin?
-      @journals = @user.journals.includes(:actor_user).order(changed_at: :desc, created_at: :desc)
-      @most_recent_access = @user.access_logs.order(logged_at: :desc).first
-      @recent_accesses = @user.access_logs.order(logged_at: :desc).limit(10)
-      @user_incidents = @user.incident_reports.includes(:reporter).ordered
+      # Journals (paginated)
+      journals_query = @user.journals.includes(:actor_user).order(changed_at: :desc, created_at: :desc)
+      @journals_count = journals_query.count
+      @pagy_journals, @journals = pagy(journals_query, limit: 20, page_param: :journal_page)
+
+      # Access logs (paginated)
+      access_query = @user.access_logs.order(logged_at: :desc)
+      @access_count = access_query.count
+      @most_recent_access = access_query.first
+      @pagy_accesses, @recent_accesses = pagy(access_query, limit: 20, page_param: :access_page)
+
+      # Incidents (paginated)
+      incidents_query = @user.incident_reports.includes(:reporter).ordered
+      @incidents_count = incidents_query.count
+      @pagy_incidents, @user_incidents = pagy(incidents_query, limit: 20, page_param: :incidents_page)
 
       # Find previous and next users using the same ordering as index
       ordered_ids = User.ordered_by_display_name.pluck(:id)

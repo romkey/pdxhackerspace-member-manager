@@ -161,8 +161,8 @@
           class: "nav-link #{'active' if @active_tab == :payments}", 
           role: "tab" do %>
         <i class="bi bi-credit-card me-1"></i> Payments
-        <% if @payments.any? %>
-          <span class="badge bg-secondary ms-1"><%= @payments.count %></span>
+        <% if @payments_count.to_i > 0 %>
+          <span class="badge bg-secondary ms-1"><%= @payments_count %></span>
         <% end %>
       <% end %>
     </li>
@@ -171,18 +171,18 @@
           class: "nav-link #{'active' if @active_tab == :access}", 
           role: "tab" do %>
         <i class="bi bi-door-open me-1"></i> Access
-        <% if @recent_accesses.any? %>
-          <span class="badge bg-secondary ms-1"><%= @recent_accesses.count %></span>
+        <% if @access_count.to_i > 0 %>
+          <span class="badge bg-secondary ms-1"><%= @access_count %></span>
         <% end %>
       <% end %>
     </li>
-    <% if @user_incidents.any? %>
+    <% if @incidents_count.to_i > 0 %>
       <li class="nav-item" role="presentation">
         <%= link_to user_path(@user, tab: :incidents, view_as: params[:view_as]), 
             class: "nav-link #{'active' if @active_tab == :incidents}", 
             role: "tab" do %>
           <i class="bi bi-exclamation-triangle me-1"></i> Incidents
-          <span class="badge bg-warning text-dark ms-1"><%= @user_incidents.count %></span>
+          <span class="badge bg-warning text-dark ms-1"><%= @incidents_count %></span>
         <% end %>
       </li>
     <% end %>
@@ -191,8 +191,8 @@
           class: "nav-link #{'active' if @active_tab == :journal}", 
           role: "tab" do %>
         <i class="bi bi-journal-text me-1"></i> Journal
-        <% if @journals.any? %>
-          <span class="badge bg-secondary ms-1"><%= @journals.count %></span>
+        <% if @journals_count.to_i > 0 %>
+          <span class="badge bg-secondary ms-1"><%= @journals_count %></span>
         <% end %>
       <% end %>
     </li>
@@ -202,13 +202,13 @@
     <% if @active_tab == :profile %>
       <%= render 'users/tab_profile_admin', user: @user, most_recent_access: @most_recent_access %>
     <% elsif @active_tab == :payments %>
-      <%= render 'users/tab_payments', payments: @payments %>
+      <%= render 'users/tab_payments', payments: @payments, pagy: @pagy_payments, user: @user %>
     <% elsif @active_tab == :access %>
-      <%= render 'users/tab_access', recent_accesses: @recent_accesses %>
+      <%= render 'users/tab_access', recent_accesses: @recent_accesses, pagy: @pagy_accesses, user: @user %>
     <% elsif @active_tab == :incidents %>
-      <%= render 'users/tab_incidents', user_incidents: @user_incidents %>
+      <%= render 'users/tab_incidents', user_incidents: @user_incidents, pagy: @pagy_incidents, user: @user %>
     <% elsif @active_tab == :journal %>
-      <%= render 'users/tab_journal', journals: @journals %>
+      <%= render 'users/tab_journal', journals: @journals, pagy: @pagy_journals, user: @user %>
     <% end %>
   </div>
 
@@ -227,8 +227,8 @@
           class: "nav-link #{'active' if @active_tab == :payments}", 
           role: "tab" do %>
         <i class="bi bi-credit-card me-1"></i> Payment History
-        <% if @payments.any? %>
-          <span class="badge bg-secondary ms-1"><%= @payments.count %></span>
+        <% if @payments_count.to_i > 0 %>
+          <span class="badge bg-secondary ms-1"><%= @payments_count %></span>
         <% end %>
       <% end %>
     </li>
@@ -238,7 +238,7 @@
     <% if @active_tab == :profile %>
       <%= render 'users/tab_profile_self', user: @user %>
     <% elsif @active_tab == :payments %>
-      <%= render 'users/tab_payments', payments: @payments %>
+      <%= render 'users/tab_payments', payments: @payments, pagy: @pagy_payments, user: @user %>
     <% end %>
   </div>
 

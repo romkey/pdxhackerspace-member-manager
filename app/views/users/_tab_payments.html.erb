@@ -1,4 +1,5 @@
 <%# Payments Tab %>
+<%# Params: payments, pagy, user %>
 <div class="card shadow-sm border-0">
   <div class="card-body">
     <h2 class="h6 mb-3">Payment History</h2>
@@ -27,6 +28,9 @@
           </tbody>
         </table>
       </div>
+      <% if local_assigns[:pagy] && local_assigns[:user] %>
+        <%= render 'shared/pagination', pagy: pagy, user: user, tab: :payments %>
+      <% end %>
     <% else %>
       <p class="text-muted mb-0">No payments have been recorded yet.</p>
     <% end %>

@@ -51,6 +51,9 @@ gem 'sidekiq-cron', '~> 1.12'
 gem 'prawn', '~> 2.5'
 gem 'prawn-table', '~> 0.2'
 
+# Pagination
+gem 'pagy', '~> 9.0'
+
 # QR code generation
 gem 'rqrcode', '~> 2.2'
 
