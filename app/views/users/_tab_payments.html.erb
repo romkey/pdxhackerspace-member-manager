@@ -1,5 +1,5 @@
 <%# Payments Tab %>
-<%# Params: payments, pagy, user %>
+<%# Params: payments, pagy, user, show_payment_links (optional, defaults to false) %>
 <div class="card shadow-sm border-0">
   <div class="card-body">
     <h2 class="h6 mb-3">Payment History</h2>
@@ -19,7 +19,13 @@
             <% payments.each do |payment| %>
               <tr>
                 <td><span class="badge text-bg-secondary"><%= payment_source_label(payment) %></span></td>
-                <td><%= link_to payment_identifier(payment), payment_show_path(payment) %></td>
+                <td>
+                  <% if local_assigns[:show_payment_links] %>
+                    <%= link_to payment_identifier(payment), payment_show_path(payment) %>
+                  <% else %>
+                    <span class="text-muted"><%= payment_identifier(payment) %></span>
+                  <% end %>
+                </td>
                 <td><span class="badge text-bg-secondary"><%= payment_status(payment).presence || "Unknown" %></span></td>
                 <td><%= payment_amount(payment) || "—" %></td>
                 <td><%= payment_processed_time(payment) ? l(payment_processed_time(payment), format: :long) : "n/a" %></td>

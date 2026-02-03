@@ -202,7 +202,7 @@
     <% if @active_tab == :profile %>
       <%= render 'users/tab_profile_admin', user: @user, most_recent_access: @most_recent_access %>
     <% elsif @active_tab == :payments %>
-      <%= render 'users/tab_payments', payments: @payments, pagy: @pagy_payments, user: @user %>
+      <%= render 'users/tab_payments', payments: @payments, pagy: @pagy_payments, user: @user, show_payment_links: true %>
     <% elsif @active_tab == :access %>
       <%= render 'users/tab_access', recent_accesses: @recent_accesses, pagy: @pagy_accesses, user: @user %>
     <% elsif @active_tab == :incidents %>
@@ -238,7 +238,7 @@
     <% if @active_tab == :profile %>
       <%= render 'users/tab_profile_self', user: @user %>
     <% elsif @active_tab == :payments %>
-      <%= render 'users/tab_payments', payments: @payments, pagy: @pagy_payments, user: @user %>
+      <%= render 'users/tab_payments', payments: @payments, pagy: @pagy_payments, user: @user, show_payment_links: false %>
     <% end %>
   </div>
 

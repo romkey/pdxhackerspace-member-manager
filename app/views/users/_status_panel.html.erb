@@ -43,7 +43,7 @@
       <% if user.membership_plan.present? %>
         <div class="mb-3">
           <small class="text-muted d-block">Membership Plan</small>
-          <strong><%= user.membership_plan.name %></strong>
+          <strong><%= link_to user.membership_plan.name, edit_membership_plan_path(user.membership_plan), class: "text-decoration-none" %></strong>
           <br>
           <span class="text-muted">$<%= format('%.2f', user.membership_plan.cost) %>/<%= user.membership_plan.billing_frequency %></span>
         </div>
