@@ -2,7 +2,7 @@ class MembershipPlansController < AdminController
   before_action :set_membership_plan, only: [:edit, :update, :destroy]
 
   def index
-    @membership_plans = MembershipPlan.ordered
+    @membership_plans = MembershipPlan.ordered.includes(:users)
     @membership_plan = MembershipPlan.new
   end
 
