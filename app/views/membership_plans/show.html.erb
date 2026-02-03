@@ -1,0 +1,109 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0"><%= @membership_plan.name %></h1>
+  <% if true_user_admin? %>
+    <%= link_to "Edit Plan", edit_membership_plan_path(@membership_plan), class: "btn btn-outline-primary" %>
+  <% end %>
+</div>
+
+<div class="row">
+  <div class="col-md-8">
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-body">
+        <h2 class="h5 mb-4">Plan Details</h2>
+        
+        <dl class="row mb-0">
+          <dt class="col-sm-4">Cost</dt>
+          <dd class="col-sm-8">
+            <span class="fs-4 fw-bold text-primary">$<%= format('%.2f', @membership_plan.cost) %></span>
+            <span class="text-muted">/ <%= @membership_plan.billing_frequency %></span>
+          </dd>
+
+          <dt class="col-sm-4">Billing Frequency</dt>
+          <dd class="col-sm-8">
+            <span class="badge text-bg-secondary fs-6"><%= @membership_plan.billing_frequency.humanize %></span>
+          </dd>
+
+          <% if @membership_plan.description.present? %>
+            <dt class="col-sm-4">Description</dt>
+            <dd class="col-sm-8">
+              <%= sanitize(@membership_plan.description, tags: %w[p br strong b em i u s ul ol li a], attributes: %w[href target]) %>
+            </dd>
+          <% end %>
+
+          <% if @membership_plan.payment_link.present? %>
+            <dt class="col-sm-4">Sign Up</dt>
+            <dd class="col-sm-8">
+              <%= link_to @membership_plan.payment_link, class: "btn btn-primary", target: "_blank", rel: "noopener" do %>
+                <i class="bi bi-credit-card me-1"></i> Subscribe to this Plan
+              <% end %>
+            </dd>
+          <% end %>
+        </dl>
+      </div>
+    </div>
+
+    <% if @other_plans.any? %>
+      <div class="card shadow-sm border-0">
+        <div class="card-body">
+          <h2 class="h5 mb-4">Other Available Plans</h2>
+          
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="bg-body-tertiary">
+                <tr>
+                  <th>Plan</th>
+                  <th>Cost</th>
+                  <th>Frequency</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @other_plans.each do |plan| %>
+                  <tr>
+                    <td>
+                      <%= link_to plan.name, membership_plan_path(plan), class: "fw-semibold text-decoration-none" %>
+                      <% if plan.description.present? %>
+                        <br>
+                        <small class="text-muted"><%= truncate(strip_tags(plan.description), length: 60) %></small>
+                      <% end %>
+                    </td>
+                    <td>
+                      <strong>$<%= format('%.2f', plan.cost) %></strong>
+                    </td>
+                    <td>
+                      <span class="badge text-bg-secondary"><%= plan.billing_frequency.humanize %></span>
+                    </td>
+                    <td class="text-end">
+                      <% if plan.payment_link.present? %>
+                        <%= link_to plan.payment_link, class: "btn btn-outline-primary btn-sm", target: "_blank", rel: "noopener" do %>
+                          <i class="bi bi-credit-card"></i> Subscribe
+                        <% end %>
+                      <% end %>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card border-0 bg-body-tertiary">
+      <div class="card-body text-center">
+        <div class="display-4 text-primary mb-2">
+          $<%= format('%.2f', @membership_plan.cost) %>
+        </div>
+        <p class="text-muted mb-3">per <%= @membership_plan.billing_frequency %></p>
+        
+        <% if @membership_plan.payment_link.present? %>
+          <%= link_to @membership_plan.payment_link, class: "btn btn-primary btn-lg w-100", target: "_blank", rel: "noopener" do %>
+            <i class="bi bi-credit-card me-1"></i> Subscribe Now
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

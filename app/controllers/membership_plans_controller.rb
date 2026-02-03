@@ -1,9 +1,14 @@
 class MembershipPlansController < AdminController
-  before_action :set_membership_plan, only: [:edit, :update, :destroy]
+  skip_before_action :require_admin!, only: [:show]
+  before_action :set_membership_plan, only: [:show, :edit, :update, :destroy]
 
   def index
     @membership_plans = MembershipPlan.ordered.includes(:users)
     @membership_plan = MembershipPlan.new
+  end
+
+  def show
+    @other_plans = MembershipPlan.where.not(id: @membership_plan.id).ordered
   end
 
   def create
