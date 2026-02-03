@@ -211,11 +211,18 @@ class SheetEntriesController < AdminController
         user.update!(active: !is_inactive)
 
         # Update payment_type based on sheet entry status
+        # Only update to sponsored if current value is unknown (don't overwrite intentional changes)
         payment_type = determine_payment_type(sheet_entry.status)
-        user.update!(payment_type: payment_type)
+        if payment_type == 'sponsored'
+          user.update!(payment_type: payment_type) if user.payment_type == 'unknown'
+        else
+          user.update!(payment_type: payment_type)
+        end
 
-        # If payment_type is sponsored, set membership_status to sponsored
-        user.update!(membership_status: 'sponsored') if payment_type == 'sponsored'
+        # If payment_type is sponsored, set membership_status to sponsored (only if unknown)
+        if payment_type == 'sponsored' && user.membership_status == 'unknown'
+          user.update!(membership_status: 'sponsored')
+        end
 
         linked_count += 1
       elsif matches.none?
@@ -340,14 +347,20 @@ class SheetEntriesController < AdminController
       end
 
       # Update payment_type based on sheet entry status
+      # Only update to sponsored if current value is unknown (don't overwrite intentional changes)
       payment_type = determine_payment_type(sheet_entry.status)
-      if user.payment_type != payment_type
+      if payment_type == 'sponsored'
+        if user.payment_type == 'unknown'
+          user.update!(payment_type: payment_type)
+          status_changed = true
+        end
+      elsif user.payment_type != payment_type
         user.update!(payment_type: payment_type)
         status_changed = true
       end
 
-      # If payment_type is sponsored, set membership_status to sponsored
-      if payment_type == 'sponsored' && user.membership_status != 'sponsored'
+      # If payment_type is sponsored, set membership_status to sponsored (only if unknown)
+      if payment_type == 'sponsored' && user.membership_status == 'unknown'
         user.update!(membership_status: 'sponsored')
         status_changed = true
       end
@@ -578,14 +591,20 @@ class SheetEntriesController < AdminController
       end
 
       # Update payment_type based on sheet entry status
+      # Only update to sponsored if current value is unknown (don't overwrite intentional changes)
       payment_type = determine_payment_type(@sheet_entry.status)
-      if user.payment_type != payment_type
+      if payment_type == 'sponsored'
+        if user.payment_type == 'unknown'
+          user.update!(payment_type: payment_type)
+          updated = true
+        end
+      elsif user.payment_type != payment_type
         user.update!(payment_type: payment_type)
         updated = true
       end
 
-      # If payment_type is sponsored, set membership_status to sponsored
-      if payment_type == 'sponsored' && user.membership_status != 'sponsored'
+      # If payment_type is sponsored, set membership_status to sponsored (only if unknown)
+      if payment_type == 'sponsored' && user.membership_status == 'unknown'
         user.update!(membership_status: 'sponsored')
         updated = true
       end
@@ -752,14 +771,20 @@ class SheetEntriesController < AdminController
       end
 
       # Update payment_type based on sheet entry status
+      # Only update to sponsored if current value is unknown (don't overwrite intentional changes)
       payment_type = determine_payment_type(@sheet_entry.status)
-      if user.payment_type != payment_type
+      if payment_type == 'sponsored'
+        if user.payment_type == 'unknown'
+          user.update!(payment_type: payment_type)
+          updated = true
+        end
+      elsif user.payment_type != payment_type
         user.update!(payment_type: payment_type)
         updated = true
       end
 
-      # If payment_type is sponsored, set membership_status to sponsored
-      if payment_type == 'sponsored' && user.membership_status != 'sponsored'
+      # If payment_type is sponsored, set membership_status to sponsored (only if unknown)
+      if payment_type == 'sponsored' && user.membership_status == 'unknown'
         user.update!(membership_status: 'sponsored')
         updated = true
       end
