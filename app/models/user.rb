@@ -78,6 +78,7 @@ class User < ApplicationRecord
   end
 
   before_validation :generate_username_if_blank
+  before_validation :set_membership_start_date, on: :create
   before_save :ensure_greeting_name_mutual_exclusivity
   before_save :clear_greeting_name_if_do_not_greet
   before_save :auto_fill_greeting_name
@@ -111,6 +112,10 @@ class User < ApplicationRecord
     end
 
     self.username = candidate
+  end
+
+  def set_membership_start_date
+    self.membership_start_date ||= Date.current
   end
 
   def journal_created!

@@ -3,7 +3,7 @@
 <div class="card border-0 bg-body-tertiary">
   <div class="card-body text-center">
     <%# Active/Inactive Status %>
-    <div class="mb-4">
+    <div class="mb-3">
       <% if user.active? %>
         <div class="display-6 text-success mb-2">
           <i class="bi bi-check-circle-fill"></i>
@@ -16,6 +16,13 @@
         <h4 class="text-secondary mb-0">Inactive</h4>
       <% end %>
     </div>
+
+    <% if user.membership_start_date.present? %>
+      <div class="mb-3 text-muted">
+        <i class="bi bi-calendar-check me-1"></i>
+        Member since <%= user.membership_start_date.strftime('%B %Y') %>
+      </div>
+    <% end %>
 
     <hr>
 
