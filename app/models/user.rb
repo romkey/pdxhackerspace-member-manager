@@ -94,6 +94,30 @@ class User < ApplicationRecord
     last_payment >= cutoff_date
   end
 
+  # Calculate when the reactivation grace period expires
+  def reactivation_expires_on
+    return nil unless dues_status == 'lapsed'
+
+    last_payment = most_recent_payment_date
+    return nil if last_payment.blank?
+
+    grace_months = MembershipSetting.reactivation_grace_period_months
+    last_payment + grace_months.months
+  end
+
+  # Check if user is lapsed and past the grace period (needs re-orientation)
+  def past_reactivation_grace_period?
+    return false unless dues_status == 'lapsed'
+
+    last_payment = most_recent_payment_date
+    # If no payment history, they're past the grace period
+    return true if last_payment.blank?
+
+    grace_months = MembershipSetting.reactivation_grace_period_months
+    cutoff_date = grace_months.months.ago.to_date
+    last_payment < cutoff_date
+  end
+
   # Use username in URLs instead of ID
   def to_param
     username.presence || id.to_s
