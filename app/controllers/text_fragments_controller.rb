@@ -1,8 +1,11 @@
 class TextFragmentsController < AdminController
-  before_action :set_text_fragment, only: [:edit, :update]
+  before_action :set_text_fragment, only: [:show, :edit, :update]
 
   def index
     @text_fragments = TextFragment.ordered
+  end
+
+  def show
   end
 
   def edit

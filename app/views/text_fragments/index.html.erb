@@ -28,7 +28,9 @@
         <tbody>
           <% @text_fragments.each do |fragment| %>
             <tr>
-              <td class="fw-semibold"><%= fragment.title %></td>
+              <td class="fw-semibold">
+                <%= link_to fragment.title, text_fragment_path(fragment), class: "text-decoration-none" %>
+              </td>
               <td><code><%= fragment.key %></code></td>
               <td><%= l(fragment.updated_at, format: :long) %></td>
               <td>

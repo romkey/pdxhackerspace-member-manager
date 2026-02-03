@@ -165,7 +165,7 @@ Rails.application.routes.draw do
     end
   end
 
-  resources :text_fragments, only: [:index, :edit, :update] do
+  resources :text_fragments, only: [:index, :show, :edit, :update] do
     collection do
       post :seed
     end

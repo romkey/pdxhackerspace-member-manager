@@ -1,0 +1,31 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1"><%= @text_fragment.title %></h1>
+    <p class="text-muted mb-0">Key: <code><%= @text_fragment.key %></code></p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to "Edit", edit_text_fragment_path(@text_fragment), class: "btn btn-primary" %>
+    <%= link_to "Back to Text Fragments", text_fragments_path, class: "btn btn-outline-secondary" %>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <h5 class="card-title mb-3">Content Preview</h5>
+    <div class="border rounded p-3 bg-body-tertiary">
+      <%= sanitize(@text_fragment.content, tags: %w[h1 h2 h3 h4 h5 h6 p br strong b em i u s ul ol li a div span hr table tbody thead tr td th], attributes: %w[href target class style colspan rowspan border cellpadding cellspacing width]) %>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 mt-4">
+  <div class="card-body">
+    <h5 class="card-title mb-3">Raw HTML</h5>
+    <pre class="bg-dark text-light p-3 rounded" style="max-height: 400px; overflow-y: auto;"><code><%= @text_fragment.content %></code></pre>
+  </div>
+</div>
+
+<div class="text-muted small mt-4">
+  <p class="mb-1">Last updated: <%= l(@text_fragment.updated_at, format: :long) %></p>
+  <p class="mb-0">Created: <%= l(@text_fragment.created_at, format: :long) %></p>
+</div>
