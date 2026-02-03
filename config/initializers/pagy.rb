@@ -9,6 +9,9 @@ Pagy::DEFAULT[:limit] = 20
 # Use Bootstrap 5 styling
 require 'pagy/extras/bootstrap'
 
+# Array pagination (for PaymentHistory which returns an array)
+require 'pagy/extras/array'
+
 # Overflow handling - return empty page instead of raising
 require 'pagy/extras/overflow'
 Pagy::DEFAULT[:overflow] = :last_page
