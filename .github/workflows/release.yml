@@ -11,6 +11,11 @@ on:
         required: false
         type: string
 
+# Prevent duplicate runs for the same ref
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
   packages: write
@@ -26,6 +31,56 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Get current version
+        id: current_version
+        run: |
+          # Extract version number from tag (remove 'v' prefix)
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $VERSION"
+
+      - name: Get latest version from registry
+        id: latest_version
+        run: |
+          # Try to get the version label from the :latest image
+          LATEST_VERSION=""
+          
+          # Use GitHub API to get package versions
+          VERSIONS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/users/${{ github.repository_owner }}/packages/container/${{ github.event.repository.name }}/versions" \
+            2>/dev/null || echo "[]")
+          
+          # Find the version tagged as 'latest'
+          LATEST_VERSION=$(echo "$VERSIONS" | jq -r '.[] | select(.metadata.container.tags | index("latest")) | .metadata.container.tags[] | select(test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))' | head -1 || echo "")
+          
+          if [ -z "$LATEST_VERSION" ]; then
+            echo "No existing latest version found, will tag as latest"
+            LATEST_VERSION="0.0.0"
+          fi
+          
+          echo "latest=$LATEST_VERSION" >> $GITHUB_OUTPUT
+          echo "Current latest version: $LATEST_VERSION"
+
+      - name: Compare versions
+        id: compare
+        run: |
+          CURRENT="${{ steps.current_version.outputs.version }}"
+          LATEST="${{ steps.latest_version.outputs.latest }}"
+          
+          # Function to compare semver versions
+          version_gt() {
+            # Returns 0 (true) if $1 > $2
+            [ "$(printf '%s\n' "$1" "$2" | sort -V | tail -n1)" = "$1" ] && [ "$1" != "$2" ]
+          }
+          
+          if version_gt "$CURRENT" "$LATEST"; then
+            echo "should_tag_latest=true" >> $GITHUB_OUTPUT
+            echo "$CURRENT is greater than $LATEST - will tag as latest"
+          else
+            echo "should_tag_latest=false" >> $GITHUB_OUTPUT
+            echo "$CURRENT is NOT greater than $LATEST - will NOT tag as latest"
+          fi
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -55,7 +110,6 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
-            type=raw,value=latest
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -67,7 +121,9 @@ jobs:
             APP_VERSION=${{ github.ref_name }}
           platforms: linux/amd64
           provenance: false
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: |
+            ${{ steps.meta.outputs.tags }}
+            ${{ steps.compare.outputs.should_tag_latest == 'true' && format('{0}/{1}:latest', env.REGISTRY, env.IMAGE_NAME) || '' }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: |
             type=gha
