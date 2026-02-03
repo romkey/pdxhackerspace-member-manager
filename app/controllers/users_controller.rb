@@ -65,6 +65,15 @@ class UsersController < AuthenticatedController
     @filter_active = params[:membership_status].present? || params[:payment_type].present? || 
                      params[:dues_status].present? || params[:active].present?
     @filtered_count = @users.count if @filter_active
+
+    # Store filter/sort params for passing to user profile links
+    @list_params = {}
+    @list_params[:membership_status] = params[:membership_status] if params[:membership_status].present?
+    @list_params[:payment_type] = params[:payment_type] if params[:payment_type].present?
+    @list_params[:dues_status] = params[:dues_status] if params[:dues_status].present?
+    @list_params[:active] = params[:active] if params[:active].present?
+    @list_params[:sort] = params[:sort] if params[:sort].present?
+    @list_params[:direction] = params[:direction] if params[:direction].present?
   end
 
   def show
@@ -106,7 +115,21 @@ class UsersController < AuthenticatedController
       end
 
       # Find previous and next users for navigation (always for admin toolbar)
-      ordered_ids = User.ordered_by_display_name.pluck(:id)
+      # Rebuild the same filtered/sorted query from the index page
+      nav_query = User.all
+
+      # Apply filters if present
+      nav_query = nav_query.where(membership_status: params[:membership_status]) if params[:membership_status].present?
+      nav_query = nav_query.where(payment_type: params[:payment_type]) if params[:payment_type].present?
+      nav_query = nav_query.where(dues_status: params[:dues_status]) if params[:dues_status].present?
+      nav_query = nav_query.where(active: params[:active] == 'true') if params[:active].present?
+
+      # Apply sorting
+      sort_column = SORTABLE_COLUMNS.include?(params[:sort]) ? params[:sort] : 'full_name'
+      sort_direction = %w[asc desc].include?(params[:direction]) ? params[:direction] : 'asc'
+      nav_query = nav_query.order("#{sort_column} #{sort_direction} NULLS LAST")
+
+      ordered_ids = nav_query.pluck(:id)
       current_index = ordered_ids.index(@user.id)
 
       if current_index
@@ -116,6 +139,15 @@ class UsersController < AuthenticatedController
         @previous_user = nil
         @next_user = nil
       end
+
+      # Store filter/sort params for use in view links
+      @nav_params = {}
+      @nav_params[:membership_status] = params[:membership_status] if params[:membership_status].present?
+      @nav_params[:payment_type] = params[:payment_type] if params[:payment_type].present?
+      @nav_params[:dues_status] = params[:dues_status] if params[:dues_status].present?
+      @nav_params[:active] = params[:active] if params[:active].present?
+      @nav_params[:sort] = params[:sort] if params[:sort].present?
+      @nav_params[:direction] = params[:direction] if params[:direction].present?
     end
   end
 

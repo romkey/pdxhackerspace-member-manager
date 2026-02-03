@@ -27,11 +27,31 @@
 
 <%# Admin Toolbar - shown to admins but NOT when impersonating (to see exact user view) %>
 <% if true_user_admin? && !impersonating? %>
+  <% if @nav_params.present? %>
+    <div class="alert alert-info py-2 mb-3 d-flex justify-content-between align-items-center">
+      <small>
+        <i class="bi bi-funnel me-1"></i> Browsing filtered list
+        <% if @nav_params[:membership_status].present? %>
+          — Membership: <strong><%= @nav_params[:membership_status].humanize %></strong>
+        <% end %>
+        <% if @nav_params[:payment_type].present? %>
+          — Payment: <strong><%= @nav_params[:payment_type].humanize %></strong>
+        <% end %>
+        <% if @nav_params[:dues_status].present? %>
+          — Dues: <strong><%= @nav_params[:dues_status].humanize %></strong>
+        <% end %>
+        <% if @nav_params[:active].present? %>
+          — <%= @nav_params[:active] == 'true' ? 'Active only' : 'Inactive only' %>
+        <% end %>
+      </small>
+      <%= link_to "Clear filter", user_path(@user), class: "btn btn-outline-secondary btn-sm" %>
+    </div>
+  <% end %>
   <div class="mb-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div class="d-flex gap-2 align-items-center">
         <% if @previous_user %>
-          <%= link_to user_path(@previous_user), class: "btn btn-outline-secondary", title: "Previous: #{@previous_user.display_name}" do %>
+          <%= link_to user_path(@previous_user, @nav_params), class: "btn btn-outline-secondary", title: "Previous: #{@previous_user.display_name}" do %>
             <i class="bi bi-chevron-left"></i> Previous
           <% end %>
         <% else %>
@@ -41,7 +61,7 @@
         <% end %>
         
         <% if @next_user %>
-          <%= link_to user_path(@next_user), class: "btn btn-outline-secondary", title: "Next: #{@next_user.display_name}" do %>
+          <%= link_to user_path(@next_user, @nav_params), class: "btn btn-outline-secondary", title: "Next: #{@next_user.display_name}" do %>
             Next <i class="bi bi-chevron-right"></i>
           <% end %>
         <% else %>
@@ -61,7 +81,7 @@
       </div>
       
       <div>
-        <%= link_to "&larr; Back to users".html_safe, users_path, class: "text-decoration-none" %>
+        <%= link_to "&larr; Back to users".html_safe, users_path(@nav_params), class: "text-decoration-none" %>
       </div>
     </div>
     

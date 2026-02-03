@@ -130,7 +130,7 @@
           <tr class="user-row" 
               data-search-text="<%= [user.username, user.display_name, user.email, user.authentik_id].compact.join(' ').downcase %>">
             <td>
-              <%= link_to user_path(user) do %>
+              <%= link_to user_path(user, @list_params) do %>
                 <% if user.avatar.present? %>
                   <img src="<%= user.avatar %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
                 <% elsif user.email.present? %>
@@ -140,9 +140,9 @@
                 <% end %>
               <% end %>
             </td>
-            <td class="small text-monospace text-secondary fw-semibold"><%= link_to user.username, user_path(user), class: "text-decoration-none text-secondary" %></td>
+            <td class="small text-monospace text-secondary fw-semibold"><%= link_to user.username, user_path(user, @list_params), class: "text-decoration-none text-secondary" %></td>
             <td class="fw-semibold">
-              <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
+              <%= link_to user.display_name, user_path(user, @list_params), class: "text-decoration-none" %>
             </td>
             <td>
               <% if user.email.present? %>
