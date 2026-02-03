@@ -14,21 +14,56 @@ module MembershipTaskHelpers
 
     nil
   end
+
+  # Calculate the cutoff date based on a plan's billing frequency
+  # Returns the date before which a payment would be considered lapsed
+  def self.cutoff_for_plan(plan)
+    return 1.month.ago unless plan # Default to monthly if no plan
+
+    case plan.billing_frequency
+    when 'monthly'
+      1.month.ago
+    when 'yearly'
+      1.year.ago
+    when 'one-time'
+      # One-time payments never lapse (use a very old date)
+      100.years.ago
+    else
+      1.month.ago # Default fallback
+    end
+  end
+
+  # Human-readable description of the billing period
+  def self.billing_period_description(plan)
+    return '1 month (default)' unless plan
+
+    case plan.billing_frequency
+    when 'monthly' then '1 month'
+    when 'yearly' then '1 year'
+    when 'one-time' then 'never (one-time)'
+    else '1 month (default)'
+    end
+  end
 end
 
 namespace :membership do
   desc "Reset and recalculate membership status based on sheet entries and recent payments"
   task recalculate_status: :environment do
-    cutoff_date = 1.month.ago
-
     puts "Membership Status Recalculation"
     puts "=" * 50
-    puts "Cutoff date for recent payments: #{cutoff_date.to_date}"
+    puts "Cutoff dates are based on each user's membership plan billing frequency:"
+    puts "  - Monthly plans: payment within last 1 month"
+    puts "  - Yearly plans: payment within last 1 year"
+    puts "  - One-time plans: never lapse"
+    puts "  - No plan match: defaults to 1 month"
     puts ""
 
     # Load membership plans for matching
     membership_plans = MembershipPlan.all.to_a
-    puts "Loaded #{membership_plans.count} membership plans for matching"
+    puts "Loaded #{membership_plans.count} membership plans for matching:"
+    membership_plans.each do |plan|
+      puts "  - #{plan.name}: $#{format('%.2f', plan.cost)} (#{plan.billing_frequency})"
+    end
     puts ""
 
     # Step 1: Reset everyone
@@ -63,7 +98,7 @@ namespace :membership do
     puts "  Set #{sponsored_count} users as sponsored"
     puts ""
 
-    # Step 3: Process payment history for each user (oldest to newest)
+    # Step 3: Process payment history for each user
     puts "Step 3: Processing payment history..."
     paying_count = 0
     lapsed_count = 0
@@ -98,34 +133,11 @@ namespace :membership do
 
       # Sort oldest to newest
       all_payments.sort_by! { |p| p[:time] }
+      latest_payment = all_payments.last
 
-      # Process each payment sequentially
-      latest_payment = nil
-      all_payments.each do |payment|
-        latest_payment = payment
-
-        if payment[:time] < cutoff_date
-          # Old payment - if dues_status is still unknown, set to lapsed
-          if user.dues_status == 'unknown'
-            user.update_columns(
-              dues_status: 'lapsed',
-              updated_at: Time.current
-            )
-          end
-        else
-          # Recent payment - set as current and active
-          user.update_columns(
-            membership_status: 'paying',
-            dues_status: 'current',
-            payment_type: payment[:type],
-            active: true,
-            updated_at: Time.current
-          )
-        end
-      end
-
-      # Match membership plan based on latest payment amount
-      if latest_payment && latest_payment[:amount].present?
+      # First, match membership plan based on latest payment amount
+      matched_plan = nil
+      if latest_payment[:amount].present?
         matched_plan = MembershipTaskHelpers.find_matching_plan(membership_plans, latest_payment[:amount])
         if matched_plan
           user.update_columns(
@@ -136,16 +148,37 @@ namespace :membership do
         end
       end
 
-      if user.dues_status == 'current'
+      # Calculate cutoff based on matched plan's billing frequency
+      cutoff_date = MembershipTaskHelpers.cutoff_for_plan(matched_plan)
+
+      # Process payments to determine current status
+      # We check if the latest payment is within the plan's billing period
+      if latest_payment[:time] >= cutoff_date
+        # Recent payment - set as current and active
+        user.update_columns(
+          membership_status: 'paying',
+          dues_status: 'current',
+          payment_type: latest_payment[:type],
+          active: true,
+          updated_at: Time.current
+        )
         paying_count += 1
-        plan_info = user.membership_plan ? " [#{user.membership_plan.name}]" : ""
+        plan_info = matched_plan ? " [#{matched_plan.name}, #{MembershipTaskHelpers.billing_period_description(matched_plan)}]" : " [no plan, 1 month default]"
         puts "  Paying: #{user.display_name} (#{latest_payment[:type]})#{plan_info}"
-      elsif user.dues_status == 'lapsed'
+      else
+        # Payment is older than the billing period - lapsed
+        user.update_columns(
+          dues_status: 'lapsed',
+          payment_type: latest_payment[:type],
+          updated_at: Time.current
+        )
         lapsed_count += 1
-        puts "  Lapsed: #{user.display_name}"
+        plan_info = matched_plan ? " [#{matched_plan.name}, #{MembershipTaskHelpers.billing_period_description(matched_plan)}]" : " [no plan, 1 month default]"
+        puts "  Lapsed: #{user.display_name} (last payment: #{latest_payment[:time].to_date})#{plan_info}"
       end
     end
 
+    puts ""
     puts "  Set #{paying_count} users as paying"
     puts "  Set #{lapsed_count} users as lapsed"
     puts "  Matched #{plan_matched_count} users to membership plans"
@@ -167,13 +200,20 @@ namespace :membership do
 
   desc "Preview membership status recalculation (dry run)"
   task preview_recalculate: :environment do
-    cutoff_date = 1.month.ago
     membership_plans = MembershipPlan.all.to_a
 
     puts "DRY RUN - No changes will be made"
     puts "=" * 50
-    puts "Cutoff date for recent payments: #{cutoff_date.to_date}"
-    puts "Membership plans: #{membership_plans.map { |p| "#{p.name}=$#{p.cost}" }.join(', ')}"
+    puts "Cutoff dates are based on each user's membership plan billing frequency:"
+    puts "  - Monthly plans: payment within last 1 month"
+    puts "  - Yearly plans: payment within last 1 year"
+    puts "  - One-time plans: never lapse"
+    puts "  - No plan match: defaults to 1 month"
+    puts ""
+    puts "Membership plans:"
+    membership_plans.each do |plan|
+      puts "  - #{plan.name}: $#{format('%.2f', plan.cost)} (#{plan.billing_frequency})"
+    end
     puts ""
 
     would_sponsor = []
@@ -210,18 +250,27 @@ namespace :membership do
 
       all_payments.sort_by! { |p| p[:time] }
       latest_payment = all_payments.last
-      has_recent = all_payments.any? { |p| p[:time] >= cutoff_date }
 
-      if has_recent
-        matched_plan = MembershipTaskHelpers.find_matching_plan(membership_plans, latest_payment[:amount])
+      # Match plan based on latest payment amount
+      matched_plan = MembershipTaskHelpers.find_matching_plan(membership_plans, latest_payment[:amount])
+
+      # Calculate cutoff based on matched plan's billing frequency
+      cutoff_date = MembershipTaskHelpers.cutoff_for_plan(matched_plan)
+
+      if latest_payment[:time] >= cutoff_date
         would_pay << {
           user: user,
           type: latest_payment[:type],
           amount: latest_payment[:amount],
-          plan: matched_plan
+          plan: matched_plan,
+          last_payment: latest_payment[:time]
         }
       else
-        would_lapsed << user
+        would_lapsed << {
+          user: user,
+          plan: matched_plan,
+          last_payment: latest_payment[:time]
+        }
       end
     end
 
@@ -231,14 +280,17 @@ namespace :membership do
 
     puts "Would set as PAYING (#{would_pay.count}):"
     would_pay.first(20).each do |p|
-      plan_info = p[:plan] ? " => #{p[:plan].name}" : " (no plan match)"
-      puts "  - #{p[:user].display_name} (#{p[:type]}, $#{p[:amount]})#{plan_info}"
+      plan_info = p[:plan] ? "#{p[:plan].name} (#{p[:plan].billing_frequency})" : "no plan (1 month default)"
+      puts "  - #{p[:user].display_name} (#{p[:type]}, $#{p[:amount]}) => #{plan_info}"
     end
     puts "  ... and #{would_pay.count - 20} more" if would_pay.count > 20
     puts ""
 
     puts "Would set as LAPSED (#{would_lapsed.count}):"
-    would_lapsed.first(20).each { |u| puts "  - #{u.display_name}" }
+    would_lapsed.first(20).each do |l|
+      plan_info = l[:plan] ? "#{l[:plan].name} (#{l[:plan].billing_frequency})" : "no plan (1 month default)"
+      puts "  - #{l[:user].display_name} (last payment: #{l[:last_payment].to_date}) => #{plan_info}"
+    end
     puts "  ... and #{would_lapsed.count - 20} more" if would_lapsed.count > 20
     puts ""
 
