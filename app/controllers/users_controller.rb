@@ -6,9 +6,11 @@ class UsersController < AuthenticatedController
   before_action :authorize_profile_view, only: [:show]
   before_action :authorize_self_or_admin, only: [:edit, :update]
 
+  SORTABLE_COLUMNS = %w[username full_name email membership_status payment_type last_synced_at].freeze
+
   def index
     # Start with all users for counts (before filtering)
-    all_users = User.ordered_by_display_name
+    all_users = User.all
 
     # Calculate counts from ALL users (not filtered)
     @user_count = all_users.count
@@ -53,6 +55,11 @@ class UsersController < AuthenticatedController
     @users = @users.where(payment_type: params[:payment_type]) if params[:payment_type].present?
     @users = @users.where(dues_status: params[:dues_status]) if params[:dues_status].present?
     @users = @users.where(active: params[:active] == 'true') if params[:active].present?
+
+    # Apply sorting
+    @sort_column = SORTABLE_COLUMNS.include?(params[:sort]) ? params[:sort] : 'full_name'
+    @sort_direction = %w[asc desc].include?(params[:direction]) ? params[:direction] : 'asc'
+    @users = @users.order("#{@sort_column} #{@sort_direction} NULLS LAST")
 
     # Track if any filter is active
     @filter_active = params[:membership_status].present? || params[:payment_type].present? || 

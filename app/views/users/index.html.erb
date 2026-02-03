@@ -35,7 +35,7 @@
         — <%= params[:active] == 'true' ? 'Active only' : 'Inactive only' %>
       <% end %>
     </div>
-    <%= link_to "Clear filters", users_path, class: "btn btn-outline-secondary btn-sm" %>
+    <%= link_to "Clear filters", users_path(sort: @sort_column, direction: @sort_direction), class: "btn btn-outline-secondary btn-sm" %>
   </div>
 <% end %>
 
@@ -117,12 +117,12 @@
       <thead class="bg-body-tertiary">
         <tr>
           <th scope="col" style="width: 48px;"></th>
-          <th scope="col">Username</th>
-          <th scope="col">Name</th>
-          <th scope="col">Email</th>
-          <th scope="col">Status</th>
-          <th scope="col">Payment Type</th>
-          <th scope="col">Last synced</th>
+          <th scope="col"><%= sortable_column('username', 'Username', @sort_column, @sort_direction) %></th>
+          <th scope="col"><%= sortable_column('full_name', 'Name', @sort_column, @sort_direction) %></th>
+          <th scope="col"><%= sortable_column('email', 'Email', @sort_column, @sort_direction) %></th>
+          <th scope="col"><%= sortable_column('membership_status', 'Status', @sort_column, @sort_direction) %></th>
+          <th scope="col"><%= sortable_column('payment_type', 'Payment Type', @sort_column, @sort_direction) %></th>
+          <th scope="col"><%= sortable_column('last_synced_at', 'Last synced', @sort_column, @sort_direction) %></th>
         </tr>
       </thead>
       <tbody id="users_table_body">
