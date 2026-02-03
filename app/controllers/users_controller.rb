@@ -7,7 +7,37 @@ class UsersController < AuthenticatedController
   before_action :authorize_self_or_admin, only: [:edit, :update]
 
   def index
-    @users = User.ordered_by_display_name
+    # Start with all users for counts (before filtering)
+    all_users = User.ordered_by_display_name
+
+    # Calculate counts from ALL users (not filtered)
+    @user_count = all_users.count
+    @active_count = all_users.where(active: true).count
+    @inactive_count = @user_count - @active_count
+
+    # Membership status counts (from all users)
+    @membership_status_unknown = all_users.where(membership_status: 'unknown').count
+    @membership_status_sponsored = all_users.where(membership_status: 'sponsored').count
+    @membership_status_paying = all_users.where(membership_status: 'paying').count
+    @membership_status_banned = all_users.where(membership_status: 'banned').count
+    @membership_status_deceased = all_users.where(membership_status: 'deceased').count
+    @membership_status_applicant = all_users.where(membership_status: 'applicant').count
+
+    # Payment type counts (from all users)
+    @payment_type_unknown = all_users.where(payment_type: 'unknown').count
+    @payment_type_sponsored = all_users.where(payment_type: 'sponsored').count
+    @payment_type_paypal = all_users.where(payment_type: 'paypal').count
+    @payment_type_recharge = all_users.where(payment_type: 'recharge').count
+    @payment_type_cash = all_users.where(payment_type: 'cash').count
+
+    # Dues status counts (from all users)
+    @dues_status_current = all_users.where(dues_status: 'current').count
+    @dues_status_lapsed = all_users.where(dues_status: 'lapsed').count
+    @dues_status_inactive = all_users.where(dues_status: 'inactive').count
+    @dues_status_unknown = all_users.where(dues_status: 'unknown').count
+
+    # Now build filtered query
+    @users = all_users
 
     # Apply search filter if provided
     if params[:q].present?
@@ -18,30 +48,16 @@ class UsersController < AuthenticatedController
       )
     end
 
-    @user_count = @users.count
-    @active_count = @users.where(active: true).count
-    @inactive_count = @user_count - @active_count
+    # Apply status filters
+    @users = @users.where(membership_status: params[:membership_status]) if params[:membership_status].present?
+    @users = @users.where(payment_type: params[:payment_type]) if params[:payment_type].present?
+    @users = @users.where(dues_status: params[:dues_status]) if params[:dues_status].present?
+    @users = @users.where(active: params[:active] == 'true') if params[:active].present?
 
-    # Membership status counts
-    @membership_status_unknown = @users.where(membership_status: 'unknown').count
-    @membership_status_sponsored = @users.where(membership_status: 'sponsored').count
-    @membership_status_paying = @users.where(membership_status: 'paying').count
-    @membership_status_banned = @users.where(membership_status: 'banned').count
-    @membership_status_deceased = @users.where(membership_status: 'deceased').count
-    @membership_status_applicant = @users.where(membership_status: 'applicant').count
-
-    # Payment type counts
-    @payment_type_unknown = @users.where(payment_type: 'unknown').count
-    @payment_type_sponsored = @users.where(payment_type: 'sponsored').count
-    @payment_type_paypal = @users.where(payment_type: 'paypal').count
-    @payment_type_recharge = @users.where(payment_type: 'recharge').count
-    @payment_type_cash = @users.where(payment_type: 'cash').count
-
-    # Dues status counts
-    @dues_status_current = @users.where(dues_status: 'current').count
-    @dues_status_lapsed = @users.where(dues_status: 'lapsed').count
-    @dues_status_inactive = @users.where(dues_status: 'inactive').count
-    @dues_status_unknown = @users.where(dues_status: 'unknown').count
+    # Track if any filter is active
+    @filter_active = params[:membership_status].present? || params[:payment_type].present? || 
+                     params[:dues_status].present? || params[:active].present?
+    @filtered_count = @users.count if @filter_active
   end
 
   def show
