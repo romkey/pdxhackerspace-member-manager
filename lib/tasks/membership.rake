@@ -1,3 +1,21 @@
+# Helper module for membership rake tasks
+module MembershipTaskHelpers
+  def self.find_matching_plan(plans, amount)
+    return nil if amount.blank? || amount <= 0
+
+    # Try exact match first
+    exact_match = plans.find { |p| p.cost == amount }
+    return exact_match if exact_match
+
+    # Try matching within a small tolerance (for rounding differences)
+    tolerance = 0.50
+    close_match = plans.find { |p| (p.cost - amount).abs <= tolerance }
+    return close_match if close_match
+
+    nil
+  end
+end
+
 namespace :membership do
   desc "Reset and recalculate membership status based on sheet entries and recent payments"
   task recalculate_status: :environment do
@@ -8,12 +26,18 @@ namespace :membership do
     puts "Cutoff date for recent payments: #{cutoff_date.to_date}"
     puts ""
 
+    # Load membership plans for matching
+    membership_plans = MembershipPlan.all.to_a
+    puts "Loaded #{membership_plans.count} membership plans for matching"
+    puts ""
+
     # Step 1: Reset everyone
     puts "Step 1: Resetting all users..."
     User.update_all(
       membership_status: 'unknown',
       dues_status: 'unknown',
-      active: false
+      active: false,
+      membership_plan_id: nil
     )
     puts "  Reset #{User.count} users to unknown/inactive"
     puts ""
@@ -39,38 +63,92 @@ namespace :membership do
     puts "  Set #{sponsored_count} users as sponsored"
     puts ""
 
-    # Step 3: Set users with recent payments as paying/active
-    puts "Step 3: Checking recent payments..."
+    # Step 3: Process payment history for each user (oldest to newest)
+    puts "Step 3: Processing payment history..."
     paying_count = 0
+    lapsed_count = 0
+    plan_matched_count = 0
 
     User.find_each do |user|
       # Skip if already sponsored (don't downgrade)
       next if user.membership_status == 'sponsored'
 
-      # Check for recent PayPal payments
-      recent_paypal = user.paypal_payments
-                          .where('transaction_time >= ?', cutoff_date)
-                          .exists?
+      # Collect all payments (PayPal and Recharge) with normalized structure
+      all_payments = []
 
-      # Check for recent Recharge payments
-      recent_recharge = user.recharge_payments
-                            .where('processed_at >= ?', cutoff_date)
-                            .exists?
+      user.paypal_payments.each do |p|
+        next unless p.transaction_time.present?
+        all_payments << {
+          time: p.transaction_time,
+          amount: p.amount,
+          type: 'paypal'
+        }
+      end
 
-      if recent_paypal || recent_recharge
-        payment_type = recent_paypal ? 'paypal' : 'recharge'
-        user.update_columns(
-          membership_status: 'paying',
-          dues_status: 'current',
-          payment_type: payment_type,
-          active: true,
-          updated_at: Time.current
-        )
+      user.recharge_payments.each do |p|
+        next unless p.processed_at.present?
+        all_payments << {
+          time: p.processed_at,
+          amount: p.amount,
+          type: 'recharge'
+        }
+      end
+
+      next if all_payments.empty?
+
+      # Sort oldest to newest
+      all_payments.sort_by! { |p| p[:time] }
+
+      # Process each payment sequentially
+      latest_payment = nil
+      all_payments.each do |payment|
+        latest_payment = payment
+
+        if payment[:time] < cutoff_date
+          # Old payment - if dues_status is still unknown, set to lapsed
+          if user.dues_status == 'unknown'
+            user.update_columns(
+              dues_status: 'lapsed',
+              updated_at: Time.current
+            )
+          end
+        else
+          # Recent payment - set as current and active
+          user.update_columns(
+            membership_status: 'paying',
+            dues_status: 'current',
+            payment_type: payment[:type],
+            active: true,
+            updated_at: Time.current
+          )
+        end
+      end
+
+      # Match membership plan based on latest payment amount
+      if latest_payment && latest_payment[:amount].present?
+        matched_plan = MembershipTaskHelpers.find_matching_plan(membership_plans, latest_payment[:amount])
+        if matched_plan
+          user.update_columns(
+            membership_plan_id: matched_plan.id,
+            updated_at: Time.current
+          )
+          plan_matched_count += 1
+        end
+      end
+
+      if user.dues_status == 'current'
         paying_count += 1
-        puts "  Paying: #{user.display_name} (#{payment_type})"
+        plan_info = user.membership_plan ? " [#{user.membership_plan.name}]" : ""
+        puts "  Paying: #{user.display_name} (#{latest_payment[:type]})#{plan_info}"
+      elsif user.dues_status == 'lapsed'
+        lapsed_count += 1
+        puts "  Lapsed: #{user.display_name}"
       end
     end
+
     puts "  Set #{paying_count} users as paying"
+    puts "  Set #{lapsed_count} users as lapsed"
+    puts "  Matched #{plan_matched_count} users to membership plans"
     puts ""
 
     # Summary
@@ -79,8 +157,10 @@ namespace :membership do
     puts "  Total users: #{User.count}"
     puts "  Sponsored: #{User.where(membership_status: 'sponsored').count}"
     puts "  Paying: #{User.where(membership_status: 'paying').count}"
+    puts "  Lapsed: #{User.where(dues_status: 'lapsed').count}"
     puts "  Active: #{User.where(active: true).count}"
     puts "  Inactive: #{User.where(active: false).count}"
+    puts "  With membership plan: #{User.where.not(membership_plan_id: nil).count}"
     puts ""
     puts "Done!"
   end
@@ -88,14 +168,17 @@ namespace :membership do
   desc "Preview membership status recalculation (dry run)"
   task preview_recalculate: :environment do
     cutoff_date = 1.month.ago
+    membership_plans = MembershipPlan.all.to_a
 
     puts "DRY RUN - No changes will be made"
     puts "=" * 50
     puts "Cutoff date for recent payments: #{cutoff_date.to_date}"
+    puts "Membership plans: #{membership_plans.map { |p| "#{p.name}=$#{p.cost}" }.join(', ')}"
     puts ""
 
     would_sponsor = []
     would_pay = []
+    would_lapsed = []
     would_inactive = []
 
     # Check sponsored from sheet entries
@@ -106,23 +189,39 @@ namespace :membership do
       would_sponsor << user
     end
 
-    # Check users with recent payments
+    # Check users with payments
     User.find_each do |user|
-      # Skip if would be sponsored
       next if would_sponsor.include?(user)
 
-      recent_paypal = user.paypal_payments
-                          .where('transaction_time >= ?', cutoff_date)
-                          .exists?
+      all_payments = []
+      user.paypal_payments.each do |p|
+        next unless p.transaction_time.present?
+        all_payments << { time: p.transaction_time, amount: p.amount, type: 'paypal' }
+      end
+      user.recharge_payments.each do |p|
+        next unless p.processed_at.present?
+        all_payments << { time: p.processed_at, amount: p.amount, type: 'recharge' }
+      end
 
-      recent_recharge = user.recharge_payments
-                            .where('processed_at >= ?', cutoff_date)
-                            .exists?
-
-      if recent_paypal || recent_recharge
-        would_pay << { user: user, type: recent_paypal ? 'paypal' : 'recharge' }
-      else
+      if all_payments.empty?
         would_inactive << user
+        next
+      end
+
+      all_payments.sort_by! { |p| p[:time] }
+      latest_payment = all_payments.last
+      has_recent = all_payments.any? { |p| p[:time] >= cutoff_date }
+
+      if has_recent
+        matched_plan = MembershipTaskHelpers.find_matching_plan(membership_plans, latest_payment[:amount])
+        would_pay << {
+          user: user,
+          type: latest_payment[:type],
+          amount: latest_payment[:amount],
+          plan: matched_plan
+        }
+      else
+        would_lapsed << user
       end
     end
 
@@ -131,8 +230,16 @@ namespace :membership do
     puts ""
 
     puts "Would set as PAYING (#{would_pay.count}):"
-    would_pay.first(20).each { |p| puts "  - #{p[:user].display_name} (#{p[:type]})" }
+    would_pay.first(20).each do |p|
+      plan_info = p[:plan] ? " => #{p[:plan].name}" : " (no plan match)"
+      puts "  - #{p[:user].display_name} (#{p[:type]}, $#{p[:amount]})#{plan_info}"
+    end
     puts "  ... and #{would_pay.count - 20} more" if would_pay.count > 20
+    puts ""
+
+    puts "Would set as LAPSED (#{would_lapsed.count}):"
+    would_lapsed.first(20).each { |u| puts "  - #{u.display_name}" }
+    puts "  ... and #{would_lapsed.count - 20} more" if would_lapsed.count > 20
     puts ""
 
     puts "Would set as INACTIVE (#{would_inactive.count}):"
@@ -144,7 +251,9 @@ namespace :membership do
     puts "Summary (if applied):"
     puts "  Sponsored: #{would_sponsor.count}"
     puts "  Paying: #{would_pay.count}"
+    puts "  Lapsed: #{would_lapsed.count}"
     puts "  Inactive: #{would_inactive.count}"
+    puts "  Would match to plan: #{would_pay.count { |p| p[:plan].present? }}"
     puts ""
     puts "Run 'rake membership:recalculate_status' to apply changes."
   end
