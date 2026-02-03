@@ -67,6 +67,33 @@ class User < ApplicationRecord
     is_admin?
   end
 
+  # Get the most recent payment date across all payment sources
+  def most_recent_payment_date
+    dates = []
+    dates << last_payment_date if last_payment_date.present?
+    dates << recharge_most_recent_payment_date.to_date if recharge_most_recent_payment_date.present?
+
+    # Also check actual payment records
+    latest_paypal = paypal_payments.maximum(:transaction_time)
+    latest_recharge = recharge_payments.maximum(:processed_at)
+    dates << latest_paypal.to_date if latest_paypal.present?
+    dates << latest_recharge.to_date if latest_recharge.present?
+
+    dates.compact.max
+  end
+
+  # Check if user is within the reactivation grace period
+  def within_reactivation_grace_period?
+    return false unless dues_status == 'lapsed'
+
+    last_payment = most_recent_payment_date
+    return false if last_payment.blank?
+
+    grace_months = MembershipSetting.reactivation_grace_period_months
+    cutoff_date = grace_months.months.ago.to_date
+    last_payment >= cutoff_date
+  end
+
   # Use username in URLs instead of ID
   def to_param
     username.presence || id.to_s

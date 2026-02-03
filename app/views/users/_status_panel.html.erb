@@ -63,6 +63,31 @@
         </div>
       <% end %>
 
+      <%# Reactivation options for lapsed members within grace period %>
+      <% if user.within_reactivation_grace_period? %>
+        <% plans_with_links = MembershipPlan.with_payment_link.ordered %>
+        <% if plans_with_links.any? %>
+          <div class="mt-3 pt-3 border-top">
+            <div class="alert alert-warning py-2 mb-2">
+              <i class="bi bi-exclamation-triangle me-1"></i>
+              <strong>Membership Lapsed</strong>
+            </div>
+            <p class="small text-muted mb-2">
+              Your last payment was <%= time_ago_in_words(user.most_recent_payment_date) %> ago.
+              You can reactivate your membership by selecting a plan below:
+            </p>
+            <div class="d-grid gap-2">
+              <% plans_with_links.each do |plan| %>
+                <%= link_to plan.payment_link, class: "btn btn-outline-primary btn-sm", target: "_blank", rel: "noopener" do %>
+                  <i class="bi bi-credit-card me-1"></i>
+                  <%= plan.name %> - $<%= format('%.2f', plan.cost) %>/<%= plan.billing_frequency %>
+                <% end %>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+
       <div>
         <small class="text-muted d-block">Membership Status</small>
         <% badge_class = case user.membership_status
