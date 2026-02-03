@@ -4,7 +4,10 @@ one:
   authentik_id: authentik-user-1
   email: user1@example.com
   full_name: Example User One
+  username: exampleuserone
   active: true
+  profile_visibility: members
+  bio: "This is my bio"
   last_synced_at: 2025-11-14 10:03:05
   authentik_attributes:
     department: Engineering
@@ -14,7 +17,9 @@ two:
   authentik_id: authentik-user-2
   email: user2@example.com
   full_name: Example User Two
+  username: exampleusertwo
   active: true
+  profile_visibility: members
   last_synced_at: 2025-11-14 10:03:05
   authentik_attributes:
     department: Finance
@@ -23,7 +28,9 @@ three:
   authentik_id: authentik-user-3
   email: beta@example.com
   full_name:
+  username: betauser
   active: true
+  profile_visibility: members
   last_synced_at: 2025-11-14 10:05:05
   authentik_attributes: {}
 
@@ -31,7 +38,48 @@ no_email:
   authentik_id: authentik-user-4
   email:
   full_name: No Email User
+  username: noemailuser
   active: true
+  profile_visibility: members
   last_synced_at: 2025-11-15 00:00:00
   authentik_attributes:
     location: Remote
+
+public_profile_user:
+  authentik_id: authentik-user-5
+  email: public@example.com
+  full_name: Public Profile User
+  username: publicuser
+  active: true
+  profile_visibility: public
+  bio: "I have a public profile"
+  membership_status: paying
+  payment_type: paypal
+  last_synced_at: 2025-11-14 10:03:05
+  authentik_attributes: {}
+
+private_profile_user:
+  authentik_id: authentik-user-6
+  email: private@example.com
+  full_name: Private Profile User
+  username: privateuser
+  active: true
+  profile_visibility: private
+  bio: "This should be hidden"
+  membership_status: paying
+  payment_type: paypal
+  last_synced_at: 2025-11-14 10:03:05
+  authentik_attributes: {}
+
+member_with_local_account:
+  authentik_id: authentik-user-7
+  email: member@example.com
+  full_name: Regular Member
+  username: regularmember
+  active: true
+  profile_visibility: members
+  bio: "I am a regular member"
+  membership_status: paying
+  payment_type: paypal
+  last_synced_at: 2025-11-14 10:03:05
+  authentik_attributes: {}

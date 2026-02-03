@@ -5,3 +5,12 @@ active_admin:
   active: true
   admin: true
   last_signed_in_at:
+
+regular_member:
+  email: member@example.com
+  full_name: Regular Member
+  password_digest: <%= BCrypt::Password.create("memberpassword123") %>
+  active: true
+  admin: false
+  user: member_with_local_account
+  last_signed_in_at:
