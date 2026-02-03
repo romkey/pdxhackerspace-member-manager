@@ -1,0 +1,32 @@
+<%# Access Tab %>
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <h2 class="h6 mb-3">Access Logs</h2>
+    <% if recent_accesses.any? %>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="bg-body-tertiary">
+            <tr>
+              <th scope="col">When</th>
+              <th scope="col">Location</th>
+              <th scope="col">Action</th>
+              <th scope="col">Name</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% recent_accesses.each do |access| %>
+              <tr>
+                <td><%= access.logged_at.present? ? l(access.logged_at, format: :long) : content_tag(:span, "Unknown", class: "text-muted fst-italic") %></td>
+                <td><%= access.location.presence || content_tag(:span, "—", class: "text-muted") %></td>
+                <td><%= access.action.present? ? content_tag(:span, access.action.humanize, class: "badge text-bg-secondary") : content_tag(:span, "—", class: "text-muted") %></td>
+                <td><%= access.name.presence || content_tag(:span, "—", class: "text-muted") %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <p class="text-muted mb-0">No access logs recorded yet.</p>
+    <% end %>
+  </div>
+</div>

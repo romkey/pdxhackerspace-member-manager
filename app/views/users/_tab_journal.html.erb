@@ -1,0 +1,58 @@
+<%# Journal Tab %>
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <h2 class="h6 mb-3">Journal</h2>
+    <% if journals.any? %>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="bg-body-tertiary">
+            <tr>
+              <th scope="col" style="width: 20px;"></th>
+              <th scope="col">When</th>
+              <th scope="col">Action</th>
+              <th scope="col">By</th>
+              <th scope="col">Changes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% journals.each do |j| %>
+              <tr class="<%= 'table-warning' if j.highlight? %>">
+                <td class="text-center"><%= j.highlight? ? content_tag(:i, nil, class: "bi bi-star-fill text-warning", title: "Highlighted") : '' %></td>
+                <td><%= l(j.changed_at, format: :long) %></td>
+                <td>
+                  <% badge_class = case j.action
+                     when 'created' then 'text-bg-success'
+                     when 'incident_report_involvement' then 'text-bg-danger'
+                     when 'membership_status_changed', 'activated', 'deactivated' then 'text-bg-warning'
+                     when 'banned' then 'text-bg-dark'
+                     when 'training_added', 'training_removed' then 'text-bg-primary'
+                     when 'trainer_capability_added', 'trainer_capability_removed' then 'text-bg-info'
+                     else 'text-bg-secondary'
+                     end %>
+                  <span class="badge <%= badge_class %>"><%= j.action.humanize %></span>
+                </td>
+                <td><%= j.actor_user.present? ? link_to(j.actor_user.display_name, user_path(j.actor_user)) : content_tag(:span, "System", class: "text-muted fst-italic") %></td>
+                <td>
+                  <% if j.action == 'incident_report_involvement' && j.changes_json['incident_report'].present? %>
+                    <% ir = j.changes_json['incident_report'] %>
+                    <div class="small">
+                      <strong><%= ir['subject'] %></strong><br>
+                      <span class="text-muted"><%= ir['type'] %> &middot; <%= ir['date'] %></span>
+                      <% if ir['id'].present? %>
+                        <br><%= link_to "View Report", incident_report_path(ir['id']), class: "link-primary" %>
+                      <% end %>
+                    </div>
+                  <% else %>
+                    <%= render_change_rows(j.changes_json) %>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <p class="text-muted mb-0">No journal entries yet.</p>
+    <% end %>
+  </div>
+</div>

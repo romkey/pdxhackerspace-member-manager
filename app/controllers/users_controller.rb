@@ -52,12 +52,20 @@ class UsersController < AuthenticatedController
     # Set up view preview options for admins and profile owners
     setup_view_preview_options
 
-    # Admin-only data (load when viewing as admin OR when admin is previewing other views)
-    if current_user_admin?
+    # Default tab
+    @active_tab = params[:tab]&.to_sym || :profile
+
+    # Load payment history for admin and self views
+    if @view_level == :admin || @view_level == :self
       @payments = PaymentHistory.for_user(@user)
+    end
+
+    # Admin-only data
+    if current_user_admin?
       @journals = @user.journals.includes(:actor_user).order(changed_at: :desc, created_at: :desc)
       @most_recent_access = @user.access_logs.order(logged_at: :desc).first
       @recent_accesses = @user.access_logs.order(logged_at: :desc).limit(10)
+      @user_incidents = @user.incident_reports.includes(:reporter).ordered
 
       # Find previous and next users using the same ordering as index
       ordered_ids = User.ordered_by_display_name.pluck(:id)

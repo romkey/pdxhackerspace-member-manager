@@ -107,8 +107,6 @@
   <div class="mb-4">
     <h1 class="h5 mb-0">Member Profile</h1>
   </div>
-<% else %>
-  <%# Public view - no header actions %>
 <% end %>
 
 <%# Profile photo URL %>
@@ -122,10 +120,10 @@
   end
 %>
 
-<div class="card shadow-sm border-0">
+<%# Name and Photo Header - shown to all, outside tabs %>
+<div class="card shadow-sm border-0 mb-4">
   <div class="card-body">
-    <%# Name and Photo Header - shown to all %>
-    <div class="d-flex align-items-center gap-4 mb-4">
+    <div class="d-flex align-items-center gap-4">
       <% if image_url.present? %>
         <img src="<%= image_url %>" alt="<%= @user.display_name %>" class="rounded-circle" style="width: 96px; height: 96px; object-fit: cover;">
       <% else %>
@@ -140,428 +138,110 @@
         <% end %>
       </div>
     </div>
-
-    <% if @view_level == :admin %>
-      <%# ===== ADMIN VIEW ===== %>
-      <div class="row">
-        <div class="col-md-8">
-          <dl class="row mb-0">
-            <dt class="col-sm-3 text-secondary">Username</dt>
-            <dd class="col-sm-9 text-monospace text-secondary"><%= @user.username.presence || content_tag(:span, "Not provided", class: "text-muted fst-italic") %></dd>
-
-            <dt class="col-sm-3 text-secondary">Authentik ID</dt>
-            <dd class="col-sm-9"><%= @user.authentik_id %></dd>
-
-            <dt class="col-sm-3 text-secondary">Email</dt>
-            <dd class="col-sm-9">
-              <% if @user.email.present? %>
-                <%= mail_to @user.email %>
-              <% else %>
-                <span class="text-muted fst-italic">Not provided</span>
-              <% end %>
-            </dd>
-
-            <dt class="col-sm-3 text-secondary">Extra emails</dt>
-            <dd class="col-sm-9">
-              <% if @user.extra_emails.present? && @user.extra_emails.any? %>
-                <% @user.extra_emails.each do |email| %>
-                  <%= mail_to email %><br>
-                <% end %>
-              <% else %>
-                <span class="text-muted fst-italic">None</span>
-              <% end %>
-            </dd>
-
-            <dt class="col-sm-3 text-secondary">Full name</dt>
-            <dd class="col-sm-9"><%= @user.full_name.presence || content_tag(:span, "Not provided", class: "text-muted fst-italic") %></dd>
-
-            <dt class="col-sm-3 text-secondary">About</dt>
-            <dd class="col-sm-9">
-              <% if @user.bio.present? %>
-                <div class="small"><%= sanitize(@user.bio, tags: %w[p br strong b em i u s ul ol li a h1 h2 h3 h4 h5 h6 span div], attributes: %w[href target style]) %></div>
-              <% else %>
-                <span class="text-muted fst-italic">Not provided</span>
-              <% end %>
-            </dd>
-
-            <dt class="col-sm-3 text-secondary">Links</dt>
-            <dd class="col-sm-9">
-              <% if @user.user_links.any? %>
-                <div class="d-flex flex-wrap gap-2">
-                  <% @user.user_links.ordered.each do |link| %>
-                    <a href="<%= link.url %>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">
-                      <i class="bi <%= link.icon_class %> me-1"></i><%= link.title %>
-                    </a>
-                  <% end %>
-                </div>
-              <% else %>
-                <span class="text-muted fst-italic">None</span>
-              <% end %>
-            </dd>
-
-            <dt class="col-sm-3 text-secondary">Profile Visibility</dt>
-            <dd class="col-sm-9">
-              <% visibility_label = { 'public' => 'Public', 'members' => 'Other Members', 'private' => 'Private' }[@user.profile_visibility] || @user.profile_visibility.humanize %>
-              <%= visibility_label %>
-            </dd>
-
-            <dt class="col-sm-3 text-secondary">Sheet Entry</dt>
-            <dd class="col-sm-9">
-              <% if @user.sheet_entry.present? %>
-                <%= link_to @user.sheet_entry.name, sheet_entry_path(@user.sheet_entry), class: "text-decoration-none" %>
-              <% else %>
-                <span class="text-muted fst-italic">Not linked</span>
-              <% end %>
-            </dd>
-
-            <dt class="col-sm-3 text-secondary">Slack</dt>
-            <dd class="col-sm-9">
-              <% if @user.slack_handle.present? || @user.slack_id.present? %>
-                <% if @user.slack_id.present? && @user.slack_user&.team_id.present? %>
-                  <% slack_url = "slack://user?team=#{@user.slack_user.team_id}&id=#{@user.slack_id}" %>
-                  <% if @user.slack_handle.present? %>
-                    <%= link_to "@#{@user.slack_handle}", slack_url, target: "_blank", rel: "noopener", class: "text-decoration-none" %>
-                    <span class="text-muted small ms-2">(ID: <%= link_to @user.slack_id, slack_url, class: "text-decoration-none" %>)</span>
-                  <% else %>
-                    <%= link_to @user.slack_id, slack_url, target: "_blank", rel: "noopener", class: "text-decoration-none" %>
-                  <% end %>
-                <% else %>
-                  <span>@<%= @user.slack_handle %></span>
-                  <% if @user.slack_id.present? %>
-                    <span class="text-muted small ms-2">(ID: <%= @user.slack_id %>)</span>
-                  <% end %>
-                <% end %>
-              <% else %>
-                <span class="text-muted fst-italic">Not linked</span>
-              <% end %>
-            </dd>
-
-            <dt class="col-sm-3 text-secondary">Trained on</dt>
-            <dd class="col-sm-9">
-              <% trained_topics = @user.trainings_as_trainee.map(&:training_topic).uniq %>
-              <% if trained_topics.any? %>
-                <% trained_topics.each do |topic| %>
-                  <span class="badge text-bg-primary me-1 mb-1"><%= topic.name %></span>
-                <% end %>
-              <% else %>
-                <span class="text-muted fst-italic">None recorded</span>
-              <% end %>
-            </dd>
-
-            <dt class="col-sm-3 text-secondary">Can train</dt>
-            <dd class="col-sm-9">
-              <% if @user.training_topics.any? %>
-                <% @user.training_topics.each do |topic| %>
-                  <span class="badge text-bg-success me-1 mb-1"><%= topic.name %></span>
-                <% end %>
-              <% else %>
-                <span class="text-muted fst-italic">None</span>
-              <% end %>
-            </dd>
-
-            <dt class="col-sm-3 text-secondary">Last synced</dt>
-            <dd class="col-sm-9"><%= @user.last_synced_at ? l(@user.last_synced_at, format: :long) : content_tag(:span, "Never", class: "text-muted fst-italic") %></dd>
-
-            <dt class="col-sm-3 text-secondary">Last login</dt>
-            <dd class="col-sm-9"><%= @user.last_login_at ? l(@user.last_login_at, format: :long) : content_tag(:span, "Never", class: "text-muted fst-italic") %></dd>
-
-            <dt class="col-sm-3 text-secondary">Last access</dt>
-            <dd class="col-sm-9">
-              <% if @most_recent_access&.logged_at.present? %>
-                <%= l(@most_recent_access.logged_at, format: :long) %>
-                <% if @most_recent_access.location.present? %>
-                  <span class="text-muted small ms-2">(<%= @most_recent_access.location %>)</span>
-                <% end %>
-              <% else %>
-                <span class="text-muted fst-italic">Never</span>
-              <% end %>
-            </dd>
-
-            <dt class="col-sm-3 text-secondary">Created</dt>
-            <dd class="col-sm-9"><%= l(@user.created_at, format: :long) %></dd>
-
-            <dt class="col-sm-3 text-secondary">Updated</dt>
-            <dd class="col-sm-9"><%= l(@user.updated_at, format: :long) %></dd>
-
-            <dt class="col-sm-3 text-secondary">Notes</dt>
-            <dd class="col-sm-9">
-              <% if @user.notes.present? %>
-                <%= simple_format(@user.notes) %>
-              <% else %>
-                <span class="text-muted fst-italic">None</span>
-              <% end %>
-            </dd>
-
-            <dt class="col-sm-3 text-secondary">RFID Keys</dt>
-            <dd class="col-sm-9">
-              <% if @user.rfids.any? %>
-                <div class="d-flex flex-column gap-2">
-                  <% @user.rfids.each do |rfid_record| %>
-                    <div>
-                      <code class="bg-body-secondary px-2 py-1 rounded me-2"><%= rfid_record.rfid %></code>
-                      <% if rfid_record.notes.present? %>
-                        <span class="text-muted small ms-2"><%= rfid_record.notes %></span>
-                      <% end %>
-                    </div>
-                  <% end %>
-                </div>
-              <% else %>
-                <span class="text-muted fst-italic">None</span>
-              <% end %>
-            </dd>
-          </dl>
-        </div>
-        <div class="col-md-4">
-          <%= render 'users/status_panel', user: @user, show_dues: true %>
-        </div>
-      </div>
-
-    <% elsif @view_level == :self || @view_level == :members %>
-      <%# ===== SELF / MEMBERS VIEW ===== %>
-      <div class="row">
-        <div class="col-md-8">
-          <dl class="row mb-0">
-            <dt class="col-sm-3 text-secondary">Username</dt>
-            <dd class="col-sm-9 text-monospace text-secondary"><%= @user.username.presence || content_tag(:span, "Not provided", class: "text-muted fst-italic") %></dd>
-
-            <% if @view_level == :self %>
-              <dt class="col-sm-3 text-secondary">Email</dt>
-              <dd class="col-sm-9">
-                <% if @user.email.present? %>
-                  <%= mail_to @user.email %>
-                <% else %>
-                  <span class="text-muted fst-italic">Not provided</span>
-                <% end %>
-              </dd>
-            <% end %>
-
-            <dt class="col-sm-3 text-secondary">Full name</dt>
-            <dd class="col-sm-9"><%= @user.full_name.presence || content_tag(:span, "Not provided", class: "text-muted fst-italic") %></dd>
-
-            <dt class="col-sm-3 text-secondary">About</dt>
-            <dd class="col-sm-9">
-              <% if @user.bio.present? %>
-                <div class="small"><%= sanitize(@user.bio, tags: %w[p br strong b em i u s ul ol li a h1 h2 h3 h4 h5 h6 span div], attributes: %w[href target style]) %></div>
-              <% else %>
-                <span class="text-muted fst-italic">Not provided</span>
-              <% end %>
-            </dd>
-
-            <dt class="col-sm-3 text-secondary">Links</dt>
-            <dd class="col-sm-9">
-              <% if @user.user_links.any? %>
-                <div class="d-flex flex-wrap gap-2">
-                  <% @user.user_links.ordered.each do |link| %>
-                    <a href="<%= link.url %>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">
-                      <i class="bi <%= link.icon_class %> me-1"></i><%= link.title %>
-                    </a>
-                  <% end %>
-                </div>
-              <% else %>
-                <span class="text-muted fst-italic">None</span>
-              <% end %>
-            </dd>
-
-            <% if @view_level == :self %>
-              <dt class="col-sm-3 text-secondary">Profile Visibility</dt>
-              <dd class="col-sm-9">
-                <% visibility_label = { 'public' => 'Public', 'members' => 'Other Members', 'private' => 'Private' }[@user.profile_visibility] || @user.profile_visibility.humanize %>
-                <%= visibility_label %>
-              </dd>
-
-              <dt class="col-sm-3 text-secondary">Greeting Name</dt>
-              <dd class="col-sm-9"><%= @user.greeting_name.presence || content_tag(:span, "Not provided", class: "text-muted fst-italic") %></dd>
-            <% end %>
-
-            <dt class="col-sm-3 text-secondary">Trained on</dt>
-            <dd class="col-sm-9">
-              <% trained_topics = @user.trainings_as_trainee.map(&:training_topic).uniq %>
-              <% if trained_topics.any? %>
-                <% trained_topics.each do |topic| %>
-                  <span class="badge text-bg-primary me-1 mb-1"><%= topic.name %></span>
-                <% end %>
-              <% else %>
-                <span class="text-muted fst-italic">None recorded</span>
-              <% end %>
-            </dd>
-
-            <dt class="col-sm-3 text-secondary">Can train</dt>
-            <dd class="col-sm-9">
-              <% if @user.training_topics.any? %>
-                <% @user.training_topics.each do |topic| %>
-                  <span class="badge text-bg-success me-1 mb-1"><%= topic.name %></span>
-                <% end %>
-              <% else %>
-                <span class="text-muted fst-italic">None</span>
-              <% end %>
-            </dd>
-          </dl>
-        </div>
-        <div class="col-md-4">
-          <%= render 'users/status_panel', user: @user, show_dues: false %>
-        </div>
-      </div>
-
-    <% else %>
-      <%# ===== PUBLIC VIEW ===== %>
-      <div class="row">
-        <div class="col-12">
-          <dl class="row mb-0">
-            <% if @user.bio.present? %>
-              <dt class="col-sm-2 text-secondary">About</dt>
-              <dd class="col-sm-10">
-                <div class="small"><%= sanitize(@user.bio, tags: %w[p br strong b em i u s ul ol li a h1 h2 h3 h4 h5 h6 span div], attributes: %w[href target style]) %></div>
-              </dd>
-            <% end %>
-
-            <% if @user.user_links.any? %>
-              <dt class="col-sm-2 text-secondary">Links</dt>
-              <dd class="col-sm-10">
-                <div class="d-flex flex-wrap gap-2">
-                  <% @user.user_links.ordered.each do |link| %>
-                    <a href="<%= link.url %>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">
-                      <i class="bi <%= link.icon_class %> me-1"></i><%= link.title %>
-                    </a>
-                  <% end %>
-                </div>
-              </dd>
-            <% end %>
-          </dl>
-
-          <% if @user.bio.blank? && @user.user_links.empty? %>
-            <p class="text-muted text-center mb-0">This member hasn't added any profile information yet.</p>
-          <% end %>
-        </div>
-      </div>
-    <% end %>
   </div>
 </div>
 
-<%# Admin-only sections %>
 <% if @view_level == :admin %>
-  <%= render "paypal_payments/payment_history", payments: @payments %>
-
-  <div class="card shadow-sm border-0 mt-4">
-    <div class="card-body">
-      <h2 class="h6 mb-3">Access</h2>
-      <% if @recent_accesses.any? %>
-        <div class="table-responsive">
-          <table class="table table-sm align-middle mb-0">
-            <thead class="bg-body-tertiary">
-              <tr>
-                <th scope="col">When</th>
-                <th scope="col">Location</th>
-                <th scope="col">Action</th>
-                <th scope="col">Name</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% @recent_accesses.each do |access| %>
-                <tr>
-                  <td><%= access.logged_at.present? ? l(access.logged_at, format: :long) : content_tag(:span, "Unknown", class: "text-muted fst-italic") %></td>
-                  <td><%= access.location.presence || content_tag(:span, "—", class: "text-muted") %></td>
-                  <td><%= access.action.present? ? content_tag(:span, access.action.humanize, class: "badge text-bg-secondary") : content_tag(:span, "—", class: "text-muted") %></td>
-                  <td><%= access.name.presence || content_tag(:span, "—", class: "text-muted") %></td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
-        </div>
-      <% else %>
-        <p class="text-muted mb-0">No access logs recorded yet.</p>
+  <%# ===== ADMIN VIEW WITH TABS ===== %>
+  <ul class="nav nav-tabs mb-4" role="tablist">
+    <li class="nav-item" role="presentation">
+      <%= link_to user_path(@user, tab: :profile, view_as: params[:view_as]), 
+          class: "nav-link #{'active' if @active_tab == :profile}", 
+          role: "tab" do %>
+        <i class="bi bi-person me-1"></i> Profile
       <% end %>
-    </div>
+    </li>
+    <li class="nav-item" role="presentation">
+      <%= link_to user_path(@user, tab: :payments, view_as: params[:view_as]), 
+          class: "nav-link #{'active' if @active_tab == :payments}", 
+          role: "tab" do %>
+        <i class="bi bi-credit-card me-1"></i> Payments
+        <% if @payments.any? %>
+          <span class="badge bg-secondary ms-1"><%= @payments.count %></span>
+        <% end %>
+      <% end %>
+    </li>
+    <li class="nav-item" role="presentation">
+      <%= link_to user_path(@user, tab: :access, view_as: params[:view_as]), 
+          class: "nav-link #{'active' if @active_tab == :access}", 
+          role: "tab" do %>
+        <i class="bi bi-door-open me-1"></i> Access
+        <% if @recent_accesses.any? %>
+          <span class="badge bg-secondary ms-1"><%= @recent_accesses.count %></span>
+        <% end %>
+      <% end %>
+    </li>
+    <% if @user_incidents.any? %>
+      <li class="nav-item" role="presentation">
+        <%= link_to user_path(@user, tab: :incidents, view_as: params[:view_as]), 
+            class: "nav-link #{'active' if @active_tab == :incidents}", 
+            role: "tab" do %>
+          <i class="bi bi-exclamation-triangle me-1"></i> Incidents
+          <span class="badge bg-warning text-dark ms-1"><%= @user_incidents.count %></span>
+        <% end %>
+      </li>
+    <% end %>
+    <li class="nav-item" role="presentation">
+      <%= link_to user_path(@user, tab: :journal, view_as: params[:view_as]), 
+          class: "nav-link #{'active' if @active_tab == :journal}", 
+          role: "tab" do %>
+        <i class="bi bi-journal-text me-1"></i> Journal
+        <% if @journals.any? %>
+          <span class="badge bg-secondary ms-1"><%= @journals.count %></span>
+        <% end %>
+      <% end %>
+    </li>
+  </ul>
+
+  <div class="tab-content">
+    <% if @active_tab == :profile %>
+      <%= render 'users/tab_profile_admin', user: @user, most_recent_access: @most_recent_access %>
+    <% elsif @active_tab == :payments %>
+      <%= render 'users/tab_payments', payments: @payments %>
+    <% elsif @active_tab == :access %>
+      <%= render 'users/tab_access', recent_accesses: @recent_accesses %>
+    <% elsif @active_tab == :incidents %>
+      <%= render 'users/tab_incidents', user_incidents: @user_incidents %>
+    <% elsif @active_tab == :journal %>
+      <%= render 'users/tab_journal', journals: @journals %>
+    <% end %>
   </div>
 
-  <% user_incidents = @user.incident_reports.includes(:reporter).ordered %>
-  <% if user_incidents.any? %>
-    <div class="card shadow-sm border-0 mt-4">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h2 class="h6 mb-0">Incident Reports Involving This Member</h2>
-          <%= link_to "View All", incident_reports_path, class: "btn btn-outline-secondary btn-sm" %>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-sm align-middle mb-0">
-            <thead class="bg-body-tertiary">
-              <tr>
-                <th scope="col">Date</th>
-                <th scope="col">Subject</th>
-                <th scope="col">Type</th>
-                <th scope="col">Reporter</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% user_incidents.each do |report| %>
-                <tr>
-                  <td><%= report.incident_date.strftime('%Y-%m-%d') %></td>
-                  <td><%= link_to report.subject, incident_report_path(report), class: "text-decoration-none" %></td>
-                  <td><span class="badge text-bg-<%= incident_type_badge_class(report.incident_type) %>"><%= report.incident_type_display %></span></td>
-                  <td><%= report.reporter ? link_to(report.reporter.display_name, user_path(report.reporter), class: "text-decoration-none") : content_tag(:span, "Unknown", class: "text-muted") %></td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  <% end %>
-
-  <div class="card shadow-sm border-0 mt-4">
-    <div class="card-body">
-      <h2 class="h6 mb-3">Journal</h2>
-      <% if @journals.any? %>
-        <div class="table-responsive">
-          <table class="table table-sm align-middle mb-0">
-            <thead class="bg-body-tertiary">
-              <tr>
-                <th scope="col" style="width: 20px;"></th>
-                <th scope="col">When</th>
-                <th scope="col">Action</th>
-                <th scope="col">By</th>
-                <th scope="col">Changes</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% @journals.each do |j| %>
-                <tr class="<%= 'table-warning' if j.highlight? %>">
-                  <td class="text-center"><%= j.highlight? ? content_tag(:i, nil, class: "bi bi-star-fill text-warning", title: "Highlighted") : '' %></td>
-                  <td><%= l(j.changed_at, format: :long) %></td>
-                  <td>
-                    <% badge_class = case j.action
-                       when 'created' then 'text-bg-success'
-                       when 'incident_report_involvement' then 'text-bg-danger'
-                       when 'membership_status_changed', 'activated', 'deactivated' then 'text-bg-warning'
-                       when 'banned' then 'text-bg-dark'
-                       when 'training_added', 'training_removed' then 'text-bg-primary'
-                       when 'trainer_capability_added', 'trainer_capability_removed' then 'text-bg-info'
-                       else 'text-bg-secondary'
-                       end %>
-                    <span class="badge <%= badge_class %>"><%= j.action.humanize %></span>
-                  </td>
-                  <td><%= j.actor_user.present? ? link_to(j.actor_user.display_name, user_path(j.actor_user)) : content_tag(:span, "System", class: "text-muted fst-italic") %></td>
-                  <td>
-                    <% if j.action == 'incident_report_involvement' && j.changes_json['incident_report'].present? %>
-                      <% ir = j.changes_json['incident_report'] %>
-                      <div class="small">
-                        <strong><%= ir['subject'] %></strong><br>
-                        <span class="text-muted"><%= ir['type'] %> &middot; <%= ir['date'] %></span>
-                        <% if ir['id'].present? %>
-                          <br><%= link_to "View Report", incident_report_path(ir['id']), class: "link-primary" %>
-                        <% end %>
-                      </div>
-                    <% else %>
-                      <%= render_change_rows(j.changes_json) %>
-                    <% end %>
-                  </td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
-        </div>
-      <% else %>
-        <p class="text-muted mb-0">No journal entries yet.</p>
+<% elsif @view_level == :self %>
+  <%# ===== SELF VIEW WITH TABS ===== %>
+  <ul class="nav nav-tabs mb-4" role="tablist">
+    <li class="nav-item" role="presentation">
+      <%= link_to user_path(@user, tab: :profile, view_as: params[:view_as]), 
+          class: "nav-link #{'active' if @active_tab == :profile}", 
+          role: "tab" do %>
+        <i class="bi bi-person me-1"></i> Profile
       <% end %>
-    </div>
+    </li>
+    <li class="nav-item" role="presentation">
+      <%= link_to user_path(@user, tab: :payments, view_as: params[:view_as]), 
+          class: "nav-link #{'active' if @active_tab == :payments}", 
+          role: "tab" do %>
+        <i class="bi bi-credit-card me-1"></i> Payment History
+        <% if @payments.any? %>
+          <span class="badge bg-secondary ms-1"><%= @payments.count %></span>
+        <% end %>
+      <% end %>
+    </li>
+  </ul>
+
+  <div class="tab-content">
+    <% if @active_tab == :profile %>
+      <%= render 'users/tab_profile_self', user: @user %>
+    <% elsif @active_tab == :payments %>
+      <%= render 'users/tab_payments', payments: @payments %>
+    <% end %>
   </div>
+
+<% elsif @view_level == :members %>
+  <%# ===== MEMBERS VIEW - NO TABS ===== %>
+  <%= render 'users/tab_profile_members', user: @user %>
+
+<% else %>
+  <%# ===== PUBLIC VIEW - NO TABS ===== %>
+  <%= render 'users/tab_profile_public', user: @user %>
 <% end %>

@@ -1,0 +1,84 @@
+<%# Self Profile Tab - what the user sees on their own profile %>
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-8">
+        <dl class="row mb-0">
+          <dt class="col-sm-3 text-secondary">Username</dt>
+          <dd class="col-sm-9 text-monospace text-secondary"><%= user.username.presence || content_tag(:span, "Not provided", class: "text-muted fst-italic") %></dd>
+
+          <dt class="col-sm-3 text-secondary">Email</dt>
+          <dd class="col-sm-9">
+            <% if user.email.present? %>
+              <%= mail_to user.email %>
+            <% else %>
+              <span class="text-muted fst-italic">Not provided</span>
+            <% end %>
+          </dd>
+
+          <dt class="col-sm-3 text-secondary">Full name</dt>
+          <dd class="col-sm-9"><%= user.full_name.presence || content_tag(:span, "Not provided", class: "text-muted fst-italic") %></dd>
+
+          <dt class="col-sm-3 text-secondary">About</dt>
+          <dd class="col-sm-9">
+            <% if user.bio.present? %>
+              <div class="small"><%= sanitize(user.bio, tags: %w[p br strong b em i u s ul ol li a h1 h2 h3 h4 h5 h6 span div], attributes: %w[href target style]) %></div>
+            <% else %>
+              <span class="text-muted fst-italic">Not provided</span>
+            <% end %>
+          </dd>
+
+          <dt class="col-sm-3 text-secondary">Links</dt>
+          <dd class="col-sm-9">
+            <% if user.user_links.any? %>
+              <div class="d-flex flex-wrap gap-2">
+                <% user.user_links.ordered.each do |link| %>
+                  <a href="<%= link.url %>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi <%= link.icon_class %> me-1"></i><%= link.title %>
+                  </a>
+                <% end %>
+              </div>
+            <% else %>
+              <span class="text-muted fst-italic">None</span>
+            <% end %>
+          </dd>
+
+          <dt class="col-sm-3 text-secondary">Profile Visibility</dt>
+          <dd class="col-sm-9">
+            <% visibility_label = { 'public' => 'Public', 'members' => 'Other Members', 'private' => 'Private' }[user.profile_visibility] || user.profile_visibility.humanize %>
+            <%= visibility_label %>
+          </dd>
+
+          <dt class="col-sm-3 text-secondary">Greeting Name</dt>
+          <dd class="col-sm-9"><%= user.greeting_name.presence || content_tag(:span, "Not provided", class: "text-muted fst-italic") %></dd>
+
+          <dt class="col-sm-3 text-secondary">Trained on</dt>
+          <dd class="col-sm-9">
+            <% trained_topics = user.trainings_as_trainee.map(&:training_topic).uniq %>
+            <% if trained_topics.any? %>
+              <% trained_topics.each do |topic| %>
+                <span class="badge text-bg-primary me-1 mb-1"><%= topic.name %></span>
+              <% end %>
+            <% else %>
+              <span class="text-muted fst-italic">None recorded</span>
+            <% end %>
+          </dd>
+
+          <dt class="col-sm-3 text-secondary">Can train</dt>
+          <dd class="col-sm-9">
+            <% if user.training_topics.any? %>
+              <% user.training_topics.each do |topic| %>
+                <span class="badge text-bg-success me-1 mb-1"><%= topic.name %></span>
+              <% end %>
+            <% else %>
+              <span class="text-muted fst-italic">None</span>
+            <% end %>
+          </dd>
+        </dl>
+      </div>
+      <div class="col-md-4">
+        <%= render 'users/status_panel', user: user, show_dues: false %>
+      </div>
+    </div>
+  </div>
+</div>
