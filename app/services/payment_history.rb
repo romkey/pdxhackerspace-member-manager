@@ -7,10 +7,10 @@ class PaymentHistory
   end
 
   def self.for_sheet_entry(sheet_entry)
-    payments = []
-    payments.concat(PaypalPayment.for_sheet_entry(sheet_entry).ordered.to_a)
-    payments.concat(RechargePayment.for_sheet_entry(sheet_entry).ordered.to_a)
-    sort_payments(payments)
+    # Get payments via the user associated with this sheet entry
+    return [] unless sheet_entry.user
+
+    for_user(sheet_entry.user)
   end
 
   def self.sort_payments(payments)

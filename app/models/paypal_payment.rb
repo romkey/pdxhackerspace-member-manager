@@ -1,12 +1,10 @@
 class PaypalPayment < ApplicationRecord
   belongs_to :user, optional: true
-  belongs_to :sheet_entry, optional: true
 
   validates :paypal_id, presence: true, uniqueness: true
 
   scope :ordered, -> { order(transaction_time: :desc, created_at: :desc) }
   scope :for_user, ->(user) { where(user_id: user.id) }
-  scope :for_sheet_entry, ->(entry) { where(sheet_entry_id: entry.id) }
 
   before_validation :normalize_payer_email
 
