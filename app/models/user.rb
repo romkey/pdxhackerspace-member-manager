@@ -123,6 +123,43 @@ class User < ApplicationRecord
     username.presence || id.to_s
   end
 
+  # Called when a SlackUser is linked to this User.
+  # Handles email syncing and Slack profile data.
+  def on_slack_user_linked(slack_user)
+    return if slack_user.blank?
+
+    updates = {}
+
+    # Handle email - if User doesn't have an email, copy it from Slack user
+    if slack_user.email.present?
+      slack_email_normalized = slack_user.email.downcase
+
+      if email.blank?
+        # User has no email, set it from slack user
+        updates[:email] = slack_user.email
+      elsif email.downcase != slack_email_normalized
+        # User has different primary email, check if Slack email is already in extra_emails
+        current_extra_emails = self.extra_emails || []
+        unless current_extra_emails.map(&:downcase).include?(slack_email_normalized)
+          updates[:extra_emails] = current_extra_emails + [slack_user.email]
+        end
+      end
+    end
+
+    # Add slack_id and slack_handle to user (only if not already set)
+    updates[:slack_id] = slack_user.slack_id if slack_id.blank?
+    updates[:slack_handle] = slack_user.username if slack_handle.blank?
+
+    # Set avatar from Slack profile image_192 if image_original exists (indicating a custom image)
+    if slack_user.raw_attributes&.dig('profile', 'image_original').present?
+      image_192_url = slack_user.raw_attributes.dig('profile', 'image_192')
+      updates[:avatar] = image_192_url if image_192_url.present? && avatar.blank?
+    end
+
+    # Apply all updates at once
+    update!(updates) if updates.any?
+  end
+
   # Find user by username or ID
   def self.find_by_param(param)
     find_by(username: param) || find(param)
