@@ -125,6 +125,7 @@ class User < ApplicationRecord
 
   # Called when a PaypalPayment is linked to this User.
   # Handles payer ID, email syncing, payment type, and membership status.
+  # Also links all other PayPal payments with the same payer_id.
   def on_paypal_payment_linked(payment)
     return if payment.blank?
 
@@ -146,10 +147,14 @@ class User < ApplicationRecord
 
     # Apply all updates at once
     update!(updates) if updates.any?
+
+    # Link all other PayPal payments with the same payer_id to this user
+    link_all_paypal_payments_by_payer_id(payment.payer_id)
   end
 
   # Called when a RechargePayment is linked to this User.
   # Handles customer ID, email syncing, payment type, and membership status.
+  # Also links all other Recharge payments with the same customer_id.
   def on_recharge_payment_linked(payment)
     return if payment.blank?
 
@@ -179,6 +184,9 @@ class User < ApplicationRecord
 
     # Apply all updates at once
     update!(updates) if updates.any?
+
+    # Link all other Recharge payments with the same customer_id to this user
+    link_all_recharge_payments_by_customer_id(payment.customer_id)
   end
 
   # Called when a SlackUser is linked to this User.
@@ -265,6 +273,28 @@ class User < ApplicationRecord
     end
 
     updates
+  end
+
+  # Link all Recharge payments with the given customer_id to this user.
+  # Uses update_all to avoid triggering callbacks (which would cause infinite recursion).
+  def link_all_recharge_payments_by_customer_id(customer_id)
+    return if customer_id.blank?
+
+    # Find all unlinked payments with this customer_id and link them
+    # Use update_all to avoid triggering the after_save callback again
+    RechargePayment.where(customer_id: customer_id.to_s, user_id: nil)
+                   .update_all(user_id: id)
+  end
+
+  # Link all PayPal payments with the given payer_id to this user.
+  # Uses update_all to avoid triggering callbacks (which would cause infinite recursion).
+  def link_all_paypal_payments_by_payer_id(payer_id)
+    return if payer_id.blank?
+
+    # Find all unlinked payments with this payer_id and link them
+    # Use update_all to avoid triggering the after_save callback again
+    PaypalPayment.where(payer_id: payer_id.to_s, user_id: nil)
+                 .update_all(user_id: id)
   end
 
   def generate_username_if_blank
