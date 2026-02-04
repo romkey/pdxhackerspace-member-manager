@@ -3,7 +3,11 @@
     <small>
       <i class="bi bi-funnel me-1"></i> Browsing filtered list
       <% if @nav_params[:linked].present? %>
-        — <%= @nav_params[:linked] == 'yes' ? 'Linked' : 'Unlinked' %>
+        — <%= case @nav_params[:linked]
+              when 'yes' then 'Linked'
+              when 'no' then 'Unlinked'
+              when 'dont_link' then "Don't Link"
+              end %>
       <% end %>
       <% if @nav_params[:is_admin].present? %>
         — <%= @nav_params[:is_admin] == 'yes' ? 'Admins' : 'Non-admins' %>
@@ -94,20 +98,30 @@
 
           <dt class="col-sm-3 text-secondary">Flags</dt>
           <dd class="col-sm-9">
-            <span class="badge text-bg-<%= @slack_user.is_admin? ? 'success' : 'secondary' %>">Admin</span>
-            <span class="badge text-bg-<%= @slack_user.is_owner? ? 'success' : 'secondary' %>">Owner</span>
-            <span class="badge text-bg-<%= @slack_user.is_bot? ? 'warning' : 'secondary' %>">Bot</span>
-            <span class="badge text-bg-<%= @slack_user.deleted? ? 'secondary' : 'success' %>">Status</span>
+            <% if @slack_user.is_admin? %><span class="badge text-bg-primary">Admin</span><% end %>
+            <% if @slack_user.is_owner? %><span class="badge text-bg-warning">Owner</span><% end %>
+            <% if @slack_user.is_bot? %><span class="badge text-bg-info">Bot</span><% end %>
+            <% if @slack_user.deleted? %><span class="badge text-bg-danger">Deactivated</span><% else %><span class="badge text-bg-success">Active</span><% end %>
+            <% if @slack_user.dont_link? %><span class="badge text-bg-secondary">Don't Link</span><% end %>
           </dd>
 
           <dt class="col-sm-3 text-secondary">User</dt>
           <dd class="col-sm-9">
             <% if @slack_user.user.present? %>
               <%= link_to @slack_user.user.display_name, user_path(@slack_user.user), class: "text-decoration-none" %>
+            <% elsif @slack_user.dont_link? %>
+              <span class="badge text-bg-secondary me-2">Don't Link</span>
+              <%= button_to "Clear Don't Link", toggle_dont_link_slack_user_path(@slack_user), 
+                  method: :post, class: "btn btn-sm btn-outline-secondary", data: { turbo: false } %>
             <% else %>
-              <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#linkUserModal">
-                Link User
-              </button>
+              <div class="d-flex gap-2 align-items-center">
+                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#linkUserModal">
+                  Link User
+                </button>
+                <%= button_to "Don't Link", toggle_dont_link_slack_user_path(@slack_user), 
+                    method: :post, class: "btn btn-sm btn-outline-secondary", data: { turbo: false },
+                    title: "Mark this Slack user as not needing to be linked to a member" %>
+              </div>
             <% end %>
           </dd>
 

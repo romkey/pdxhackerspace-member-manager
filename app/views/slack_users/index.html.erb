@@ -17,7 +17,11 @@
       <i class="bi bi-funnel me-2"></i>
       Showing <strong><%= @filtered_count %></strong> of <%= @total_count %> Slack users
       <% if params[:linked].present? %>
-        — <%= params[:linked] == 'yes' ? 'Linked' : 'Unlinked' %>
+        — <%= case params[:linked]
+              when 'yes' then 'Linked'
+              when 'no' then 'Unlinked'
+              when 'dont_link' then "Don't Link"
+              end %>
       <% end %>
       <% if params[:is_admin].present? %>
         — <%= params[:is_admin] == 'yes' ? 'Admins' : 'Non-admins' %>
@@ -45,8 +49,11 @@
       <%= link_to slack_users_path(linked: 'yes'), class: "badge text-bg-success text-decoration-none #{'border border-dark border-2' if params[:linked] == 'yes'}" do %>
         Linked: <strong><%= @linked_count %></strong>
       <% end %>
-      <%= link_to slack_users_path(linked: 'no'), class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if params[:linked] == 'no'}" do %>
+      <%= link_to slack_users_path(linked: 'no'), class: "badge text-bg-warning text-decoration-none #{'border border-dark border-2' if params[:linked] == 'no'}" do %>
         Unlinked: <strong><%= @unlinked_count %></strong>
+      <% end %>
+      <%= link_to slack_users_path(linked: 'dont_link'), class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if params[:linked] == 'dont_link'}" do %>
+        Don't Link: <strong><%= @dont_link_count %></strong>
       <% end %>
     </div>
     
@@ -172,7 +179,8 @@
                 slack_user.is_admin? ? "admin yes" : "admin no",
                 slack_user.is_owner? ? "owner yes" : "owner no",
                 slack_user.is_bot? ? "bot" : "human",
-                slack_user.deleted? ? "disabled deactivated" : "active"
+                slack_user.deleted? ? "disabled deactivated" : "active",
+                slack_user.dont_link? ? "dont link" : nil
               ].compact.join(' ').downcase %>">
             <td>
               <% image_url = slack_user.raw_attributes.dig("profile", "image_32") %>
@@ -195,6 +203,8 @@
             <td>
               <% if slack_user.user.present? %>
                 <%= link_to slack_user.user.display_name, user_path(slack_user.user), class: "text-decoration-none" %>
+              <% elsif slack_user.dont_link? %>
+                <span class="badge text-bg-secondary">Don't Link</span>
               <% else %>
                 <span class="text-muted fst-italic">Not linked</span>
               <% end %>

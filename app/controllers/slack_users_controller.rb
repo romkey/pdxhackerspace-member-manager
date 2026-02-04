@@ -10,8 +10,9 @@ class SlackUsersController < AdminController
     # Calculate counts from ALL slack users (not filtered)
     @total_count = all_slack_users.count
     @linked_count = all_slack_users.where.not(user_id: nil).count
-    # Unlinked count excludes bots (bots can't be linked to members)
-    @unlinked_count = all_slack_users.where(user_id: nil, is_bot: false).count
+    # Unlinked count excludes bots and "don't link" users
+    @unlinked_count = all_slack_users.where(user_id: nil, is_bot: false, dont_link: false).count
+    @dont_link_count = all_slack_users.where(dont_link: true).count
     @admin_count = all_slack_users.where(is_admin: true).count
     @owner_count = all_slack_users.where(is_owner: true).count
     @bot_count = all_slack_users.where(is_bot: true).count
@@ -27,8 +28,10 @@ class SlackUsersController < AdminController
     when 'yes'
       @slack_users = @slack_users.where.not(user_id: nil)
     when 'no'
-      # Exclude bots from unlinked filter (bots can't be linked to members)
-      @slack_users = @slack_users.where(user_id: nil, is_bot: false)
+      # Exclude bots and "don't link" users from unlinked filter
+      @slack_users = @slack_users.where(user_id: nil, is_bot: false, dont_link: false)
+    when 'dont_link'
+      @slack_users = @slack_users.where(dont_link: true)
     end
     
     @slack_users = @slack_users.where(is_admin: true) if params[:is_admin] == 'yes'
@@ -75,8 +78,10 @@ class SlackUsersController < AdminController
     when 'yes'
       nav_query = nav_query.where.not(user_id: nil)
     when 'no'
-      # Exclude bots from unlinked filter (bots can't be linked to members)
-      nav_query = nav_query.where(user_id: nil, is_bot: false)
+      # Exclude bots and "don't link" users from unlinked filter
+      nav_query = nav_query.where(user_id: nil, is_bot: false, dont_link: false)
+    when 'dont_link'
+      nav_query = nav_query.where(dont_link: true)
     end
     
     nav_query = nav_query.where(is_admin: true) if params[:is_admin] == 'yes'
@@ -155,6 +160,15 @@ class SlackUsersController < AdminController
 
     redirect_to slack_user_path(@slack_user),
                 notice: "Linked to user #{user.display_name} and updated their Slack information."
+  end
+
+  def toggle_dont_link
+    @slack_user = SlackUser.find(params[:id])
+    new_value = !@slack_user.dont_link
+    @slack_user.update!(dont_link: new_value)
+    
+    notice = new_value ? "#{@slack_user.display_name} marked as Don't Link." : "#{@slack_user.display_name} unmarked as Don't Link."
+    redirect_to slack_user_path(@slack_user), notice: notice
   end
 
   def sync

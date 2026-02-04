@@ -54,6 +54,7 @@ Rails.application.routes.draw do
     end
     member do
       post :link_user
+      post :toggle_dont_link
     end
   end
 
