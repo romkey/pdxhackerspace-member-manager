@@ -1,7 +1,31 @@
+<% if @nav_params.present? %>
+  <div class="alert alert-info py-2 mb-3 d-flex justify-content-between align-items-center">
+    <small>
+      <i class="bi bi-funnel me-1"></i> Browsing filtered list
+      <% if @nav_params[:linked].present? %>
+        — <%= @nav_params[:linked] == 'yes' ? 'Linked' : 'Unlinked' %>
+      <% end %>
+      <% if @nav_params[:is_admin].present? %>
+        — <%= @nav_params[:is_admin] == 'yes' ? 'Admins' : 'Non-admins' %>
+      <% end %>
+      <% if @nav_params[:is_owner].present? %>
+        — <%= @nav_params[:is_owner] == 'yes' ? 'Owners' : 'Non-owners' %>
+      <% end %>
+      <% if @nav_params[:is_bot].present? %>
+        — <%= @nav_params[:is_bot] == 'yes' ? 'Bots' : 'Humans' %>
+      <% end %>
+      <% if @nav_params[:status].present? %>
+        — <%= @nav_params[:status].humanize %>
+      <% end %>
+    </small>
+    <%= link_to "Clear filter", slack_user_path(@slack_user), class: "btn btn-outline-secondary btn-sm" %>
+  </div>
+<% end %>
+
 <div class="mb-4 d-flex justify-content-between align-items-center">
   <div class="d-flex gap-2 align-items-center">
     <% if @previous_slack_user %>
-      <%= link_to slack_user_path(@previous_slack_user), class: "btn btn-outline-secondary", title: "Previous: #{@previous_slack_user.display_name}" do %>
+      <%= link_to slack_user_path(@previous_slack_user, @nav_params), class: "btn btn-outline-secondary", title: "Previous: #{@previous_slack_user.display_name}" do %>
         <i class="bi bi-chevron-left"></i> Previous
       <% end %>
     <% else %>
@@ -11,7 +35,7 @@
     <% end %>
     
     <% if @next_slack_user %>
-      <%= link_to slack_user_path(@next_slack_user), class: "btn btn-outline-secondary", title: "Next: #{@next_slack_user.display_name}" do %>
+      <%= link_to slack_user_path(@next_slack_user, @nav_params), class: "btn btn-outline-secondary", title: "Next: #{@next_slack_user.display_name}" do %>
         Next <i class="bi bi-chevron-right"></i>
       <% end %>
     <% else %>
@@ -22,7 +46,7 @@
   </div>
   
   <div>
-    <%= link_to "&larr; Back to Slack users".html_safe, slack_users_path, class: "text-decoration-none" %>
+    <%= link_to "&larr; Back to Slack users".html_safe, slack_users_path(@nav_params), class: "text-decoration-none" %>
   </div>
 </div>
 

@@ -1,21 +1,62 @@
 require 'csv'
 
 class SlackUsersController < AdminController
+  SORTABLE_COLUMNS = %w[display_name email is_admin is_owner is_bot deleted].freeze
+
   def index
-    @show_bots = ActiveModel::Type::Boolean.new.cast(params[:show_bots])
-    scope = @show_bots ? SlackUser.all : SlackUser.where(is_bot: false)
-    @slack_users = scope.includes(:user).order(:display_name, :real_name, :username)
-    @total_slack_users = @slack_users.count
-    user_emails = User.where.not(email: nil).pluck(:email)
-    user_names = User.where.not(full_name: nil).pluck(:full_name)
-    @shared_email_count = SlackUser.where(email: user_emails).count
-    @shared_name_count = SlackUser.where(real_name: user_names).or(SlackUser.where(display_name: user_names)).count
-    inactive_threshold = 1.year.ago
-    @admin_count = SlackUser.where(is_admin: true).count
-    @bot_count = SlackUser.where(is_bot: true).count
-    @deactivated_count = SlackUser.where(deleted: true).count
-    @inactive_count = SlackUser.where('last_active_at IS NULL OR last_active_at < ?', inactive_threshold).count
-    @active_count = SlackUser.where(deleted: false).where('last_active_at >= ?', inactive_threshold).count
+    # Start with all slack users for counts (before filtering)
+    all_slack_users = SlackUser.all
+    
+    # Calculate counts from ALL slack users (not filtered)
+    @total_count = all_slack_users.count
+    @linked_count = all_slack_users.where.not(user_id: nil).count
+    @unlinked_count = @total_count - @linked_count
+    @admin_count = all_slack_users.where(is_admin: true).count
+    @owner_count = all_slack_users.where(is_owner: true).count
+    @bot_count = all_slack_users.where(is_bot: true).count
+    @human_count = all_slack_users.where(is_bot: false).count
+    @active_count = all_slack_users.where(deleted: false).count
+    @deactivated_count = all_slack_users.where(deleted: true).count
+    
+    # Now build filtered query
+    @slack_users = all_slack_users.includes(:user)
+    
+    # Apply filters
+    case params[:linked]
+    when 'yes'
+      @slack_users = @slack_users.where.not(user_id: nil)
+    when 'no'
+      @slack_users = @slack_users.where(user_id: nil)
+    end
+    
+    @slack_users = @slack_users.where(is_admin: true) if params[:is_admin] == 'yes'
+    @slack_users = @slack_users.where(is_admin: false) if params[:is_admin] == 'no'
+    @slack_users = @slack_users.where(is_owner: true) if params[:is_owner] == 'yes'
+    @slack_users = @slack_users.where(is_owner: false) if params[:is_owner] == 'no'
+    @slack_users = @slack_users.where(is_bot: true) if params[:is_bot] == 'yes'
+    @slack_users = @slack_users.where(is_bot: false) if params[:is_bot] == 'no'
+    @slack_users = @slack_users.where(deleted: false) if params[:status] == 'active'
+    @slack_users = @slack_users.where(deleted: true) if params[:status] == 'deactivated'
+    
+    # Apply sorting
+    @sort_column = SORTABLE_COLUMNS.include?(params[:sort]) ? params[:sort] : 'display_name'
+    @sort_direction = %w[asc desc].include?(params[:direction]) ? params[:direction] : 'asc'
+    @slack_users = @slack_users.order("#{@sort_column} #{@sort_direction} NULLS LAST")
+    
+    # Track if any filter is active
+    @filter_active = params[:linked].present? || params[:is_admin].present? || 
+                     params[:is_owner].present? || params[:is_bot].present? || params[:status].present?
+    @filtered_count = @slack_users.count if @filter_active
+    
+    # Store filter/sort params for links
+    @list_params = {}
+    @list_params[:linked] = params[:linked] if params[:linked].present?
+    @list_params[:is_admin] = params[:is_admin] if params[:is_admin].present?
+    @list_params[:is_owner] = params[:is_owner] if params[:is_owner].present?
+    @list_params[:is_bot] = params[:is_bot] if params[:is_bot].present?
+    @list_params[:status] = params[:status] if params[:status].present?
+    @list_params[:sort] = params[:sort] if params[:sort].present?
+    @list_params[:direction] = params[:direction] if params[:direction].present?
   end
 
   def show
@@ -24,8 +65,32 @@ class SlackUsersController < AdminController
     # Get all users for the selection dropdown (if no match found)
     @all_users = User.ordered_by_display_name if @slack_user.user.nil?
 
-    # Find previous and next users using the same ordering as index
-    ordered_ids = SlackUser.order(:display_name, :real_name, :username).pluck(:id)
+    # Rebuild the same filtered/sorted query from the index page
+    nav_query = SlackUser.all
+    
+    # Apply filters if present
+    case params[:linked]
+    when 'yes'
+      nav_query = nav_query.where.not(user_id: nil)
+    when 'no'
+      nav_query = nav_query.where(user_id: nil)
+    end
+    
+    nav_query = nav_query.where(is_admin: true) if params[:is_admin] == 'yes'
+    nav_query = nav_query.where(is_admin: false) if params[:is_admin] == 'no'
+    nav_query = nav_query.where(is_owner: true) if params[:is_owner] == 'yes'
+    nav_query = nav_query.where(is_owner: false) if params[:is_owner] == 'no'
+    nav_query = nav_query.where(is_bot: true) if params[:is_bot] == 'yes'
+    nav_query = nav_query.where(is_bot: false) if params[:is_bot] == 'no'
+    nav_query = nav_query.where(deleted: false) if params[:status] == 'active'
+    nav_query = nav_query.where(deleted: true) if params[:status] == 'deactivated'
+    
+    # Apply sorting
+    sort_column = SORTABLE_COLUMNS.include?(params[:sort]) ? params[:sort] : 'display_name'
+    sort_direction = %w[asc desc].include?(params[:direction]) ? params[:direction] : 'asc'
+    nav_query = nav_query.order("#{sort_column} #{sort_direction} NULLS LAST")
+    
+    ordered_ids = nav_query.pluck(:id)
     current_index = ordered_ids.index(@slack_user.id)
 
     if current_index
@@ -35,6 +100,16 @@ class SlackUsersController < AdminController
       @previous_slack_user = nil
       @next_slack_user = nil
     end
+    
+    # Store filter/sort params for use in view links
+    @nav_params = {}
+    @nav_params[:linked] = params[:linked] if params[:linked].present?
+    @nav_params[:is_admin] = params[:is_admin] if params[:is_admin].present?
+    @nav_params[:is_owner] = params[:is_owner] if params[:is_owner].present?
+    @nav_params[:is_bot] = params[:is_bot] if params[:is_bot].present?
+    @nav_params[:status] = params[:status] if params[:status].present?
+    @nav_params[:sort] = params[:sort] if params[:sort].present?
+    @nav_params[:direction] = params[:direction] if params[:direction].present?
   end
 
   def link_user
