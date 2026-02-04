@@ -14,6 +14,35 @@
   </div>
 </div>
 
+<% if @filter_active %>
+  <div class="alert alert-info py-2 mb-3 d-flex justify-content-between align-items-center">
+    <small>
+      <i class="bi bi-funnel me-1"></i> Filtering:
+      <%= params[:linked] == 'yes' ? 'Linked' : 'Unlinked' %> payments
+      (<%= @payment_count %> of <%= @total_count %>)
+    </small>
+    <%= link_to "Clear filter", paypal_payments_path, class: "btn btn-outline-secondary btn-sm" %>
+  </div>
+<% end %>
+
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <p class="small text-muted mb-3"><i class="bi bi-hand-index me-1"></i> Click any badge to filter the list</p>
+    
+    <div class="d-flex flex-wrap gap-2">
+      <%= link_to paypal_payments_path, class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if !@filter_active}" do %>
+        All: <strong><%= @total_count %></strong>
+      <% end %>
+      <%= link_to paypal_payments_path(linked: 'yes'), class: "badge text-bg-success text-decoration-none #{'border border-dark border-2' if params[:linked] == 'yes'}" do %>
+        Linked: <strong><%= @linked_count %></strong>
+      <% end %>
+      <%= link_to paypal_payments_path(linked: 'no'), class: "badge text-bg-warning text-decoration-none #{'border border-dark border-2' if params[:linked] == 'no'}" do %>
+        Unlinked: <strong><%= @unlinked_count %></strong>
+      <% end %>
+    </div>
+  </div>
+</div>
+
 <!-- Import Modal -->
 <div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
   <div class="modal-dialog">
@@ -59,18 +88,21 @@
           <th scope="col">Status</th>
           <th scope="col">Amount</th>
           <th scope="col">Payer</th>
+          <th scope="col">Linked User</th>
           <th scope="col">Time</th>
         </tr>
       </thead>
       <tbody id="paypal_payments_table_body">
-        <% @payments.each do |payment| %>
+        <% @payments.includes(:user).each do |payment| %>
           <tr class="paypal-payment-row" 
               data-search-text="<%= [
                 payment.paypal_id,
                 payment.payer_name,
                 payment.payer_email,
                 payment.status.presence || "unknown",
-                payment.amount_with_currency
+                payment.amount_with_currency,
+                payment.user&.display_name,
+                payment.user_id.present? ? "linked" : "unlinked"
               ].compact.join(' ').downcase %>">
             <td class="fw-semibold"><%= link_to payment.paypal_id, paypal_payment_path(payment) %></td>
             <td><span class="badge text-bg-secondary"><%= payment.status.presence || "Unknown" %></span></td>
@@ -81,6 +113,13 @@
               <% end %>
               <% if payment.payer_email.present? %>
                 <div class="text-muted small"><%= mail_to payment.payer_email %></div>
+              <% end %>
+            </td>
+            <td>
+              <% if payment.user.present? %>
+                <%= link_to payment.user.display_name, user_path(payment.user), class: "text-decoration-none" %>
+              <% else %>
+                <span class="text-muted fst-italic">Not linked</span>
               <% end %>
             </td>
             <td><%= payment.transaction_time ? l(payment.transaction_time, format: :long) : "n/a" %></td>

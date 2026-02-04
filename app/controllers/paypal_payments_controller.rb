@@ -1,9 +1,30 @@
 class PaypalPaymentsController < AdminController
   def index
-    # Only show payments equal to $40 (with small tolerance for decimal precision)
-    @payments = PaypalPayment.where(amount: 39.99..40.01).ordered
+    # Start with all payments for counts
+    all_payments = PaypalPayment.all
+
+    # Calculate counts
+    @total_count = all_payments.count
+    @linked_count = all_payments.where.not(user_id: nil).count
+    @unlinked_count = all_payments.where(user_id: nil).count
+
+    # Build filtered query
+    @payments = all_payments
+
+    # Apply linked/unlinked filter
+    case params[:linked]
+    when 'yes'
+      @payments = @payments.where.not(user_id: nil)
+    when 'no'
+      @payments = @payments.where(user_id: nil)
+    end
+
+    @payments = @payments.ordered
     @payment_count = @payments.count
     @total_amount = @payments.sum(:amount)
+
+    # Track filter state
+    @filter_active = params[:linked].present?
   end
 
   def show
