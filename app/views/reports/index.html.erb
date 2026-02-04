@@ -228,33 +228,15 @@
        id="unmatched-recharge-pane" 
        role="tabpanel" 
        aria-labelledby="unmatched-recharge-tab">
-    <%= turbo_frame_tag "unmatched-recharge-frame", data: { turbo_action: "advance" } do %>
-      <div class="card shadow-sm border-0">
-        <div class="card-header bg-body-tertiary">
-          <h2 class="h5 mb-0">Unmatched Recharge Payments (<%= @unmatched_recharge_payments_count %>)</h2>
-        </div>
-        <div class="card-body">
-          <% if @unmatched_recharge_payments.any? %>
-            <p class="text-muted small mb-3">Payments that don't have a matching User record by Recharge customer ID</p>
-            <%= render partial: 'recharge_payments_table', locals: { payments: @unmatched_recharge_payments } %>
-            <% if @unmatched_recharge_payments_count > 20 %>
-              <div class="mt-3 text-center">
-                <%= link_to "View all #{@unmatched_recharge_payments_count} payments", 
-                    reports_view_all_path('unmatched-recharge'), 
-                    class: "btn btn-outline-primary" %>
-              </div>
-            <% end %>
-          <% else %>
-            <p class="text-muted mb-0">All Recharge payments have matching User records.</p>
-          <% end %>
-        </div>
-      </div>
-    <% end %>
+    <%= render partial: 'unmatched_recharge_content', locals: {
+      payments: @unmatched_recharge_payments,
+      pagy: @pagy_recharge,
+      count: @unmatched_recharge_payments_count
+    } %>
   </div>
 </div>
 
 <%= render partial: 'paypal_modals', locals: { payments: @unmatched_paypal_payments } %>
-<%= render partial: 'recharge_modals', locals: { payments: @unmatched_recharge_payments } %>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>

@@ -1,5 +1,8 @@
 class ReportsController < AdminController
+  include Pagy::Backend
+  
   LIMIT = 20
+  RECHARGE_PER_PAGE = 50
 
   def index
     @membership_status_unknown = User.where(membership_status: 'unknown', active: true).ordered_by_display_name.limit(LIMIT)
@@ -26,24 +29,8 @@ class ReportsController < AdminController
     @unmatched_paypal_payments_count = all_unmatched_paypal.count
     @unmatched_paypal_payments = all_unmatched_paypal.first(LIMIT)
     
-    # Find unmatched Recharge payments
-    all_unmatched_recharge = []
-    RechargePayment.find_each do |payment|
-      customer_id = extract_customer_id(payment)
-      next if customer_id.blank?
-      
-      matching_user = User.where(recharge_customer_id: customer_id.to_s).first
-      unless matching_user
-        all_unmatched_recharge << {
-          payment: payment,
-          email: payment.customer_email,
-          name: payment.customer_name,
-          customer_id: customer_id
-        }
-      end
-    end
-    @unmatched_recharge_payments_count = all_unmatched_recharge.count
-    @unmatched_recharge_payments = all_unmatched_recharge.first(LIMIT)
+    # Find unmatched Recharge payments (ordered by most recent first)
+    load_unmatched_recharge_payments
     
     @all_users = User.ordered_by_display_name
     
@@ -168,7 +155,7 @@ class ReportsController < AdminController
       @title = 'Unmatched PayPal Payments'
     when 'unmatched-recharge'
       @unmatched_recharge_payments = []
-      RechargePayment.find_each do |payment|
+      RechargePayment.ordered.find_each do |payment|
         customer_id = extract_customer_id(payment)
         next if customer_id.blank?
         
@@ -255,7 +242,45 @@ class ReportsController < AdminController
     end
   end
   
+  # Turbo frame action for paginating/reloading Recharge payments
+  def unmatched_recharge
+    load_unmatched_recharge_payments
+    @all_users = User.ordered_by_display_name
+    
+    render partial: 'unmatched_recharge_content', locals: {
+      payments: @unmatched_recharge_payments,
+      pagy: @pagy_recharge,
+      count: @unmatched_recharge_payments_count
+    }
+  end
+
   private
+
+  def load_unmatched_recharge_payments
+    # Get all unmatched recharge payments, ordered by most recent first
+    all_unmatched_recharge = []
+    RechargePayment.ordered.find_each do |payment|
+      customer_id = extract_customer_id(payment)
+      next if customer_id.blank?
+      
+      matching_user = User.where(recharge_customer_id: customer_id.to_s).first
+      unless matching_user
+        all_unmatched_recharge << {
+          payment: payment,
+          email: payment.customer_email,
+          name: payment.customer_name,
+          customer_id: customer_id
+        }
+      end
+    end
+    
+    @unmatched_recharge_payments_count = all_unmatched_recharge.count
+    @pagy_recharge, @unmatched_recharge_payments = pagy_array(
+      all_unmatched_recharge,
+      limit: RECHARGE_PER_PAGE,
+      page_param: :recharge_page
+    )
+  end
   
   def extract_customer_id(payment)
     return nil if payment.raw_attributes.blank?
