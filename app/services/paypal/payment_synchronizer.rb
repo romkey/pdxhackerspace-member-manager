@@ -38,9 +38,18 @@ module Paypal
         raise
       end
       now = Time.current
+      saved_count = 0
+      skipped_count = 0
 
       PaypalPayment.transaction do
         payments.each do |attrs|
+          # Only import transactions that contain "CTRL-H Membership"
+          unless membership_transaction?(attrs)
+            skipped_count += 1
+            @logger.debug { "[PayPal::PaymentSynchronizer] Skipping non-membership transaction #{attrs[:paypal_id]}" }
+            next
+          end
+
           record = PaypalPayment.find_or_initialize_by(paypal_id: attrs[:paypal_id])
           record.assign_attributes(
             status: attrs[:status],
@@ -58,6 +67,7 @@ module Paypal
           record.user = user
           record.sheet_entry = find_sheet_entry(attrs[:payer_email])
           record.save!
+          saved_count += 1
           # The PaypalPayment after_save callback will call user.on_paypal_payment_linked
           # to handle payer ID, email, payment type, and membership status
         rescue ActiveRecord::RecordInvalid => e
@@ -65,8 +75,10 @@ module Paypal
         end
       end
 
-      processor.record_successful_sync!(payments.count)
-      payments.count
+      @logger.info("[PayPal::PaymentSynchronizer] Processed #{payments.count} transactions: #{saved_count} membership payments saved, #{skipped_count} non-membership skipped")
+
+      processor.record_successful_sync!(saved_count)
+      saved_count
     end
 
     private
@@ -126,6 +138,15 @@ module Paypal
 
     def normalize_email(value)
       value.to_s.strip.downcase
+    end
+
+    # Check if this transaction is a membership payment by looking for "CTRL-H Membership" in the raw attributes
+    def membership_transaction?(attrs)
+      return false if attrs[:raw_attributes].blank?
+
+      # Convert raw_attributes to JSON string and search for the membership identifier
+      raw_json = attrs[:raw_attributes].to_json
+      raw_json.include?('CTRL-H Membership')
     end
   end
 end
