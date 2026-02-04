@@ -123,6 +123,55 @@ class User < ApplicationRecord
     username.presence || id.to_s
   end
 
+  # Called when a PaypalPayment is linked to this User.
+  # Handles payer ID, email syncing, payment type, and membership status.
+  def on_paypal_payment_linked(payment)
+    return if payment.blank?
+
+    updates = {}
+
+    # Set paypal_account_id from the payment's payer_id
+    if payment.payer_id.present? && paypal_account_id != payment.payer_id
+      updates[:paypal_account_id] = payment.payer_id
+    end
+
+    # Copy email from payment if user doesn't have one
+    if email.blank? && payment.payer_email.present?
+      updates[:email] = payment.payer_email
+    elsif payment.payer_email.present? && email.present? &&
+          email.downcase != payment.payer_email.downcase
+      # If user has different primary email, check if PayPal email is already in extra_emails
+      paypal_email_normalized = payment.payer_email.downcase
+      current_extra_emails = self.extra_emails || []
+      unless current_extra_emails.map(&:downcase).include?(paypal_email_normalized)
+        updates[:extra_emails] = current_extra_emails + [payment.payer_email]
+      end
+    end
+
+    # Set payment_type to 'paypal'
+    updates[:payment_type] = 'paypal' if payment_type != 'paypal'
+
+    # Update payment dates and membership status based on payment
+    if payment.transaction_time.present?
+      payment_date = payment.transaction_time.to_date
+
+      # Update last_payment_date if this payment is more recent
+      if last_payment_date.nil? || payment_date > last_payment_date
+        updates[:last_payment_date] = payment_date
+      end
+
+      # If payment is within the last 32 days, activate user and update status
+      if payment_date >= 32.days.ago.to_date
+        updates[:active] = true unless active?
+        updates[:membership_status] = 'paying' if membership_status != 'paying'
+        updates[:dues_status] = 'current' if dues_status != 'current'
+      end
+    end
+
+    # Apply all updates at once
+    update!(updates) if updates.any?
+  end
+
   # Called when a RechargePayment is linked to this User.
   # Handles customer ID, email syncing, payment type, and membership status.
   def on_recharge_payment_linked(payment)

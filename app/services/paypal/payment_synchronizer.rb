@@ -58,12 +58,8 @@ module Paypal
           record.user = user
           record.sheet_entry = find_sheet_entry(attrs[:payer_email])
           record.save!
-
-          # Update user's last_payment_date and dues_status if payment is recent
-          if user && attrs[:transaction_time].present?
-            payment_date = attrs[:transaction_time].to_date
-            update_user_from_payment(user, payment_date, attrs)
-          end
+          # The PaypalPayment after_save callback will call user.on_paypal_payment_linked
+          # to handle payer ID, email, payment type, and membership status
         rescue ActiveRecord::RecordInvalid => e
           @logger.error("Failed to sync PayPal payment #{attrs[:paypal_id]}: #{e.message}")
         end
@@ -130,30 +126,6 @@ module Paypal
 
     def normalize_email(value)
       value.to_s.strip.downcase
-    end
-
-    def update_user_from_payment(user, payment_date, attrs)
-      updates = {}
-
-      # Update last_payment_date if this payment is more recent
-      updates[:last_payment_date] = payment_date if user.last_payment_date.nil? || payment_date > user.last_payment_date
-
-      # If payment is within the last 32 days, mark user as active, set membership_status to basic, and dues_status to current
-      if payment_date >= 32.days.ago.to_date
-        updates[:active] = true unless user.active?
-        updates[:membership_status] = 'paying' if user.membership_status != 'paying'
-        updates[:dues_status] = 'current' if user.dues_status != 'current'
-      end
-
-      # Set paypal_account_id from payer_id (which comes from payer_info:account_id)
-      if attrs[:payer_id].present? && user.paypal_account_id != attrs[:payer_id]
-        updates[:paypal_account_id] = attrs[:payer_id]
-      end
-
-      # Set payment_type to 'paypal'
-      updates[:payment_type] = 'paypal' if user.payment_type != 'paypal'
-
-      user.update!(updates) if updates.any?
     end
   end
 end
