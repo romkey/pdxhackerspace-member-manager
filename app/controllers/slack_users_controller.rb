@@ -10,7 +10,8 @@ class SlackUsersController < AdminController
     # Calculate counts from ALL slack users (not filtered)
     @total_count = all_slack_users.count
     @linked_count = all_slack_users.where.not(user_id: nil).count
-    @unlinked_count = @total_count - @linked_count
+    # Unlinked count excludes bots (bots can't be linked to members)
+    @unlinked_count = all_slack_users.where(user_id: nil, is_bot: false).count
     @admin_count = all_slack_users.where(is_admin: true).count
     @owner_count = all_slack_users.where(is_owner: true).count
     @bot_count = all_slack_users.where(is_bot: true).count
@@ -26,7 +27,8 @@ class SlackUsersController < AdminController
     when 'yes'
       @slack_users = @slack_users.where.not(user_id: nil)
     when 'no'
-      @slack_users = @slack_users.where(user_id: nil)
+      # Exclude bots from unlinked filter (bots can't be linked to members)
+      @slack_users = @slack_users.where(user_id: nil, is_bot: false)
     end
     
     @slack_users = @slack_users.where(is_admin: true) if params[:is_admin] == 'yes'
@@ -73,7 +75,8 @@ class SlackUsersController < AdminController
     when 'yes'
       nav_query = nav_query.where.not(user_id: nil)
     when 'no'
-      nav_query = nav_query.where(user_id: nil)
+      # Exclude bots from unlinked filter (bots can't be linked to members)
+      nav_query = nav_query.where(user_id: nil, is_bot: false)
     end
     
     nav_query = nav_query.where(is_admin: true) if params[:is_admin] == 'yes'
