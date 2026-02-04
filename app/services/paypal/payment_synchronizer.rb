@@ -43,7 +43,7 @@ module Paypal
 
       PaypalPayment.transaction do
         payments.each do |attrs|
-          # Only import transactions that contain "CTRL-H Membership"
+          # Only import transactions that contain allowed subjects (membership, storage, support)
           unless membership_transaction?(attrs)
             skipped_count += 1
             @logger.debug { "[PayPal::PaymentSynchronizer] Skipping non-membership transaction #{attrs[:paypal_id]}" }
@@ -140,13 +140,19 @@ module Paypal
       value.to_s.strip.downcase
     end
 
-    # Check if this transaction is a membership payment by looking for "CTRL-H Membership" in the raw attributes
+    # Check if this transaction is a relevant payment by looking for known subjects in the raw attributes
+    ALLOWED_TRANSACTION_SUBJECTS = [
+      'CTRL-H Membership',
+      'Storage Space',
+      'Monthly Support'
+    ].freeze
+
     def membership_transaction?(attrs)
       return false if attrs[:raw_attributes].blank?
 
-      # Convert raw_attributes to JSON string and search for the membership identifier
+      # Convert raw_attributes to JSON string and search for allowed transaction subjects
       raw_json = attrs[:raw_attributes].to_json
-      raw_json.include?('CTRL-H Membership')
+      ALLOWED_TRANSACTION_SUBJECTS.any? { |subject| raw_json.include?(subject) }
     end
   end
 end
