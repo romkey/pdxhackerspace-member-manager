@@ -123,6 +123,60 @@ class User < ApplicationRecord
     username.presence || id.to_s
   end
 
+  # Called when a RechargePayment is linked to this User.
+  # Handles customer ID, email syncing, payment type, and membership status.
+  def on_recharge_payment_linked(payment)
+    return if payment.blank?
+
+    updates = {}
+
+    # Set recharge_customer_id from the payment's customer_id
+    if payment.customer_id.present? && recharge_customer_id != payment.customer_id.to_s
+      updates[:recharge_customer_id] = payment.customer_id.to_s
+    end
+
+    # Copy email from payment if user doesn't have one
+    if email.blank? && payment.customer_email.present?
+      updates[:email] = payment.customer_email
+    elsif payment.customer_email.present? && email.present? &&
+          email.downcase != payment.customer_email.downcase
+      # If user has different primary email, check if Recharge email is already in extra_emails
+      recharge_email_normalized = payment.customer_email.downcase
+      current_extra_emails = self.extra_emails || []
+      unless current_extra_emails.map(&:downcase).include?(recharge_email_normalized)
+        updates[:extra_emails] = current_extra_emails + [payment.customer_email]
+      end
+    end
+
+    # Set payment_type to 'recharge'
+    updates[:payment_type] = 'recharge' if payment_type != 'recharge'
+
+    # Update payment dates and membership status based on most recent payment
+    if payment.processed_at.present?
+      payment_date = payment.processed_at.to_date
+
+      # Update recharge_most_recent_payment_date
+      if recharge_most_recent_payment_date.nil? || payment_date > recharge_most_recent_payment_date.to_date
+        updates[:recharge_most_recent_payment_date] = payment.processed_at
+      end
+
+      # Update last_payment_date if this payment is more recent
+      if last_payment_date.nil? || payment_date > last_payment_date
+        updates[:last_payment_date] = payment_date
+      end
+
+      # If payment is within the last 32 days, activate user and update status
+      if payment_date >= 32.days.ago.to_date
+        updates[:active] = true unless active?
+        updates[:membership_status] = 'paying' if membership_status != 'paying'
+        updates[:dues_status] = 'current' if dues_status != 'current'
+      end
+    end
+
+    # Apply all updates at once
+    update!(updates) if updates.any?
+  end
+
   # Called when a SlackUser is linked to this User.
   # Handles email syncing and Slack profile data.
   def on_slack_user_linked(slack_user)

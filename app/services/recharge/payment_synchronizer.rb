@@ -79,6 +79,8 @@ module Recharge
           record.user = user
           record.sheet_entry = find_sheet_entry(attrs[:customer_email])
           record.save!
+          # The RechargePayment after_save callback will call user.on_recharge_payment_linked
+          # to handle customer ID, email, payment type, and membership status
           saved_count += 1
 
           if is_new
@@ -104,12 +106,6 @@ module Recharge
               },
               changed_at: Time.current
             )
-          end
-
-          # Update user payment_type and membership_status if payment is linked
-          if user && attrs[:processed_at].present?
-            payment_date = attrs[:processed_at].to_date
-            update_user_from_payment(user, payment_date)
           end
         rescue ActiveRecord::RecordInvalid => e
           @logger.error("[Recharge::PaymentSynchronizer] Failed to sync payment #{attrs[:recharge_id]}: #{e.message}")
@@ -185,32 +181,6 @@ module Recharge
 
     def normalize_email(value)
       value.to_s.strip.downcase
-    end
-
-    def update_user_from_payment(user, payment_date)
-      # Mark payment_type as recharge
-      user.update!(payment_type: 'recharge') if user.payment_type != 'recharge'
-
-      updates = {}
-
-      # Update most recent payment date if this payment is more recent
-      # Convert date to datetime for the datetime column
-      payment_datetime = payment_date.to_datetime.beginning_of_day
-      if user.recharge_most_recent_payment_date.nil? || payment_date > user.recharge_most_recent_payment_date.to_date
-        updates[:recharge_most_recent_payment_date] = payment_datetime
-      end
-
-      # Update last_payment_date if this payment is more recent
-      updates[:last_payment_date] = payment_date if user.last_payment_date.nil? || payment_date > user.last_payment_date
-
-      # If payment is within the last 32 days, mark user as active, set membership_status to basic, and dues_status to current
-      if payment_date >= 32.days.ago.to_date
-        updates[:active] = true unless user.active?
-        updates[:membership_status] = 'paying' if user.membership_status != 'paying'
-        updates[:dues_status] = 'current' if user.dues_status != 'current'
-      end
-
-      user.update!(updates) if updates.any?
     end
 
     def update_user_recharge_fields
