@@ -12,9 +12,6 @@ require 'pagy/extras/bootstrap'
 # Array pagination (for PaymentHistory which returns an array)
 require 'pagy/extras/array'
 
-# Series helper for generating page number sequences
-require 'pagy/extras/series'
-
 # Overflow handling - return empty page instead of raising
 require 'pagy/extras/overflow'
 Pagy::DEFAULT[:overflow] = :last_page

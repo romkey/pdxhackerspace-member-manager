@@ -15,7 +15,7 @@
       </li>
 
       <%# Page numbers %>
-      <% pagy_series(pagy).each do |item| %>
+      <% pagy.series.each do |item| %>
         <% if item == :gap %>
           <li class="page-item disabled"><span class="page-link">...</span></li>
         <% elsif item.is_a?(Integer) %>
