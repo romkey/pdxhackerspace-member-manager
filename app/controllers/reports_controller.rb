@@ -2,7 +2,6 @@ class ReportsController < AdminController
   include Pagy::Backend
   
   LIMIT = 20
-  RECHARGE_PER_PAGE = 50
 
   def index
     @membership_status_unknown = User.where(membership_status: 'unknown', active: true).ordered_by_display_name.limit(LIMIT)
@@ -13,26 +12,6 @@ class ReportsController < AdminController
     @dues_status_unknown_count = User.where(dues_status: 'unknown', active: true).count
     @dues_status_lapsed = User.where(dues_status: 'lapsed', active: true).ordered_by_display_name.limit(LIMIT)
     @dues_status_lapsed_count = User.where(dues_status: 'lapsed', active: true).count
-    
-    # Find unmatched PayPal payments
-    all_unmatched_paypal = []
-    PaypalPayment.where.not(payer_id: nil).find_each do |payment|
-      matching_user = User.where(paypal_account_id: payment.payer_id).first
-      unless matching_user
-        all_unmatched_paypal << {
-          payment: payment,
-          email: payment.payer_email,
-          name: payment.payer_name
-        }
-      end
-    end
-    @unmatched_paypal_payments_count = all_unmatched_paypal.count
-    @unmatched_paypal_payments = all_unmatched_paypal.first(LIMIT)
-    
-    # Find unmatched Recharge payments (ordered by most recent first)
-    load_unmatched_recharge_payments
-    
-    @all_users = User.ordered_by_display_name
     
     # Prepare chart data
     prepare_chart_data
@@ -140,36 +119,10 @@ class ReportsController < AdminController
     when 'dues-status-lapsed'
       @users = User.where(dues_status: 'lapsed', active: true).ordered_by_display_name
       @title = 'Dues Status: Lapsed'
-    when 'unmatched-paypal'
-      @unmatched_paypal_payments = []
-      PaypalPayment.where.not(payer_id: nil).find_each do |payment|
-        matching_user = User.where(paypal_account_id: payment.payer_id).first
-        unless matching_user
-          @unmatched_paypal_payments << {
-            payment: payment,
-            email: payment.payer_email,
-            name: payment.payer_name
-          }
-        end
-      end
-      @title = 'Unmatched PayPal Payments'
-    when 'unmatched-recharge'
-      payments = RechargePayment.unmatched.ordered
-      @unmatched_recharge_payments = payments.map do |payment|
-        {
-          payment: payment,
-          email: payment.customer_email,
-          name: payment.customer_name,
-          customer_id: payment.customer_id
-        }
-      end
-      @title = 'Unmatched Recharge Payments'
     else
       redirect_to reports_path, alert: 'Invalid report type.'
       return
     end
-    
-    @all_users = User.ordered_by_display_name
   end
 
   def update_user
@@ -236,34 +189,4 @@ class ReportsController < AdminController
     end
   end
   
-  # Turbo frame action for paginating/reloading Recharge payments
-  def unmatched_recharge
-    load_unmatched_recharge_payments
-    
-    render partial: 'unmatched_recharge_content', locals: {
-      payments: @unmatched_recharge_payments,
-      pagy: @pagy_recharge,
-      count: @unmatched_recharge_payments_count
-    }
-  end
-
-  private
-
-  def load_unmatched_recharge_payments
-    # Get unmatched recharge payments using efficient SQL query, ordered by most recent first
-    unmatched_query = RechargePayment.unmatched.ordered
-    
-    @unmatched_recharge_payments_count = unmatched_query.count
-    @pagy_recharge, payments = pagy(unmatched_query, limit: RECHARGE_PER_PAGE, page_param: :recharge_page)
-    
-    # Transform to the expected format
-    @unmatched_recharge_payments = payments.map do |payment|
-      {
-        payment: payment,
-        email: payment.customer_email,
-        name: payment.customer_name,
-        customer_id: payment.customer_id
-      }
-    end
-  end
 end

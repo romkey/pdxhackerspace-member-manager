@@ -230,7 +230,6 @@ Rails.application.routes.draw do
 
   get "/reports", to: "reports#index", as: :reports
   get "/reports/:report_type/all", to: "reports#view_all", as: :reports_view_all
-  get "/reports/unmatched_recharge", to: "reports#unmatched_recharge", as: :reports_unmatched_recharge
   post "/reports/update_user", to: "reports#update_user", as: :reports_update_user
   get "/api/users/search", to: "api/users#search", as: :api_users_search
   

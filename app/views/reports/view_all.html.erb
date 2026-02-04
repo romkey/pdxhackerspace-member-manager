@@ -51,28 +51,6 @@
       <% end %>
     </div>
   </div>
-<% elsif @unmatched_paypal_payments.present? %>
-  <div class="card shadow-sm border-0">
-    <div class="card-header bg-body-tertiary">
-      <h2 class="h5 mb-0"><%= @title %> (<%= @unmatched_paypal_payments.count %>)</h2>
-    </div>
-    <div class="card-body">
-      <p class="text-muted small mb-3">Payments that don't have a matching User record by PayPal account ID</p>
-      <%= render partial: 'paypal_payments_table', locals: { payments: @unmatched_paypal_payments } %>
-    </div>
-  </div>
-  <%= render partial: 'paypal_modals', locals: { payments: @unmatched_paypal_payments } %>
-<% elsif @unmatched_recharge_payments.present? %>
-  <div class="card shadow-sm border-0">
-    <div class="card-header bg-body-tertiary">
-      <h2 class="h5 mb-0"><%= @title %> (<%= @unmatched_recharge_payments.count %>)</h2>
-    </div>
-    <div class="card-body">
-      <p class="text-muted small mb-3">Payments that don't have a matching User record by Recharge customer ID</p>
-      <%= render partial: 'recharge_payments_table', locals: { payments: @unmatched_recharge_payments } %>
-    </div>
-  </div>
-  <%= render partial: 'recharge_modals', locals: { payments: @unmatched_recharge_payments } %>
 <% else %>
   <div class="alert alert-info">
     No items found for this report.
