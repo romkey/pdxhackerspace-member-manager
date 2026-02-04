@@ -6,7 +6,9 @@ class PaypalPaymentsController < AdminController
     # Calculate counts
     @total_count = all_payments.count
     @linked_count = all_payments.where.not(user_id: nil).count
-    @unlinked_count = all_payments.where(user_id: nil).count
+    # Unlinked excludes dont_link payments
+    @unlinked_count = all_payments.where(user_id: nil, dont_link: false).count
+    @dont_link_count = all_payments.where(dont_link: true).count
 
     # Build filtered query
     @payments = all_payments
@@ -16,7 +18,10 @@ class PaypalPaymentsController < AdminController
     when 'yes'
       @payments = @payments.where.not(user_id: nil)
     when 'no'
-      @payments = @payments.where(user_id: nil)
+      # Unlinked excludes dont_link payments
+      @payments = @payments.where(user_id: nil, dont_link: false)
+    when 'dont_link'
+      @payments = @payments.where(dont_link: true)
     end
 
     @payments = @payments.ordered
@@ -80,6 +85,44 @@ class PaypalPaymentsController < AdminController
       else
         redirect_to paypal_payment_path(@payment), alert: 'Cannot link: payment has no payer ID.'
       end
+    end
+  end
+
+  def toggle_dont_link
+    @payment = PaypalPayment.find(params[:id])
+    new_value = !@payment.dont_link
+    @payment.update!(dont_link: new_value)
+
+    notice = new_value ? "Payment marked as Don't Link." : "Payment unmarked as Don't Link."
+    redirect_to paypal_payment_path(@payment), notice: notice
+  end
+
+  def create_member
+    @payment = PaypalPayment.find(params[:id])
+
+    # Only allow creating member for unlinked payments
+    if @payment.user_id.present?
+      redirect_to paypal_payment_path(@payment), alert: 'Payment is already linked to a member.'
+      return
+    end
+
+    # Create new user from payment data
+    user = User.new(
+      full_name: @payment.payer_name,
+      email: @payment.payer_email,
+      paypal_account_id: @payment.payer_id,
+      payment_type: 'paypal',
+      membership_status: 'unknown',
+      dues_status: 'unknown',
+      active: false
+    )
+
+    if user.save
+      # Link the payment to the new user (this will trigger the callback)
+      @payment.update!(user_id: user.id)
+      redirect_to user_path(user), notice: "Created member #{user.display_name} and linked payment."
+    else
+      redirect_to paypal_payment_path(@payment), alert: "Failed to create member: #{user.errors.full_messages.join(', ')}"
     end
   end
 

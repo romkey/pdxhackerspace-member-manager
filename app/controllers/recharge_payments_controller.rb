@@ -6,7 +6,9 @@ class RechargePaymentsController < AdminController
     # Calculate counts
     @total_count = all_payments.count
     @linked_count = all_payments.where.not(user_id: nil).count
-    @unlinked_count = all_payments.where(user_id: nil).count
+    # Unlinked excludes dont_link payments
+    @unlinked_count = all_payments.where(user_id: nil, dont_link: false).count
+    @dont_link_count = all_payments.where(dont_link: true).count
 
     # Build filtered query
     @payments = all_payments
@@ -16,7 +18,10 @@ class RechargePaymentsController < AdminController
     when 'yes'
       @payments = @payments.where.not(user_id: nil)
     when 'no'
-      @payments = @payments.where(user_id: nil)
+      # Unlinked excludes dont_link payments
+      @payments = @payments.where(user_id: nil, dont_link: false)
+    when 'dont_link'
+      @payments = @payments.where(dont_link: true)
     end
 
     @payments = @payments.ordered
@@ -37,6 +42,44 @@ class RechargePaymentsController < AdminController
 
     # Get all users for the selection dropdown (if no match found)
     @all_users = User.ordered_by_display_name if @user_by_customer_id.nil?
+  end
+
+  def toggle_dont_link
+    @payment = RechargePayment.find(params[:id])
+    new_value = !@payment.dont_link
+    @payment.update!(dont_link: new_value)
+
+    notice = new_value ? "Payment marked as Don't Link." : "Payment unmarked as Don't Link."
+    redirect_to recharge_payment_path(@payment), notice: notice
+  end
+
+  def create_member
+    @payment = RechargePayment.find(params[:id])
+
+    # Only allow creating member for unlinked payments
+    if @payment.user_id.present?
+      redirect_to recharge_payment_path(@payment), alert: 'Payment is already linked to a member.'
+      return
+    end
+
+    # Create new user from payment data
+    user = User.new(
+      full_name: @payment.customer_name,
+      email: @payment.customer_email,
+      recharge_customer_id: @payment.customer_id,
+      payment_type: 'recharge',
+      membership_status: 'unknown',
+      dues_status: 'unknown',
+      active: false
+    )
+
+    if user.save
+      # Link the payment to the new user (this will trigger the callback)
+      @payment.update!(user_id: user.id)
+      redirect_to user_path(user), notice: "Created member #{user.display_name} and linked payment."
+    else
+      redirect_to recharge_payment_path(@payment), alert: "Failed to create member: #{user.errors.full_messages.join(', ')}"
+    end
   end
 
   def sync

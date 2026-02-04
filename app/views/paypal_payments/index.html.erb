@@ -18,7 +18,11 @@
   <div class="alert alert-info py-2 mb-3 d-flex justify-content-between align-items-center">
     <small>
       <i class="bi bi-funnel me-1"></i> Filtering:
-      <%= params[:linked] == 'yes' ? 'Linked' : 'Unlinked' %> payments
+      <%= case params[:linked]
+          when 'yes' then 'Linked'
+          when 'no' then 'Unlinked'
+          when 'dont_link' then "Don't Link"
+          end %> payments
       (<%= @payment_count %> of <%= @total_count %>)
     </small>
     <%= link_to "Clear filter", paypal_payments_path, class: "btn btn-outline-secondary btn-sm" %>
@@ -38,6 +42,9 @@
       <% end %>
       <%= link_to paypal_payments_path(linked: 'no'), class: "badge text-bg-warning text-decoration-none #{'border border-dark border-2' if params[:linked] == 'no'}" do %>
         Unlinked: <strong><%= @unlinked_count %></strong>
+      <% end %>
+      <%= link_to paypal_payments_path(linked: 'dont_link'), class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if params[:linked] == 'dont_link'}" do %>
+        Don't Link: <strong><%= @dont_link_count %></strong>
       <% end %>
     </div>
   </div>

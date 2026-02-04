@@ -36,10 +36,23 @@
       <dd class="col-sm-9">
         <% if @user_by_customer_id.present? %>
           <%= link_to @user_by_customer_id.display_name, user_path(@user_by_customer_id), class: "text-decoration-none" %>
+        <% elsif @payment.dont_link? %>
+          <span class="badge text-bg-secondary me-2">Don't Link</span>
+          <%= button_to "Clear Don't Link", toggle_dont_link_recharge_payment_path(@payment),
+              method: :post, class: "btn btn-sm btn-outline-secondary", data: { turbo: false } %>
         <% elsif @customer_id.present? %>
-          <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#linkUserModal">
-            Link User
-          </button>
+          <div class="d-flex gap-2 align-items-center flex-wrap">
+            <span class="text-muted fst-italic">No user found with matching customer ID</span>
+            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#linkUserModal">
+              Link User
+            </button>
+            <%= button_to "Create Member", create_member_recharge_payment_path(@payment),
+                method: :post, class: "btn btn-sm btn-outline-success", data: { turbo: false },
+                title: "Create a new member from this payment's information" %>
+            <%= button_to "Don't Link", toggle_dont_link_recharge_payment_path(@payment),
+                method: :post, class: "btn btn-sm btn-outline-secondary", data: { turbo: false },
+                title: "Mark this payment as not needing to be linked" %>
+          </div>
         <% else %>
           <span class="text-muted fst-italic">No customer ID available</span>
         <% end %>
