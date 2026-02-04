@@ -1,170 +1,180 @@
-<% payments.each do |unmatched| %>
-  <% payment = unmatched[:payment] %>
-  <% customer_id = unmatched[:customer_id] %>
-  <% next unless customer_id.present? %>
-  <div class="modal fade" id="linkRechargeUserModal_<%= payment.id %>" tabindex="-1" aria-labelledby="linkRechargeUserModalLabel_<%= payment.id %>" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="linkRechargeUserModalLabel_<%= payment.id %>">Link User to Recharge Payment</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <%= form_with url: link_user_recharge_payment_path(payment), method: :post, data: { turbo_frame: "unmatched-recharge-frame" } do |f| %>
-          <%= hidden_field_tag :from_reports, 'true' %>
-          <div class="modal-body">
-            <p class="mb-3">Select a user to link to this Recharge payment. The user's <code>recharge_customer_id</code> will be set to match this payment's customer ID (<strong><%= customer_id %></strong>).</p>
-            <div class="mb-3">
-              <label for="user_search_recharge_<%= payment.id %>" class="form-label">Search Users</label>
-              <input type="text" id="user_search_recharge_<%= payment.id %>" class="form-control mb-2" placeholder="Type to search users..." autocomplete="off">
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Select User</label>
-              <div id="user_list_recharge_<%= payment.id %>" class="border rounded" style="max-height: 300px; overflow-y: auto;">
-                <% @all_users.each do |user| %>
-                  <div class="user-item p-2 border-bottom" data-user-id="<%= user.id %>" data-user-name="<%= user.display_name.downcase %>" style="cursor: pointer;">
-                    <input type="radio" name="user_id" id="user_recharge_<%= payment.id %>_<%= user.id %>" value="<%= user.id %>" class="form-check-input me-2" required>
-                    <label for="user_recharge_<%= payment.id %>_<%= user.id %>" class="form-check-label mb-0" style="cursor: pointer;">
-                      <%= user.display_name %>
-                    </label>
-                  </div>
-                <% end %>
-              </div>
-              <div id="no_results_recharge_<%= payment.id %>" class="text-muted text-center p-3" style="display: none;">
-                No users found matching your search.
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <%= f.submit "Link User", class: "btn btn-primary" %>
-          </div>
-        <% end %>
+<%# Single shared modal for linking users to Recharge payments %>
+<div class="modal fade" id="linkRechargeUserModal" tabindex="-1" aria-labelledby="linkRechargeUserModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="linkRechargeUserModalLabel">Link User to Recharge Payment</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
+      <form id="linkRechargeUserForm" method="post" data-turbo-frame="unmatched-recharge-frame">
+        <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+        <input type="hidden" name="from_reports" value="true">
+        <div class="modal-body">
+          <p class="mb-3">Select a user to link to this Recharge payment. The user's <code>recharge_customer_id</code> will be set to match this payment's customer ID (<strong id="modalCustomerId"></strong>).</p>
+          <div class="mb-3">
+            <label for="recharge_user_search" class="form-label">Search Users</label>
+            <input type="text" id="recharge_user_search" class="form-control" placeholder="Type at least 2 characters to search..." autocomplete="off">
+            <div class="form-text">Search by name, email, or username</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Select User</label>
+            <div id="recharge_user_results" class="border rounded" style="max-height: 300px; overflow-y: auto; display: none;">
+            </div>
+            <div id="recharge_user_loading" class="text-center p-3" style="display: none;">
+              <div class="spinner-border spinner-border-sm text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              Searching...
+            </div>
+            <div id="recharge_user_placeholder" class="text-muted text-center p-3 border rounded">
+              Type to search for users
+            </div>
+            <div id="recharge_no_results" class="text-muted text-center p-3 border rounded" style="display: none;">
+              No users found matching your search.
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="linkRechargeSubmit" disabled>Link User</button>
+        </div>
+      </form>
     </div>
   </div>
+</div>
 
-  <script>
-    (function() {
-      const modal = document.getElementById('linkRechargeUserModal_<%= payment.id %>');
-      if (!modal) return;
+<script>
+(function() {
+  const modal = document.getElementById('linkRechargeUserModal');
+  const form = document.getElementById('linkRechargeUserForm');
+  const searchInput = document.getElementById('recharge_user_search');
+  const resultsContainer = document.getElementById('recharge_user_results');
+  const loadingIndicator = document.getElementById('recharge_user_loading');
+  const placeholder = document.getElementById('recharge_user_placeholder');
+  const noResults = document.getElementById('recharge_no_results');
+  const submitButton = document.getElementById('linkRechargeSubmit');
+  const customerIdDisplay = document.getElementById('modalCustomerId');
+  
+  let searchTimeout = null;
+  let selectedUserId = null;
+  
+  // Open modal with payment data
+  window.openLinkRechargeModal = function(paymentId, customerId) {
+    form.action = '/recharge_payments/' + paymentId + '/link_user';
+    customerIdDisplay.textContent = customerId;
+    selectedUserId = null;
+    submitButton.disabled = true;
+    searchInput.value = '';
+    resultsContainer.style.display = 'none';
+    resultsContainer.innerHTML = '';
+    loadingIndicator.style.display = 'none';
+    placeholder.style.display = 'block';
+    noResults.style.display = 'none';
+    
+    const modalInstance = new bootstrap.Modal(modal);
+    modalInstance.show();
+  };
+  
+  // Search users via API
+  function searchUsers(query) {
+    if (query.length < 2) {
+      resultsContainer.style.display = 'none';
+      loadingIndicator.style.display = 'none';
+      placeholder.style.display = 'block';
+      noResults.style.display = 'none';
+      return;
+    }
+    
+    placeholder.style.display = 'none';
+    loadingIndicator.style.display = 'block';
+    resultsContainer.style.display = 'none';
+    noResults.style.display = 'none';
+    
+    fetch('<%= api_users_search_path %>' + '?q=' + encodeURIComponent(query), {
+      headers: {
+        'Accept': 'application/json',
+        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+      }
+    })
+    .then(response => response.json())
+    .then(users => {
+      loadingIndicator.style.display = 'none';
       
-      let searchHandler = null;
-      
-      function filterUsers() {
-        const searchInput = document.getElementById('user_search_recharge_<%= payment.id %>');
-        const userList = document.getElementById('user_list_recharge_<%= payment.id %>');
-        const noResults = document.getElementById('no_results_recharge_<%= payment.id %>');
-        
-        if (!searchInput || !userList) return;
-        
-        const searchTerm = searchInput.value.toLowerCase().trim();
-        const userItems = userList.querySelectorAll('.user-item');
-        let visibleCount = 0;
-        
-        userItems.forEach(function(item) {
-          const userName = item.getAttribute('data-user-name');
-          if (userName && userName.includes(searchTerm)) {
-            item.style.display = '';
-            visibleCount++;
-          } else {
-            item.style.display = 'none';
-          }
-        });
-        
-        if (visibleCount === 0 && searchTerm !== '') {
-          userList.style.display = 'none';
-          if (noResults) {
-            noResults.style.display = 'block';
-          }
-        } else {
-          userList.style.display = 'block';
-          if (noResults) {
-            noResults.style.display = 'none';
-          }
-        }
+      if (users.length === 0) {
+        noResults.style.display = 'block';
+        return;
       }
       
-      function resetSearch() {
-        const searchInput = document.getElementById('user_search_recharge_<%= payment.id %>');
-        const userList = document.getElementById('user_list_recharge_<%= payment.id %>');
-        const noResults = document.getElementById('no_results_recharge_<%= payment.id %>');
-        
-        if (searchInput) {
-          searchInput.value = '';
-        }
-        if (userList) {
-          const userItems = userList.querySelectorAll('.user-item');
-          userItems.forEach(function(item) {
-            item.style.display = '';
-          });
-          userList.style.display = 'block';
-        }
-        if (noResults) {
-          noResults.style.display = 'none';
-        }
-      }
+      resultsContainer.innerHTML = users.map(user => `
+        <div class="user-item p-2 border-bottom" style="cursor: pointer;" data-user-id="${user.id}">
+          <input type="radio" name="user_id" id="recharge_user_${user.id}" value="${user.id}" class="form-check-input me-2" required>
+          <label for="recharge_user_${user.id}" class="form-check-label mb-0" style="cursor: pointer;">
+            <strong>${escapeHtml(user.name)}</strong>
+            ${user.email ? '<br><small class="text-muted">' + escapeHtml(user.email) + '</small>' : ''}
+          </label>
+        </div>
+      `).join('');
       
-      function setupClickHandlers() {
-        const userList = document.getElementById('user_list_recharge_<%= payment.id %>');
-        if (!userList) return;
-        
-        const userItems = userList.querySelectorAll('.user-item');
-        userItems.forEach(function(item) {
-          item.addEventListener('click', function(e) {
-            if (e.target.type !== 'radio' && e.target.tagName !== 'LABEL') {
-              const radio = item.querySelector('input[type="radio"]');
-              if (radio) {
-                radio.checked = true;
-              }
+      resultsContainer.style.display = 'block';
+      
+      // Add click handlers
+      resultsContainer.querySelectorAll('.user-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+          if (e.target.type !== 'radio') {
+            const radio = item.querySelector('input[type="radio"]');
+            if (radio) {
+              radio.checked = true;
+              selectedUserId = radio.value;
+              submitButton.disabled = false;
+              
+              // Highlight selected
+              resultsContainer.querySelectorAll('.user-item').forEach(i => i.classList.remove('bg-light'));
+              item.classList.add('bg-light');
             }
-          });
-        });
-      }
-      
-      modal.addEventListener('show.bs.modal', function() {
-        resetSearch();
-        
-        const searchInput = document.getElementById('user_search_recharge_<%= payment.id %>');
-        if (searchInput) {
-          if (searchHandler) {
-            searchInput.removeEventListener('input', searchHandler);
           }
-          
-          searchHandler = function() {
-            filterUsers();
-          };
-          
-          searchInput.addEventListener('input', searchHandler);
-        }
-        
-        setupClickHandlers();
-      });
-      
-      modal.addEventListener('shown.bs.modal', function() {
-        const searchInput = document.getElementById('user_search_recharge_<%= payment.id %>');
-        if (searchInput) {
-          searchInput.focus();
-        }
-      });
-      
-      // Close modal after successful Turbo Stream update
-      document.addEventListener('turbo:frame-load', function(event) {
-        if (event.target.id === 'unmatched-recharge-frame') {
-          const modalInstance = bootstrap.Modal.getInstance(modal);
-          if (modalInstance) {
-            modalInstance.hide();
-          }
-        }
-      });
-      
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
-          setupClickHandlers();
         });
-      } else {
-        setupClickHandlers();
+        
+        item.querySelector('input[type="radio"]').addEventListener('change', function() {
+          selectedUserId = this.value;
+          submitButton.disabled = false;
+          resultsContainer.querySelectorAll('.user-item').forEach(i => i.classList.remove('bg-light'));
+          item.classList.add('bg-light');
+        });
+      });
+    })
+    .catch(error => {
+      console.error('Search error:', error);
+      loadingIndicator.style.display = 'none';
+      noResults.style.display = 'block';
+      noResults.textContent = 'Error searching users. Please try again.';
+    });
+  }
+  
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+  
+  // Debounced search
+  searchInput.addEventListener('input', function() {
+    if (searchTimeout) clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => searchUsers(this.value.trim()), 300);
+  });
+  
+  // Focus search on modal open
+  modal.addEventListener('shown.bs.modal', function() {
+    searchInput.focus();
+  });
+  
+  // Close modal on successful turbo frame load
+  document.addEventListener('turbo:frame-load', function(event) {
+    if (event.target.id === 'unmatched-recharge-frame') {
+      const modalInstance = bootstrap.Modal.getInstance(modal);
+      if (modalInstance) {
+        modalInstance.hide();
       }
-    })();
-  </script>
-<% end %>
-
+    }
+  });
+})();
+</script>

@@ -30,7 +30,8 @@
           </td>
           <td>
             <% if unmatched[:customer_id].present? %>
-              <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#linkRechargeUserModal_<%= unmatched[:payment].id %>">
+              <button type="button" class="btn btn-sm btn-outline-primary" 
+                      onclick="openLinkRechargeModal(<%= unmatched[:payment].id %>, '<%= j(unmatched[:customer_id].to_s) %>')">
                 Link User
               </button>
             <% end %>

@@ -239,7 +239,6 @@ class ReportsController < AdminController
   # Turbo frame action for paginating/reloading Recharge payments
   def unmatched_recharge
     load_unmatched_recharge_payments
-    @all_users = User.ordered_by_display_name
     
     render partial: 'unmatched_recharge_content', locals: {
       payments: @unmatched_recharge_payments,
