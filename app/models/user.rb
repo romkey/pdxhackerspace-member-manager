@@ -135,38 +135,14 @@ class User < ApplicationRecord
       updates[:paypal_account_id] = payment.payer_id
     end
 
-    # Copy email from payment if user doesn't have one
-    if email.blank? && payment.payer_email.present?
-      updates[:email] = payment.payer_email
-    elsif payment.payer_email.present? && email.present? &&
-          email.downcase != payment.payer_email.downcase
-      # If user has different primary email, check if PayPal email is already in extra_emails
-      paypal_email_normalized = payment.payer_email.downcase
-      current_extra_emails = self.extra_emails || []
-      unless current_extra_emails.map(&:downcase).include?(paypal_email_normalized)
-        updates[:extra_emails] = current_extra_emails + [payment.payer_email]
-      end
-    end
+    # Sync email from payment
+    merge_email_from_external_source(payment.payer_email, updates)
 
     # Set payment_type to 'paypal'
     updates[:payment_type] = 'paypal' if payment_type != 'paypal'
 
-    # Update payment dates and membership status based on payment
-    if payment.transaction_time.present?
-      payment_date = payment.transaction_time.to_date
-
-      # Update last_payment_date if this payment is more recent
-      if last_payment_date.nil? || payment_date > last_payment_date
-        updates[:last_payment_date] = payment_date
-      end
-
-      # If payment is within the last 32 days, activate user and update status
-      if payment_date >= 32.days.ago.to_date
-        updates[:active] = true unless active?
-        updates[:membership_status] = 'paying' if membership_status != 'paying'
-        updates[:dues_status] = 'current' if dues_status != 'current'
-      end
-    end
+    # Update payment dates and membership status
+    apply_payment_updates(payment.transaction_time, updates)
 
     # Apply all updates at once
     update!(updates) if updates.any?
@@ -184,43 +160,22 @@ class User < ApplicationRecord
       updates[:recharge_customer_id] = payment.customer_id.to_s
     end
 
-    # Copy email from payment if user doesn't have one
-    if email.blank? && payment.customer_email.present?
-      updates[:email] = payment.customer_email
-    elsif payment.customer_email.present? && email.present? &&
-          email.downcase != payment.customer_email.downcase
-      # If user has different primary email, check if Recharge email is already in extra_emails
-      recharge_email_normalized = payment.customer_email.downcase
-      current_extra_emails = self.extra_emails || []
-      unless current_extra_emails.map(&:downcase).include?(recharge_email_normalized)
-        updates[:extra_emails] = current_extra_emails + [payment.customer_email]
-      end
-    end
+    # Sync email from payment
+    merge_email_from_external_source(payment.customer_email, updates)
 
     # Set payment_type to 'recharge'
     updates[:payment_type] = 'recharge' if payment_type != 'recharge'
 
-    # Update payment dates and membership status based on most recent payment
+    # Update recharge_most_recent_payment_date
     if payment.processed_at.present?
       payment_date = payment.processed_at.to_date
-
-      # Update recharge_most_recent_payment_date
       if recharge_most_recent_payment_date.nil? || payment_date > recharge_most_recent_payment_date.to_date
         updates[:recharge_most_recent_payment_date] = payment.processed_at
       end
-
-      # Update last_payment_date if this payment is more recent
-      if last_payment_date.nil? || payment_date > last_payment_date
-        updates[:last_payment_date] = payment_date
-      end
-
-      # If payment is within the last 32 days, activate user and update status
-      if payment_date >= 32.days.ago.to_date
-        updates[:active] = true unless active?
-        updates[:membership_status] = 'paying' if membership_status != 'paying'
-        updates[:dues_status] = 'current' if dues_status != 'current'
-      end
     end
+
+    # Update payment dates and membership status
+    apply_payment_updates(payment.processed_at, updates)
 
     # Apply all updates at once
     update!(updates) if updates.any?
@@ -233,21 +188,8 @@ class User < ApplicationRecord
 
     updates = {}
 
-    # Handle email - if User doesn't have an email, copy it from Slack user
-    if slack_user.email.present?
-      slack_email_normalized = slack_user.email.downcase
-
-      if email.blank?
-        # User has no email, set it from slack user
-        updates[:email] = slack_user.email
-      elsif email.downcase != slack_email_normalized
-        # User has different primary email, check if Slack email is already in extra_emails
-        current_extra_emails = self.extra_emails || []
-        unless current_extra_emails.map(&:downcase).include?(slack_email_normalized)
-          updates[:extra_emails] = current_extra_emails + [slack_user.email]
-        end
-      end
-    end
+    # Sync email from Slack user
+    merge_email_from_external_source(slack_user.email, updates)
 
     # Add slack_id and slack_handle to user (only if not already set)
     updates[:slack_id] = slack_user.slack_id if slack_id.blank?
@@ -261,6 +203,29 @@ class User < ApplicationRecord
 
     # Apply all updates at once
     update!(updates) if updates.any?
+  end
+
+  # Shared method to update user from a payment date.
+  # Used by payment linking callbacks and synchronizer reconciliation.
+  # Updates last_payment_date and membership status if payment is recent.
+  def apply_payment_updates(payment_time, updates = {})
+    return updates if payment_time.blank?
+
+    payment_date = payment_time.to_date
+
+    # Update last_payment_date if this payment is more recent
+    if last_payment_date.nil? || payment_date > last_payment_date
+      updates[:last_payment_date] = payment_date
+    end
+
+    # If payment is within the last 32 days, activate user and update status
+    if payment_date >= 32.days.ago.to_date
+      updates[:active] = true unless active?
+      updates[:membership_status] = 'paying' if membership_status != 'paying'
+      updates[:dues_status] = 'current' if dues_status != 'current'
+    end
+
+    updates
   end
 
   # Find user by username or ID
@@ -280,6 +245,27 @@ class User < ApplicationRecord
   after_update_commit :sync_to_authentik_if_needed
 
   private
+
+  # Merge an email from an external source (Slack, PayPal, Recharge, etc.)
+  # If user has no email, sets it. If different, adds to extra_emails.
+  def merge_email_from_external_source(external_email, updates = {})
+    return updates if external_email.blank?
+
+    external_email_normalized = external_email.to_s.strip.downcase
+
+    if email.blank?
+      # User has no email, set it from external source
+      updates[:email] = external_email
+    elsif email.downcase != external_email_normalized
+      # User has different primary email, add to extra_emails if not already there
+      current_extra_emails = self.extra_emails || []
+      unless current_extra_emails.map(&:downcase).include?(external_email_normalized)
+        updates[:extra_emails] = current_extra_emails + [external_email]
+      end
+    end
+
+    updates
+  end
 
   def generate_username_if_blank
     return if self[:username].present?

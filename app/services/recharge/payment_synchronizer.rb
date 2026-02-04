@@ -57,24 +57,13 @@ module Recharge
           user = find_user_by_customer_id(attrs[:customer_id]) if attrs[:customer_id].present?
 
           # If no match by customer_id, try to match by email address
-          unless user
-            user = find_user_by_email(attrs[:customer_email])
-
-            # If we found a user by email, set the recharge_customer_id from the transaction
-            if user && attrs[:customer_id].present? && user.recharge_customer_id != attrs[:customer_id]
-              user.update!(recharge_customer_id: attrs[:customer_id])
-            end
-          end
+          user ||= find_user_by_email(attrs[:customer_email])
 
           # If still no match, try to match by full name
-          unless user
-            user = find_user_by_name(attrs[:customer_name]) if attrs[:customer_name].present?
+          user ||= find_user_by_name(attrs[:customer_name]) if attrs[:customer_name].present?
 
-            # If we found a user by name, set the recharge_customer_id from the transaction
-            if user && attrs[:customer_id].present? && user.recharge_customer_id != attrs[:customer_id]
-              user.update!(recharge_customer_id: attrs[:customer_id])
-            end
-          end
+          # Note: The RechargePayment after_save callback will handle setting
+          # recharge_customer_id on the user when the payment is linked
 
           record.user = user
           record.sheet_entry = find_sheet_entry(attrs[:customer_email])
@@ -198,28 +187,15 @@ module Recharge
                       most_recent_payment.raw_attributes['customer_id'] ||
                       user.recharge_customer_id
 
-        payment_date = most_recent_payment.processed_at.to_date if most_recent_payment.processed_at
-
-        updates = {
+        # Use update_columns for the Recharge-specific fields (bypasses callbacks)
+        user.update_columns(
           recharge_most_recent_payment_date: most_recent_payment.processed_at,
           recharge_customer_id: customer_id.to_s.presence
-        }
+        )
 
-        # Update last_payment_date if this payment is more recent
-        if payment_date && (user.last_payment_date.nil? || payment_date > user.last_payment_date)
-          updates[:last_payment_date] = payment_date
-        end
-
-        user.update_columns(updates)
-
-        # If most recent payment is within the last 32 days, ensure active is true, membership_status is basic, and dues_status is current
-        if payment_date && payment_date >= 32.days.ago.to_date
-          status_updates = {}
-          status_updates[:active] = true unless user.active?
-          status_updates[:membership_status] = 'paying' if user.membership_status != 'paying'
-          status_updates[:dues_status] = 'current' if user.dues_status != 'current'
-          user.update!(status_updates) if status_updates.any?
-        end
+        # Use shared method for payment-related membership updates
+        updates = user.apply_payment_updates(most_recent_payment.processed_at)
+        user.update!(updates) if updates.any?
       end
 
       # Also update users who have no Recharge payments (clear their fields)
