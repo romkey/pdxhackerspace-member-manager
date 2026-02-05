@@ -38,6 +38,10 @@ class UsersController < AuthenticatedController
     @dues_status_inactive = all_users.where(dues_status: 'inactive').count
     @dues_status_unknown = all_users.where(dues_status: 'unknown').count
 
+    # Missing data counts (from all users)
+    @no_rfid_count = all_users.left_joins(:rfids).where(rfids: { id: nil }).count
+    @no_email_count = all_users.where("email IS NULL OR email = ''").count
+
     # Now build filtered query
     @users = all_users
 
@@ -55,6 +59,13 @@ class UsersController < AuthenticatedController
     @users = @users.where(payment_type: params[:payment_type]) if params[:payment_type].present?
     @users = @users.where(dues_status: params[:dues_status]) if params[:dues_status].present?
     @users = @users.where(active: params[:active] == 'true') if params[:active].present?
+    
+    # Apply missing data filters
+    if params[:missing] == 'rfid'
+      @users = @users.left_joins(:rfids).where(rfids: { id: nil })
+    elsif params[:missing] == 'email'
+      @users = @users.where("email IS NULL OR email = ''")
+    end
 
     # Apply sorting
     @sort_column = SORTABLE_COLUMNS.include?(params[:sort]) ? params[:sort] : 'full_name'
@@ -63,7 +74,7 @@ class UsersController < AuthenticatedController
 
     # Track if any filter is active
     @filter_active = params[:membership_status].present? || params[:payment_type].present? || 
-                     params[:dues_status].present? || params[:active].present?
+                     params[:dues_status].present? || params[:active].present? || params[:missing].present?
     @filtered_count = @users.count if @filter_active
 
     # Store filter/sort params for passing to user profile links
@@ -72,6 +83,7 @@ class UsersController < AuthenticatedController
     @list_params[:payment_type] = params[:payment_type] if params[:payment_type].present?
     @list_params[:dues_status] = params[:dues_status] if params[:dues_status].present?
     @list_params[:active] = params[:active] if params[:active].present?
+    @list_params[:missing] = params[:missing] if params[:missing].present?
     @list_params[:sort] = params[:sort] if params[:sort].present?
     @list_params[:direction] = params[:direction] if params[:direction].present?
   end

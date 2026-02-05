@@ -34,6 +34,9 @@
       <% if params[:active].present? %>
         — <%= params[:active] == 'true' ? 'Active only' : 'Inactive only' %>
       <% end %>
+      <% if params[:missing].present? %>
+        — Missing: <strong><%= params[:missing] == 'rfid' ? 'No RFID' : 'No Email' %></strong>
+      <% end %>
     </div>
     <%= link_to "Clear filters", users_path(sort: @sort_column, direction: @sort_direction), class: "btn btn-outline-secondary btn-sm" %>
   </div>
@@ -85,7 +88,7 @@
     </div>
     
     <h2 class="h6 mb-3">Dues Status</h2>
-    <div class="d-flex flex-wrap gap-2">
+    <div class="d-flex flex-wrap gap-2 mb-3">
       <%= link_to users_path(dues_status: 'current'), class: "badge text-bg-success text-decoration-none #{'border border-dark border-2' if params[:dues_status] == 'current'}" do %>
         Current: <strong><%= @dues_status_current %></strong>
       <% end %>
@@ -97,6 +100,16 @@
       <% end %>
       <%= link_to users_path(dues_status: 'unknown'), class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if params[:dues_status] == 'unknown'}" do %>
         Unknown: <strong><%= @dues_status_unknown %></strong>
+      <% end %>
+    </div>
+    
+    <h2 class="h6 mb-3">Missing Data</h2>
+    <div class="d-flex flex-wrap gap-2">
+      <%= link_to users_path(missing: 'rfid'), class: "badge text-bg-warning text-decoration-none #{'border border-dark border-2' if params[:missing] == 'rfid'}" do %>
+        No RFID: <strong><%= @no_rfid_count %></strong>
+      <% end %>
+      <%= link_to users_path(missing: 'email'), class: "badge text-bg-warning text-decoration-none #{'border border-dark border-2' if params[:missing] == 'email'}" do %>
+        No Email: <strong><%= @no_email_count %></strong>
       <% end %>
     </div>
   </div>
