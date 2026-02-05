@@ -17,10 +17,16 @@
       <% end %>
     </div>
 
-    <% if user.membership_start_date.present? %>
+    <% if user.membership_start_date.present? || user.membership_ended_date.present? %>
       <div class="mb-3 text-muted">
         <i class="bi bi-calendar-check me-1"></i>
-        Member since <%= user.membership_start_date.strftime('%B %Y') %>
+        <% if user.membership_start_date.present? && user.membership_ended_date.present? %>
+          Member <%= user.membership_start_date.strftime('%B %Y') %> - <%= user.membership_ended_date.strftime('%B %Y') %>
+        <% elsif user.membership_start_date.present? %>
+          Member since <%= user.membership_start_date.strftime('%B %Y') %>
+        <% elsif user.membership_ended_date.present? %>
+          Membership ended <%= user.membership_ended_date.strftime('%B %Y') %>
+        <% end %>
       </div>
     <% end %>
 

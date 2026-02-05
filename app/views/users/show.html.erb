@@ -179,9 +179,16 @@
         <% if @user.pronouns.present? %>
           <span class="text-muted"><%= @user.pronouns %></span>
         <% end %>
-        <% if @user.membership_start_date.present? %>
+        <% if @user.membership_start_date.present? || @user.membership_ended_date.present? %>
           <div class="text-muted small mt-1">
-            <i class="bi bi-calendar-check me-1"></i>Member since <%= @user.membership_start_date.strftime('%B %Y') %>
+            <i class="bi bi-calendar-check me-1"></i>
+            <% if @user.membership_start_date.present? && @user.membership_ended_date.present? %>
+              Member <%= @user.membership_start_date.strftime('%B %Y') %> - <%= @user.membership_ended_date.strftime('%B %Y') %>
+            <% elsif @user.membership_start_date.present? %>
+              Member since <%= @user.membership_start_date.strftime('%B %Y') %>
+            <% elsif @user.membership_ended_date.present? %>
+              Membership ended <%= @user.membership_ended_date.strftime('%B %Y') %>
+            <% end %>
           </div>
         <% end %>
       </div>

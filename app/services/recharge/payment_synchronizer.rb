@@ -193,8 +193,8 @@ module Recharge
           recharge_customer_id: customer_id.to_s.presence
         )
 
-        # Use shared method for payment-related membership updates
-        updates = user.apply_payment_updates(most_recent_payment.processed_at)
+        # Use shared method for payment-related membership updates (pass amount for plan matching)
+        updates = user.apply_payment_updates({ time: most_recent_payment.processed_at, amount: most_recent_payment.amount })
         user.update!(updates) if updates.any?
       end
 

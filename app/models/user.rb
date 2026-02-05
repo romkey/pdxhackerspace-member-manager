@@ -158,7 +158,7 @@ class User < ApplicationRecord
   end
 
   # Called when a PaypalPayment is linked to this User.
-  # Handles payer ID, email syncing, payment type, and membership status.
+  # Handles payer ID, email syncing, payment type, membership status, and plan matching.
   # Also links all other PayPal payments with the same payer_id.
   def on_paypal_payment_linked(payment)
     return if payment.blank?
@@ -176,8 +176,8 @@ class User < ApplicationRecord
     # Set payment_type to 'paypal'
     updates[:payment_type] = 'paypal' if payment_type != 'paypal'
 
-    # Update payment dates and membership status
-    apply_payment_updates(payment.transaction_time, updates)
+    # Update payment dates, membership status, and try to match plan
+    apply_payment_updates({ time: payment.transaction_time, amount: payment.amount }, updates)
 
     # Apply all updates at once
     update!(updates) if updates.any?
@@ -187,7 +187,7 @@ class User < ApplicationRecord
   end
 
   # Called when a RechargePayment is linked to this User.
-  # Handles customer ID, email syncing, payment type, and membership status.
+  # Handles customer ID, email syncing, payment type, membership status, and plan matching.
   # Also links all other Recharge payments with the same customer_id.
   def on_recharge_payment_linked(payment)
     return if payment.blank?
@@ -213,8 +213,8 @@ class User < ApplicationRecord
       end
     end
 
-    # Update payment dates and membership status
-    apply_payment_updates(payment.processed_at, updates)
+    # Update payment dates, membership status, and try to match plan
+    apply_payment_updates({ time: payment.processed_at, amount: payment.amount }, updates)
 
     # Apply all updates at once
     update!(updates) if updates.any?
@@ -247,10 +247,22 @@ class User < ApplicationRecord
     update!(updates) if updates.any?
   end
 
-  # Shared method to update user from a payment date.
+  # Shared method to update user from a payment.
   # Used by payment linking callbacks and synchronizer reconciliation.
-  # Updates last_payment_date and membership status if payment is recent.
-  def apply_payment_updates(payment_time, updates = {})
+  # Updates last_payment_date, membership status, and membership plan if needed.
+  # Can accept either a time or a hash with :time and :amount.
+  def apply_payment_updates(payment_time_or_options, updates = {})
+    return updates if payment_time_or_options.blank?
+
+    # Support both simple time and options hash
+    if payment_time_or_options.is_a?(Hash)
+      payment_time = payment_time_or_options[:time]
+      payment_amount = payment_time_or_options[:amount]
+    else
+      payment_time = payment_time_or_options
+      payment_amount = nil
+    end
+
     return updates if payment_time.blank?
 
     payment_date = payment_time.to_date
@@ -265,9 +277,35 @@ class User < ApplicationRecord
       updates[:active] = true unless active?
       updates[:membership_status] = 'paying' if membership_status != 'paying'
       updates[:dues_status] = 'current' if dues_status != 'current'
+      # Clear membership_ended_date if payment is recent
+      updates[:membership_ended_date] = nil if membership_ended_date.present?
+    end
+
+    # Try to match a membership plan based on payment amount if user doesn't have one
+    if membership_plan_id.blank? && payment_amount.present? && payment_amount > 0
+      matched_plan = find_matching_membership_plan(payment_amount)
+      updates[:membership_plan_id] = matched_plan.id if matched_plan
     end
 
     updates
+  end
+
+  # Find a membership plan that matches the given payment amount
+  def find_matching_membership_plan(amount)
+    return nil if amount.blank? || amount <= 0
+
+    plans = MembershipPlan.all
+
+    # Try exact match first
+    exact_match = plans.find { |p| p.cost == amount }
+    return exact_match if exact_match
+
+    # Try matching within a small tolerance (for rounding differences)
+    tolerance = 0.50
+    close_match = plans.find { |p| (p.cost - amount).abs <= tolerance }
+    return close_match if close_match
+
+    nil
   end
 
   # Find user by username or ID

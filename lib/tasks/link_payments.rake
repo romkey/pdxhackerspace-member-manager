@@ -1,5 +1,5 @@
 namespace :payments do
-  desc "Set user_id on PayPal and Recharge payments based on payer/customer ID matches"
+  desc "Set user_id on PayPal and Recharge payments based on payer/customer ID matches, and set membership dates"
   task link: :environment do
     puts "=" * 60
     puts "Linking payments to users"
@@ -74,6 +74,11 @@ namespace :payments do
     puts "  Newly linked: #{recharge_updated}"
     puts "  No matching user: #{recharge_no_match}"
 
+    # Set membership dates
+    puts "\n" + "-" * 60
+    puts "Setting membership dates..."
+    update_membership_dates
+
     # Summary
     puts "\n" + "=" * 60
     puts "SUMMARY"
@@ -82,6 +87,81 @@ namespace :payments do
     puts "Recharge payments linked: #{recharge_updated}"
     puts "Total payments linked: #{paypal_updated + recharge_updated}"
     puts "\nDone!"
+  end
+
+  # Helper method to update membership dates for all users with payments
+  def update_membership_dates
+    users_updated = 0
+    users_skipped = 0
+
+    User.find_each do |user|
+      # Collect all payment dates for this user
+      paypal_dates = user.paypal_payments.where.not(transaction_time: nil).order(:transaction_time).pluck(:transaction_time)
+      recharge_dates = user.recharge_payments.where.not(processed_at: nil).order(:processed_at).pluck(:processed_at)
+
+      # Skip if no payments
+      if paypal_dates.empty? && recharge_dates.empty?
+        users_skipped += 1
+        next
+      end
+
+      updates = {}
+
+      # Find earliest payment of each type
+      earliest_paypal = paypal_dates.first
+      earliest_recharge = recharge_dates.first
+
+      # Determine membership_start_date:
+      # Set to 1 month after the first payment of whichever type came first
+      if earliest_paypal.present? && earliest_recharge.present?
+        earliest_payment = [earliest_paypal, earliest_recharge].min
+      else
+        earliest_payment = earliest_paypal || earliest_recharge
+      end
+
+      if earliest_payment.present?
+        start_date = (earliest_payment + 1.month).to_date
+        updates[:membership_start_date] = start_date if user.membership_start_date.nil?
+      end
+
+      # Find most recent payment of each type
+      latest_paypal = paypal_dates.last
+      latest_recharge = recharge_dates.last
+
+      # Determine membership_ended_date:
+      # Set to 1 month after the last payment, unless the last payment is within 32 days of now
+      if latest_paypal.present? && latest_recharge.present?
+        latest_payment = [latest_paypal, latest_recharge].max
+      else
+        latest_payment = latest_paypal || latest_recharge
+      end
+
+      if latest_payment.present?
+        # Only set membership_ended_date if last payment is older than 32 days
+        if latest_payment.to_date < 32.days.ago.to_date
+          ended_date = (latest_payment + 1.month).to_date
+          updates[:membership_ended_date] = ended_date
+        else
+          # Clear membership_ended_date if there's a recent payment
+          updates[:membership_ended_date] = nil if user.membership_ended_date.present?
+        end
+      end
+
+      if updates.any?
+        user.update_columns(updates)
+        users_updated += 1
+        if updates[:membership_start_date] || updates[:membership_ended_date]
+          start_str = updates[:membership_start_date] ? updates[:membership_start_date].to_s : (user.membership_start_date&.to_s || 'nil')
+          end_str = updates[:membership_ended_date] ? updates[:membership_ended_date].to_s : (updates.key?(:membership_ended_date) ? 'cleared' : (user.membership_ended_date&.to_s || 'nil'))
+          puts "  #{user.display_name}: start=#{start_str}, ended=#{end_str}"
+        end
+      else
+        users_skipped += 1
+      end
+    end
+
+    puts "  Users updated: #{users_updated}"
+    puts "  Users skipped (no changes): #{users_skipped}"
   end
 
   desc "Show payment linking statistics without making changes"
