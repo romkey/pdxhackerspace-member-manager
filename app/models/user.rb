@@ -1,5 +1,7 @@
 class User < ApplicationRecord
-  belongs_to :membership_plan, optional: true
+  belongs_to :membership_plan, optional: true # Primary plan
+  has_many :user_supplementary_plans, dependent: :destroy
+  has_many :supplementary_plans, through: :user_supplementary_plans, source: :membership_plan
   has_one :sheet_entry, dependent: :nullify
   has_one :slack_user, dependent: :nullify
   has_many :paypal_payments, dependent: :nullify
@@ -114,6 +116,24 @@ class User < ApplicationRecord
     dates << latest_recharge.to_date if latest_recharge.present?
 
     dates.compact.max
+  end
+
+  # Calculate the next expected payment date based on most recent payment and billing frequency
+  def next_payment_date
+    last_payment = most_recent_payment_date
+    return nil if last_payment.blank?
+    return nil if membership_plan.blank?
+
+    case membership_plan.billing_frequency
+    when 'monthly'
+      last_payment + 1.month
+    when 'yearly'
+      last_payment + 1.year
+    when 'one-time'
+      nil # One-time payments don't renew
+    else
+      nil
+    end
   end
 
   # Check if user is within the reactivation grace period
@@ -291,10 +311,11 @@ class User < ApplicationRecord
   end
 
   # Find a membership plan that matches the given payment amount
+  # Only matches primary plans for the primary plan slot
   def find_matching_membership_plan(amount)
     return nil if amount.blank? || amount <= 0
 
-    plans = MembershipPlan.all
+    plans = MembershipPlan.primary
 
     # Try exact match first
     exact_match = plans.find { |p| p.cost == amount }
@@ -306,6 +327,32 @@ class User < ApplicationRecord
     return close_match if close_match
 
     nil
+  end
+
+  # Get all membership plans (primary + supplementary)
+  def all_membership_plans
+    plans = []
+    plans << membership_plan if membership_plan.present?
+    plans + supplementary_plans.order(:name).to_a
+  end
+
+  # Add a supplementary plan to this user (idempotent)
+  def add_supplementary_plan(plan)
+    return false unless plan&.supplementary?
+    return true if supplementary_plans.include?(plan)
+
+    user_supplementary_plans.create(membership_plan: plan)
+    true
+  end
+
+  # Remove a supplementary plan from this user
+  def remove_supplementary_plan(plan)
+    user_supplementary_plans.where(membership_plan: plan).destroy_all
+  end
+
+  # Check if user has a specific plan (primary or supplementary)
+  def has_plan?(plan)
+    membership_plan_id == plan.id || supplementary_plans.exists?(plan.id)
   end
 
   # Find user by username or ID

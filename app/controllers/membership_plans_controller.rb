@@ -34,7 +34,8 @@ class MembershipPlansController < AdminController
   end
 
   def destroy
-    if @membership_plan.users.any?
+    has_users = @membership_plan.primary? ? @membership_plan.users.any? : @membership_plan.supplementary_users.any?
+    if has_users
       redirect_to membership_plans_path,
                   alert: 'Cannot delete membership plan that has users assigned to it.'
     else
@@ -50,7 +51,7 @@ class MembershipPlansController < AdminController
   end
 
   def membership_plan_params
-    params.require(:membership_plan).permit(:name, :cost, :billing_frequency, :description, :payment_link)
+    params.require(:membership_plan).permit(:name, :cost, :billing_frequency, :description, :payment_link, :plan_type, :paypal_transaction_subject)
   end
 end
 

@@ -44,13 +44,23 @@
         <% end %>
       </div>
       <div class="col-md-3">
-        <%= f.submit "Add Plan", class: "btn btn-primary w-100" %>
+        <%= f.select :plan_type, 
+            options_for_select([['Primary', 'primary'], ['Supplementary', 'supplementary']], @membership_plan&.plan_type || 'primary'),
+            {},
+            { class: "form-select" } %>
       </div>
       <div class="col-md-6">
         <%= f.text_area :description, class: "form-control", placeholder: "Description (optional)", rows: 2 %>
       </div>
       <div class="col-md-6">
         <%= f.url_field :payment_link, class: "form-control", placeholder: "Payment link URL (optional)" %>
+      </div>
+      <div class="col-md-6">
+        <%= f.text_field :paypal_transaction_subject, class: "form-control", placeholder: "PayPal transaction subject (optional)" %>
+        <div class="form-text">Used to match PayPal payments to this plan (e.g., "Storage Space").</div>
+      </div>
+      <div class="col-md-6 d-flex align-items-end">
+        <%= f.submit "Add Plan", class: "btn btn-primary" %>
       </div>
     <% end %>
   </div>
@@ -63,24 +73,29 @@
       <div class="accordion" id="membershipPlansAccordion">
         <% @membership_plans.each_with_index do |plan, index| %>
           <div class="accordion-item">
-            <h2 class="accordion-header">
-              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#plan-<%= plan.id %>" aria-expanded="false" aria-controls="plan-<%= plan.id %>">
-                <div class="d-flex align-items-center justify-content-between w-100 me-3">
-                  <div class="d-flex align-items-center gap-3">
-                    <strong><%= plan.name %></strong>
-                    <span class="text-muted">$<%= format('%.2f', plan.cost) %>/<%= plan.billing_frequency %></span>
-                    <span class="badge text-bg-primary"><%= plan.users.count %> member<%= plan.users.count == 1 ? '' : 's' %></span>
-                  </div>
-                  <div class="d-flex gap-2" onclick="event.stopPropagation();">
-                    <%= link_to "Edit", edit_membership_plan_path(plan), class: "btn btn-sm btn-outline-primary" %>
-                    <% if plan.users.empty? %>
-                      <%= button_to "Delete", membership_plan_path(plan), method: :delete, 
-                          class: "btn btn-sm btn-outline-danger",
-                          data: { confirm: "Are you sure you want to delete '#{plan.name}'?" } %>
-                    <% end %>
-                  </div>
+            <h2 class="accordion-header d-flex align-items-center">
+              <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#plan-<%= plan.id %>" aria-expanded="false" aria-controls="plan-<%= plan.id %>">
+                <div class="d-flex align-items-center gap-3">
+                  <strong><%= plan.name %></strong>
+                  <% if plan.primary? %>
+                    <span class="badge text-bg-primary">Primary</span>
+                  <% else %>
+                    <span class="badge text-bg-info">Supplementary</span>
+                  <% end %>
+                  <span class="text-muted">$<%= format('%.2f', plan.cost) %>/<%= plan.billing_frequency %></span>
+                  <% member_count = plan.primary? ? plan.users.count : plan.supplementary_users.count %>
+                  <span class="badge text-bg-secondary"><%= member_count %> member<%= member_count == 1 ? '' : 's' %></span>
                 </div>
               </button>
+              <div class="d-flex gap-2 me-3">
+                <%= link_to "Edit", edit_membership_plan_path(plan), class: "btn btn-sm btn-outline-primary" %>
+                <% can_delete = plan.primary? ? plan.users.empty? : plan.supplementary_users.empty? %>
+                <% if can_delete %>
+                  <%= button_to "Delete", membership_plan_path(plan), method: :delete, 
+                      class: "btn btn-sm btn-outline-danger",
+                      data: { confirm: "Are you sure you want to delete '#{plan.name}'?" } %>
+                <% end %>
+              </div>
             </h2>
             <div id="plan-<%= plan.id %>" class="accordion-collapse collapse" data-bs-parent="#membershipPlansAccordion">
               <div class="accordion-body">
@@ -88,6 +103,15 @@
                   <div class="col-md-6">
                     <h6 class="text-muted mb-2">Plan Details</h6>
                     <dl class="row mb-0 small">
+                      <dt class="col-sm-4">Type</dt>
+                      <dd class="col-sm-8">
+                        <% if plan.primary? %>
+                          <span class="badge text-bg-primary">Primary</span>
+                        <% else %>
+                          <span class="badge text-bg-info">Supplementary</span>
+                        <% end %>
+                      </dd>
+
                       <dt class="col-sm-4">Cost</dt>
                       <dd class="col-sm-8">$<%= format('%.2f', plan.cost) %></dd>
                       
@@ -102,6 +126,15 @@
                           <span class="text-muted fst-italic">Not set</span>
                         <% end %>
                       </dd>
+
+                      <dt class="col-sm-4">PayPal Subject</dt>
+                      <dd class="col-sm-8">
+                        <% if plan.paypal_transaction_subject.present? %>
+                          <code><%= plan.paypal_transaction_subject %></code>
+                        <% else %>
+                          <span class="text-muted fst-italic">Not set</span>
+                        <% end %>
+                      </dd>
                       
                       <% if plan.description.present? %>
                         <dt class="col-sm-4">Description</dt>
@@ -110,8 +143,9 @@
                     </dl>
                   </div>
                   <div class="col-md-6">
-                    <h6 class="text-muted mb-2">Members on this Plan (<%= plan.users.count %>)</h6>
-                    <% if plan.users.any? %>
+                    <% plan_users = plan.primary? ? plan.users : plan.supplementary_users %>
+                    <h6 class="text-muted mb-2">Members on this Plan (<%= plan_users.count %>)</h6>
+                    <% if plan_users.any? %>
                       <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
                         <table class="table table-sm table-hover mb-0">
                           <thead class="bg-body-tertiary sticky-top">
@@ -122,7 +156,7 @@
                             </tr>
                           </thead>
                           <tbody>
-                            <% plan.users.ordered_by_display_name.each do |user| %>
+                            <% plan_users.order(Arel.sql('COALESCE(full_name, username)')).each do |user| %>
                               <tr>
                                 <td>
                                   <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>

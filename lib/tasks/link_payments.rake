@@ -79,6 +79,11 @@ namespace :payments do
     puts "Setting membership dates..."
     update_membership_dates
 
+    # Link membership plans based on PayPal transaction subjects
+    puts "\n" + "-" * 60
+    puts "Linking membership plans from PayPal transaction subjects..."
+    plans_linked = link_membership_plans_from_paypal
+
     # Summary
     puts "\n" + "=" * 60
     puts "SUMMARY"
@@ -86,6 +91,7 @@ namespace :payments do
     puts "PayPal payments linked: #{paypal_updated}"
     puts "Recharge payments linked: #{recharge_updated}"
     puts "Total payments linked: #{paypal_updated + recharge_updated}"
+    puts "Membership plans linked: #{plans_linked[:primary]} primary, #{plans_linked[:supplementary]} supplementary"
     puts "\nDone!"
   end
 
@@ -164,6 +170,73 @@ namespace :payments do
     puts "  Users skipped (no changes): #{users_skipped}"
   end
 
+  # Helper method to link membership plans based on PayPal transaction subjects
+  def link_membership_plans_from_paypal
+    primary_linked = 0
+    supplementary_linked = 0
+
+    # Get all plans that have transaction subjects defined
+    plans_with_subjects = MembershipPlan.with_transaction_subject.to_a
+
+    if plans_with_subjects.empty?
+      puts "  No membership plans with PayPal transaction subjects configured"
+      return { primary: 0, supplementary: 0 }
+    end
+
+    puts "  Found #{plans_with_subjects.size} plans with transaction subjects:"
+    plans_with_subjects.each do |plan|
+      puts "    - #{plan.name} (#{plan.plan_type}): '#{plan.paypal_transaction_subject}'"
+    end
+
+    # Process each user with PayPal payments
+    User.joins(:paypal_payments).distinct.find_each do |user|
+      # Find all unique plans that match this user's PayPal payments
+      matched_plans = Set.new
+
+      user.paypal_payments.each do |payment|
+        next unless payment.raw_attributes.present?
+
+        raw_json = payment.raw_attributes.to_s
+
+        plans_with_subjects.each do |plan|
+          if raw_json.include?(plan.paypal_transaction_subject)
+            matched_plans << plan
+          end
+        end
+      end
+
+      next if matched_plans.empty?
+
+      # Process matched plans
+      matched_plans.each do |plan|
+        if plan.primary?
+          # Assign primary plan if user doesn't have one
+          if user.membership_plan_id.nil?
+            user.update_column(:membership_plan_id, plan.id)
+            primary_linked += 1
+            puts "  #{user.display_name}: Primary plan set to '#{plan.name}'"
+          elsif user.membership_plan_id != plan.id
+            # User already has a different primary plan - skip but note
+            puts "  #{user.display_name}: Already has primary plan '#{user.membership_plan.name}', skipping '#{plan.name}'"
+          end
+        else
+          # Add supplementary plan if not already assigned
+          unless user.has_plan?(plan)
+            if user.add_supplementary_plan(plan)
+              supplementary_linked += 1
+              puts "  #{user.display_name}: Added supplementary plan '#{plan.name}'"
+            end
+          end
+        end
+      end
+    end
+
+    puts "  Primary plans linked: #{primary_linked}"
+    puts "  Supplementary plans linked: #{supplementary_linked}"
+
+    { primary: primary_linked, supplementary: supplementary_linked }
+  end
+
   desc "Show payment linking statistics without making changes"
   task link_stats: :environment do
     puts "=" * 60
@@ -217,6 +290,20 @@ namespace :payments do
     puts "  Unlinked (with customer ID): #{unlinked_with_customer_id}"
     puts "  Unlinked (no customer ID): #{unlinked_no_customer_id}"
     puts "  Could be linked now: #{matchable_recharge}"
+
+    # Membership plan stats
+    puts "\nMembership Plans (with transaction subjects):"
+    plans_with_subjects = MembershipPlan.with_transaction_subject.to_a
+    puts "  Configured plans: #{plans_with_subjects.size}"
+    plans_with_subjects.each do |plan|
+      puts "    - #{plan.name} (#{plan.plan_type}): '#{plan.paypal_transaction_subject}'"
+    end
+
+    if plans_with_subjects.any?
+      # Count users without primary plans who could get one
+      users_without_primary = User.where(membership_plan_id: nil).count
+      puts "  Users without primary plan: #{users_without_primary}"
+    end
 
     puts "\n" + "=" * 60
     puts "Run 'rails payments:link' to link #{matchable_paypal + matchable_recharge} payments"

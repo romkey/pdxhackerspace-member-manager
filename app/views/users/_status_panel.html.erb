@@ -46,12 +46,43 @@
         <span class="badge text-bg-info fs-6"><%= user.payment_type.humanize %></span>
       </div>
 
-      <% if user.membership_plan.present? %>
+      <% if user.membership_plan.present? || user.supplementary_plans.any? %>
         <div class="mb-3">
-          <small class="text-muted d-block">Membership Plan</small>
-          <strong><%= link_to user.membership_plan.name, membership_plan_path(user.membership_plan), class: "text-decoration-none" %></strong>
-          <br>
-          <span class="text-muted">$<%= format('%.2f', user.membership_plan.cost) %>/<%= user.membership_plan.billing_frequency %></span>
+          <small class="text-muted d-block">Membership Plans</small>
+          <% if user.membership_plan.present? %>
+            <div class="mb-1">
+              <strong><%= link_to user.membership_plan.name, membership_plan_path(user.membership_plan), class: "text-decoration-none" %></strong>
+              <span class="badge text-bg-primary ms-1">Primary</span>
+              <br>
+              <span class="text-muted">$<%= format('%.2f', user.membership_plan.cost) %>/<%= user.membership_plan.billing_frequency %></span>
+            </div>
+          <% end %>
+          <% user.supplementary_plans.order(:name).each do |plan| %>
+            <div class="mb-1">
+              <strong><%= link_to plan.name, membership_plan_path(plan), class: "text-decoration-none" %></strong>
+              <span class="badge text-bg-info ms-1">Supplementary</span>
+              <br>
+              <span class="text-muted">$<%= format('%.2f', plan.cost) %>/<%= plan.billing_frequency %></span>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+
+      <% next_payment = user.next_payment_date %>
+      <% if next_payment.present? %>
+        <div class="mb-3">
+          <small class="text-muted d-block">Next Payment</small>
+          <% if next_payment > Date.current %>
+            <span class="text-success">
+              <i class="bi bi-calendar-event me-1"></i>
+              Renews on <%= next_payment.strftime('%B %d, %Y') %>
+            </span>
+          <% else %>
+            <span class="text-warning">
+              <i class="bi bi-exclamation-triangle me-1"></i>
+              Was due <%= next_payment.strftime('%B %d, %Y') %>
+            </span>
+          <% end %>
         </div>
       <% end %>
 
