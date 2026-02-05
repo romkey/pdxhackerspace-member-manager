@@ -176,6 +176,9 @@ Rails.application.routes.draw do
     end
   end
 
+  resources :documents do
+  end
+
   resources :payment_processors, only: [:index, :show, :edit, :update] do
     member do
       post :toggle
