@@ -1,39 +1,60 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
     <h1 class="h3 mb-1">Authentik Users</h1>
-    <p class="text-muted mb-0">
-      <strong><%= @total_count %></strong> total —
-      <strong><%= @linked_count %></strong> linked —
-      <strong><%= @unlinked_count %></strong> unlinked —
-      <strong><%= @active_count %></strong> active —
-      <strong><%= @inactive_count %></strong> inactive
-      <% if @discrepancy_count > 0 %>
-        — <strong class="text-warning"><%= @discrepancy_count %></strong> with discrepancies
-      <% end %>
-    </p>
+    <p class="text-muted mb-0">Users from Authentik identity provider.</p>
   </div>
   <div class="d-flex gap-2">
     <%= button_to "Sync from Authentik", sync_authentik_users_path, method: :post, class: "btn btn-primary", data: { turbo: false } %>
   </div>
 </div>
 
+<% if params[:filter].present? %>
+  <div class="alert alert-info py-2 mb-3 d-flex justify-content-between align-items-center">
+    <small>
+      <i class="bi bi-funnel me-1"></i> Filtering:
+      <%= case params[:filter]
+          when 'linked' then 'Linked'
+          when 'unlinked' then 'Unlinked'
+          when 'discrepancies' then 'With Discrepancies'
+          when 'active' then 'Active'
+          when 'inactive' then 'Inactive'
+          end %> users
+      (<%= @authentik_users.count %> of <%= @total_count %>)
+    </small>
+    <%= link_to "Clear filter", authentik_users_path, class: "btn btn-outline-secondary btn-sm" %>
+  </div>
+<% end %>
+
 <div class="card shadow-sm border-0 mb-4">
   <div class="card-body">
-    <div class="d-flex gap-3 align-items-center flex-wrap">
-      <div class="flex-grow-1" style="min-width: 300px;">
-        <input type="text" id="authentik_search" class="form-control" placeholder="Search by name, email, or username…" autocomplete="off">
-      </div>
-      <div class="d-flex gap-2 align-items-center flex-wrap">
-        <button type="button" id="clear_authentik_search" class="btn btn-outline-secondary" style="display: none;">Clear</button>
-        <div class="btn-group" role="group" aria-label="Filter options">
-          <%= link_to "All", authentik_users_path, class: "btn btn-outline-secondary btn-sm #{params[:filter].blank? ? 'active' : ''}" %>
-          <%= link_to "Linked", authentik_users_path(filter: 'linked'), class: "btn btn-outline-secondary btn-sm #{params[:filter] == 'linked' ? 'active' : ''}" %>
-          <%= link_to "Unlinked", authentik_users_path(filter: 'unlinked'), class: "btn btn-outline-secondary btn-sm #{params[:filter] == 'unlinked' ? 'active' : ''}" %>
-          <%= link_to "Discrepancies", authentik_users_path(filter: 'discrepancies'), class: "btn btn-outline-warning btn-sm #{params[:filter] == 'discrepancies' ? 'active' : ''}" %>
-          <%= link_to "Active", authentik_users_path(filter: 'active'), class: "btn btn-outline-secondary btn-sm #{params[:filter] == 'active' ? 'active' : ''}" %>
-          <%= link_to "Inactive", authentik_users_path(filter: 'inactive'), class: "btn btn-outline-secondary btn-sm #{params[:filter] == 'inactive' ? 'active' : ''}" %>
-        </div>
-      </div>
+    <p class="small text-muted mb-3"><i class="bi bi-hand-index me-1"></i> Click any badge to filter the list</p>
+    
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      <%= link_to authentik_users_path, class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if params[:filter].blank?}" do %>
+        All: <strong><%= @total_count %></strong>
+      <% end %>
+      <%= link_to authentik_users_path(filter: 'linked'), class: "badge text-bg-success text-decoration-none #{'border border-dark border-2' if params[:filter] == 'linked'}" do %>
+        Linked: <strong><%= @linked_count %></strong>
+      <% end %>
+      <%= link_to authentik_users_path(filter: 'unlinked'), class: "badge text-bg-warning text-decoration-none #{'border border-dark border-2' if params[:filter] == 'unlinked'}" do %>
+        Unlinked: <strong><%= @unlinked_count %></strong>
+      <% end %>
+      <% if @discrepancy_count > 0 %>
+        <%= link_to authentik_users_path(filter: 'discrepancies'), class: "badge text-bg-danger text-decoration-none #{'border border-dark border-2' if params[:filter] == 'discrepancies'}" do %>
+          Discrepancies: <strong><%= @discrepancy_count %></strong>
+        <% end %>
+      <% end %>
+      <%= link_to authentik_users_path(filter: 'active'), class: "badge text-bg-primary text-decoration-none #{'border border-dark border-2' if params[:filter] == 'active'}" do %>
+        Active: <strong><%= @active_count %></strong>
+      <% end %>
+      <%= link_to authentik_users_path(filter: 'inactive'), class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if params[:filter] == 'inactive'}" do %>
+        Inactive: <strong><%= @inactive_count %></strong>
+      <% end %>
+    </div>
+    
+    <div class="d-flex gap-2">
+      <input type="text" id="authentik_search" class="form-control" placeholder="Search by name, email, or username…" autocomplete="off">
+      <button type="button" id="clear_authentik_search" class="btn btn-outline-secondary" style="display: none;">Clear</button>
     </div>
   </div>
 </div>

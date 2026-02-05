@@ -1,15 +1,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
     <h1 class="h3 mb-1">Sheet Entries</h1>
-    <p class="text-muted mb-0">
-      <strong><%= @entry_count %></strong> rows —
-      <strong><%= @with_email_count %></strong> have an email address,
-      <strong><%= @shared_email_count %></strong> share Authentik emails,
-      <strong><%= @shared_name_count %></strong> share Authentik names —
-      <strong><%= @paying_count %></strong> paying,
-      <strong><%= @sponsored_count %></strong> sponsored,
-      <strong><%= @inactive_count %></strong> inactive
-    </p>
+    <p class="text-muted mb-0">Entries from the Google Sheet membership roster.</p>
   </div>
   <div class="d-flex gap-2">
     <%= button_to "Sync now", sync_sheet_entries_path, method: :post, class: "btn btn-primary", data: { turbo: false } %>
@@ -18,8 +10,52 @@
   </div>
 </div>
 
+<% if @filter_active %>
+  <div class="alert alert-info py-2 mb-3 d-flex justify-content-between align-items-center">
+    <small>
+      <i class="bi bi-funnel me-1"></i> Filtering:
+      <%= case params[:filter]
+          when 'linked' then 'Linked'
+          when 'unlinked' then 'Unlinked'
+          when 'paying' then 'Paying'
+          when 'sponsored' then 'Sponsored'
+          when 'inactive' then 'Inactive'
+          when 'with_email' then 'With Email'
+          end %> entries
+      (<%= @sheet_entries.count %> of <%= @total_count %>)
+    </small>
+    <%= link_to "Clear filter", sheet_entries_path, class: "btn btn-outline-secondary btn-sm" %>
+  </div>
+<% end %>
+
 <div class="card shadow-sm border-0 mb-4">
   <div class="card-body">
+    <p class="small text-muted mb-3"><i class="bi bi-hand-index me-1"></i> Click any badge to filter the list</p>
+    
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      <%= link_to sheet_entries_path, class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if !@filter_active}" do %>
+        All: <strong><%= @total_count %></strong>
+      <% end %>
+      <%= link_to sheet_entries_path(filter: 'linked'), class: "badge text-bg-success text-decoration-none #{'border border-dark border-2' if params[:filter] == 'linked'}" do %>
+        Linked: <strong><%= @linked_count %></strong>
+      <% end %>
+      <%= link_to sheet_entries_path(filter: 'unlinked'), class: "badge text-bg-warning text-decoration-none #{'border border-dark border-2' if params[:filter] == 'unlinked'}" do %>
+        Unlinked: <strong><%= @unlinked_count %></strong>
+      <% end %>
+      <%= link_to sheet_entries_path(filter: 'paying'), class: "badge text-bg-primary text-decoration-none #{'border border-dark border-2' if params[:filter] == 'paying'}" do %>
+        Paying: <strong><%= @paying_count %></strong>
+      <% end %>
+      <%= link_to sheet_entries_path(filter: 'sponsored'), class: "badge text-bg-info text-decoration-none #{'border border-dark border-2' if params[:filter] == 'sponsored'}" do %>
+        Sponsored: <strong><%= @sponsored_count %></strong>
+      <% end %>
+      <%= link_to sheet_entries_path(filter: 'inactive'), class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if params[:filter] == 'inactive'}" do %>
+        Inactive: <strong><%= @inactive_count %></strong>
+      <% end %>
+      <%= link_to sheet_entries_path(filter: 'with_email'), class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if params[:filter] == 'with_email'}" do %>
+        With Email: <strong><%= @with_email_count %></strong>
+      <% end %>
+    </div>
+    
     <div class="d-flex gap-2">
       <input type="text" id="sheet_search" class="form-control" placeholder="Search by name, email, status, payment, or access…" autocomplete="off">
       <button type="button" id="clear_sheet_search" class="btn btn-outline-secondary" style="display: none;">Clear</button>

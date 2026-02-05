@@ -1,11 +1,16 @@
 class SheetEntriesController < AdminController
   def index
-    @sheet_entries = SheetEntry.order(Arel.sql('LOWER(name) ASC'))
-    @entry_count = @sheet_entries.count
+    # Base query
+    base_query = SheetEntry.order(Arel.sql('LOWER(name) ASC'))
+    
+    # Counts for all records
+    @total_count = SheetEntry.count
     @with_email_count = SheetEntry.with_email.count
     @paying_count = SheetEntry.where('LOWER(status) = ?', 'paying').count
     @sponsored_count = SheetEntry.where('LOWER(status) = ?', 'sponsored').count
     @inactive_count = SheetEntry.where("status IS NULL OR status = ''").count
+    @linked_count = SheetEntry.where.not(user_id: nil).count
+    @unlinked_count = SheetEntry.where(user_id: nil).count
 
     user_emails = User.where.not(email: nil).pluck(Arel.sql('LOWER(email)'))
     @shared_email_count = if user_emails.any?
@@ -20,6 +25,26 @@ class SheetEntriesController < AdminController
                          else
                            0
                          end
+
+    # Apply filters
+    @sheet_entries = case params[:filter]
+                     when 'linked'
+                       base_query.where.not(user_id: nil)
+                     when 'unlinked'
+                       base_query.where(user_id: nil)
+                     when 'paying'
+                       base_query.where('LOWER(status) = ?', 'paying')
+                     when 'sponsored'
+                       base_query.where('LOWER(status) = ?', 'sponsored')
+                     when 'inactive'
+                       base_query.where("status IS NULL OR status = ''")
+                     when 'with_email'
+                       base_query.with_email
+                     else
+                       base_query
+                     end
+    
+    @filter_active = params[:filter].present?
   end
 
   def show
