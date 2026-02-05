@@ -23,6 +23,8 @@ class TrainingTopicsController < AdminController
                          .order(:full_name, :email)
     # Get users who can train this topic
     @trainer_users = @training_topic.trainers.order(:full_name, :email)
+    # Get all users for the training search
+    @users_for_search = User.ordered_by_display_name
   end
 
   def update
