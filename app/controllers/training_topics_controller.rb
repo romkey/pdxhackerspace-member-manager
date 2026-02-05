@@ -16,11 +16,9 @@ class TrainingTopicsController < AdminController
 
   def edit
     @training_topic = TrainingTopic.find(params[:id])
-    # Get distinct users trained in this topic
-    @trained_users = User.joins(:trainings_as_trainee)
-                         .where(trainings: { training_topic_id: @training_topic.id })
-                         .distinct
-                         .order(:full_name, :email)
+    # Get distinct users trained in this topic (use subquery to avoid PostgreSQL DISTINCT/ORDER BY conflict)
+    trained_user_ids = Training.where(training_topic_id: @training_topic.id).select(:trainee_id).distinct
+    @trained_users = User.where(id: trained_user_ids).order(:full_name, :email)
     # Get users who can train this topic
     @trainer_users = @training_topic.trainers.order(:full_name, :email)
     # Get all users for the training search
@@ -33,12 +31,11 @@ class TrainingTopicsController < AdminController
     if @training_topic.update(training_topic_params)
       redirect_to edit_training_topic_path(@training_topic), notice: 'Training topic updated successfully.'
     else
-      # Reload the associations for the view
-      @trained_users = User.joins(:trainings_as_trainee)
-                           .where(trainings: { training_topic_id: @training_topic.id })
-                           .distinct
-                           .order(:full_name, :email)
+      # Reload the associations for the view (use subquery to avoid PostgreSQL DISTINCT/ORDER BY conflict)
+      trained_user_ids = Training.where(training_topic_id: @training_topic.id).select(:trainee_id).distinct
+      @trained_users = User.where(id: trained_user_ids).order(:full_name, :email)
       @trainer_users = @training_topic.trainers.order(:full_name, :email)
+      @users_for_search = User.ordered_by_display_name
       render :edit, status: :unprocessable_entity
     end
   end
