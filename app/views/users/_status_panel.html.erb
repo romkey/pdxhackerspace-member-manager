@@ -134,13 +134,13 @@
         <span class="badge text-bg-<%= badge_class %> fs-6"><%= user.membership_status.humanize %></span>
       </div>
 
-      <%# Documents from training topics the user is trained in %>
+      <%# Documents available to this user %>
       <% user_documents = user.available_documents %>
       <% if user_documents.any? %>
         <hr class="my-3">
         <div>
           <small class="text-muted d-block mb-2">
-            <i class="bi bi-file-earmark-text me-1"></i> Training Documents
+            <i class="bi bi-file-earmark-text me-1"></i> Documents
           </small>
           <ul class="list-unstyled mb-0">
             <% user_documents.each do |doc| %>

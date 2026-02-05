@@ -29,6 +29,14 @@
   </div>
 
   <div class="mb-3">
+    <div class="form-check">
+      <%= f.check_box :show_on_all_profiles, class: "form-check-input" %>
+      <%= f.label :show_on_all_profiles, "Show on all member profiles", class: "form-check-label" %>
+    </div>
+    <div class="form-text">When checked, this document will appear on every member's profile regardless of training.</div>
+  </div>
+
+  <div class="mb-3">
     <%= f.label :training_topic_ids, "Training Topics", class: "form-label" %>
     <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
       <% @training_topics.each do |topic| %>
@@ -40,7 +48,7 @@
         </div>
       <% end %>
     </div>
-    <div class="form-text">Select which training topics this document should be associated with.</div>
+    <div class="form-text">Select which training topics this document should be associated with (only applies when "Show on all profiles" is unchecked).</div>
     <%# Hidden field to allow clearing all selections %>
     <%= hidden_field_tag "document[training_topic_ids][]", "" %>
   </div>

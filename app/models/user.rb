@@ -67,19 +67,25 @@ class User < ApplicationRecord
     is_admin?
   end
 
-  # Get documents available to this user based on their training
+  # Get documents available to this user based on their training or show_on_all_profiles flag
   # Returns deduplicated list ordered alphabetically by title
   def available_documents
     # Get all training topic IDs the user is trained in
     trained_topic_ids = trainings_as_trainee.pluck(:training_topic_id).uniq
 
-    return [] if trained_topic_ids.empty?
-
-    # Get all documents associated with those topics, deduplicated and ordered
-    Document.joins(:document_training_topics)
-            .where(document_training_topics: { training_topic_id: trained_topic_ids })
-            .distinct
-            .ordered
+    # Get documents shown to all profiles OR associated with trained topics
+    if trained_topic_ids.empty?
+      Document.where(show_on_all_profiles: true).ordered
+    else
+      Document.left_joins(:document_training_topics)
+              .where(
+                'documents.show_on_all_profiles = ? OR document_training_topics.training_topic_id IN (?)',
+                true,
+                trained_topic_ids
+              )
+              .distinct
+              .ordered
+    end
   end
 
   # Get the most recent payment date across all payment sources

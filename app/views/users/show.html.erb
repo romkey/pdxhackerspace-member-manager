@@ -151,6 +151,18 @@
   end
 %>
 
+<%# "Your Profile" heading - shown only to the user viewing their own profile %>
+<% if current_user && current_user.id == @user.id && !impersonating? %>
+  <div class="d-flex align-items-center gap-2 mb-3">
+    <h2 class="h4 mb-0">Your Profile</h2>
+    <% if @member_help_content.present? %>
+      <button type="button" class="btn btn-link p-0 text-info" data-bs-toggle="modal" data-bs-target="#memberHelpModal" title="Help">
+        <i class="bi bi-question-circle-fill fs-5"></i>
+      </button>
+    <% end %>
+  </div>
+<% end %>
+
 <%# Name and Photo Header - shown to all, outside tabs %>
 <div class="card shadow-sm border-0 mb-4">
   <div class="card-body">
@@ -163,14 +175,7 @@
         </div>
       <% end %>
       <div>
-        <div class="d-flex align-items-center gap-2">
-          <h1 class="h3 mb-1"><%= @user.display_name %></h1>
-          <% if @member_help_content.present? && current_user && current_user.id == @user.id %>
-            <button type="button" class="btn btn-link p-0 text-info" data-bs-toggle="modal" data-bs-target="#memberHelpModal" title="Help">
-              <i class="bi bi-question-circle-fill fs-4"></i>
-            </button>
-          <% end %>
-        </div>
+        <h1 class="h3 mb-1"><%= @user.display_name %></h1>
         <% if @user.pronouns.present? %>
           <span class="text-muted"><%= @user.pronouns %></span>
         <% end %>
@@ -289,8 +294,8 @@
   <%= render 'users/tab_profile_public', user: @user %>
 <% end %>
 
-<%# Member Help Modal %>
-<% if @member_help_content.present? && current_user && current_user.id == @user.id %>
+<%# Member Help Modal - only for profile owner %>
+<% if @member_help_content.present? && current_user && current_user.id == @user.id && !impersonating? %>
   <div class="modal fade" id="memberHelpModal" tabindex="-1" aria-labelledby="memberHelpModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">

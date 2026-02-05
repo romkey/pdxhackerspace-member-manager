@@ -49,6 +49,6 @@ class DocumentsController < AdminController
   end
 
   def document_params
-    params.require(:document).permit(:title, :file, training_topic_ids: [])
+    params.require(:document).permit(:title, :file, :show_on_all_profiles, training_topic_ids: [])
   end
 end
