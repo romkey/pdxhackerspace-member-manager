@@ -67,6 +67,19 @@ class User < ApplicationRecord
     is_admin?
   end
 
+  # Get training topics with links that the user is trained in
+  # Returns topics ordered alphabetically by name, only those with at least one link
+  def training_topics_with_links
+    trained_topic_ids = trainings_as_trainee.pluck(:training_topic_id).uniq
+    return [] if trained_topic_ids.empty?
+
+    TrainingTopic.where(id: trained_topic_ids)
+                 .joins(:links)
+                 .distinct
+                 .includes(:links)
+                 .order(:name)
+  end
+
   # Get documents available to this user based on their training or show_on_all_profiles flag
   # Returns deduplicated list ordered alphabetically by title
   def available_documents
