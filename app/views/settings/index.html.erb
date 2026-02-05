@@ -51,6 +51,15 @@
   <div class="col-md-6 col-lg-4">
     <div class="card shadow-sm border-0 h-100">
       <div class="card-body d-flex flex-column">
+        <h5 class="card-title">Documents</h5>
+        <p class="card-text text-muted">Upload documents for all members or associate them with training topics.</p>
+        <%= link_to "Manage Documents", documents_path, class: "btn btn-primary mt-auto" %>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-lg-4">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body d-flex flex-column">
         <h5 class="card-title">Email Templates</h5>
         <p class="card-text text-muted">Customize the email messages sent to members for applications, approvals, payments, and more.</p>
         <%= link_to "Manage Email Templates", email_templates_path, class: "btn btn-primary mt-auto" %>
@@ -108,15 +117,6 @@
         <h5 class="card-title">Text Fragments</h5>
         <p class="card-text text-muted">Edit HTML content fragments like help text and informational messages shown to members.</p>
         <%= link_to "Manage Text", text_fragments_path, class: "btn btn-primary mt-auto" %>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-6 col-lg-4">
-    <div class="card shadow-sm border-0 h-100">
-      <div class="card-body d-flex flex-column">
-        <h5 class="card-title">Documents</h5>
-        <p class="card-text text-muted">Upload documents for all members or associate them with training topics.</p>
-        <%= link_to "Manage Documents", documents_path, class: "btn btn-primary mt-auto" %>
       </div>
     </div>
   </div>

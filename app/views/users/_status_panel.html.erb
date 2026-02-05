@@ -139,9 +139,9 @@
       <% if user_documents.any? %>
         <hr class="my-3">
         <div>
-          <small class="text-muted d-block mb-2">
+          <h6 class="text-muted mb-2">
             <i class="bi bi-file-earmark-text me-1"></i> Documents
-          </small>
+          </h6>
           <ul class="list-unstyled mb-0">
             <% user_documents.each do |doc| %>
               <li class="mb-1">
@@ -159,12 +159,12 @@
       <% if topics_with_links.any? %>
         <hr class="my-3">
         <div>
-          <small class="text-muted d-block mb-2">
+          <h6 class="text-muted mb-2">
             <i class="bi bi-link-45deg me-1"></i> Training Resources
-          </small>
+          </h6>
           <% topics_with_links.each do |topic| %>
             <div class="mb-3">
-              <strong class="d-block mb-1"><%= topic.name %></strong>
+              <span class="d-block mb-1"><%= topic.name %></span>
               <ul class="list-unstyled mb-0 ms-2">
                 <% topic.links.each do |link| %>
                   <li class="mb-1">
