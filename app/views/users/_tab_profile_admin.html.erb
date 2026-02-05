@@ -96,7 +96,7 @@
 
           <dt class="col-sm-3 text-secondary">Trained on</dt>
           <dd class="col-sm-9">
-            <% trained_topics = user.trainings_as_trainee.map(&:training_topic).uniq %>
+            <% trained_topics = user.trainings_as_trainee.map(&:training_topic).uniq.sort_by(&:name) %>
             <% if trained_topics.any? %>
               <% trained_topics.each do |topic| %>
                 <span class="badge text-bg-primary me-1 mb-1"><%= topic.name %></span>
@@ -109,7 +109,7 @@
           <dt class="col-sm-3 text-secondary">Can train</dt>
           <dd class="col-sm-9">
             <% if user.training_topics.any? %>
-              <% user.training_topics.each do |topic| %>
+              <% user.training_topics.order(:name).each do |topic| %>
                 <span class="badge text-bg-success me-1 mb-1"><%= topic.name %></span>
               <% end %>
             <% else %>
