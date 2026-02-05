@@ -166,7 +166,7 @@
             <div class="mb-3">
               <span class="d-block mb-1"><%= topic.name %></span>
               <ul class="list-unstyled mb-0 ms-2">
-                <% topic.links.each do |link| %>
+                <% topic.links.order(:title).each do |link| %>
                   <li class="mb-1">
                     <%= link_to link.url, class: "text-decoration-none", target: "_blank", rel: "noopener" do %>
                       <i class="bi bi-box-arrow-up-right me-1"></i> <%= link.title %>
