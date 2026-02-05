@@ -123,6 +123,20 @@
       </div>
     <% end %>
 
+    <% if user_signed_in? %>
+      <% motd_content = TextFragment.content_for('motd') %>
+      <% if motd_content.present? %>
+        <div class="bg-info text-white py-3 border-bottom border-info-subtle">
+          <div class="container">
+            <div class="d-flex align-items-start">
+              <i class="bi bi-megaphone-fill me-3 fs-4"></i>
+              <div class="motd-content"><%= sanitize(motd_content) %></div>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+
     <main class="container py-4">
       <% flash.each do |type, message| %>
         <% next if message.blank? %>
