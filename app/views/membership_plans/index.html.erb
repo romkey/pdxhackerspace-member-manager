@@ -73,8 +73,8 @@
       <div class="accordion" id="membershipPlansAccordion">
         <% @membership_plans.each_with_index do |plan, index| %>
           <div class="accordion-item">
-            <h2 class="accordion-header d-flex align-items-center">
-              <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#plan-<%= plan.id %>" aria-expanded="false" aria-controls="plan-<%= plan.id %>">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#plan-<%= plan.id %>" aria-expanded="false" aria-controls="plan-<%= plan.id %>">
                 <div class="d-flex align-items-center gap-3">
                   <strong><%= plan.name %></strong>
                   <% if plan.primary? %>
@@ -87,15 +87,6 @@
                   <span class="badge text-bg-secondary"><%= member_count %> member<%= member_count == 1 ? '' : 's' %></span>
                 </div>
               </button>
-              <div class="d-flex gap-2 me-3">
-                <%= link_to "Edit", edit_membership_plan_path(plan), class: "btn btn-sm btn-outline-primary" %>
-                <% can_delete = plan.primary? ? plan.users.empty? : plan.supplementary_users.empty? %>
-                <% if can_delete %>
-                  <%= button_to "Delete", membership_plan_path(plan), method: :delete, 
-                      class: "btn btn-sm btn-outline-danger",
-                      data: { confirm: "Are you sure you want to delete '#{plan.name}'?" } %>
-                <% end %>
-              </div>
             </h2>
             <div id="plan-<%= plan.id %>" class="accordion-collapse collapse" data-bs-parent="#membershipPlansAccordion">
               <div class="accordion-body">
@@ -185,6 +176,21 @@
                       <p class="text-muted fst-italic mb-0">No members on this plan yet.</p>
                     <% end %>
                   </div>
+                </div>
+                <hr class="my-3">
+                <div class="d-flex justify-content-end gap-2">
+                  <%= link_to "Edit", edit_membership_plan_path(plan), class: "btn btn-outline-primary" %>
+                  <% plan_users = plan.primary? ? plan.users : plan.supplementary_users %>
+                  <% if plan_users.any? %>
+                    <button type="button" class="btn btn-outline-danger" disabled 
+                            title="Cannot delete: <%= plan_users.count %> member<%= plan_users.count == 1 ? ' is' : 's are' %> using this plan">
+                      Delete
+                    </button>
+                  <% else %>
+                    <%= button_to "Delete", membership_plan_path(plan), method: :delete, 
+                        class: "btn btn-outline-danger",
+                        data: { turbo_confirm: "Are you sure you want to delete '#{plan.name}'?" } %>
+                  <% end %>
                 </div>
               </div>
             </div>
