@@ -182,12 +182,6 @@ class PaypalPaymentsController < AdminController
         payment_data[:user_authentik_id] = payment.user.authentik_id
       end
 
-      # Export sheet_entry relationship by identifier
-      if payment.sheet_entry
-        payment_data[:sheet_entry_email] = payment.sheet_entry.email
-        payment_data[:sheet_entry_name] = payment.sheet_entry.name
-      end
-
       payment_data
     end
 
@@ -268,30 +262,6 @@ class PaypalPaymentsController < AdminController
               end
               
               payment.user = user if user
-            end
-
-            # Restore sheet_entry relationship
-            if payment_data['sheet_entry_email'].present? || payment_data['sheet_entry_name'].present?
-              sheet_entry = nil
-              
-              # Try to find by email first
-              if payment_data['sheet_entry_email'].present?
-                sheet_entry = SheetEntry.find_by('LOWER(email) = ?', payment_data['sheet_entry_email'].to_s.strip.downcase)
-              end
-              
-              # Try to find by name if not found by email
-              if sheet_entry.nil? && payment_data['sheet_entry_name'].present?
-                sheet_entry = SheetEntry.find_by(name: payment_data['sheet_entry_name'])
-              end
-              
-              # Try to find by email AND name combination
-              if sheet_entry.nil? && payment_data['sheet_entry_email'].present? && payment_data['sheet_entry_name'].present?
-                sheet_entry = SheetEntry.where('LOWER(email) = ? AND name = ?', 
-                  payment_data['sheet_entry_email'].to_s.strip.downcase,
-                  payment_data['sheet_entry_name']).first
-              end
-              
-              payment.sheet_entry = sheet_entry if sheet_entry
             end
 
             was_new = payment.new_record?
