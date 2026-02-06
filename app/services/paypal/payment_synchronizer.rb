@@ -65,7 +65,6 @@ module Paypal
           )
           user = find_user(attrs[:payer_email], attrs[:payer_name])
           record.user = user
-          record.sheet_entry = find_sheet_entry(attrs[:payer_email])
           record.save!
           saved_count += 1
           # The PaypalPayment after_save callback will call user.on_paypal_payment_linked
@@ -127,13 +126,6 @@ module Paypal
       end
 
       nil
-    end
-
-    def find_sheet_entry(email)
-      normalized = normalize_email(email)
-      return if normalized.blank?
-
-      SheetEntry.where('LOWER(email) = ?', normalized).first
     end
 
     def normalize_email(value)

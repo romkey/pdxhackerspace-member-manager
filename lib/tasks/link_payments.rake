@@ -74,6 +74,11 @@ namespace :payments do
     puts "  Newly linked: #{recharge_updated}"
     puts "  No matching user: #{recharge_no_match}"
 
+    # Update user statuses (payment type, membership status, dues status)
+    puts "\n" + "-" * 60
+    puts "Updating user statuses..."
+    status_updates = update_user_statuses
+
     # Set membership dates
     puts "\n" + "-" * 60
     puts "Setting membership dates..."
@@ -91,8 +96,75 @@ namespace :payments do
     puts "PayPal payments linked: #{paypal_updated}"
     puts "Recharge payments linked: #{recharge_updated}"
     puts "Total payments linked: #{paypal_updated + recharge_updated}"
+    puts "User statuses updated: #{status_updates}"
     puts "Membership plans linked: #{plans_linked[:primary]} primary, #{plans_linked[:supplementary]} supplementary"
     puts "\nDone!"
+  end
+
+  # Helper method to update user payment type, membership status, and dues status
+  def update_user_statuses
+    users_updated = 0
+    cutoff_date = 32.days.ago.to_date
+
+    # Find all users with linked payments
+    user_ids_with_payments = (
+      PaypalPayment.where.not(user_id: nil).select(:user_id).distinct.pluck(:user_id) +
+      RechargePayment.where.not(user_id: nil).select(:user_id).distinct.pluck(:user_id)
+    ).uniq
+
+    User.where(id: user_ids_with_payments).find_each do |user|
+      updates = {}
+
+      # Find most recent payment from each source
+      latest_paypal = user.paypal_payments.maximum(:transaction_time)
+      latest_recharge = user.recharge_payments.maximum(:processed_at)
+
+      # Determine payment type based on which has more recent payment
+      if latest_paypal.present? && latest_recharge.present?
+        updates[:payment_type] = latest_paypal > latest_recharge ? 'paypal' : 'recharge'
+      elsif latest_paypal.present?
+        updates[:payment_type] = 'paypal'
+      elsif latest_recharge.present?
+        updates[:payment_type] = 'recharge'
+      end
+
+      # Find the absolute most recent payment date
+      most_recent = [latest_paypal, latest_recharge].compact.max
+
+      if most_recent.present?
+        most_recent_date = most_recent.to_date
+
+        # If payment is within 32 days, user should be active with current dues
+        if most_recent_date >= cutoff_date
+          updates[:active] = true unless user.active?
+          updates[:membership_status] = 'paying' unless user.membership_status == 'paying'
+          updates[:dues_status] = 'current' unless user.dues_status == 'current'
+        else
+          # Payment is older than 32 days - mark as lapsed if currently showing as current
+          if user.dues_status == 'current'
+            updates[:dues_status] = 'lapsed'
+          end
+        end
+      end
+
+      # Only update if there are changes
+      if updates.any?
+        # Remove no-op updates
+        updates.delete(:payment_type) if updates[:payment_type] == user.payment_type
+        updates.delete(:active) if updates[:active] == user.active?
+        updates.delete(:membership_status) if updates[:membership_status] == user.membership_status
+        updates.delete(:dues_status) if updates[:dues_status] == user.dues_status
+
+        if updates.any?
+          user.update_columns(updates)
+          users_updated += 1
+          puts "  #{user.display_name}: #{updates.map { |k, v| "#{k}=#{v}" }.join(', ')}"
+        end
+      end
+    end
+
+    puts "  Users updated: #{users_updated}"
+    users_updated
   end
 
   # Helper method to update membership dates for all users with payments

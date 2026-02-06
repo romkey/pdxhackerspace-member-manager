@@ -66,7 +66,6 @@ module Recharge
           # recharge_customer_id on the user when the payment is linked
 
           record.user = user
-          record.sheet_entry = find_sheet_entry(attrs[:customer_email])
           record.save!
           # The RechargePayment after_save callback will call user.on_recharge_payment_linked
           # to handle customer ID, email, payment type, and membership status
@@ -159,13 +158,6 @@ module Recharge
       return if normalized_name.blank?
 
       User.where('LOWER(full_name) = ?', normalized_name).first
-    end
-
-    def find_sheet_entry(email)
-      normalized = normalize_email(email)
-      return if normalized.blank?
-
-      SheetEntry.where('LOWER(email) = ?', normalized).first
     end
 
     def normalize_email(value)
