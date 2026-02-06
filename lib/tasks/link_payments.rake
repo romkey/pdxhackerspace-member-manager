@@ -24,54 +24,153 @@ namespace :payments do
     puts "\n" + "-" * 60
     puts "Processing PayPal payments..."
 
-    paypal_updated = 0
-    paypal_skipped = 0
+    paypal_by_payer_id = 0
+    paypal_by_email = 0
+    paypal_by_name = 0
     paypal_no_match = 0
 
-    PaypalPayment.where(user_id: nil).where.not(payer_id: [nil, '']).find_each do |payment|
-      user_id = paypal_user_map[payment.payer_id]
+    # Build email lookup: lowercase email => user
+    email_to_user = {}
+    User.find_each do |user|
+      email_to_user[user.email.to_s.strip.downcase] = user if user.email.present?
+      (user.extra_emails || []).each do |extra|
+        email_to_user[extra.to_s.strip.downcase] = user if extra.present?
+      end
+    end
 
-      if user_id
-        # Use update_column to skip callbacks (avoid triggering on_paypal_payment_linked)
-        payment.update_column(:user_id, user_id)
-        paypal_updated += 1
+    # Build name lookup: lowercase full_name => user
+    name_to_user = {}
+    User.where.not(full_name: [nil, '']).find_each do |user|
+      name_to_user[user.full_name.strip.downcase] = user
+    end
+
+    PaypalPayment.where(user_id: nil).find_each do |payment|
+      user = nil
+      match_type = nil
+
+      # 1. Try to match by payer_id
+      if payment.payer_id.present?
+        user_id = paypal_user_map[payment.payer_id]
+        if user_id
+          user = User.find_by(id: user_id)
+          match_type = :payer_id
+        end
+      end
+
+      # 2. Try to match by email
+      if user.nil? && payment.payer_email.present?
+        normalized_email = payment.payer_email.strip.downcase
+        user = email_to_user[normalized_email]
+        match_type = :email if user
+      end
+
+      # 3. Try to match by name
+      if user.nil? && payment.payer_name.present?
+        normalized_name = payment.payer_name.strip.downcase
+        user = name_to_user[normalized_name]
+        match_type = :name if user
+      end
+
+      if user
+        # Link the payment to the user
+        payment.update_column(:user_id, user.id)
+
+        # If matched by email or name, also set the paypal_account_id on the user
+        if match_type != :payer_id && payment.payer_id.present? && user.paypal_account_id.blank?
+          user.update_column(:paypal_account_id, payment.payer_id)
+          # Add to the lookup map for future payments in this run
+          paypal_user_map[payment.payer_id] = user.id
+        end
+
+        case match_type
+        when :payer_id then paypal_by_payer_id += 1
+        when :email then paypal_by_email += 1
+        when :name then paypal_by_name += 1
+        end
       else
         paypal_no_match += 1
       end
     end
 
+    paypal_updated = paypal_by_payer_id + paypal_by_email + paypal_by_name
+
     # Count already linked
-    paypal_already_linked = PaypalPayment.where.not(user_id: nil).count
+    paypal_already_linked = PaypalPayment.where.not(user_id: nil).count - paypal_updated
 
     puts "  Already linked: #{paypal_already_linked}"
-    puts "  Newly linked: #{paypal_updated}"
+    puts "  Newly linked by payer ID: #{paypal_by_payer_id}"
+    puts "  Newly linked by email: #{paypal_by_email}"
+    puts "  Newly linked by name: #{paypal_by_name}"
+    puts "  Total newly linked: #{paypal_updated}"
     puts "  No matching user: #{paypal_no_match}"
 
     # Process Recharge payments
     puts "\n" + "-" * 60
     puts "Processing Recharge payments..."
 
-    recharge_updated = 0
-    recharge_skipped = 0
+    recharge_by_customer_id = 0
+    recharge_by_email = 0
+    recharge_by_name = 0
     recharge_no_match = 0
 
-    RechargePayment.where(user_id: nil).where.not(customer_id: [nil, '']).find_each do |payment|
-      user_id = recharge_user_map[payment.customer_id]
+    RechargePayment.where(user_id: nil).find_each do |payment|
+      user = nil
+      match_type = nil
 
-      if user_id
-        # Use update_column to skip callbacks (avoid triggering on_recharge_payment_linked)
-        payment.update_column(:user_id, user_id)
-        recharge_updated += 1
+      # 1. Try to match by customer_id
+      if payment.customer_id.present?
+        user_id = recharge_user_map[payment.customer_id]
+        if user_id
+          user = User.find_by(id: user_id)
+          match_type = :customer_id
+        end
+      end
+
+      # 2. Try to match by email
+      if user.nil? && payment.customer_email.present?
+        normalized_email = payment.customer_email.strip.downcase
+        user = email_to_user[normalized_email]
+        match_type = :email if user
+      end
+
+      # 3. Try to match by name
+      if user.nil? && payment.customer_name.present?
+        normalized_name = payment.customer_name.strip.downcase
+        user = name_to_user[normalized_name]
+        match_type = :name if user
+      end
+
+      if user
+        # Link the payment to the user
+        payment.update_column(:user_id, user.id)
+
+        # If matched by email or name, also set the recharge_customer_id on the user
+        if match_type != :customer_id && payment.customer_id.present? && user.recharge_customer_id.blank?
+          user.update_column(:recharge_customer_id, payment.customer_id.to_s)
+          # Add to the lookup map for future payments in this run
+          recharge_user_map[payment.customer_id] = user.id
+        end
+
+        case match_type
+        when :customer_id then recharge_by_customer_id += 1
+        when :email then recharge_by_email += 1
+        when :name then recharge_by_name += 1
+        end
       else
         recharge_no_match += 1
       end
     end
 
+    recharge_updated = recharge_by_customer_id + recharge_by_email + recharge_by_name
+
     # Count already linked
-    recharge_already_linked = RechargePayment.where.not(user_id: nil).count
+    recharge_already_linked = RechargePayment.where.not(user_id: nil).count - recharge_updated
 
     puts "  Already linked: #{recharge_already_linked}"
-    puts "  Newly linked: #{recharge_updated}"
+    puts "  Newly linked by customer ID: #{recharge_by_customer_id}"
+    puts "  Newly linked by email: #{recharge_by_email}"
+    puts "  Newly linked by name: #{recharge_by_name}"
+    puts "  Total newly linked: #{recharge_updated}"
     puts "  No matching user: #{recharge_no_match}"
 
     # Update user statuses (payment type, membership status, dues status)
