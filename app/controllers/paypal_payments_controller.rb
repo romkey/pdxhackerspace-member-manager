@@ -49,9 +49,20 @@ class PaypalPaymentsController < AdminController
 
     if @payment.payer_id.present?
       # Link the payment to the user
-      # The PaypalPayment after_save callback will call user.on_paypal_payment_linked
-      # to handle payer ID, email, payment type, and membership status
       @payment.update!(user_id: user.id)
+      
+      # Explicitly link all other payments with the same payer_id
+      # (The after_save callback should do this too, but being explicit to ensure it happens)
+      linked_count = PaypalPayment.where(payer_id: @payment.payer_id, user_id: nil)
+                                  .update_all(user_id: user.id)
+      
+      # Update the user's paypal_account_id if not already set
+      if user.paypal_account_id.blank?
+        user.update_column(:paypal_account_id, @payment.payer_id)
+      end
+      
+      # Update user's payment status
+      user.on_paypal_payment_linked(@payment)
       
       # Redirect back to reports if coming from there, otherwise to payment detail page
       if params[:from_reports] == 'true'
@@ -76,8 +87,9 @@ class PaypalPaymentsController < AdminController
           format.turbo_stream
         end
       else
+        extra_msg = linked_count > 0 ? " Also linked #{linked_count} other payment#{'s' if linked_count != 1} with the same payer ID." : ""
         redirect_to paypal_payment_path(@payment),
-                    notice: "Linked to user #{user.display_name} and updated their PayPal account ID, payment type, and membership status."
+                    notice: "Linked to user #{user.display_name}.#{extra_msg}"
       end
     else
       if params[:from_reports] == 'true'

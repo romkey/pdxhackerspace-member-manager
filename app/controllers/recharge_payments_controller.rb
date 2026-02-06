@@ -120,9 +120,20 @@ class RechargePaymentsController < AdminController
 
     if customer_id.present?
       # Link the payment to the user
-      # The RechargePayment after_save callback will call user.on_recharge_payment_linked
-      # to handle customer ID, email, payment type, and membership status
       @payment.update!(user_id: user.id)
+      
+      # Explicitly link all other payments with the same customer_id
+      # (The after_save callback should do this too, but being explicit to ensure it happens)
+      linked_count = RechargePayment.where(customer_id: customer_id, user_id: nil)
+                                    .update_all(user_id: user.id)
+      
+      # Update the user's recharge_customer_id if not already set
+      if user.recharge_customer_id.blank?
+        user.update_column(:recharge_customer_id, customer_id.to_s)
+      end
+      
+      # Update user's payment status
+      user.on_recharge_payment_linked(@payment)
       
       # Redirect back to reports if coming from there, otherwise to payment detail page
       if params[:from_reports] == 'true'
@@ -138,8 +149,9 @@ class RechargePaymentsController < AdminController
           format.turbo_stream
         end
       else
+        extra_msg = linked_count > 0 ? " Also linked #{linked_count} other payment#{'s' if linked_count != 1} with the same customer ID." : ""
         redirect_to recharge_payment_path(@payment),
-                    notice: "Linked to user #{user.display_name} and updated their Recharge customer ID, payment type, and membership status."
+                    notice: "Linked to user #{user.display_name}.#{extra_msg}"
       end
     else
       if params[:from_reports] == 'true'
