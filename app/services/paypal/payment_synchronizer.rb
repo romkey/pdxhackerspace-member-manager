@@ -63,7 +63,10 @@ module Paypal
             raw_attributes: attrs[:raw_attributes],
             last_synced_at: now
           )
-          user = find_user(attrs[:payer_email], attrs[:payer_name])
+          # Try to find user: first by payer_id, then by email, then by name
+          user = find_user_by_payer_id(attrs[:payer_id]) ||
+                 find_user_by_email(attrs[:payer_email]) ||
+                 find_user_by_name(attrs[:payer_name])
           record.user = user
           record.save!
           saved_count += 1
@@ -103,29 +106,30 @@ module Paypal
       end
     end
 
-    def find_user(email, name = nil)
+    def find_user_by_payer_id(payer_id)
+      return nil if payer_id.blank?
+      
+      User.find_by(paypal_account_id: payer_id)
+    end
+
+    def find_user_by_email(email)
       normalized_email = normalize_email(email)
+      return nil if normalized_email.blank?
+
+      # Match by primary email
+      user = User.where('LOWER(email) = ?', normalized_email).first
+      return user if user
+
+      # Match by extra_emails array
+      User.where('EXISTS (SELECT 1 FROM unnest(extra_emails) AS email WHERE LOWER(email) = ?)',
+                 normalized_email).first
+    end
+
+    def find_user_by_name(name)
       normalized_name = name.to_s.strip.downcase.presence
+      return nil if normalized_name.blank?
 
-      # Try to find by email first (primary email or extra_emails)
-      if normalized_email.present?
-        # Match by primary email
-        user = User.where('LOWER(email) = ?', normalized_email).first
-        return user if user
-
-        # Match by extra_emails array
-        user = User.where('EXISTS (SELECT 1 FROM unnest(extra_emails) AS email WHERE LOWER(email) = ?)',
-                          normalized_email).first
-        return user if user
-      end
-
-      # Try to find by name if email didn't match
-      if normalized_name.present?
-        user = User.where('LOWER(full_name) = ?', normalized_name).first
-        return user if user
-      end
-
-      nil
+      User.where('LOWER(full_name) = ?', normalized_name).first
     end
 
     def normalize_email(value)

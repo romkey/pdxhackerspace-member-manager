@@ -479,4 +479,76 @@ namespace :payments do
     puts "\n" + "=" * 60
     puts "Run 'rails payments:link' to link #{matchable_paypal + matchable_recharge} payments"
   end
+
+  desc "Link orphaned payments (where one payment is linked but others with same ID are not)"
+  task link_orphans: :environment do
+    puts "=" * 60
+    puts "Linking orphaned payments"
+    puts "=" * 60
+
+    # Find PayPal payer_ids that have both linked and unlinked payments
+    puts "\nScanning PayPal payments..."
+    
+    paypal_orphans_linked = 0
+    
+    # Get all payer_ids that have at least one linked payment
+    linked_payer_ids = PaypalPayment.where.not(user_id: nil)
+                                    .where.not(payer_id: [nil, ''])
+                                    .distinct
+                                    .pluck(:payer_id)
+    
+    linked_payer_ids.each do |payer_id|
+      # Find the user this payer_id is linked to
+      linked_payment = PaypalPayment.where(payer_id: payer_id).where.not(user_id: nil).first
+      next unless linked_payment
+      
+      # Find and link any unlinked payments with the same payer_id
+      count = PaypalPayment.where(payer_id: payer_id, user_id: nil)
+                           .update_all(user_id: linked_payment.user_id)
+      
+      if count > 0
+        puts "  Linked #{count} PayPal payment#{'s' if count != 1} for payer_id #{payer_id} to user #{linked_payment.user.display_name}"
+        paypal_orphans_linked += count
+      end
+    end
+    
+    puts "  Total PayPal orphans linked: #{paypal_orphans_linked}"
+
+    # Find Recharge customer_ids that have both linked and unlinked payments
+    puts "\nScanning Recharge payments..."
+    
+    recharge_orphans_linked = 0
+    
+    # Get all customer_ids that have at least one linked payment
+    linked_customer_ids = RechargePayment.where.not(user_id: nil)
+                                         .where.not(customer_id: [nil, ''])
+                                         .distinct
+                                         .pluck(:customer_id)
+    
+    linked_customer_ids.each do |customer_id|
+      # Find the user this customer_id is linked to
+      linked_payment = RechargePayment.where(customer_id: customer_id).where.not(user_id: nil).first
+      next unless linked_payment
+      
+      # Find and link any unlinked payments with the same customer_id
+      count = RechargePayment.where(customer_id: customer_id, user_id: nil)
+                             .update_all(user_id: linked_payment.user_id)
+      
+      if count > 0
+        puts "  Linked #{count} Recharge payment#{'s' if count != 1} for customer_id #{customer_id} to user #{linked_payment.user.display_name}"
+        recharge_orphans_linked += count
+      end
+    end
+    
+    puts "  Total Recharge orphans linked: #{recharge_orphans_linked}"
+
+    # Summary
+    puts "\n" + "=" * 60
+    puts "SUMMARY"
+    puts "=" * 60
+    puts "PayPal orphans linked: #{paypal_orphans_linked}"
+    puts "Recharge orphans linked: #{recharge_orphans_linked}"
+    puts "Total orphans linked: #{paypal_orphans_linked + recharge_orphans_linked}"
+    puts "\nDone!"
+  end
 end
