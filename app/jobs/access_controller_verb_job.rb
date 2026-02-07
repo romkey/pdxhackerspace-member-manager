@@ -70,6 +70,10 @@ class AccessControllerVerbJob < ApplicationJob
     env['ACCESS_TOKEN'] = access_controller.access_token if access_controller.access_token.present?
     env['ACCESS_CONTROLLER_NICKNAME'] = access_controller.nickname if access_controller.nickname.present?
 
+    # Pass through syslog configuration
+    env['SYSLOG_SERVER'] = ENV['SYSLOG_SERVER'] if ENV['SYSLOG_SERVER'].present?
+    env['SYSLOG_PORT'] = ENV['SYSLOG_PORT'] if ENV['SYSLOG_PORT'].present?
+
     if user_id.present?
       user = User.find_by(id: user_id)
       if user
