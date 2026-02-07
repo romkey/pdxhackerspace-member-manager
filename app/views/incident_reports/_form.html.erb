@@ -99,7 +99,7 @@
           <% @incident_report.photos.each do |photo| %>
             <div class="position-relative">
               <% if photo.content_type.start_with?('image/') %>
-                <%= image_tag rails_blob_path(photo, disposition: 'inline'), 
+                <%= image_tag download_photo_incident_report_path(@incident_report, photo_id: photo.id, disposition: 'inline'), 
                     class: "rounded", 
                     style: "max-width: 100px; max-height: 100px; object-fit: cover;" %>
               <% else %>

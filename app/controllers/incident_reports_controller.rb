@@ -1,5 +1,5 @@
 class IncidentReportsController < AdminController
-  before_action :set_incident_report, only: [:show, :edit, :update, :destroy, :add_link, :remove_link, :remove_photo, :download_pdf]
+  before_action :set_incident_report, only: [:show, :edit, :update, :destroy, :add_link, :remove_link, :remove_photo, :download_pdf, :download_photo]
 
   def index
     @incident_reports = IncidentReport.includes(:reporter, :involved_members).ordered
@@ -103,6 +103,17 @@ class IncidentReportsController < AdminController
               filename: filename,
               type: 'application/pdf',
               disposition: 'attachment'
+  end
+
+  # Protected photo download - requires admin authentication (inherited from AdminController)
+  def download_photo
+    photo = @incident_report.photos.find(params[:photo_id])
+    disposition = params[:disposition] == 'inline' ? 'inline' : 'attachment'
+
+    send_data photo.download,
+              filename: photo.filename.to_s,
+              type: photo.content_type,
+              disposition: disposition
   end
 
   private

@@ -177,6 +177,9 @@ Rails.application.routes.draw do
   end
 
   resources :documents do
+    member do
+      get :download
+    end
   end
 
   resources :payment_processors, only: [:index, :show, :edit, :update] do
@@ -228,6 +231,7 @@ Rails.application.routes.draw do
       delete 'links/:link_id', action: :remove_link, as: :remove_link
       delete 'photos/:photo_id', action: :remove_photo, as: :remove_photo
       get :download_pdf
+      get 'photos/:photo_id/download', action: :download_photo, as: :download_photo
     end
   end
 

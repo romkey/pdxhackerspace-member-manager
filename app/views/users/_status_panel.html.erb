@@ -186,7 +186,7 @@
           <ul class="list-unstyled mb-0">
             <% user_documents.each do |doc| %>
               <li class="mb-1">
-                <%= link_to rails_blob_path(doc.file, disposition: "attachment"), class: "text-decoration-none" do %>
+                <%= link_to download_document_path(doc), class: "text-decoration-none" do %>
                   <i class="bi bi-download me-1"></i> <%= doc.title %>
                 <% end %>
               </li>

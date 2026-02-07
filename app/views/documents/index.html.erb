@@ -26,7 +26,7 @@
               <td class="fw-semibold"><%= document.title %></td>
               <td>
                 <% if document.file.attached? %>
-                  <%= link_to document.filename, rails_blob_path(document.file, disposition: "attachment"), class: "text-decoration-none" %>
+                  <%= link_to document.filename, download_document_path(document), class: "text-decoration-none" %>
                   <span class="text-muted small">(<%= number_to_human_size(document.file.byte_size) %>)</span>
                 <% else %>
                   <span class="text-muted fst-italic">No file</span>

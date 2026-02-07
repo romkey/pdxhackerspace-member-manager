@@ -88,13 +88,13 @@
             <% @incident_report.photos.each do |photo| %>
               <div class="position-relative">
                 <% if photo.content_type.start_with?('image/') %>
-                  <%= link_to rails_blob_path(photo, disposition: 'inline'), target: '_blank', rel: 'noopener' do %>
-                    <%= image_tag rails_blob_path(photo, disposition: 'inline'), 
+                  <%= link_to download_photo_incident_report_path(@incident_report, photo_id: photo.id, disposition: 'inline'), target: '_blank', rel: 'noopener' do %>
+                    <%= image_tag download_photo_incident_report_path(@incident_report, photo_id: photo.id, disposition: 'inline'), 
                         class: "rounded", 
                         style: "max-width: 200px; max-height: 200px; object-fit: cover;" %>
                   <% end %>
                 <% else %>
-                  <%= link_to photo.filename, rails_blob_path(photo, disposition: 'attachment'), 
+                  <%= link_to photo.filename, download_photo_incident_report_path(@incident_report, photo_id: photo.id), 
                       class: "btn btn-outline-secondary btn-sm" %>
                 <% end %>
                 <%= button_to remove_photo_incident_report_path(@incident_report, photo_id: photo.id), 
