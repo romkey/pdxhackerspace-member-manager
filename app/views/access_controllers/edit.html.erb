@@ -36,13 +36,6 @@
             <% end %>
           </dd>
 
-          <% if @access_controller.last_sync_message.present? %>
-            <dt>Last Message</dt>
-            <dd class="<%= 'text-danger' if @access_controller.sync_status == 'failed' %>">
-              <%= @access_controller.last_sync_message %>
-            </dd>
-          <% end %>
-
           <dt>Created</dt>
           <dd><%= l(@access_controller.created_at, format: :long) %></dd>
         </dl>

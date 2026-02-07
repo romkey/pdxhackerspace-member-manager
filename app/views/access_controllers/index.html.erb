@@ -58,11 +58,6 @@
                 <span class="badge text-bg-<%= controller.status_badge_class %>">
                   <%= controller.status_label %>
                 </span>
-                <% if controller.last_sync_message.present? %>
-                  <i class="bi bi-info-circle text-<%= controller.sync_status == 'failed' ? 'danger' : 'muted' %> ms-1" 
-                     data-bs-toggle="tooltip" 
-                     title="<%= controller.last_sync_message %>"></i>
-                <% end %>
                 <% if controller.last_command.present? && controller.last_command_output.present? %>
                   <br><small class="text-muted">
                     Last: <code><%= controller.last_command %></code>

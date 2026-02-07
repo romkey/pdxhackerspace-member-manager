@@ -15,8 +15,7 @@ class AccessController < ApplicationRecord
   def record_sync_success!(message = nil)
     update!(
       last_sync_at: Time.current,
-      sync_status: 'success',
-      last_sync_message: message
+      sync_status: 'success'
     )
   end
 
@@ -24,8 +23,7 @@ class AccessController < ApplicationRecord
   def record_sync_failure!(message)
     update!(
       last_sync_at: Time.current,
-      sync_status: 'failed',
-      last_sync_message: message.to_s.truncate(500)
+      sync_status: 'failed'
     )
   end
 
