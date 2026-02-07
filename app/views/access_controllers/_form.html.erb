@@ -40,8 +40,8 @@
 
   <div class="mb-3">
     <%= f.label :access_token, "Access Token (optional)", class: "form-label" %>
-    <%= f.text_field :access_token, class: "form-control", placeholder: "Will be passed as ACCESS_TOKEN" %>
-    <div class="form-text">If set, the token will be passed via ENV as ACCESS_TOKEN.</div>
+    <%= f.text_area :access_token, class: "form-control", rows: 3, placeholder: "Will be passed as ACCESS_TOKEN" %>
+    <div class="form-text">If set, the token will be passed via ENV as ACCESS_TOKEN. Newlines are preserved.</div>
   </div>
 
   <div class="mb-3">
