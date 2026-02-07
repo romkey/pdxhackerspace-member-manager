@@ -1,4 +1,4 @@
-class CreateAccessControllerLogs < ActiveRecord::Migration[8.0]
+class CreateAccessControllerLogs < ActiveRecord::Migration[7.1]
   def change
     create_table :access_controller_logs do |t|
       t.references :access_controller, null: false, foreign_key: true
