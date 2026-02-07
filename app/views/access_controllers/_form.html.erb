@@ -17,6 +17,12 @@
   </div>
 
   <div class="mb-3">
+    <%= f.label :nickname, "Nickname (optional)", class: "form-label" %>
+    <%= f.text_field :nickname, class: "form-control", placeholder: "e.g., door1, shop" %>
+    <div class="form-text">Short identifier passed to scripts as ACCESS_CONTROLLER_NICKNAME environment variable.</div>
+  </div>
+
+  <div class="mb-3">
     <%= f.label :hostname, "Hostname / IP Address", class: "form-label" %>
     <%= f.text_field :hostname, class: "form-control", required: true, placeholder: "e.g., 192.168.1.100 or door1.local" %>
     <div class="form-text">The IP address or domain name used to connect via SSH.</div>

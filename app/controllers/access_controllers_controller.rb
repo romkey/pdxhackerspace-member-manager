@@ -51,7 +51,7 @@ class AccessControllersController < AdminController
 
   def sync
     if @access_controller.enabled?
-      AccessControllerSyncJob.perform_later(@access_controller.id)
+      AccessControllerSyncJob.perform_later(@access_controller.id, current_user.id)
       redirect_to access_controllers_path, notice: "Sync started for '#{@access_controller.name}'."
     else
       redirect_to access_controllers_path, alert: "Access controller '#{@access_controller.name}' is disabled."
@@ -68,7 +68,7 @@ class AccessControllersController < AdminController
     end
 
     if @access_controller.enabled?
-      AccessControllerVerbJob.perform_later(@access_controller.id, action)
+      AccessControllerVerbJob.perform_later(@access_controller.id, action, current_user.id)
       redirect_to access_controllers_path, notice: "Command '#{action}' started for '#{@access_controller.name}'."
     else
       redirect_to access_controllers_path, alert: "Access controller '#{@access_controller.name}' is disabled."
@@ -77,7 +77,7 @@ class AccessControllersController < AdminController
 
   def sync_all
     enabled = AccessController.enabled
-    enabled.find_each { |controller| AccessControllerSyncJob.perform_later(controller.id) }
+    enabled.find_each { |controller| AccessControllerSyncJob.perform_later(controller.id, current_user.id) }
     redirect_to access_controllers_path, notice: "Sync started for #{enabled.count} access controller(s)."
   end
 
@@ -88,6 +88,6 @@ class AccessControllersController < AdminController
   end
 
   def access_controller_params
-    params.require(:access_controller).permit(:name, :hostname, :description, :access_token, :script_arguments, :enabled, :display_order, :access_controller_type_id)
+    params.require(:access_controller).permit(:name, :nickname, :hostname, :description, :access_token, :script_arguments, :enabled, :display_order, :access_controller_type_id)
   end
 end
