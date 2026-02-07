@@ -39,6 +39,12 @@
   </div>
 
   <div class="mb-3">
+    <%= f.label :script_arguments, "Script Arguments (optional)", class: "form-label" %>
+    <%= f.text_field :script_arguments, class: "form-control", placeholder: "e.g., --verbose --timeout=30" %>
+    <div class="form-text">Arguments passed to the script after the action and before the hostname.</div>
+  </div>
+
+  <div class="mb-3">
     <%= f.label :access_token, "Access Token (optional)", class: "form-label" %>
     <%= f.text_area :access_token, class: "form-control", rows: 3, placeholder: "Will be passed as ACCESS_TOKEN" %>
     <div class="form-text">If set, the token will be passed via ENV as ACCESS_TOKEN. Newlines are preserved.</div>

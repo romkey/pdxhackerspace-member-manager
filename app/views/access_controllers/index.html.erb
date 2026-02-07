@@ -19,7 +19,7 @@
             <th scope="col">Name</th>
             <th scope="col">Hostname</th>
             <th scope="col">Type</th>
-            <th scope="col">ACCESS_TOKEN</th>
+            <th scope="col">Options</th>
             <th scope="col">Status</th>
             <th scope="col">Last Sync</th>
             <th scope="col">Enabled</th>
@@ -45,19 +45,34 @@
               </td>
               <td>
                 <% if controller.access_token.present? %>
-                  <span class="badge text-bg-success">Set</span>
-                <% else %>
-                  <span class="text-muted">Not set</span>
+                  <span class="badge text-bg-success">Token</span>
+                <% end %>
+                <% if controller.script_arguments.present? %>
+                  <span class="badge text-bg-info" data-bs-toggle="tooltip" title="<%= controller.script_arguments %>">Args</span>
+                <% end %>
+                <% if controller.access_token.blank? && controller.script_arguments.blank? %>
+                  <span class="text-muted">—</span>
                 <% end %>
               </td>
               <td>
                 <span class="badge text-bg-<%= controller.status_badge_class %>">
                   <%= controller.status_label %>
                 </span>
-                <% if controller.last_sync_message.present? && controller.sync_status == 'failed' %>
-                  <i class="bi bi-info-circle text-danger ms-1" 
+                <% if controller.last_sync_message.present? %>
+                  <i class="bi bi-info-circle text-<%= controller.sync_status == 'failed' ? 'danger' : 'muted' %> ms-1" 
                      data-bs-toggle="tooltip" 
                      title="<%= controller.last_sync_message %>"></i>
+                <% end %>
+                <% if controller.last_command.present? && controller.last_command_output.present? %>
+                  <br><small class="text-muted">
+                    Last: <code><%= controller.last_command %></code>
+                    <span class="badge text-bg-<%= controller.last_command_status == 'success' ? 'success' : 'danger' %> badge-sm">
+                      <%= controller.last_command_status %>
+                    </span>
+                    <i class="bi bi-info-circle ms-1" 
+                       data-bs-toggle="tooltip" 
+                       title="<%= truncate(controller.last_command_output, length: 300) %>"></i>
+                  </small>
                 <% end %>
               </td>
               <td>
@@ -116,6 +131,114 @@
     </div>
   </div>
 <% end %>
+
+<%# Recent Logs Section %>
+<div class="mt-5">
+  <h2 class="h4 mb-3">Recent Logs</h2>
+  <% if @recent_logs.any? %>
+    <div class="card shadow-sm border-0">
+      <div class="table-responsive">
+        <table class="table mb-0 align-middle table-sm">
+          <thead class="bg-body-tertiary">
+            <tr>
+              <th scope="col">Time</th>
+              <th scope="col">Controller</th>
+              <th scope="col">Action</th>
+              <th scope="col">Status</th>
+              <th scope="col">Exit Code</th>
+              <th scope="col">Command</th>
+              <th scope="col">Output</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @recent_logs.each do |log| %>
+              <tr class="<%= 'table-danger' if log.failed? %><%= 'table-warning' if log.running? %>">
+                <td class="text-nowrap">
+                  <small><%= log.created_at.strftime('%Y-%m-%d %H:%M:%S') %></small>
+                  <% if log.duration %>
+                    <br><small class="text-muted"><%= log.duration %>s</small>
+                  <% end %>
+                </td>
+                <td>
+                  <% if log.access_controller %>
+                    <strong><%= log.access_controller.name %></strong>
+                  <% else %>
+                    <span class="text-muted">Deleted</span>
+                  <% end %>
+                </td>
+                <td><code><%= log.action %></code></td>
+                <td>
+                  <span class="badge text-bg-<%= log.status_badge_class %>">
+                    <%= log.status.titleize %>
+                  </span>
+                </td>
+                <td>
+                  <% if log.exit_code.present? %>
+                    <code><%= log.exit_code %></code>
+                  <% else %>
+                    <span class="text-muted">—</span>
+                  <% end %>
+                </td>
+                <td>
+                  <% if log.command_line.present? %>
+                    <code class="small" style="max-width: 300px; display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                          data-bs-toggle="tooltip"
+                          data-bs-title="<%= log.command_line %>">
+                      <%= truncate(log.command_line, length: 50) %>
+                    </code>
+                  <% else %>
+                    <span class="text-muted">—</span>
+                  <% end %>
+                </td>
+                <td>
+                  <% if log.output.present? %>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#logOutputModal<%= log.id %>">
+                      View
+                    </button>
+                    <!-- Modal -->
+                    <div class="modal fade" id="logOutputModal<%= log.id %>" tabindex="-1" aria-hidden="true">
+                      <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                          <div class="modal-header">
+                            <h5 class="modal-title">
+                              Log Output: <%= log.access_controller&.name %> - <%= log.action %>
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                          </div>
+                          <div class="modal-body">
+                            <p class="text-muted small mb-2">
+                              <strong>Time:</strong> <%= log.created_at.strftime('%Y-%m-%d %H:%M:%S') %><br>
+                              <strong>Command:</strong> <code><%= log.command_line %></code><br>
+                              <strong>Exit Code:</strong> <%= log.exit_code || 'N/A' %>
+                            </p>
+                            <pre class="bg-dark text-light p-3 rounded" style="max-height: 400px; overflow: auto;"><%= log.output %></pre>
+                          </div>
+                          <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  <% else %>
+                    <span class="text-muted">—</span>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% else %>
+    <div class="card shadow-sm border-0">
+      <div class="card-body text-center py-4">
+        <p class="text-muted mb-0">No logs recorded yet.</p>
+      </div>
+    </div>
+  <% end %>
+</div>
 
 <script>
   // Initialize Bootstrap tooltips

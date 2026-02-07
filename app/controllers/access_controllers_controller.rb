@@ -3,6 +3,7 @@ class AccessControllersController < AdminController
 
   def index
     @access_controllers = AccessController.includes(:access_controller_type).ordered
+    @recent_logs = AccessControllerLog.includes(:access_controller).recent(50)
   end
 
   def show; end
@@ -87,6 +88,6 @@ class AccessControllersController < AdminController
   end
 
   def access_controller_params
-    params.require(:access_controller).permit(:name, :hostname, :description, :access_token, :enabled, :display_order, :access_controller_type_id)
+    params.require(:access_controller).permit(:name, :hostname, :description, :access_token, :script_arguments, :enabled, :display_order, :access_controller_type_id)
   end
 end

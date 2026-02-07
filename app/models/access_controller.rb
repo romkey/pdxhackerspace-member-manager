@@ -1,5 +1,7 @@
 class AccessController < ApplicationRecord
-  belongs_to :access_controller_type
+  belongs_to :access_controller_type, optional: true
+  has_many :access_controller_logs, dependent: :destroy
+
   SYNC_STATUSES = %w[unknown success failed syncing].freeze
 
   validates :name, presence: true, uniqueness: true

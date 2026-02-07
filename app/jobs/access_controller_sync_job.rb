@@ -22,11 +22,34 @@ class AccessControllerSyncJob < ApplicationJob
       return
     end
 
+    # Build command line arguments
+    cmd_args = [script_path]
+    if access_controller.script_arguments.present?
+      cmd_args += access_controller.script_arguments.split(/\s+/)
+    end
+    cmd_args << access_controller.hostname
+
+    command_line = cmd_args.map { |a| a.include?(' ') ? "\"#{a}\"" : a }.join(' ')
+
+    # Create log entry
+    log = access_controller.access_controller_logs.create!(
+      action: 'sync',
+      command_line: command_line,
+      status: 'running'
+    )
+
     payload = AccessControllerPayloadBuilder.call
     env = build_env(access_controller)
 
-    stdout, stderr, status = Open3.capture3(env, script_path, access_controller.hostname, stdin_data: payload)
+    stdout, stderr, status = Open3.capture3(env, *cmd_args, stdin_data: payload)
     output = [stdout, stderr].map(&:to_s).map(&:strip).reject(&:blank?).join("\n")
+
+    log_status = status.success? ? 'success' : 'failed'
+    log.update!(
+      output: output.presence,
+      exit_code: status.exitstatus,
+      status: log_status
+    )
 
     if status.success?
       access_controller.record_sync_success!(output.presence)
@@ -35,7 +58,13 @@ class AccessControllerSyncJob < ApplicationJob
       access_controller.record_sync_failure!(message)
     end
   rescue StandardError => e
-    access_controller&.record_sync_failure!("Sync failed: #{e.class}: #{e.message}")
+    error_message = "Sync failed: #{e.class}: #{e.message}"
+
+    if defined?(log) && log.persisted?
+      log.update!(output: error_message, status: 'failed')
+    end
+
+    access_controller&.record_sync_failure!(error_message)
   end
 
   private
