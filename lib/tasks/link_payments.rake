@@ -554,4 +554,167 @@ namespace :payments do
     puts "Total orphans linked: #{paypal_orphans_linked + recharge_orphans_linked}"
     puts "\nDone!"
   end
+
+  desc "Download all available PayPal payments, store new ones, and process them (match plans, link users)"
+  task paypal_full_sync: :environment do
+    unless PaypalConfig.enabled?
+      puts "PayPal integration is not configured. Set PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET."
+      next
+    end
+
+    # PayPal Transaction Search API allows up to 3 years of history
+    lookback_days = ENV.fetch('PAYPAL_FULL_SYNC_DAYS', '1095').to_i # 3 years default
+    start_time = Time.current - lookback_days.days
+
+    puts "=" * 60
+    puts "PayPal Full Sync"
+    puts "=" * 60
+    puts "Fetching all PayPal transactions from #{start_time.strftime('%Y-%m-%d')} to now (#{lookback_days} days)"
+    puts "Set PAYPAL_FULL_SYNC_DAYS to change the lookback period (max ~1095 for 3 years)"
+    puts ""
+
+    # Get allowed transaction subjects for plan matching
+    plan_subjects = MembershipPlan.with_transaction_subject
+                                   .pluck(:paypal_transaction_subject)
+                                   .compact
+    puts "Payment plan subjects configured: #{plan_subjects.any? ? plan_subjects.join(', ') : 'NONE (all payments will be unmatched!)'}"
+    puts ""
+
+    # Fetch transactions from PayPal API
+    puts "Downloading transactions from PayPal API..."
+    client = Paypal::Client.new
+    begin
+      payments = client.transactions(start_time: start_time)
+    rescue Faraday::ForbiddenError => e
+      puts "ERROR: PayPal API returned 403 Forbidden."
+      puts "Your PayPal app may not have 'Transaction Search' / 'Reporting API' enabled."
+      next
+    rescue StandardError => e
+      puts "ERROR: #{e.class}: #{e.message}"
+      next
+    end
+
+    puts "Downloaded #{payments.count} transactions from PayPal"
+    puts ""
+
+    # Build user lookup tables
+    puts "Building user lookup tables..."
+    payer_id_to_user = User.where.not(paypal_account_id: [nil, ''])
+                           .index_by(&:paypal_account_id)
+
+    email_to_user = {}
+    name_to_user = {}
+    User.find_each do |user|
+      email_to_user[user.email.to_s.strip.downcase] = user if user.email.present?
+      if user.extra_emails.present?
+        user.extra_emails.each do |extra|
+          email_to_user[extra.to_s.strip.downcase] = user
+        end
+      end
+      name_to_user[user.full_name.to_s.strip.downcase] = user if user.full_name.present?
+    end
+    puts "  #{payer_id_to_user.size} users with PayPal account IDs"
+    puts "  #{email_to_user.size} email addresses indexed"
+    puts "  #{name_to_user.size} names indexed"
+    puts ""
+
+    # Process payments
+    now = Time.current
+    new_count = 0
+    updated_count = 0
+    skipped_count = 0
+    matched_plan_count = 0
+    unmatched_plan_count = 0
+    linked_user_count = 0
+    error_count = 0
+
+    puts "Processing #{payments.count} transactions..."
+
+    PaypalPayment.transaction do
+      payments.each do |attrs|
+        # Determine if this payment matches a plan
+        matches_plan = false
+        if attrs[:raw_attributes].present? && plan_subjects.any?
+          raw_json = attrs[:raw_attributes].to_json
+          matches_plan = plan_subjects.any? { |subject| raw_json.include?(subject) }
+        end
+
+        if matches_plan
+          matched_plan_count += 1
+        else
+          unmatched_plan_count += 1
+        end
+
+        record = PaypalPayment.find_or_initialize_by(paypal_id: attrs[:paypal_id])
+        is_new = record.new_record?
+
+        record.assign_attributes(
+          status: attrs[:status],
+          amount: attrs[:amount],
+          currency: attrs[:currency],
+          transaction_time: attrs[:transaction_time],
+          transaction_type: attrs[:transaction_type],
+          payer_email: attrs[:payer_email],
+          payer_name: attrs[:payer_name],
+          payer_id: attrs[:payer_id],
+          raw_attributes: attrs[:raw_attributes],
+          last_synced_at: now,
+          matches_plan: matches_plan
+        )
+
+        # Try to link to a user (for all payments, not just plan-matching ones)
+        if record.user_id.blank?
+          payer_id = attrs[:payer_id].to_s.strip
+          payer_email = attrs[:payer_email].to_s.strip.downcase
+          payer_name = attrs[:payer_name].to_s.strip.downcase
+
+          user = payer_id_to_user[payer_id] if payer_id.present?
+          user ||= email_to_user[payer_email] if payer_email.present?
+          user ||= name_to_user[payer_name] if payer_name.present?
+
+          if user
+            record.user = user
+            linked_user_count += 1 if is_new || record.user_id_changed?
+          end
+        end
+
+        record.save!
+
+        if is_new
+          new_count += 1
+        else
+          updated_count += 1
+        end
+      rescue ActiveRecord::RecordInvalid => e
+        error_count += 1
+        puts "  ERROR saving payment #{attrs[:paypal_id]}: #{e.message}"
+      end
+    end
+
+    # Summary
+    puts ""
+    puts "=" * 60
+    puts "SUMMARY"
+    puts "=" * 60
+    puts "Total transactions from API:  #{payments.count}"
+    puts "New payments stored:          #{new_count}"
+    puts "Existing payments updated:    #{updated_count}"
+    puts "Errors:                       #{error_count}"
+    puts ""
+    puts "Plan matching:"
+    puts "  Matched a plan:             #{matched_plan_count}"
+    puts "  Did not match a plan:       #{unmatched_plan_count}"
+    puts ""
+    puts "User linking:"
+    puts "  Newly linked to users:      #{linked_user_count}"
+    puts ""
+    puts "Database totals:"
+    puts "  Total PayPal payments:      #{PaypalPayment.count}"
+    puts "  Matching plans:             #{PaypalPayment.matching_plan.count}"
+    puts "  Not matching plans:         #{PaypalPayment.not_matching_plan.count}"
+    puts "  Linked to users:            #{PaypalPayment.where.not(user_id: nil).count}"
+    puts "  Unlinked:                   #{PaypalPayment.where(user_id: nil).count}"
+    puts ""
+    puts "Done!"
+  end
 end
