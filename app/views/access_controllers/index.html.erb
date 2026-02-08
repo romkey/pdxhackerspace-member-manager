@@ -192,7 +192,6 @@
                   <% end %>
                 </td>
                 <td>
-                  <% if log.output.present? %>
                     <button type="button" class="btn btn-sm btn-outline-secondary" 
                             data-bs-toggle="modal" 
                             data-bs-target="#logOutputModal<%= log.id %>">
@@ -214,7 +213,11 @@
                               <strong>Command:</strong> <code><%= log.command_line %></code><br>
                               <strong>Exit Code:</strong> <%= log.exit_code || 'N/A' %>
                             </p>
-                            <pre class="bg-dark text-light p-3 rounded" style="max-height: 400px; overflow: auto;"><%= log.output %></pre>
+                            <% if log.output.present? %>
+                              <pre class="bg-dark text-light p-3 rounded" style="max-height: 400px; overflow: auto;"><%= log.output %></pre>
+                            <% else %>
+                              <p class="text-muted fst-italic">No output produced.</p>
+                            <% end %>
                           </div>
                           <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -222,9 +225,6 @@
                         </div>
                       </div>
                     </div>
-                  <% else %>
-                    <span class="text-muted">—</span>
-                  <% end %>
                 </td>
               </tr>
             <% end %>
