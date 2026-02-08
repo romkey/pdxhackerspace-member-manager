@@ -1,16 +1,30 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
-    <h1 class="h3 mb-1">PayPal Payments</h1>
+    <h1 class="h3 mb-1">
+      PayPal Payments
+      <% if @show_unmatched %>
+        <span class="badge text-bg-warning fs-6">Unmatched</span>
+      <% end %>
+    </h1>
     <p class="text-muted mb-0">
       <strong><%= @payment_count %></strong> records —
       Total <strong>$<%= number_to_currency(@total_amount || 0, unit: "") %> USD</strong>
     </p>
   </div>
   <div class="d-flex gap-2">
-    <%= link_to "Export JSON", export_paypal_payments_path, class: "btn btn-outline-primary", data: { turbo: false } %>
-    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#importModal">Import JSON</button>
-    <%= button_to "Sync now", sync_paypal_payments_path, method: :post, class: "btn btn-primary", data: { turbo: false } %>
-    <%= link_to "Test", test_paypal_payments_path, class: "btn btn-outline-secondary" %>
+    <% if @show_unmatched %>
+      <%= link_to "Back to Matched", paypal_payments_path, class: "btn btn-outline-primary" %>
+      <%= link_to "View Unique Subjects", unmatched_subjects_paypal_payments_path, class: "btn btn-outline-info" %>
+    <% else %>
+      <% if @unmatched_plan_count > 0 %>
+        <%= link_to paypal_payments_path(show_unmatched: 'true'), class: "btn btn-outline-warning" do %>
+          Show Unmatched (<%= @unmatched_plan_count %>)
+        <% end %>
+      <% end %>
+      <%= link_to "Export JSON", export_paypal_payments_path, class: "btn btn-outline-primary", data: { turbo: false } %>
+      <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#importModal">Import JSON</button>
+      <%= button_to "Sync now", sync_paypal_payments_path, method: :post, class: "btn btn-primary", data: { turbo: false } %>
+    <% end %>
   </div>
 </div>
 
@@ -25,7 +39,7 @@
           end %> payments
       (<%= @payment_count %> of <%= @total_count %>)
     </small>
-    <%= link_to "Clear filter", paypal_payments_path, class: "btn btn-outline-secondary btn-sm" %>
+    <%= link_to "Clear filter", paypal_payments_path(show_unmatched: @show_unmatched ? 'true' : nil), class: "btn btn-outline-secondary btn-sm" %>
   </div>
 <% end %>
 
@@ -33,17 +47,18 @@
   <div class="card-body">
     <p class="small text-muted mb-3"><i class="bi bi-hand-index me-1"></i> Click any badge to filter the list</p>
     
+    <% unmatched_param = @show_unmatched ? { show_unmatched: 'true' } : {} %>
     <div class="d-flex flex-wrap gap-2">
-      <%= link_to paypal_payments_path, class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if !@filter_active}" do %>
+      <%= link_to paypal_payments_path(unmatched_param), class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if !@filter_active}" do %>
         All: <strong><%= @total_count %></strong>
       <% end %>
-      <%= link_to paypal_payments_path(linked: 'yes'), class: "badge text-bg-success text-decoration-none #{'border border-dark border-2' if params[:linked] == 'yes'}" do %>
+      <%= link_to paypal_payments_path(unmatched_param.merge(linked: 'yes')), class: "badge text-bg-success text-decoration-none #{'border border-dark border-2' if params[:linked] == 'yes'}" do %>
         Linked: <strong><%= @linked_count %></strong>
       <% end %>
-      <%= link_to paypal_payments_path(linked: 'no'), class: "badge text-bg-warning text-decoration-none #{'border border-dark border-2' if params[:linked] == 'no'}" do %>
+      <%= link_to paypal_payments_path(unmatched_param.merge(linked: 'no')), class: "badge text-bg-warning text-decoration-none #{'border border-dark border-2' if params[:linked] == 'no'}" do %>
         Unlinked: <strong><%= @unlinked_count %></strong>
       <% end %>
-      <%= link_to paypal_payments_path(linked: 'dont_link'), class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if params[:linked] == 'dont_link'}" do %>
+      <%= link_to paypal_payments_path(unmatched_param.merge(linked: 'dont_link')), class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if params[:linked] == 'dont_link'}" do %>
         Don't Link: <strong><%= @dont_link_count %></strong>
       <% end %>
     </div>

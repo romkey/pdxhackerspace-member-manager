@@ -5,6 +5,8 @@ class PaypalPayment < ApplicationRecord
 
   scope :ordered, -> { order(transaction_time: :desc, created_at: :desc) }
   scope :for_user, ->(user) { where(user_id: user.id) }
+  scope :matching_plan, -> { where(matches_plan: true) }
+  scope :not_matching_plan, -> { where(matches_plan: false) }
 
   before_validation :normalize_payer_email
 

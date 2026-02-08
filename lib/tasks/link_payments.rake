@@ -44,7 +44,7 @@ namespace :payments do
       name_to_user[user.full_name.strip.downcase] = user
     end
 
-    PaypalPayment.where(user_id: nil).find_each do |payment|
+    PaypalPayment.matching_plan.where(user_id: nil).find_each do |payment|
       user = nil
       match_type = nil
 
@@ -416,27 +416,30 @@ namespace :payments do
 
     # PayPal stats
     puts "\nPayPal Payments:"
-    total_paypal = PaypalPayment.count
-    linked_paypal = PaypalPayment.where.not(user_id: nil).count
-    unlinked_with_payer_id = PaypalPayment.where(user_id: nil).where.not(payer_id: [nil, '']).count
-    unlinked_no_payer_id = PaypalPayment.where(user_id: nil, payer_id: [nil, '']).count
-    dont_link_paypal = PaypalPayment.where(dont_link: true).count
+    matched_paypal = PaypalPayment.matching_plan
+    total_paypal = matched_paypal.count
+    linked_paypal = matched_paypal.where.not(user_id: nil).count
+    unlinked_with_payer_id = matched_paypal.where(user_id: nil).where.not(payer_id: [nil, '']).count
+    unlinked_no_payer_id = matched_paypal.where(user_id: nil, payer_id: [nil, '']).count
+    dont_link_paypal = matched_paypal.where(dont_link: true).count
+    unmatched_plan_paypal = PaypalPayment.not_matching_plan.count
 
     # Count how many unlinked could be matched
     paypal_user_map = User.where.not(paypal_account_id: [nil, ''])
                           .pluck(:paypal_account_id, :id)
                           .to_h
-    matchable_paypal = PaypalPayment.where(user_id: nil)
-                                    .where.not(payer_id: [nil, ''])
-                                    .where(payer_id: paypal_user_map.keys)
-                                    .count
+    matchable_paypal = matched_paypal.where(user_id: nil)
+                                     .where.not(payer_id: [nil, ''])
+                                     .where(payer_id: paypal_user_map.keys)
+                                     .count
 
-    puts "  Total: #{total_paypal}"
+    puts "  Total (matching plans): #{total_paypal}"
     puts "  Linked: #{linked_paypal}"
     puts "  Don't Link: #{dont_link_paypal}"
     puts "  Unlinked (with payer ID): #{unlinked_with_payer_id}"
     puts "  Unlinked (no payer ID): #{unlinked_no_payer_id}"
     puts "  Could be linked now: #{matchable_paypal}"
+    puts "  Not matching any plan: #{unmatched_plan_paypal}"
 
     # Recharge stats
     puts "\nRecharge Payments:"
@@ -491,19 +494,19 @@ namespace :payments do
     
     paypal_orphans_linked = 0
     
-    # Get all payer_ids that have at least one linked payment
-    linked_payer_ids = PaypalPayment.where.not(user_id: nil)
+    # Get all payer_ids that have at least one linked payment (only plan-matching payments)
+    linked_payer_ids = PaypalPayment.matching_plan.where.not(user_id: nil)
                                     .where.not(payer_id: [nil, ''])
                                     .distinct
                                     .pluck(:payer_id)
     
     linked_payer_ids.each do |payer_id|
       # Find the user this payer_id is linked to
-      linked_payment = PaypalPayment.where(payer_id: payer_id).where.not(user_id: nil).first
+      linked_payment = PaypalPayment.matching_plan.where(payer_id: payer_id).where.not(user_id: nil).first
       next unless linked_payment
       
-      # Find and link any unlinked payments with the same payer_id
-      count = PaypalPayment.where(payer_id: payer_id, user_id: nil)
+      # Find and link any unlinked plan-matching payments with the same payer_id
+      count = PaypalPayment.matching_plan.where(payer_id: payer_id, user_id: nil)
                            .update_all(user_id: linked_payment.user_id)
       
       if count > 0

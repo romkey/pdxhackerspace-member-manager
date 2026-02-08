@@ -91,6 +91,7 @@ Rails.application.routes.draw do
       get :test
       get :export
       post :import
+      get :unmatched_subjects
     end
     member do
       post :link_user

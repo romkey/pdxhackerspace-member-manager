@@ -1,0 +1,26 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">Unmatched PayPal Payment Subjects</h1>
+    <p class="text-muted mb-0">
+      <strong><%= @subjects.count %></strong> unique subjects from payments that don't match any payment plan
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to "Back to Unmatched", paypal_payments_path(show_unmatched: 'true'), class: "btn btn-outline-warning" %>
+    <%= link_to "Back to Payments", paypal_payments_path, class: "btn btn-outline-secondary" %>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <% if @subjects.any? %>
+    <ul class="list-group list-group-flush">
+      <% @subjects.each do |subject| %>
+        <li class="list-group-item"><code><%= subject %></code></li>
+      <% end %>
+    </ul>
+  <% else %>
+    <div class="card-body text-center py-4">
+      <p class="text-muted mb-0">No unmatched payments found, or none have identifiable subjects.</p>
+    </div>
+  <% end %>
+</div>

@@ -1,24 +1,28 @@
 class PaypalPaymentsController < AdminController
   def index
-    # Start with all payments for counts
-    all_payments = PaypalPayment.all
+    # Determine if we're showing unmatched payments
+    @show_unmatched = params[:show_unmatched] == 'true'
 
-    # Calculate counts
-    @total_count = all_payments.count
-    @linked_count = all_payments.where.not(user_id: nil).count
-    # Unlinked excludes dont_link payments
-    @unlinked_count = all_payments.where(user_id: nil, dont_link: false).count
-    @dont_link_count = all_payments.where(dont_link: true).count
+    # Base scope depends on matched/unmatched toggle
+    base_payments = @show_unmatched ? PaypalPayment.not_matching_plan : PaypalPayment.matching_plan
+
+    # Calculate counts (only for the current matched/unmatched view)
+    @total_count = base_payments.count
+    @linked_count = base_payments.where.not(user_id: nil).count
+    @unlinked_count = base_payments.where(user_id: nil, dont_link: false).count
+    @dont_link_count = base_payments.where(dont_link: true).count
+
+    # Count of unmatched payments (always calculated for the button)
+    @unmatched_plan_count = PaypalPayment.not_matching_plan.count
 
     # Build filtered query
-    @payments = all_payments
+    @payments = base_payments
 
     # Apply linked/unlinked filter
     case params[:linked]
     when 'yes'
       @payments = @payments.where.not(user_id: nil)
     when 'no'
-      # Unlinked excludes dont_link payments
       @payments = @payments.where(user_id: nil, dont_link: false)
     when 'dont_link'
       @payments = @payments.where(dont_link: true)
@@ -30,6 +34,12 @@ class PaypalPaymentsController < AdminController
 
     # Track filter state
     @filter_active = params[:linked].present?
+  end
+
+  def unmatched_subjects
+    # Get unique transaction subjects from payments that don't match any plan
+    unmatched = PaypalPayment.not_matching_plan
+    @subjects = unmatched.map { |p| extract_subject(p) }.compact.uniq.sort
   end
 
   def show
@@ -142,6 +152,19 @@ class PaypalPaymentsController < AdminController
     Paypal::PaymentSyncJob.perform_later
     redirect_to paypal_payments_path, notice: 'PayPal payment sync has been scheduled.'
   end
+
+  private
+
+  def extract_subject(payment)
+    return nil if payment.raw_attributes.blank?
+
+    raw = payment.raw_attributes
+    raw.dig('transaction_info', 'transaction_subject') ||
+      raw.dig('cart_info', 'item_details', 0, 'item_name') ||
+      nil
+  end
+
+  public
 
   def test
     # Only consider payments for $40 (with small tolerance for decimal precision)

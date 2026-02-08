@@ -41,14 +41,16 @@ module Paypal
       saved_count = 0
       skipped_count = 0
 
+      matched_count = 0
+      unmatched_count = 0
+
       PaypalPayment.transaction do
         payments.each do |attrs|
-          # Only import transactions that match a payment plan's transaction subject
-          unless membership_transaction?(attrs)
-            skipped_count += 1
+          matches = membership_transaction?(attrs)
+
+          unless matches
             subject = extract_transaction_subject(attrs)
-            @logger.info { "[PayPal::PaymentSynchronizer] Skipping payment #{attrs[:paypal_id]} - subject '#{subject}' does not match any payment plan (#{attrs[:payer_email]}, $#{attrs[:amount]} #{attrs[:currency]})" }
-            next
+            @logger.info { "[PayPal::PaymentSynchronizer] Payment #{attrs[:paypal_id]} does not match any plan - subject '#{subject}' (#{attrs[:payer_email]}, $#{attrs[:amount]} #{attrs[:currency]})" }
           end
 
           record = PaypalPayment.find_or_initialize_by(paypal_id: attrs[:paypal_id])
@@ -62,13 +64,19 @@ module Paypal
             payer_name: attrs[:payer_name],
             payer_id: attrs[:payer_id],
             raw_attributes: attrs[:raw_attributes],
-            last_synced_at: now
+            last_synced_at: now,
+            matches_plan: matches
           )
-          # Try to find user: first by payer_id, then by email, then by name
-          user = find_user_by_payer_id(attrs[:payer_id]) ||
-                 find_user_by_email(attrs[:payer_email]) ||
-                 find_user_by_name(attrs[:payer_name])
-          record.user = user
+          # Only try to link users for payments that match a plan
+          if matches
+            user = find_user_by_payer_id(attrs[:payer_id]) ||
+                   find_user_by_email(attrs[:payer_email]) ||
+                   find_user_by_name(attrs[:payer_name])
+            record.user = user
+            matched_count += 1
+          else
+            unmatched_count += 1
+          end
           record.save!
           saved_count += 1
           # The PaypalPayment after_save callback will call user.on_paypal_payment_linked
@@ -78,7 +86,7 @@ module Paypal
         end
       end
 
-      @logger.info("[PayPal::PaymentSynchronizer] Processed #{payments.count} transactions: #{saved_count} membership payments saved, #{skipped_count} non-membership skipped")
+      @logger.info("[PayPal::PaymentSynchronizer] Processed #{payments.count} transactions: #{saved_count} saved (#{matched_count} matched plans, #{unmatched_count} unmatched)")
 
       processor.record_successful_sync!(saved_count)
       saved_count
