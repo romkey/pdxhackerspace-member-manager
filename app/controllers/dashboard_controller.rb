@@ -9,6 +9,15 @@ class DashboardController < AdminController
     @recharge_payment_count = RechargePayment.count
     @users_for_search = User.ordered_by_display_name
 
+    # Count members on manual plans
+    manual_plan_ids = MembershipPlan.manual.pluck(:id)
+    @manual_payment_member_count = if manual_plan_ids.any?
+      User.where(membership_plan_id: manual_plan_ids).count +
+        UserSupplementaryPlan.where(membership_plan_id: manual_plan_ids).select(:user_id).distinct.count
+    else
+      0
+    end
+
     # Highlighted journal entries from the last 2 weeks
     @recent_highlights = Journal.highlighted
                                 .includes(:user, :actor_user)

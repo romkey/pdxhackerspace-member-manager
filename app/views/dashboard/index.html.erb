@@ -71,6 +71,15 @@
               <% end %>
             <% end %>
             <% if current_user_admin? %>
+              <% if @manual_payment_member_count > 0 %>
+                <%= link_to manual_payments_membership_plans_path, class: "btn btn-warning btn-lg" do %>
+                  <i class="bi bi-cash-coin me-2"></i>Manual Payments (<%= @manual_payment_member_count %>)
+                <% end %>
+              <% else %>
+                <button class="btn btn-outline-secondary btn-lg" disabled>
+                  <i class="bi bi-cash-coin me-2"></i>Manual Payments (0)
+                </button>
+              <% end %>
               <%= link_to access_controllers_path, class: "btn btn-secondary btn-lg" do %>
                 <i class="bi bi-router me-2"></i>Access Controllers
               <% end %>

@@ -16,6 +16,8 @@ class MembershipPlan < ApplicationRecord
   scope :supplementary, -> { where(plan_type: 'supplementary') }
   scope :with_payment_link, -> { where.not(payment_link: [nil, '']) }
   scope :with_transaction_subject, -> { where.not(paypal_transaction_subject: [nil, '']) }
+  scope :visible, -> { where(visible: true) }
+  scope :manual, -> { where(manual: true) }
 
   def display_name
     "#{name} - $#{format('%.2f', cost)}/#{billing_frequency}"

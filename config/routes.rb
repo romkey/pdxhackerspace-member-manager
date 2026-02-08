@@ -151,7 +151,12 @@ Rails.application.routes.draw do
     end
     resources :links, controller: 'training_topic_links', only: [:create, :update, :destroy]
   end
-  resources :membership_plans
+  resources :membership_plans do
+    collection do
+      get :manual_payments
+      post :mark_dues_received
+    end
+  end
   resources :rfid_readers, except: [:show] do
     member do
       post :regenerate_key
