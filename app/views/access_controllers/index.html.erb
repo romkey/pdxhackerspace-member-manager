@@ -192,6 +192,9 @@
                   <% end %>
                 </td>
                 <td>
+                  <% if log.output.blank? && log.success? %>
+                    <i class="bi bi-check-circle-fill text-success"></i>
+                  <% else %>
                     <button type="button" class="btn btn-sm btn-outline-secondary" 
                             data-bs-toggle="modal" 
                             data-bs-target="#logOutputModal<%= log.id %>">
@@ -225,6 +228,7 @@
                         </div>
                       </div>
                     </div>
+                  <% end %>
                 </td>
               </tr>
             <% end %>
