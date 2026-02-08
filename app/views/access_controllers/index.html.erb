@@ -50,7 +50,13 @@
                 <% if controller.script_arguments.present? %>
                   <span class="badge text-bg-info" data-bs-toggle="tooltip" title="<%= controller.script_arguments %>">Args</span>
                 <% end %>
-                <% if controller.access_token.blank? && controller.script_arguments.blank? %>
+                <% if controller.environment_variables.present? %>
+                  <% env_count = controller.parsed_environment_variables.size %>
+                  <span class="badge text-bg-info" data-bs-toggle="tooltip" title="<%= controller.parsed_environment_variables.keys.join(', ') %>">
+                    <%= env_count %> Env
+                  </span>
+                <% end %>
+                <% if controller.access_token.blank? && controller.script_arguments.blank? && controller.environment_variables.blank? %>
                   <span class="text-muted">—</span>
                 <% end %>
               </td>

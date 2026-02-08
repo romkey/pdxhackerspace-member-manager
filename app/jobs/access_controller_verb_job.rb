@@ -67,6 +67,10 @@ class AccessControllerVerbJob < ApplicationJob
 
   def build_env(access_controller, user_id)
     env = {}
+
+    # Custom environment variables from the access controller (lowest priority, can be overridden)
+    env.merge!(access_controller.parsed_environment_variables)
+
     env['ACCESS_TOKEN'] = access_controller.access_token if access_controller.access_token.present?
     env['ACCESS_CONTROLLER_NICKNAME'] = access_controller.nickname if access_controller.nickname.present?
 

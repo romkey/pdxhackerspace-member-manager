@@ -57,6 +57,12 @@
   </div>
 
   <div class="mb-3">
+    <%= f.label :environment_variables, "Environment Variables (optional)", class: "form-label" %>
+    <%= f.text_area :environment_variables, class: "form-control font-monospace", rows: 4, placeholder: "KEY=value\nANOTHER_KEY=another value" %>
+    <div class="form-text">One per line as <code>KEY=value</code>. Lines starting with <code>#</code> are ignored.</div>
+  </div>
+
+  <div class="mb-3">
     <%= f.label :description, class: "form-label" %>
     <%= f.text_area :description, class: "form-control", rows: 3, placeholder: "Optional description or notes about this controller..." %>
   </div>

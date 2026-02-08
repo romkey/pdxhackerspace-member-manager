@@ -88,6 +88,6 @@ class AccessControllersController < AdminController
   end
 
   def access_controller_params
-    params.require(:access_controller).permit(:name, :nickname, :hostname, :description, :access_token, :script_arguments, :enabled, :display_order, :access_controller_type_id)
+    params.require(:access_controller).permit(:name, :nickname, :hostname, :description, :access_token, :script_arguments, :environment_variables, :enabled, :display_order, :access_controller_type_id)
   end
 end
