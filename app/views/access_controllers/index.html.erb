@@ -24,6 +24,7 @@
             <th scope="col">Sync</th>
             <th scope="col">Ping</th>
             <th scope="col">Enabled</th>
+            <th scope="col" class="text-end"></th>
           </tr>
         </thead>
         <tbody>
@@ -70,22 +71,25 @@
                   <span class="badge text-bg-secondary">Disabled</span>
                 <% end %>
               </td>
-            </tr>
-            <tr class="<%= 'text-body-secondary opacity-75' unless controller.enabled? %>">
-              <td colspan="6" class="pt-1 pb-2">
-                <div class="d-flex flex-wrap gap-1 align-items-center">
-                  <%= link_to "Edit", edit_access_controller_path(controller), class: "btn btn-outline-secondary btn-sm" %>
+              <td class="border-0 pb-0 text-end">
+                <div class="btn-group btn-group-sm">
+                  <%= link_to "Edit", edit_access_controller_path(controller), class: "btn btn-outline-secondary" %>
                   <%= button_to controller.enabled? ? "Disable" : "Enable",
                       toggle_access_controller_path(controller),
                       method: :post,
-                      class: "btn btn-outline-#{controller.enabled? ? 'warning' : 'success'} btn-sm" %>
+                      class: "btn btn-outline-#{controller.enabled? ? 'warning' : 'success'}" %>
                   <%= button_to "Delete", access_controller_path(controller),
                       method: :delete,
-                      class: "btn btn-outline-danger btn-sm",
+                      class: "btn btn-outline-danger",
                       data: { turbo_confirm: "Are you sure you want to delete '#{controller.name}'?" } %>
-                  <% actions = Array(controller.access_controller_type&.actions).map(&:to_s).reject(&:blank?).uniq.sort %>
-                  <% if actions.any? %>
-                    <span class="border-start ms-1 ps-2"></span>
+                </div>
+              </td>
+            </tr>
+            <% actions = Array(controller.access_controller_type&.actions).map(&:to_s).reject(&:blank?).uniq.sort %>
+            <% if actions.any? %>
+              <tr class="<%= 'text-body-secondary opacity-75' unless controller.enabled? %>">
+                <td colspan="7" class="pt-0 pb-2">
+                  <div class="d-flex flex-wrap gap-1 align-items-center">
                     <% actions.each do |action| %>
                       <%= button_to action,
                           run_verb_access_controller_path(controller, action_name: action),
@@ -94,12 +98,12 @@
                           data: { turbo: false },
                           disabled: !controller.enabled? %>
                     <% end %>
-                  <% end %>
-                </div>
-              </td>
-            </tr>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
             <tr>
-              <td colspan="6" class="p-0 border-0">
+              <td colspan="7" class="p-0 border-0">
                 <div data-access-controller-live-target="inlineResult" data-controller-id="<%= controller.id %>" style="display:none;" class="px-3 pb-2"></div>
               </td>
             </tr>
