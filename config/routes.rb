@@ -218,6 +218,7 @@ Rails.application.routes.draw do
     end
     collection do
       post :sync_all
+      get :recent_logs
     end
   end
 

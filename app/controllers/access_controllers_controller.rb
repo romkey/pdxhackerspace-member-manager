@@ -81,6 +81,30 @@ class AccessControllersController < AdminController
     redirect_to access_controllers_path, notice: "Sync started for #{enabled.count} access controller(s)."
   end
 
+  # JSON endpoint for live polling of recent logs
+  def recent_logs
+    since = params[:since].present? ? Time.zone.parse(params[:since]) : 1.hour.ago
+    logs = AccessControllerLog.includes(:access_controller)
+                              .where('created_at >= ? OR status = ?', since, 'running')
+                              .order(created_at: :desc)
+                              .limit(50)
+
+    render json: logs.map { |log|
+      {
+        id: log.id,
+        controller_id: log.access_controller_id,
+        controller_name: log.access_controller&.name || 'Deleted',
+        action: log.action,
+        status: log.status,
+        exit_code: log.exit_code,
+        command_line: log.command_line,
+        output: log.output,
+        created_at: log.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+        duration: log.duration
+      }
+    }
+  end
+
   private
 
   def set_access_controller

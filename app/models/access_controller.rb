@@ -3,6 +3,7 @@ class AccessController < ApplicationRecord
   has_many :access_controller_logs, dependent: :destroy
 
   SYNC_STATUSES = %w[unknown success failed syncing].freeze
+  PING_STATUSES = %w[unknown success failed].freeze
 
   validates :name, presence: true, uniqueness: true
   validates :hostname, presence: true
@@ -32,7 +33,7 @@ class AccessController < ApplicationRecord
     update!(sync_status: 'syncing')
   end
 
-  # Human-readable status
+  # Human-readable sync status
   def status_label
     case sync_status
     when 'success' then 'Success'
@@ -48,6 +49,28 @@ class AccessController < ApplicationRecord
     when 'success' then 'success'
     when 'failed' then 'danger'
     when 'syncing' then 'info'
+    else 'secondary'
+    end
+  end
+
+  # Whether this controller supports ping
+  def supports_ping?
+    Array(access_controller_type&.actions).map(&:to_s).include?('ping')
+  end
+
+  # Ping status helpers
+  def ping_status_label
+    case ping_status
+    when 'success' then 'Online'
+    when 'failed' then 'Offline'
+    else 'Unknown'
+    end
+  end
+
+  def ping_status_badge_class
+    case ping_status
+    when 'success' then 'success'
+    when 'failed' then 'danger'
     else 'secondary'
     end
   end

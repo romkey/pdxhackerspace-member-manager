@@ -40,6 +40,14 @@ Sidekiq.configure_server do |config|
     class: 'Recharge::PaymentSyncJob',
     active_job: true
   )
+
+  # Access Controller Ping - Every 10 minutes
+  Sidekiq::Cron::Job.create(
+    name: 'Access Controller Ping - Every 10 minutes',
+    cron: '*/10 * * * *',
+    class: 'AccessControllerPingJob',
+    active_job: true
+  )
 end
 
 Sidekiq.configure_client do |config|

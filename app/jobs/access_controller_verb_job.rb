@@ -41,26 +41,12 @@ class AccessControllerVerbJob < ApplicationJob
       exit_code: status.exitstatus,
       status: log_status
     )
-
-    access_controller.update!(
-      last_command: action,
-      last_command_at: Time.current,
-      last_command_status: log_status,
-      last_command_output: output.presence || "Command exited with status #{status.exitstatus}."
-    )
   rescue StandardError => e
     error_message = "Command failed: #{e.class}: #{e.message}"
 
     if defined?(log) && log.persisted?
       log.update!(output: error_message, status: 'failed')
     end
-
-    access_controller&.update!(
-      last_command: action,
-      last_command_at: Time.current,
-      last_command_status: 'failed',
-      last_command_output: error_message
-    )
   end
 
   private

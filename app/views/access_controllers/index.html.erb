@@ -10,6 +10,8 @@
   </div>
 </div>
 
+<div data-controller="access-controller-live" data-access-controller-live-url-value="<%= recent_logs_access_controllers_path %>" data-access-controller-live-interval-value="3000">
+
 <% if @access_controllers.any? %>
   <div class="card shadow-sm border-0">
     <div class="table-responsive">
@@ -20,7 +22,8 @@
             <th scope="col">Hostname</th>
             <th scope="col">Type</th>
             <th scope="col">Options</th>
-            <th scope="col">Status</th>
+            <th scope="col">Sync Status</th>
+            <th scope="col">Ping</th>
             <th scope="col">Last Sync</th>
             <th scope="col">Enabled</th>
             <th scope="col" class="text-end">Actions</th>
@@ -64,16 +67,17 @@
                 <span class="badge text-bg-<%= controller.status_badge_class %>">
                   <%= controller.status_label %>
                 </span>
-                <% if controller.last_command.present? && controller.last_command_output.present? %>
-                  <br><small class="text-muted">
-                    Last: <code><%= controller.last_command %></code>
-                    <span class="badge text-bg-<%= controller.last_command_status == 'success' ? 'success' : 'danger' %> badge-sm">
-                      <%= controller.last_command_status %>
-                    </span>
-                    <i class="bi bi-info-circle ms-1" 
-                       data-bs-toggle="tooltip" 
-                       title="<%= truncate(controller.last_command_output, length: 300) %>"></i>
-                  </small>
+              </td>
+              <td>
+                <% if controller.supports_ping? %>
+                  <span class="badge text-bg-<%= controller.ping_status_badge_class %>">
+                    <%= controller.ping_status_label %>
+                  </span>
+                  <% if controller.last_ping_at %>
+                    <br><small class="text-muted"><%= time_ago_in_words(controller.last_ping_at) %> ago</small>
+                  <% end %>
+                <% else %>
+                  <span class="text-muted">—</span>
                 <% end %>
               </td>
               <td>
@@ -106,16 +110,20 @@
                 <% if actions.any? %>
                   <div class="mt-2 d-flex flex-wrap gap-1 justify-content-end">
                     <% actions.each do |action| %>
-                      <% tooltip = controller.last_command == action ? controller.last_command_output : nil %>
                       <%= button_to action,
                           run_verb_access_controller_path(controller, action_name: action),
                           method: :post,
                           class: "btn btn-outline-info btn-sm",
-                          data: tooltip.present? ? { bs_toggle: "tooltip", bs_title: tooltip, turbo: false } : { turbo: false },
+                          data: { turbo: false },
                           disabled: !controller.enabled? %>
                     <% end %>
                   </div>
                 <% end %>
+              </td>
+            </tr>
+            <tr>
+              <td colspan="9" class="p-0 border-0">
+                <div data-access-controller-live-target="inlineResult" data-controller-id="<%= controller.id %>" style="display:none;" class="px-3 pb-2"></div>
               </td>
             </tr>
           <% end %>
@@ -136,22 +144,22 @@
 <%# Recent Logs Section %>
 <div class="mt-5">
   <h2 class="h4 mb-3">Recent Logs</h2>
-  <% if @recent_logs.any? %>
-    <div class="card shadow-sm border-0">
-      <div class="table-responsive">
-        <table class="table mb-0 align-middle table-sm">
-          <thead class="bg-body-tertiary">
-            <tr>
-              <th scope="col">Time</th>
-              <th scope="col">Controller</th>
-              <th scope="col">Action</th>
-              <th scope="col">Status</th>
-              <th scope="col">Exit Code</th>
-              <th scope="col">Command</th>
-              <th scope="col">Output</th>
-            </tr>
-          </thead>
-          <tbody>
+  <div class="card shadow-sm border-0">
+    <div class="table-responsive">
+      <table class="table mb-0 align-middle table-sm">
+        <thead class="bg-body-tertiary">
+          <tr>
+            <th scope="col">Time</th>
+            <th scope="col">Controller</th>
+            <th scope="col">Action</th>
+            <th scope="col">Status</th>
+            <th scope="col">Exit Code</th>
+            <th scope="col">Command</th>
+            <th scope="col">Output</th>
+          </tr>
+        </thead>
+        <tbody data-access-controller-live-target="logsBody">
+          <% if @recent_logs.any? %>
             <% @recent_logs.each do |log| %>
               <tr class="<%= 'table-danger' if log.failed? %><%= 'table-warning' if log.running? %>">
                 <td class="text-nowrap">
@@ -194,6 +202,8 @@
                 <td>
                   <% if log.output.blank? && log.success? %>
                     <i class="bi bi-check-circle-fill text-success"></i>
+                  <% elsif log.running? %>
+                    <span class="spinner-border spinner-border-sm text-warning"></span>
                   <% else %>
                     <button type="button" class="btn btn-sm btn-outline-secondary" 
                             data-bs-toggle="modal" 
@@ -232,18 +242,16 @@
                 </td>
               </tr>
             <% end %>
-          </tbody>
-        </table>
-      </div>
+          <% else %>
+            <tr><td colspan="7" class="text-center text-muted py-4">No logs recorded yet.</td></tr>
+          <% end %>
+        </tbody>
+      </table>
     </div>
-  <% else %>
-    <div class="card shadow-sm border-0">
-      <div class="card-body text-center py-4">
-        <p class="text-muted mb-0">No logs recorded yet.</p>
-      </div>
-    </div>
-  <% end %>
+  </div>
 </div>
+
+</div><%# end of access-controller-live controller %>
 
 <script>
   // Initialize Bootstrap tooltips
