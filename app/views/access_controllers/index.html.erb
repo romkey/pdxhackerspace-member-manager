@@ -28,22 +28,22 @@
         </thead>
         <tbody>
           <% @access_controllers.each do |controller| %>
-            <tr class="<%= 'text-body-secondary opacity-75' unless controller.enabled? %>" style="border-bottom: 0;">
-              <td>
+            <tr class="<%= 'text-body-secondary opacity-75' unless controller.enabled? %>">
+              <td class="border-0 pb-0">
                 <strong><%= controller.name %></strong>
                 <% if controller.description.present? %>
                   <br><span class="text-muted small"><%= truncate(controller.description, length: 60) %></span>
                 <% end %>
               </td>
-              <td><code><%= controller.hostname %></code></td>
-              <td>
+              <td class="border-0 pb-0"><code><%= controller.hostname %></code></td>
+              <td class="border-0 pb-0">
                 <% if controller.access_controller_type %>
                   <span class="badge text-bg-info"><%= controller.access_controller_type.name %></span>
                 <% else %>
                   <span class="text-muted">—</span>
                 <% end %>
               </td>
-              <td>
+              <td class="border-0 pb-0">
                 <span class="badge text-bg-<%= controller.status_badge_class %>">
                   <%= controller.status_label %>
                 </span>
@@ -51,7 +51,7 @@
                   <br><small class="text-muted"><%= time_ago_in_words(controller.last_sync_at) %> ago</small>
                 <% end %>
               </td>
-              <td>
+              <td class="border-0 pb-0">
                 <% if controller.supports_ping? %>
                   <span class="badge text-bg-<%= controller.ping_status_badge_class %>">
                     <%= controller.ping_status_label %>
@@ -63,7 +63,7 @@
                   <span class="text-muted">—</span>
                 <% end %>
               </td>
-              <td>
+              <td class="border-0 pb-0">
                 <% if controller.enabled? %>
                   <span class="badge text-bg-success">Enabled</span>
                 <% else %>
@@ -72,7 +72,7 @@
               </td>
             </tr>
             <tr class="<%= 'text-body-secondary opacity-75' unless controller.enabled? %>">
-              <td colspan="6" class="pt-0 pb-2 border-0">
+              <td colspan="6" class="pt-1 pb-2">
                 <div class="d-flex flex-wrap gap-1 align-items-center">
                   <%= link_to "Edit", edit_access_controller_path(controller), class: "btn btn-outline-secondary btn-sm" %>
                   <%= button_to controller.enabled? ? "Disable" : "Enable",
