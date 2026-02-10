@@ -21,17 +21,14 @@
             <th scope="col">Name</th>
             <th scope="col">Hostname</th>
             <th scope="col">Type</th>
-            <th scope="col">Options</th>
-            <th scope="col">Sync Status</th>
+            <th scope="col">Sync</th>
             <th scope="col">Ping</th>
-            <th scope="col">Last Sync</th>
             <th scope="col">Enabled</th>
-            <th scope="col" class="text-end">Actions</th>
           </tr>
         </thead>
         <tbody>
           <% @access_controllers.each do |controller| %>
-            <tr class="<%= 'text-body-secondary opacity-75' unless controller.enabled? %>">
+            <tr class="<%= 'text-body-secondary opacity-75' unless controller.enabled? %>" style="border-bottom: 0;">
               <td>
                 <strong><%= controller.name %></strong>
                 <% if controller.description.present? %>
@@ -47,26 +44,12 @@
                 <% end %>
               </td>
               <td>
-                <% if controller.access_token.present? %>
-                  <span class="badge text-bg-success">Token</span>
-                <% end %>
-                <% if controller.script_arguments.present? %>
-                  <span class="badge text-bg-info" data-bs-toggle="tooltip" title="<%= controller.script_arguments %>">Args</span>
-                <% end %>
-                <% if controller.environment_variables.present? %>
-                  <% env_count = controller.parsed_environment_variables.size %>
-                  <span class="badge text-bg-info" data-bs-toggle="tooltip" title="<%= controller.parsed_environment_variables.keys.join(', ') %>">
-                    <%= env_count %> Env
-                  </span>
-                <% end %>
-                <% if controller.access_token.blank? && controller.script_arguments.blank? && controller.environment_variables.blank? %>
-                  <span class="text-muted">—</span>
-                <% end %>
-              </td>
-              <td>
                 <span class="badge text-bg-<%= controller.status_badge_class %>">
                   <%= controller.status_label %>
                 </span>
+                <% if controller.last_sync_at %>
+                  <br><small class="text-muted"><%= time_ago_in_words(controller.last_sync_at) %> ago</small>
+                <% end %>
               </td>
               <td>
                 <% if controller.supports_ping? %>
@@ -81,34 +64,28 @@
                 <% end %>
               </td>
               <td>
-                <% if controller.last_sync_at %>
-                  <%= time_ago_in_words(controller.last_sync_at) %> ago
-                <% else %>
-                  <span class="text-muted">Never</span>
-                <% end %>
-              </td>
-              <td>
                 <% if controller.enabled? %>
                   <span class="badge text-bg-success">Enabled</span>
                 <% else %>
                   <span class="badge text-bg-secondary">Disabled</span>
                 <% end %>
               </td>
-              <td class="text-end">
-                <div class="btn-group btn-group-sm">
-                  <%= link_to "Edit", edit_access_controller_path(controller), class: "btn btn-outline-secondary" %>
+            </tr>
+            <tr class="<%= 'text-body-secondary opacity-75' unless controller.enabled? %>">
+              <td colspan="6" class="pt-0 pb-2 border-0">
+                <div class="d-flex flex-wrap gap-1 align-items-center">
+                  <%= link_to "Edit", edit_access_controller_path(controller), class: "btn btn-outline-secondary btn-sm" %>
                   <%= button_to controller.enabled? ? "Disable" : "Enable",
                       toggle_access_controller_path(controller),
                       method: :post,
-                      class: "btn btn-outline-#{controller.enabled? ? 'warning' : 'success'}" %>
+                      class: "btn btn-outline-#{controller.enabled? ? 'warning' : 'success'} btn-sm" %>
                   <%= button_to "Delete", access_controller_path(controller),
                       method: :delete,
-                      class: "btn btn-outline-danger",
+                      class: "btn btn-outline-danger btn-sm",
                       data: { turbo_confirm: "Are you sure you want to delete '#{controller.name}'?" } %>
-                </div>
-                <% actions = Array(controller.access_controller_type&.actions).map(&:to_s).reject(&:blank?).uniq.sort %>
-                <% if actions.any? %>
-                  <div class="mt-2 d-flex flex-wrap gap-1 justify-content-end">
+                  <% actions = Array(controller.access_controller_type&.actions).map(&:to_s).reject(&:blank?).uniq.sort %>
+                  <% if actions.any? %>
+                    <span class="border-start ms-1 ps-2"></span>
                     <% actions.each do |action| %>
                       <%= button_to action,
                           run_verb_access_controller_path(controller, action_name: action),
@@ -117,12 +94,12 @@
                           data: { turbo: false },
                           disabled: !controller.enabled? %>
                     <% end %>
-                  </div>
-                <% end %>
+                  <% end %>
+                </div>
               </td>
             </tr>
             <tr>
-              <td colspan="9" class="p-0 border-0">
+              <td colspan="6" class="p-0 border-0">
                 <div data-access-controller-live-target="inlineResult" data-controller-id="<%= controller.id %>" style="display:none;" class="px-3 pb-2"></div>
               </td>
             </tr>
