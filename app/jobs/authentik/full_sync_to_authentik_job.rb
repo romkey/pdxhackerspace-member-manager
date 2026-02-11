@@ -12,9 +12,10 @@ module Authentik
         create_user_in_authentik(user, client, results)
       end
 
-      # 2. Sync each member with an authentik_id to Authentik
-      Rails.logger.info("[Authentik::FullSyncToAuthentik] Starting user sync...")
-      User.where.not(authentik_id: [nil, '']).find_each do |user|
+      # 2. Sync dirty members with an authentik_id to Authentik
+      dirty_users = User.authentik_dirty.where.not(authentik_id: [nil, ''])
+      Rails.logger.info("[Authentik::FullSyncToAuthentik] Syncing #{dirty_users.count} dirty user(s)...")
+      dirty_users.find_each do |user|
         sync_user_to_authentik(user, client, results)
       end
 
@@ -49,7 +50,7 @@ module Authentik
       if existing
         # Link the existing Authentik user
         authentik_id = existing['pk'].to_s
-        user.update_columns(authentik_id: authentik_id, last_synced_at: Time.current)
+        user.update_columns(authentik_id: authentik_id, last_synced_at: Time.current, authentik_dirty: false)
         results[:users_synced] += 1
         Rails.logger.info("[Authentik::FullSyncToAuthentik] Linked existing Authentik user #{authentik_id} to user #{user.id} (#{user.display_name})")
         return
@@ -65,7 +66,7 @@ module Authentik
       )
 
       authentik_id = result['pk'].to_s
-      user.update_columns(authentik_id: authentik_id, last_synced_at: Time.current)
+      user.update_columns(authentik_id: authentik_id, last_synced_at: Time.current, authentik_dirty: false)
       results[:users_created] += 1
 
       Rails.logger.info("[Authentik::FullSyncToAuthentik] Created Authentik user #{authentik_id} for user #{user.id} (#{user.display_name})")
@@ -89,7 +90,7 @@ module Authentik
       }
 
       client.update_user(user.authentik_id, **attrs)
-      user.update_column(:last_synced_at, Time.current)
+      user.update_columns(last_synced_at: Time.current, authentik_dirty: false)
       results[:users_synced] += 1
 
       Rails.logger.info("[Authentik::FullSyncToAuthentik] Synced user #{user.id} (#{user.display_name})")

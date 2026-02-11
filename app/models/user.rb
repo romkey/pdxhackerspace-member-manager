@@ -44,6 +44,7 @@ class User < ApplicationRecord
   validate :extra_emails_format
 
   scope :active, -> { where(active: true) }
+  scope :authentik_dirty, -> { where(authentik_dirty: true) }
   scope :with_attribute, ->(key, value) { where('authentik_attributes ->> ? = ?', key.to_s, value.to_s) }
   scope :ordered_by_display_name, lambda {
     order(
@@ -366,6 +367,7 @@ class User < ApplicationRecord
   before_save :clear_greeting_name_if_do_not_greet
   before_save :auto_fill_greeting_name
   before_save :deactivate_if_deceased
+  before_save :mark_authentik_dirty_if_needed
   after_save :update_greeting_name_on_source_change
   after_create_commit :journal_created!
   after_update_commit :journal_updated!
@@ -537,6 +539,19 @@ class User < ApplicationRecord
     end
 
     self.do_not_greet = false if use_full_name_for_greeting? || use_username_for_greeting?
+  end
+
+  # Fields that correspond to Authentik user attributes
+  AUTHENTIK_SYNCABLE_FIELDS = %w[email full_name username active].freeze
+
+  # Mark user as needing sync to Authentik when syncable fields change
+  def mark_authentik_dirty_if_needed
+    return if Current.skip_authentik_sync
+
+    changed = changes.keys & AUTHENTIK_SYNCABLE_FIELDS
+    return if changed.empty?
+
+    self.authentik_dirty = true
   end
 
   def sync_to_authentik_if_needed

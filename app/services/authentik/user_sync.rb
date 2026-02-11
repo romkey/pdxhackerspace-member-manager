@@ -43,7 +43,7 @@ module Authentik
 
       begin
         client.update_user(user.authentik_id, **attrs)
-        user.update_column(:last_synced_at, Time.current)
+        user.update_columns(last_synced_at: Time.current, authentik_dirty: false)
 
         Rails.logger.info("[Authentik::UserSync] Successfully synced user #{user.id} to Authentik")
         { status: 'synced', authentik_id: user.authentik_id, fields: fields_to_sync }
