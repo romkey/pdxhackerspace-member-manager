@@ -205,6 +205,11 @@ class UsersController < AuthenticatedController
     redirect_to users_path, notice: 'Authentik group sync has been scheduled.'
   end
 
+  def sync_all_to_authentik
+    Authentik::FullSyncToAuthentikJob.perform_later
+    redirect_to users_path, notice: 'Full sync to Authentik has been scheduled. All members, application groups, and the active members group will be synced.'
+  end
+
   def activate
     @user.update!(active: true)
     redirect_to user_path(@user), notice: 'User activated.'

@@ -39,6 +39,7 @@ Rails.application.routes.draw do
     end
     collection do
       post :sync
+      post :sync_all_to_authentik
     end
     resources :user_links, only: [:create, :update, :destroy]
   end

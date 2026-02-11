@@ -13,7 +13,8 @@
     </p>
   </div>
   <div class="d-flex gap-2">
-    <%= button_to "Sync now", sync_users_path, method: :post, class: "btn btn-primary", data: { turbo: false } %>
+    <%= button_to "Sync from Authentik", sync_users_path, method: :post, class: "btn btn-primary", data: { turbo: false } %>
+    <%= button_to "Sync to Authentik", sync_all_to_authentik_users_path, method: :post, class: "btn btn-outline-primary", data: { turbo: false, turbo_confirm: "This will sync all members, groups, and the active members group to Authentik. Continue?" } %>
   </div>
 </div>
 
