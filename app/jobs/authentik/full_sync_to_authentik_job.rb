@@ -4,9 +4,15 @@ module Authentik
 
     def perform
       client = Authentik::Client.new
-      results = { users_synced: 0, users_skipped: 0, users_errored: 0, groups_synced: 0, groups_errored: 0 }
+      results = { users_created: 0, users_synced: 0, users_skipped: 0, users_errored: 0, groups_synced: 0, groups_errored: 0 }
 
-      # 1. Sync each member with an authentik_id to Authentik
+      # 1. Create Authentik accounts for members without an authentik_id
+      Rails.logger.info("[Authentik::FullSyncToAuthentik] Creating missing Authentik users...")
+      User.where(authentik_id: [nil, '']).find_each do |user|
+        create_user_in_authentik(user, client, results)
+      end
+
+      # 2. Sync each member with an authentik_id to Authentik
       Rails.logger.info("[Authentik::FullSyncToAuthentik] Starting user sync...")
       User.where.not(authentik_id: [nil, '']).find_each do |user|
         sync_user_to_authentik(user, client, results)
@@ -26,6 +32,47 @@ module Authentik
     end
 
     private
+
+    def create_user_in_authentik(user, client, results)
+      # Need at least a username or email to create in Authentik
+      username = user.username.presence || user.email.presence
+      if username.blank?
+        results[:users_skipped] += 1
+        Rails.logger.warn("[Authentik::FullSyncToAuthentik] Skipping user #{user.id} (#{user.display_name}): no username or email")
+        return
+      end
+
+      name = user.full_name.presence || user.display_name
+
+      # Check if user already exists in Authentik by username
+      existing = client.find_user_by_username(username)
+      if existing
+        # Link the existing Authentik user
+        authentik_id = existing['pk'].to_s
+        user.update_columns(authentik_id: authentik_id, last_synced_at: Time.current)
+        results[:users_synced] += 1
+        Rails.logger.info("[Authentik::FullSyncToAuthentik] Linked existing Authentik user #{authentik_id} to user #{user.id} (#{user.display_name})")
+        return
+      end
+
+      # Create the user in Authentik
+      result = client.create_user(
+        username: username,
+        name: name,
+        email: user.email,
+        is_active: user.active?,
+        attributes: { 'member_manager_id' => user.id.to_s }
+      )
+
+      authentik_id = result['pk'].to_s
+      user.update_columns(authentik_id: authentik_id, last_synced_at: Time.current)
+      results[:users_created] += 1
+
+      Rails.logger.info("[Authentik::FullSyncToAuthentik] Created Authentik user #{authentik_id} for user #{user.id} (#{user.display_name})")
+    rescue StandardError => e
+      results[:users_errored] += 1
+      Rails.logger.error("[Authentik::FullSyncToAuthentik] Failed to create Authentik user for #{user.id} (#{user.display_name}): #{e.message}")
+    end
 
     def sync_user_to_authentik(user, client, results)
       attrs = {}
