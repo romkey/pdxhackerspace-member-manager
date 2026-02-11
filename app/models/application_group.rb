@@ -28,7 +28,7 @@ class ApplicationGroup < ApplicationRecord
     elsif use_can_train? && training_topic
       training_topic.trainers
     elsif use_trained_in? && training_topic
-      User.joins(:trainings_as_trainee).where(trainings: { training_topic_id: training_topic_id }).distinct
+      User.where(id: User.joins(:trainings_as_trainee).where(trainings: { training_topic_id: training_topic_id }).select(:id))
     else
       users
     end
