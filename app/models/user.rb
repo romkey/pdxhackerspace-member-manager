@@ -44,6 +44,7 @@ class User < ApplicationRecord
   validate :extra_emails_format
 
   scope :active, -> { where(active: true) }
+  scope :admin, -> { where(is_admin: true) }
   scope :authentik_dirty, -> { where(authentik_dirty: true) }
   scope :with_attribute, ->(key, value) { where('authentik_attributes ->> ? = ?', key.to_s, value.to_s) }
   scope :ordered_by_display_name, lambda {
