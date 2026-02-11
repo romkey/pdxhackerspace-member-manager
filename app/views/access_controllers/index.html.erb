@@ -23,6 +23,7 @@
             <th scope="col">Type</th>
             <th scope="col">Sync</th>
             <th scope="col">Ping</th>
+            <th scope="col">Backup</th>
             <th scope="col">Enabled</th>
             <th scope="col" class="text-end"></th>
           </tr>
@@ -65,6 +66,18 @@
                 <% end %>
               </td>
               <td class="border-0 pb-0">
+                <% if controller.supports_backup? %>
+                  <span class="badge text-bg-<%= controller.backup_status_badge_class %>">
+                    <%= controller.backup_status_label %>
+                  </span>
+                  <% if controller.last_backup_at %>
+                    <br><small class="text-muted"><%= time_ago_in_words(controller.last_backup_at) %> ago</small>
+                  <% end %>
+                <% else %>
+                  <span class="text-muted">—</span>
+                <% end %>
+              </td>
+              <td class="border-0 pb-0">
                 <% if controller.enabled? %>
                   <span class="badge text-bg-success">Enabled</span>
                 <% else %>
@@ -88,7 +101,7 @@
             <% actions = Array(controller.access_controller_type&.actions).map(&:to_s).reject(&:blank?).uniq.sort %>
             <% if actions.any? %>
               <tr class="<%= 'text-body-secondary opacity-75' unless controller.enabled? %>">
-                <td colspan="7" class="pt-0 pb-2">
+                <td colspan="8" class="pt-0 pb-2">
                   <div class="d-flex flex-wrap gap-1 align-items-center">
                     <% actions.each do |action| %>
                       <%= button_to action,
@@ -103,7 +116,7 @@
               </tr>
             <% end %>
             <tr>
-              <td colspan="7" class="p-0 border-0">
+              <td colspan="8" class="p-0 border-0">
                 <div data-access-controller-live-target="inlineResult" data-controller-id="<%= controller.id %>" style="display:none;" class="px-3 pb-2"></div>
               </td>
             </tr>

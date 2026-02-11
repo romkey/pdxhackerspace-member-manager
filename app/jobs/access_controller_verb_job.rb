@@ -41,11 +41,33 @@ class AccessControllerVerbJob < ApplicationJob
       exit_code: status.exitstatus,
       status: log_status
     )
+
+    # Update controller status for special actions
+    case action
+    when 'backup'
+      access_controller.record_backup_result!(log_status)
+    when 'sync'
+      if status.success?
+        access_controller.record_sync_success!(output.presence)
+      else
+        access_controller.record_sync_failure!(output.presence || "Sync failed with exit code #{status.exitstatus}.")
+      end
+    end
   rescue StandardError => e
     error_message = "Command failed: #{e.class}: #{e.message}"
 
     if defined?(log) && log.persisted?
       log.update!(output: error_message, status: 'failed')
+    end
+
+    # Record failure for special actions
+    if defined?(action)
+      case action
+      when 'backup'
+        access_controller&.record_backup_result!('failed')
+      when 'sync'
+        access_controller&.record_sync_failure!(error_message)
+      end
     end
   end
 

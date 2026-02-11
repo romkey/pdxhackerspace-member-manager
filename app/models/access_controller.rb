@@ -75,6 +75,35 @@ class AccessController < ApplicationRecord
     end
   end
 
+  # Whether this controller supports backup
+  def supports_backup?
+    Array(access_controller_type&.actions).map(&:to_s).include?('backup')
+  end
+
+  # Backup status helpers
+  def backup_status_label
+    case backup_status
+    when 'success' then 'Success'
+    when 'failed' then 'Failed'
+    else 'Unknown'
+    end
+  end
+
+  def backup_status_badge_class
+    case backup_status
+    when 'success' then 'success'
+    when 'failed' then 'danger'
+    else 'secondary'
+    end
+  end
+
+  def record_backup_result!(status)
+    update!(
+      backup_status: status,
+      last_backup_at: Time.current
+    )
+  end
+
   # Parse environment_variables text field into a hash
   # Format: one KEY=VALUE per line, blank lines and comments (#) ignored
   def parsed_environment_variables
