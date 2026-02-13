@@ -48,6 +48,14 @@ Sidekiq.configure_server do |config|
     class: 'AccessControllerPingJob',
     active_job: true
   )
+
+  # Access Controller Backup - Daily at 1am
+  Sidekiq::Cron::Job.create(
+    name: 'Access Controller Backup - Daily at 1am',
+    cron: '0 1 * * *',
+    class: 'AccessControllerBackupJob',
+    active_job: true
+  )
 end
 
 Sidekiq.configure_client do |config|
