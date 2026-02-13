@@ -1,4 +1,4 @@
-class CreateIncomingWebhooks < ActiveRecord::Migration[8.0]
+class CreateIncomingWebhooks < ActiveRecord::Migration[7.1]
   def change
     create_table :incoming_webhooks do |t|
       t.string :name, null: false
