@@ -80,7 +80,11 @@ module Authentik
       base_url = ENV['MEMBER_MANAGER_BASE_URL']
       return nil if base_url.blank?
 
-      "#{base_url.delete_suffix('/')}/webhooks/authentik"
+      # Use the configured slug from IncomingWebhook if available
+      webhook = IncomingWebhook.find_by_type('authentik')
+      slug = webhook&.slug || 'authentik'
+
+      "#{base_url.delete_suffix('/')}/webhooks/#{slug}"
     end
 
     def validate_configuration!

@@ -7,9 +7,9 @@ module Authentik
 
     API_PREFIX = '/api/v3'.freeze
 
-    def initialize(base_url: AuthentikConfig.settings.api_base_url, token: AuthentikConfig.settings.api_token)
+    def initialize(base_url: AuthentikConfig.settings.api_base_url, token: nil)
       @base_url = base_url&.delete_suffix('/')
-      @token = token
+      @token = token || Authentik::TokenManager.token
     end
 
     def group_members(group_id = AuthentikConfig.settings.group_id)
@@ -17,37 +17,41 @@ module Authentik
       raise ArgumentError, 'Authentik group ID is missing' if group_id.blank?
       raise ArgumentError, 'Authentik API base URL is missing' if @base_url.blank?
 
-      members = []
-      page_size = AuthentikConfig.settings.group_page_size.to_i
-      page_size = DEFAULT_PAGE_SIZE if page_size <= 0
+      with_token_refresh do
+        members = []
+        page_size = AuthentikConfig.settings.group_page_size.to_i
+        page_size = DEFAULT_PAGE_SIZE if page_size <= 0
 
-      base_params = { groups_by_pk: group_id, page_size: page_size }
-      next_path = build_user_path(base_params)
+        base_params = { groups_by_pk: group_id, page_size: page_size }
+        next_path = build_user_path(base_params)
 
-      total_count = nil
+        total_count = nil
 
-      while next_path.present?
-        log_request(next_path)
-        response = connection.get(next_path)
-        handle_error!(response)
+        while next_path.present?
+          log_request(next_path)
+          response = connection.get(next_path)
+          handle_error!(response)
 
-        payload = JSON.parse(response.body)
-        log_page_metadata(payload)
-        total_count ||= payload['count']
-        members.concat(extract_members(payload))
-        next_path = next_page_path(payload, base_params)
+          payload = JSON.parse(response.body)
+          log_page_metadata(payload)
+          total_count ||= payload['count']
+          members.concat(extract_members(payload))
+          next_path = next_page_path(payload, base_params)
+        end
+
+        members
       end
-
-      members
     end
 
     # ========== Users ==========
 
     def get_user(user_pk)
       validate_api_config!
-      response = connection.get("#{API_PREFIX}/core/users/#{user_pk}/")
-      handle_error!(response)
-      JSON.parse(response.body)
+      with_token_refresh do
+        response = connection.get("#{API_PREFIX}/core/users/#{user_pk}/")
+        handle_error!(response)
+        JSON.parse(response.body)
+      end
     end
 
     def find_user_by_username(username)
@@ -205,9 +209,11 @@ module Authentik
 
     def get_group(group_id)
       validate_api_config!
-      response = connection.get("#{API_PREFIX}/core/groups/#{group_id}/")
-      handle_error!(response)
-      JSON.parse(response.body)
+      with_token_refresh do
+        response = connection.get("#{API_PREFIX}/core/groups/#{group_id}/")
+        handle_error!(response)
+        JSON.parse(response.body)
+      end
     end
 
     def find_group_by_name(name)
@@ -240,24 +246,28 @@ module Authentik
 
     def add_user_to_group(group_id, user_pk)
       validate_api_config!
-      log_request("POST #{API_PREFIX}/core/groups/#{group_id}/add_user/")
-      response = json_connection.post("#{API_PREFIX}/core/groups/#{group_id}/add_user/", { pk: user_pk.to_i })
-      # 204 No Content is success, but Faraday may return empty body
-      return true if response.status == 204
+      with_token_refresh do
+        log_request("POST #{API_PREFIX}/core/groups/#{group_id}/add_user/")
+        response = json_connection.post("#{API_PREFIX}/core/groups/#{group_id}/add_user/", { pk: user_pk.to_i })
+        # 204 No Content is success, but Faraday may return empty body
+        return true if response.status == 204
 
-      handle_error!(response)
-      true
+        handle_error!(response)
+        true
+      end
     end
 
     def remove_user_from_group(group_id, user_pk)
       validate_api_config!
-      log_request("POST #{API_PREFIX}/core/groups/#{group_id}/remove_user/")
-      response = json_connection.post("#{API_PREFIX}/core/groups/#{group_id}/remove_user/", { pk: user_pk.to_i })
-      # 204 No Content is success
-      return true if response.status == 204
+      with_token_refresh do
+        log_request("POST #{API_PREFIX}/core/groups/#{group_id}/remove_user/")
+        response = json_connection.post("#{API_PREFIX}/core/groups/#{group_id}/remove_user/", { pk: user_pk.to_i })
+        # 204 No Content is success
+        return true if response.status == 204
 
-      handle_error!(response)
-      true
+        handle_error!(response)
+        true
+      end
     end
 
     def set_group_users(group_id, user_pks)
@@ -271,6 +281,21 @@ module Authentik
     def validate_api_config!
       raise ArgumentError, 'Authentik API token is missing' if @token.blank?
       raise ArgumentError, 'Authentik API base URL is missing' if @base_url.blank?
+    end
+
+    # Refresh the token and rebuild connections after an auth failure
+    def refresh_token!
+      Authentik::TokenManager.clear_cached_token!
+      new_token = Authentik::TokenManager.token
+      if new_token.present? && new_token != @token
+        @token = new_token
+        @connection = nil
+        @json_connection = nil
+        Rails.logger.info('[Authentik::Client] Token refreshed after auth failure')
+        true
+      else
+        false
+      end
     end
 
     def connection
@@ -298,48 +323,69 @@ module Authentik
     end
 
     def get_paginated(path, params = {})
-      results = []
-      query = URI.encode_www_form(params)
-      next_path = "#{path}?#{query}"
+      with_token_refresh do
+        results = []
+        query = URI.encode_www_form(params)
+        next_path = "#{path}?#{query}"
 
-      while next_path.present?
-        log_request(next_path)
-        response = connection.get(next_path)
-        handle_error!(response)
+        while next_path.present?
+          log_request(next_path)
+          response = connection.get(next_path)
+          handle_error!(response)
 
-        payload = JSON.parse(response.body)
-        results.concat(payload['results'] || [])
+          payload = JSON.parse(response.body)
+          results.concat(payload['results'] || [])
 
-        next_link = payload['next']
-        next_path = if next_link.is_a?(String) && next_link.start_with?('http')
-                      URI(next_link).request_uri
-                    elsif next_link.is_a?(String)
-                      next_link
-                    end
+          next_link = payload['next']
+          next_path = if next_link.is_a?(String) && next_link.start_with?('http')
+                        URI(next_link).request_uri
+                      elsif next_link.is_a?(String)
+                        next_link
+                      end
+        end
+
+        results
       end
-
-      results
     end
 
     def post_json(path, body)
-      log_request("POST #{path}")
-      response = json_connection.post(path, body)
-      handle_error!(response)
-      JSON.parse(response.body)
+      with_token_refresh do
+        log_request("POST #{path}")
+        response = json_connection.post(path, body)
+        handle_error!(response)
+        JSON.parse(response.body)
+      end
     end
 
     def patch_json(path, body)
-      log_request("PATCH #{path}")
-      response = json_connection.patch(path, body)
-      handle_error!(response)
-      JSON.parse(response.body)
+      with_token_refresh do
+        log_request("PATCH #{path}")
+        response = json_connection.patch(path, body)
+        handle_error!(response)
+        JSON.parse(response.body)
+      end
     end
 
     def delete_resource(path)
-      log_request("DELETE #{path}")
-      response = connection.delete(path)
-      handle_error!(response)
-      true
+      with_token_refresh do
+        log_request("DELETE #{path}")
+        response = connection.delete(path)
+        handle_error!(response)
+        true
+      end
+    end
+
+    # Retry a block once after refreshing the token on 401/403 errors.
+    # This handles expired or rotated tokens transparently.
+    def with_token_refresh(&block)
+      yield
+    rescue Faraday::UnauthorizedError, Faraday::ForbiddenError => e
+      if refresh_token!
+        Rails.logger.info("[Authentik::Client] Retrying after token refresh (was: #{e.class})")
+        yield
+      else
+        raise
+      end
     end
 
     def extract_members(payload)

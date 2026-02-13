@@ -5,7 +5,8 @@ Rails.application.config.x.authentik = ActiveSupport::InheritableOptions.new(
   redirect_uri: ENV["AUTHENTIK_REDIRECT_URI"],
   group_id: ENV["AUTHENTIK_GROUP_ID"],
   api_base_url: ENV["AUTHENTIK_API_BASE_URL"] || ENV["AUTHENTIK_ISSUER"],
-  api_token: ENV["AUTHENTIK_API_TOKEN"],
+  api_token: ENV["AUTHENTIK_API_TOKEN"],                   # Static fallback token
+  token_endpoint: ENV["AUTHENTIK_TOKEN_ENDPOINT"],          # Override OIDC-discovered token endpoint
   group_page_size: ENV.fetch("AUTHENTIK_GROUP_PAGE_SIZE", 200).to_i,
   webhook_secret: ENV["AUTHENTIK_WEBHOOK_SECRET"]
 )

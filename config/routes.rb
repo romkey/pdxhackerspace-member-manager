@@ -18,10 +18,7 @@ Rails.application.routes.draw do
   match "/auth/:provider/callback", to: "sessions#create", via: %i[get post]
   get "/auth/failure", to: "sessions#failure"
 
-  post "/webhooks/rfid", to: "webhooks#rfid"
-  post "/webhooks/kofi", to: "webhooks#kofi"
-  post "/webhooks/access", to: "webhooks#access"
-  post "/webhooks/authentik", to: "webhooks#authentik"
+  post "/webhooks/:slug", to: "webhooks#receive", as: :webhook_receive
 
   # Impersonation
   post "/impersonate/:user_id", to: "impersonations#create", as: :impersonate_user
@@ -165,6 +162,14 @@ Rails.application.routes.draw do
   end
   resource :default_settings, only: [:show, :edit, :update], path: "settings/defaults"
   resource :membership_settings, only: [:show, :edit, :update], path: "settings/membership"
+  resources :incoming_webhooks, only: [:index], path: "settings/incoming_webhooks" do
+    member do
+      post :regenerate_slug
+    end
+    collection do
+      post :seed
+    end
+  end
   
   resources :email_templates, only: [:index, :show, :edit, :update] do
     member do

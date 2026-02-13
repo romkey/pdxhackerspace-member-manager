@@ -29,7 +29,9 @@ namespace :authentik do
         puts "Group Policy: #{result[:group_policy]['name']} (#{result[:group_policy]['pk']})"
         puts "Rule: #{result[:rule]['name']} (#{result[:rule]['pk']})"
         puts
-        puts "Webhook URL: #{webhook_url}/webhooks/authentik"
+        authentik_webhook = IncomingWebhook.find_by_type('authentik')
+        slug = authentik_webhook&.slug || 'authentik'
+        puts "Webhook URL: #{webhook_url}/webhooks/#{slug}"
       else
         puts "ERROR: Setup failed - #{result[:error]}"
         exit 1

@@ -7,6 +7,30 @@ require 'ipaddr'
 class WebhooksController < ApplicationController
   skip_before_action :verify_authenticity_token
 
+  # Dynamic dispatch based on incoming webhook slug
+  def receive
+    @incoming_webhook = IncomingWebhook.find_enabled_by_slug(params[:slug])
+
+    unless @incoming_webhook
+      Rails.logger.warn("Webhook request for unknown or disabled slug: #{params[:slug]} from #{client_ip}")
+      head :not_found
+      return
+    end
+
+    case @incoming_webhook.webhook_type
+    when 'rfid'
+      rfid
+    when 'kofi'
+      kofi
+    when 'access'
+      access
+    when 'authentik'
+      authentik
+    else
+      head :not_found
+    end
+  end
+
   # Ko-Fi webhook endpoint
   # Ko-Fi sends POST requests with form data containing a "data" field which is a JSON string
   # See: https://help.ko-fi.com/hc/en-us/articles/360004162298-Does-Ko-fi-have-an-API-or-webhook
@@ -92,7 +116,7 @@ class WebhooksController < ApplicationController
 
   # Access control webhook endpoint
   # Receives access log lines in the same format as the log files
-  # POST /webhooks/access
+  # POST /webhooks/:slug (webhook_type: access)
   # Parameters:
   #   - line: The log line to process (required)
   #   - key: API key for authentication (optional, uses ACCESS_WEBHOOK_KEY env var)

@@ -83,7 +83,7 @@
                   <%= link_to "Incidents", incident_reports_path, class: "nav-link #{controller_name == 'incident_reports' ? 'active' : ''}" %>
                 </li>
                 <li class="nav-item">
-                  <%= link_to "Settings", settings_path, class: "nav-link #{current_page?(settings_path) || current_page?(training_topics_path) || current_page?(applications_path) || controller_name == 'applications' || controller_name == 'application_groups' || controller_name == 'text_fragments' || controller_name == 'documents' ? 'active' : ''}" %>
+                  <%= link_to "Settings", settings_path, class: "nav-link #{current_page?(settings_path) || current_page?(training_topics_path) || current_page?(applications_path) || controller_name == 'applications' || controller_name == 'application_groups' || controller_name == 'text_fragments' || controller_name == 'documents' || controller_name == 'incoming_webhooks' ? 'active' : ''}" %>
                 </li>
                 <li class="nav-item">
                   <%= link_to "Sidekiq", '/goh7zeeNiezoozaingothu4', class: "nav-link", target: "_blank" %>
