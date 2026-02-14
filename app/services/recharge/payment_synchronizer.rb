@@ -192,7 +192,7 @@ module Recharge
 
       # Also update users who have no Recharge payments (clear their fields)
       users_without_payments = User.where.missing(:recharge_payments)
-                                   .where('recharge_most_recent_payment_date IS NOT NULL OR recharge_customer_id IS NOT NULL')
+                                   .where('users.recharge_most_recent_payment_date IS NOT NULL OR users.recharge_customer_id IS NOT NULL')
 
       users_without_payments.update_all(
         recharge_most_recent_payment_date: nil,
