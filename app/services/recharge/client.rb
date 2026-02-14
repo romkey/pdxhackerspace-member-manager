@@ -1,8 +1,13 @@
 require 'faraday'
 
 module Recharge
+  # HTTP client for the Recharge payments API.
+  # Supports fetching charges (payments) and subscriptions with pagination.
   class Client
     CHARGES_ENDPOINT = '/charges'.freeze
+    SUBSCRIPTIONS_ENDPOINT = '/subscriptions'.freeze
+    MAX_LIMIT = 250
+    MAX_PAGES = 1000
 
     def initialize(api_key: RechargeConfig.settings.api_key,
                    base_url: RechargeConfig.settings.api_base_url)
@@ -10,61 +15,69 @@ module Recharge
       @base_url = base_url&.delete_suffix('/')
     end
 
+    # Fetch subscriptions updated within the given time window.
+    # Returns an array of normalized subscription hashes.
+    def subscriptions(start_time: 2.days.ago, end_time: Time.current, status: nil)
+      raise ArgumentError, 'Recharge API key missing' unless RechargeConfig.enabled?
+
+      params = {
+        updated_at_min: start_time.utc.iso8601,
+        updated_at_max: end_time.utc.iso8601,
+        limit: MAX_LIMIT
+      }
+      params[:status] = status if status.present?
+
+      Rails.logger.info("[Recharge::Client] Fetching subscriptions from #{params[:updated_at_min]} to #{params[:updated_at_max]}")
+      paginate(SUBSCRIPTIONS_ENDPOINT, 'subscriptions', params) { |sub| normalize_subscription(sub) }
+    end
+
     def charges(start_time: default_start_time, end_time: Time.current)
       raise ArgumentError, 'Recharge API key missing' unless RechargeConfig.enabled?
 
-      start_iso = start_time.utc.iso8601
-      end_iso = end_time.utc.iso8601
+      params = {
+        updated_at_min: start_time.utc.iso8601,
+        updated_at_max: end_time.utc.iso8601,
+        limit: MAX_LIMIT
+      }
 
-      results = []
-      page = 1
-      max_limit = 250 # Recharge API max limit per page (can be up to 250)
-
-      Rails.logger.info("[Recharge::Client] Fetching charges from #{start_iso} to #{end_iso}")
-
-      loop do
-        # Use updated_at_min instead of created_at_min to catch charges that were
-        # created earlier but processed/updated recently
-        params = {
-          updated_at_min: start_iso,
-          updated_at_max: end_iso,
-          limit: max_limit,
-          page: page
-        }
-
-        Rails.logger.debug { "[Recharge::Client] Fetching page #{page} with limit #{max_limit}" }
-        response = connection.get(CHARGES_ENDPOINT, params)
-        payload = JSON.parse(response.body)
-        charges = Array(payload['charges'])
-
-        Rails.logger.debug { "[Recharge::Client] Page #{page}: received #{charges.size} charges" }
-
-        break if charges.empty?
-
-        results.concat(charges.map { |charge| normalize_charge(charge) })
-
-        Rails.logger.debug { "[Recharge::Client] Total charges collected so far: #{results.size}" }
-
-        # Check if there's a next page
-        has_next_page = next_page?(payload, charges.size, max_limit)
-        Rails.logger.debug { "[Recharge::Client] Has next page: #{has_next_page}" }
-
-        break unless has_next_page
-
-        page += 1
-
-        # Safety check to prevent infinite loops
-        if page > 1000
-          Rails.logger.warn('[Recharge::Client] Stopping pagination at page 1000 to prevent infinite loop')
-          break
-        end
-      end
-
-      Rails.logger.info("[Recharge::Client] Finished fetching charges. Total: #{results.size}")
-      results
+      Rails.logger.info("[Recharge::Client] Fetching charges from #{params[:updated_at_min]} to #{params[:updated_at_max]}")
+      paginate(CHARGES_ENDPOINT, 'charges', params) { |charge| normalize_charge(charge) }
     end
 
     private
+
+    # Generic paginated fetch for any Recharge API list endpoint.
+    # Yields each raw item to the block for normalization.
+    def paginate(endpoint, key, params) # rubocop:disable Metrics/MethodLength
+      results = []
+      page = 1
+
+      loop do
+        response = connection.get(endpoint, params.merge(page: page))
+        payload = JSON.parse(response.body)
+        items = Array(payload[key])
+
+        Rails.logger.debug { "[Recharge::Client] #{endpoint} page #{page}: #{items.size} items" }
+        break if items.empty?
+
+        results.concat(items.map { |item| yield(item) })
+
+        break unless more_pages?(payload, items.size)
+
+        page += 1
+        break if page > MAX_PAGES
+      end
+
+      Rails.logger.info("[Recharge::Client] Finished #{endpoint}. Total: #{results.size}")
+      results
+    end
+
+    def more_pages?(payload, count)
+      meta = payload['meta'] || {}
+      return true if meta['next'].present?
+
+      count >= MAX_LIMIT
+    end
 
     def default_start_time
       days = RechargeConfig.settings.transactions_lookback_days
@@ -80,29 +93,6 @@ module Recharge
         faraday.headers['X-Recharge-Access-Token'] = @api_key
         faraday.headers['Accept'] = 'application/json'
       end
-    end
-
-    def next_page?(payload, charges_count, limit)
-      meta = payload['meta'] || {}
-      next_page = meta['next']
-
-      # Log pagination metadata for debugging
-      Rails.logger.debug { "[Recharge::Client] Pagination meta: #{meta.inspect}" }
-      Rails.logger.debug { "[Recharge::Client] Charges in this page: #{charges_count}, Limit: #{limit}" }
-
-      # If we got a full page of results, there might be more pages
-      # Even if next_page isn't explicitly set, if we got exactly the limit, try the next page
-      return true if next_page.present?
-
-      # If we got a full page (equal to limit), assume there might be more pages
-      # This handles cases where the API doesn't set the next field but there are more results
-      if charges_count >= limit
-        Rails.logger.debug { "[Recharge::Client] Got full page (#{charges_count} >= #{limit}), assuming more pages available" }
-        return true
-      end
-
-      # If we got fewer than the limit, we're definitely on the last page
-      false
     end
 
     def normalize_charge(charge)
@@ -128,6 +118,21 @@ module Recharge
         customer_email: customer['email'] || charge['email'],
         customer_name: full_name.presence || customer['billing_first_name'],
         raw_attributes: redacted_charge
+      }
+    end
+
+    def normalize_subscription(sub)
+      {
+        recharge_subscription_id: sub['id'].to_s,
+        customer_id: sub['customer_id'].to_s,
+        email: sub['email'],
+        status: sub['status'],
+        product_title: sub['product_title'],
+        price: sub['price'],
+        cancelled_at: parse_time(sub['cancelled_at']),
+        cancellation_reason: sub['cancellation_reason'],
+        created_at: parse_time(sub['created_at']),
+        updated_at: parse_time(sub['updated_at'])
       }
     end
 

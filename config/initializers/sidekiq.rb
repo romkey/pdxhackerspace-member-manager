@@ -41,6 +41,14 @@ Sidekiq.configure_server do |config|
     active_job: true
   )
 
+  # Recharge Subscription Sync - Every 6 hours (safety net for missed webhooks)
+  Sidekiq::Cron::Job.create(
+    name: 'Recharge Subscription Sync - Every 6 hours',
+    cron: '0 */6 * * *',
+    class: 'Recharge::SubscriptionSyncJob',
+    active_job: true
+  )
+
   # Access Controller Ping - Every 10 minutes
   Sidekiq::Cron::Job.create(
     name: 'Access Controller Ping - Every 10 minutes',
