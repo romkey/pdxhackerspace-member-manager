@@ -1,35 +1,41 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
-  <h1 class="h3 mb-0">Edit Training Topic</h1>
-  <%= link_to "&larr; Back to Training Topics".html_safe, training_topics_path, class: "text-decoration-none" %>
+  <h1 class="h3 mb-0"><%= current_user_admin? ? "Edit" : "Manage" %> Training Topic: <%= @training_topic.name %></h1>
+  <% if current_user_admin? %>
+    <%= link_to "&larr; Back to Training Topics".html_safe, training_topics_path, class: "text-decoration-none" %>
+  <% else %>
+    <%= link_to "&larr; Back to Train".html_safe, train_member_path, class: "text-decoration-none" %>
+  <% end %>
 </div>
 
-<div class="card shadow-sm border-0 mb-4">
-  <div class="card-body">
-    <h2 class="h5 mb-3">Topic Name</h2>
-    <% if @training_topic.errors.any? %>
-      <div class="alert alert-danger">
-        <ul class="mb-0">
-          <% @training_topic.errors.full_messages.each do |message| %>
-            <li><%= message %></li>
+<% if current_user_admin? %>
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <h2 class="h5 mb-3">Topic Name</h2>
+      <% if @training_topic.errors.any? %>
+        <div class="alert alert-danger">
+          <ul class="mb-0">
+            <% @training_topic.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+      <%= form_with model: @training_topic, url: training_topic_path(@training_topic), local: true, class: "row g-3" do |f| %>
+        <div class="col-md-8">
+          <%= f.text_field :name, class: "form-control #{'is-invalid' if @training_topic.errors.key?(:name)}", required: true %>
+          <% if @training_topic.errors.key?(:name) %>
+            <div class="invalid-feedback">
+              <%= @training_topic.errors[:name].first %>
+            </div>
           <% end %>
-        </ul>
-      </div>
-    <% end %>
-    <%= form_with model: @training_topic, url: training_topic_path(@training_topic), local: true, class: "row g-3" do |f| %>
-      <div class="col-md-8">
-        <%= f.text_field :name, class: "form-control #{'is-invalid' if @training_topic.errors.key?(:name)}", required: true %>
-        <% if @training_topic.errors.key?(:name) %>
-          <div class="invalid-feedback">
-            <%= @training_topic.errors[:name].first %>
-          </div>
-        <% end %>
-      </div>
-      <div class="col-md-4">
-        <%= f.submit "Update Topic", class: "btn btn-primary w-100" %>
-      </div>
-    <% end %>
+        </div>
+        <div class="col-md-4">
+          <%= f.submit "Update Topic", class: "btn btn-primary w-100" %>
+        </div>
+      <% end %>
+    </div>
   </div>
-</div>
+<% end %>
 
 <div class="card shadow-sm border-0 mb-4">
   <div class="card-body">
@@ -115,6 +121,62 @@
     });
   }
 </script>
+
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2 class="h5 mb-0"><i class="bi bi-file-earmark me-2"></i>Documents</h2>
+      <%= link_to new_document_path(training_topic_id: @training_topic.id, return_to_topic: @training_topic.id), class: "btn btn-sm btn-success" do %>
+        <i class="bi bi-plus-lg"></i> Upload Document
+      <% end %>
+    </div>
+
+    <% if @topic_documents.any? %>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="bg-body-tertiary">
+            <tr>
+              <th>Title</th>
+              <th>Filename</th>
+              <th>Size</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @topic_documents.each do |doc| %>
+              <tr>
+                <td><%= doc.title %></td>
+                <td class="text-muted small"><%= doc.filename %></td>
+                <td class="text-muted small"><%= doc.file.attached? ? number_to_human_size(doc.file.byte_size) : 'N/A' %></td>
+                <td class="text-end">
+                  <div class="d-flex gap-1 justify-content-end">
+                    <% if doc.file.attached? %>
+                      <%= link_to download_document_path(doc), class: "btn btn-sm btn-outline-secondary", title: "Download" do %>
+                        <i class="bi bi-download"></i>
+                      <% end %>
+                    <% end %>
+                    <%= link_to edit_document_path(doc, return_to_topic: @training_topic.id), class: "btn btn-sm btn-outline-primary", title: "Edit" do %>
+                      <i class="bi bi-pencil"></i>
+                    <% end %>
+                    <%= button_to document_path(doc, return_to_topic: @training_topic.id),
+                        method: :delete,
+                        class: "btn btn-sm btn-outline-danger",
+                        title: "Delete",
+                        data: { turbo_confirm: "Delete this document?" } do %>
+                      <i class="bi bi-trash"></i>
+                    <% end %>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <p class="text-muted mb-0">No documents associated with this topic yet.</p>
+    <% end %>
+  </div>
+</div>
 
 <div class="card shadow-sm border-0 mb-4">
   <div class="card-body">
@@ -237,27 +299,44 @@
     </div>
   </div>
 
-  <div class="col-md-6">
-    <div class="card shadow-sm border-0">
-      <div class="card-body">
-        <h2 class="h5 mb-3">Users Who Can Train This Topic</h2>
-        <% if @trainer_users.any? %>
-          <ul class="list-unstyled mb-0">
-            <% @trainer_users.each do |user| %>
-              <li class="mb-2 d-flex justify-content-between align-items-center">
-                <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
-                <%= button_to "Revoke", revoke_trainer_capability_training_topic_path(@training_topic, user_id: user.id), 
-                    method: :delete, 
-                    class: "btn btn-sm btn-outline-danger",
-                    data: { confirm: "Are you sure you want to revoke trainer capability for #{user.display_name}?" } %>
-              </li>
-            <% end %>
-          </ul>
-        <% else %>
-          <p class="text-muted mb-0">No users can train this topic yet.</p>
-        <% end %>
+  <% if current_user_admin? %>
+    <div class="col-md-6">
+      <div class="card shadow-sm border-0">
+        <div class="card-body">
+          <h2 class="h5 mb-3">Users Who Can Train This Topic</h2>
+          <% if @trainer_users.any? %>
+            <ul class="list-unstyled mb-0">
+              <% @trainer_users.each do |user| %>
+                <li class="mb-2 d-flex justify-content-between align-items-center">
+                  <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
+                  <%= button_to "Revoke", revoke_trainer_capability_training_topic_path(@training_topic, user_id: user.id), 
+                      method: :delete, 
+                      class: "btn btn-sm btn-outline-danger",
+                      data: { confirm: "Are you sure you want to revoke trainer capability for #{user.display_name}?" } %>
+                </li>
+              <% end %>
+            </ul>
+          <% else %>
+            <p class="text-muted mb-0">No users can train this topic yet.</p>
+          <% end %>
+        </div>
       </div>
     </div>
-  </div>
+  <% end %>
 </div>
 
+<% if current_user_admin? %>
+  <div class="card shadow-sm border-0 mt-4">
+    <div class="card-body">
+      <h2 class="h5 mb-3 text-danger">Danger Zone</h2>
+      <% if @training_topic.trainings.any? || @training_topic.trainer_capabilities.any? %>
+        <p class="text-muted small">Cannot delete this topic because it has trainings or trainer capabilities.</p>
+      <% else %>
+        <%= button_to "Delete Topic", training_topic_path(@training_topic),
+            method: :delete,
+            class: "btn btn-danger",
+            data: { turbo_confirm: "Are you sure you want to delete '#{@training_topic.name}'? This cannot be undone." } %>
+      <% end %>
+    </div>
+  </div>
+<% end %>
