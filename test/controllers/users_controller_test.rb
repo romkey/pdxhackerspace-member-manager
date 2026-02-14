@@ -3,11 +3,23 @@ require 'test_helper'
 class UsersControllerTest < ActionDispatch::IntegrationTest
   setup do
     @user = users(:one)
+    @original_local_auth_enabled = Rails.application.config.x.local_auth.enabled
+    Rails.application.config.x.local_auth.enabled = true
     sign_in_as_local_admin
   end
 
-  test 'shows user with payment history' do
+  teardown do
+    Rails.application.config.x.local_auth.enabled = @original_local_auth_enabled
+  end
+
+  test 'shows user profile' do
     get user_path(@user)
+    assert_response :success
+    assert_match @user.display_name, response.body
+  end
+
+  test 'shows user with payment history on payments tab' do
+    get user_path(@user, tab: :payments)
     assert_response :success
     assert_match @user.display_name, response.body
     assert_match paypal_payments(:sample_payment).paypal_id, response.body

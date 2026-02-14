@@ -1,7 +1,5 @@
 class SheetEntry < ApplicationRecord
   belongs_to :user, optional: true
-  has_many :paypal_payments, dependent: :nullify
-  has_many :recharge_payments, dependent: :nullify
   ACCESS_COLUMNS = %i[
     rfid
     laser

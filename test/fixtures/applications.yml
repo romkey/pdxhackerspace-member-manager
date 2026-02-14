@@ -1,0 +1,5 @@
+sample_app:
+  name: Sample Application
+  internal_url: http://sample.local
+  external_url: https://sample.example.com
+  authentik_prefix: sample

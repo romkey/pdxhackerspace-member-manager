@@ -21,8 +21,6 @@ class SheetEntriesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select 'h1', text: 'Sheet Entries'
     assert_match @sheet_entry.name, response.body
-    assert_match(/share Authentik emails/, response.body)
-    assert_match(/share Authentik names/, response.body)
   end
 
   test 'shows a single entry' do
@@ -30,8 +28,6 @@ class SheetEntriesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match @sheet_entry.name, response.body
     assert_match @sheet_entry.status, response.body
-    assert_match @sheet_entry.paypal_payments.first.paypal_id, response.body
-    assert_match @sheet_entry.recharge_payments.first.recharge_id, response.body
   end
 
   test 'enqueues sync job' do

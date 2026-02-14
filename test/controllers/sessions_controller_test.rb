@@ -37,28 +37,20 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_select '.alert', /Invalid email or password/
   end
 
-  test 'rfid login signs in matching user' do
-    post rfid_login_path, params: { rfid: { token: 'abc123' } }
+  test 'rfid login redirects to wait page' do
+    post rfid_login_path
+    assert_redirected_to rfid_wait_path
+  end
 
-    assert_redirected_to root_path
+  test 'rfid wait without session redirects to login' do
+    get rfid_wait_path
+    assert_redirected_to login_path
+  end
+
+  test 'rfid login stores session timestamp' do
+    post rfid_login_path
+    assert_redirected_to rfid_wait_path
     follow_redirect!
     assert_response :success
-    assert_match 'Signed in via RFID', response.body
-  end
-
-  test 'rfid login rejects unknown tokens' do
-    post rfid_login_path, params: { rfid: { token: 'unknown-token' } }
-
-    assert_redirected_to login_path
-    follow_redirect!
-    assert_select '.alert', /No user with that RFID/
-  end
-
-  test 'rfid login requires a token' do
-    post rfid_login_path, params: { rfid: { token: '' } }
-
-    assert_redirected_to login_path
-    follow_redirect!
-    assert_select '.alert', /RFID value/
   end
 end

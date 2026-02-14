@@ -1,0 +1,9 @@
+sample_group:
+  application: sample_app
+  name: Sample Group
+  authentik_name: sample-group
+  note: A sample application group
+  use_default_members_group: false
+  use_default_admins_group: false
+  use_can_train: false
+  use_trained_in: false

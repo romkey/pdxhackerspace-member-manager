@@ -6,6 +6,12 @@ class UserProfileVisibilityTest < ActionDispatch::IntegrationTest
     @private_user = users(:private_profile_user)
     @members_user = users(:one)
     @member_with_account = users(:member_with_local_account)
+    @original_local_auth_enabled = Rails.application.config.x.local_auth.enabled
+    Rails.application.config.x.local_auth.enabled = true
+  end
+
+  teardown do
+    Rails.application.config.x.local_auth.enabled = @original_local_auth_enabled
   end
 
   # ==========================================

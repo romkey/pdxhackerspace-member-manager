@@ -374,16 +374,23 @@ class SessionsController < ApplicationController
   end
 
   def sync_local_account(account)
-    User.find_or_initialize_by(authentik_id: "local:#{account.id}").tap do |user|
-      user.assign_attributes(
-        email: account.email,
-        full_name: account.full_name,
-        active: account.active,
-        last_synced_at: Time.current,
-        is_admin: account.admin?
-      )
-      user.save!
+    local_authentik_id = "local:#{account.id}"
+    user = User.find_by(authentik_id: local_authentik_id)
+    if user.nil? && account.email.present?
+      user = User.find_by('LOWER(email) = ?', account.email.to_s.strip.downcase)
     end
+    user ||= User.new
+
+    user.assign_attributes(
+      authentik_id: local_authentik_id,
+      email: account.email,
+      full_name: account.full_name,
+      active: account.active,
+      last_synced_at: Time.current,
+      is_admin: account.admin?
+    )
+    user.save!
+    user
   end
 
   def session_params

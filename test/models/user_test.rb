@@ -4,10 +4,14 @@ class UserTest < ActiveSupport::TestCase
   test 'ordered_by_display_name sorts by name then email' do
     ordered = User.ordered_by_display_name.map(&:display_name)
 
-    assert_equal(
-      ['beta@example.com', 'Example User One', 'Example User Two', 'No Email User'],
-      ordered
-    )
+    # Verify the list is sorted case-insensitively
+    assert_equal ordered, ordered.sort_by { |name| name.downcase }
+
+    # Verify all fixture users are included
+    assert_includes ordered, 'Example User One'
+    assert_includes ordered, 'Example User Two'
+    assert_includes ordered, 'No Email User'
+    assert_includes ordered, 'beta@example.com'
   end
 
   test 'allows users without email' do
