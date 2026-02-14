@@ -26,7 +26,6 @@
             <tr>
               <th scope="col">Name</th>
               <th scope="col">Purpose</th>
-              <th scope="col">Webhook URL</th>
               <th scope="col">Status</th>
               <th scope="col" class="text-end">Actions</th>
             </tr>
@@ -34,20 +33,12 @@
           <tbody>
             <% @incoming_webhooks.each do |webhook| %>
               <tr>
-                <td><strong><%= webhook.name %></strong></td>
-                <td class="text-muted small" style="max-width: 300px;"><%= webhook.description %></td>
                 <td>
-                  <% if @base_url.present? %>
-                    <div class="input-group input-group-sm" style="max-width: 500px;">
-                      <input type="text" class="form-control font-monospace small" value="<%= webhook.webhook_url %>" readonly id="webhook-url-<%= webhook.id %>">
-                      <button class="btn btn-outline-secondary" type="button"
-                              onclick="navigator.clipboard.writeText(document.getElementById('webhook-url-<%= webhook.id %>').value).then(() => { this.textContent = 'Copied!'; setTimeout(() => { this.textContent = 'Copy'; }, 2000); })"
-                              title="Copy to clipboard">Copy</button>
-                    </div>
-                  <% else %>
-                    <code class="small"><%= webhook.webhook_path %></code>
-                  <% end %>
+                  <strong><%= webhook.name %></strong>
+                  <br>
+                  <code class="small text-break"><%= @base_url.present? ? webhook.webhook_url : webhook.webhook_path %></code>
                 </td>
+                <td class="text-muted small" style="max-width: 300px;"><%= webhook.description %></td>
                 <td>
                   <% if webhook.enabled? %>
                     <span class="badge bg-success">Enabled</span>
@@ -56,28 +47,7 @@
                   <% end %>
                 </td>
                 <td class="text-end">
-                  <div class="dropdown">
-                    <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                      Regenerate URL
-                    </button>
-                    <div class="dropdown-menu dropdown-menu-end p-3" style="min-width: 350px;">
-                      <h6 class="dropdown-header px-0">Regenerate URL for <%= webhook.name %></h6>
-                      <%= form_with url: regenerate_slug_incoming_webhook_path(webhook), method: :post, local: true, class: "mt-2" do |f| %>
-                        <div class="mb-2">
-                          <label class="form-label small mb-1">Custom slug (optional)</label>
-                          <input type="text" name="custom_slug" class="form-control form-control-sm font-monospace"
-                                 placeholder="leave blank for random" pattern="[a-zA-Z0-9_-]+"
-                                 title="Only letters, numbers, hyphens, and underscores">
-                        </div>
-                        <div class="d-flex gap-2">
-                          <button type="submit" class="btn btn-sm btn-warning">Regenerate</button>
-                        </div>
-                        <p class="text-muted small mt-2 mb-0">
-                          Warning: changing the URL will break any external service currently using the old URL.
-                        </p>
-                      <% end %>
-                    </div>
-                  </div>
+                  <%= link_to "Edit", edit_incoming_webhook_path(webhook), class: "btn btn-sm btn-outline-primary" %>
                 </td>
               </tr>
             <% end %>

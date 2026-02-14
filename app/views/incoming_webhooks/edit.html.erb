@@ -1,0 +1,127 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0">Edit Webhook: <%= @incoming_webhook.name %></h1>
+  <%= link_to "&larr; Back to Incoming Webhooks".html_safe, incoming_webhooks_path, class: "text-decoration-none" %>
+</div>
+
+<div class="row">
+  <div class="col-lg-8">
+    <%# Webhook URL section %>
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-body-tertiary">
+        <h5 class="mb-0">Webhook URL</h5>
+      </div>
+      <div class="card-body">
+        <% if @base_url.present? %>
+          <div class="input-group mb-2">
+            <input type="text" class="form-control font-monospace" value="<%= @incoming_webhook.webhook_url %>" readonly id="webhook-url">
+            <button class="btn btn-outline-secondary" type="button"
+                    onclick="navigator.clipboard.writeText(document.getElementById('webhook-url').value).then(() => { this.textContent = 'Copied!'; setTimeout(() => { this.textContent = 'Copy'; }, 2000); })"
+                    title="Copy to clipboard">Copy</button>
+          </div>
+        <% else %>
+          <p class="font-monospace mb-2"><%= @incoming_webhook.webhook_path %></p>
+          <div class="alert alert-warning py-2 small mb-2">
+            Set <code>MEMBER_MANAGER_BASE_URL</code> to see the full URL.
+          </div>
+        <% end %>
+        <p class="text-muted small mb-0">
+          Slug: <code><%= @incoming_webhook.slug %></code>
+        </p>
+      </div>
+    </div>
+
+    <%# Regenerate URL section %>
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-body-tertiary">
+        <h5 class="mb-0">Regenerate URL</h5>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small">
+          Change the webhook URL by entering a custom slug or generating a random one.
+          <strong>Warning:</strong> changing the URL will break any external service currently using the old URL.
+        </p>
+        <%= form_with url: regenerate_slug_incoming_webhook_path(@incoming_webhook), method: :post, local: true do |f| %>
+          <div class="mb-3">
+            <label class="form-label">Custom slug (optional)</label>
+            <input type="text" name="custom_slug" class="form-control font-monospace"
+                   placeholder="leave blank for a random slug" pattern="[a-zA-Z0-9_-]+"
+                   title="Only letters, numbers, hyphens, and underscores">
+            <div class="form-text">Only letters, numbers, hyphens, and underscores are allowed.</div>
+          </div>
+          <button type="submit" class="btn btn-warning"
+                  onclick="return confirm('Are you sure? This will change the webhook URL and break any external service using the current URL.')">
+            Regenerate URL
+          </button>
+        <% end %>
+      </div>
+    </div>
+
+    <%# Settings section %>
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-body-tertiary">
+        <h5 class="mb-0">Settings</h5>
+      </div>
+      <div class="card-body">
+        <% if @incoming_webhook.errors.any? %>
+          <div class="alert alert-danger">
+            <ul class="mb-0">
+              <% @incoming_webhook.errors.full_messages.each do |message| %>
+                <li><%= message %></li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+
+        <%= form_with model: @incoming_webhook, url: incoming_webhook_path(@incoming_webhook), local: true do |f| %>
+          <div class="mb-3">
+            <%= f.label :description, class: "form-label" %>
+            <%= f.text_area :description, class: "form-control", rows: 3 %>
+          </div>
+
+          <div class="mb-3 form-check form-switch">
+            <%= f.check_box :enabled, class: "form-check-input", role: "switch" %>
+            <%= f.label :enabled, "Enabled", class: "form-check-label" %>
+            <div class="form-text">When disabled, requests to this webhook URL will return a 404 error.</div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <%= f.submit "Save Changes", class: "btn btn-primary" %>
+            <%= link_to "Cancel", incoming_webhooks_path, class: "btn btn-outline-secondary" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-body-tertiary">
+        <h5 class="mb-0">Details</h5>
+      </div>
+      <div class="card-body">
+        <dl class="mb-0">
+          <dt>Name</dt>
+          <dd><%= @incoming_webhook.name %></dd>
+
+          <dt>Type</dt>
+          <dd><code><%= @incoming_webhook.webhook_type %></code></dd>
+
+          <dt>Status</dt>
+          <dd>
+            <% if @incoming_webhook.enabled? %>
+              <span class="badge bg-success">Enabled</span>
+            <% else %>
+              <span class="badge bg-secondary">Disabled</span>
+            <% end %>
+          </dd>
+
+          <dt>Created</dt>
+          <dd><%= @incoming_webhook.created_at&.strftime('%b %d, %Y %H:%M') || 'N/A' %></dd>
+
+          <dt>Last Updated</dt>
+          <dd><%= @incoming_webhook.updated_at&.strftime('%b %d, %Y %H:%M') || 'N/A' %></dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>
