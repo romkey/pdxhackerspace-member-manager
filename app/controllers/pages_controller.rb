@@ -6,6 +6,6 @@ class PagesController < ApplicationController
   end
 
   def help
-    @help_content = TextFragment.content_for('admin_help')
+    @help_content = TextFragment.content_for('navbar_help')
   end
 end

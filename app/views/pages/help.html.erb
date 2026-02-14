@@ -7,7 +7,7 @@
     <% if @help_content.present? %>
       <%= sanitize(@help_content, tags: %w[h1 h2 h3 h4 h5 h6 p br strong b em i u s ul ol li a div span hr table thead tbody tr th td dl dt dd code pre blockquote img], attributes: %w[href target class style src alt width height]) %>
     <% else %>
-      <p class="text-muted mb-0">No help content has been configured yet. An admin can add content by editing the "Admin Help" text fragment in <%= link_to "Settings > Text Fragments", text_fragments_path %>.</p>
+      <p class="text-muted mb-0">No help content has been configured yet. An admin can add content by editing the "Navbar Help" text fragment in <%= link_to "Settings > Text Fragments", text_fragments_path %>.</p>
     <% end %>
   </div>
 </div>

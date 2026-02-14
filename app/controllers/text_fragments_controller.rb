@@ -63,8 +63,8 @@ class TextFragmentsController < AdminController
     )
 
     TextFragment.ensure_exists!(
-      key: 'admin_help',
-      title: 'Admin Help',
+      key: 'navbar_help',
+      title: 'Navbar Help',
       content: <<~HTML
         <h4>Member Manager Help</h4>
         <p>Welcome to Member Manager. This page provides an overview of the system and how to use it.</p>
@@ -85,7 +85,7 @@ class TextFragmentsController < AdminController
         <p>Configure membership plans, email templates, text fragments, applications, webhooks, and integrations with Authentik, Slack, and Google Sheets.</p>
 
         <hr>
-        <p class="text-muted">This help text can be edited in <strong>Settings &gt; Text Fragments &gt; Admin Help</strong>.</p>
+        <p class="text-muted">This help text can be edited in <strong>Settings &gt; Text Fragments &gt; Navbar Help</strong>.</p>
       HTML
     )
 
