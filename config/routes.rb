@@ -8,6 +8,7 @@ Rails.application.routes.draw do
 
   get "/login", to: "sessions#new"
   get "/apply", to: "pages#apply"
+  get "/help", to: "pages#help", as: :help
   post "/local_login", to: "sessions#create_local"
   post "/rfid_login", to: "sessions#create_rfid"
   get "/rfid_login/wait", to: "sessions#rfid_wait", as: :rfid_wait

@@ -63,6 +63,33 @@ class TextFragmentsController < AdminController
     )
 
     TextFragment.ensure_exists!(
+      key: 'admin_help',
+      title: 'Admin Help',
+      content: <<~HTML
+        <h4>Member Manager Help</h4>
+        <p>Welcome to Member Manager. This page provides an overview of the system and how to use it.</p>
+
+        <h5>Members</h5>
+        <p>View and manage all members, their profiles, membership status, and payment history. Use the search bar to find members quickly.</p>
+
+        <h5>Payments</h5>
+        <p>PayPal, Recharge, and Ko-Fi payments are synced automatically. You can also manually import payments and link them to members.</p>
+
+        <h5>Access</h5>
+        <p>Manage access controllers, RFID readers, and view access logs. Access controllers sync RFID keys to door controllers via SSH scripts.</p>
+
+        <h5>Training</h5>
+        <p>Track which members are trained on equipment and who can train others. Training topics are configured in Settings.</p>
+
+        <h5>Settings</h5>
+        <p>Configure membership plans, email templates, text fragments, applications, webhooks, and integrations with Authentik, Slack, and Google Sheets.</p>
+
+        <hr>
+        <p class="text-muted">This help text can be edited in <strong>Settings &gt; Text Fragments &gt; Admin Help</strong>.</p>
+      HTML
+    )
+
+    TextFragment.ensure_exists!(
       key: 'apply_for_membership',
       title: 'Apply For Membership',
       content: <<~HTML
