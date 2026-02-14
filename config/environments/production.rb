@@ -69,7 +69,10 @@ Rails.application.configure do
 
   # Use a real queuing backend for Active Job (and separate queues per environment).
   config.active_job.queue_adapter = :sidekiq
-  config.active_job.queue_name_prefix = "member_manager_production"
+  # NOTE: Do NOT add queue_name_prefix here. It interacts badly with sidekiq-cron's
+  # active_job: true option, causing the prefix to be applied twice and creating
+  # ghost queues like "prefix_prefix_default". Plain queue names work fine since
+  # this app has its own dedicated Redis instance.
 
   config.action_mailer.perform_caching = false
 
