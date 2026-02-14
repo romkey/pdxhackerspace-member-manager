@@ -1,0 +1,9 @@
+laser_safety_guide:
+  training_topic: laser_cutting
+  title: Laser Safety Guide
+  url: https://example.com/laser-safety
+
+woodworking_manual:
+  training_topic: woodworking
+  title: Woodworking Manual
+  url: https://example.com/woodworking-manual

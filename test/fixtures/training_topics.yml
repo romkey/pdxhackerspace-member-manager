@@ -1,0 +1,8 @@
+laser_cutting:
+  name: Laser Cutting
+
+woodworking:
+  name: Woodworking
+
+electronics:
+  name: Electronics

@@ -1,10 +1,13 @@
+# Manages incoming webhook endpoint configurations with dynamic URL slugs.
 class IncomingWebhook < ApplicationRecord
-  WEBHOOK_TYPES = %w[rfid kofi access authentik].freeze
+  WEBHOOK_TYPES = %w[rfid kofi access authentik recharge].freeze
+  SLUG_FORMAT = /\A[a-zA-Z0-9_-]+\z/
 
   validates :name, presence: true
   validates :webhook_type, presence: true, uniqueness: true, inclusion: { in: WEBHOOK_TYPES }
   validates :slug, presence: true, uniqueness: true,
-                   format: { with: /\A[a-zA-Z0-9_-]+\z/, message: 'only allows letters, numbers, hyphens, and underscores' }
+                   format: { with: SLUG_FORMAT,
+                             message: 'only allows letters, numbers, hyphens, and underscores' }
 
   scope :enabled, -> { where(enabled: true) }
 
@@ -34,7 +37,7 @@ class IncomingWebhook < ApplicationRecord
 
   # Full webhook URL (requires MEMBER_MANAGER_BASE_URL to be set)
   def webhook_url
-    base_url = ENV['MEMBER_MANAGER_BASE_URL']
+    base_url = ENV.fetch('MEMBER_MANAGER_BASE_URL', nil)
     return nil if base_url.blank?
 
     "#{base_url.delete_suffix('/')}/webhooks/#{slug}"
@@ -47,35 +50,29 @@ class IncomingWebhook < ApplicationRecord
 
   # Seed defaults for all webhook types
   def self.seed_defaults!
-    defaults = [
-      {
-        webhook_type: 'rfid',
-        name: 'RFID',
-        description: 'Receives RFID keyfob scans from readers for member authentication and door access.'
-      },
-      {
-        webhook_type: 'kofi',
-        name: 'Ko-Fi',
-        description: 'Receives payment notifications from Ko-Fi for donations, subscriptions, and shop orders.'
-      },
-      {
-        webhook_type: 'access',
-        name: 'Access Log',
-        description: 'Receives access log lines from door controllers for real-time access tracking.'
-      },
-      {
-        webhook_type: 'authentik',
-        name: 'Authentik',
-        description: 'Receives user and group change notifications from Authentik identity provider.'
-      }
-    ]
+    default_webhooks.each { |attrs| seed_webhook(attrs) }
+  end
 
-    defaults.each do |attrs|
-      webhook = find_or_initialize_by(webhook_type: attrs[:webhook_type])
-      if webhook.new_record?
-        webhook.assign_attributes(attrs.merge(slug: attrs[:webhook_type]))
-        webhook.save!
-      end
-    end
+  def self.default_webhooks
+    [
+      { webhook_type: 'rfid', name: 'RFID',
+        description: 'Receives RFID keyfob scans from readers for member authentication and door access.' },
+      { webhook_type: 'kofi', name: 'Ko-Fi',
+        description: 'Receives payment notifications from Ko-Fi for donations, subscriptions, and shop orders.' },
+      { webhook_type: 'access', name: 'Access Log',
+        description: 'Receives access log lines from door controllers for real-time access tracking.' },
+      { webhook_type: 'authentik', name: 'Authentik',
+        description: 'Receives user and group change notifications from Authentik identity provider.' },
+      { webhook_type: 'recharge', name: 'Recharge',
+        description: 'Receives subscription lifecycle events (created, cancelled) from Recharge.' }
+    ]
+  end
+
+  def self.seed_webhook(attrs)
+    webhook = find_or_initialize_by(webhook_type: attrs[:webhook_type])
+    return unless webhook.new_record?
+
+    webhook.assign_attributes(attrs.merge(slug: attrs[:webhook_type]))
+    webhook.save!
   end
 end

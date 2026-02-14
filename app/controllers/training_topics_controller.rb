@@ -1,10 +1,16 @@
+# Manages training topics. Admins have full access; trainers can manage
+# topics they are authorized to train (edit links, documents, train members).
 class TrainingTopicsController < AuthenticatedController
-  before_action :require_admin!, only: [:index, :create, :destroy, :revoke_trainer_capability]
-  before_action :set_training_topic, only: [:edit, :update, :revoke_training, :revoke_trainer_capability]
-  before_action :require_trainer_or_admin_for_topic!, only: [:edit, :update, :revoke_training]
+  before_action :require_admin!, only: %i[index create destroy revoke_trainer_capability]
+  before_action :set_training_topic, only: %i[edit update revoke_training revoke_trainer_capability]
+  before_action :require_trainer_or_admin_for_topic!, only: %i[edit update revoke_training]
 
   def index
     @training_topics = TrainingTopic.order(:name)
+  end
+
+  def edit
+    load_edit_associations
   end
 
   def create
@@ -18,18 +24,6 @@ class TrainingTopicsController < AuthenticatedController
     end
   end
 
-  def edit
-    # Get distinct users trained in this topic (use subquery to avoid PostgreSQL DISTINCT/ORDER BY conflict)
-    trained_user_ids = Training.where(training_topic_id: @training_topic.id).select(:trainee_id).distinct
-    @trained_users = User.where(id: trained_user_ids).order(:full_name, :email)
-    # Get users who can train this topic
-    @trainer_users = @training_topic.trainers.order(:full_name, :email)
-    # Get all users for the training search
-    @users_for_search = User.ordered_by_display_name
-    # Get documents associated with this topic
-    @topic_documents = @training_topic.documents.ordered
-  end
-
   def update
     # Non-admins cannot rename topics
     permitted_params = current_user_admin? ? training_topic_params : {}
@@ -37,13 +31,8 @@ class TrainingTopicsController < AuthenticatedController
     if permitted_params.empty? || @training_topic.update(permitted_params)
       redirect_to edit_training_topic_path(@training_topic), notice: 'Training topic updated successfully.'
     else
-      # Reload the associations for the view (use subquery to avoid PostgreSQL DISTINCT/ORDER BY conflict)
-      trained_user_ids = Training.where(training_topic_id: @training_topic.id).select(:trainee_id).distinct
-      @trained_users = User.where(id: trained_user_ids).order(:full_name, :email)
-      @trainer_users = @training_topic.trainers.order(:full_name, :email)
-      @users_for_search = User.ordered_by_display_name
-      @topic_documents = @training_topic.documents.ordered
-      render :edit, status: :unprocessable_entity
+      load_edit_associations
+      render :edit, status: :unprocessable_content
     end
   end
 
@@ -53,10 +42,11 @@ class TrainingTopicsController < AuthenticatedController
     # Delete all trainings for this user and topic
     deleted_count = @training_topic.trainings.where(trainee: user).delete_all
 
-    if deleted_count > 0
+    if deleted_count.positive?
       redirect_to edit_training_topic_path(@training_topic), notice: "Training revoked for #{user.display_name}."
     else
-      redirect_to edit_training_topic_path(@training_topic), alert: "No training found to revoke for #{user.display_name}."
+      redirect_to edit_training_topic_path(@training_topic),
+                  alert: "No training found to revoke for #{user.display_name}."
     end
   end
 
@@ -67,9 +57,11 @@ class TrainingTopicsController < AuthenticatedController
     trainer_capability = TrainerCapability.find_by(user: user, training_topic: @training_topic)
 
     if trainer_capability&.destroy
-      redirect_to edit_training_topic_path(@training_topic), notice: "Trainer capability revoked for #{user.display_name}."
+      redirect_to edit_training_topic_path(@training_topic),
+                  notice: "Trainer capability revoked for #{user.display_name}."
     else
-      redirect_to edit_training_topic_path(@training_topic), alert: "No trainer capability found to revoke for #{user.display_name}."
+      redirect_to edit_training_topic_path(@training_topic),
+                  alert: "No trainer capability found to revoke for #{user.display_name}."
     end
   end
 
@@ -89,6 +81,14 @@ class TrainingTopicsController < AuthenticatedController
 
   def set_training_topic
     @training_topic = TrainingTopic.find(params[:id])
+  end
+
+  def load_edit_associations
+    trained_user_ids = Training.where(training_topic_id: @training_topic.id).select(:trainee_id).distinct
+    @trained_users = User.where(id: trained_user_ids).order(:full_name, :email)
+    @trainer_users = @training_topic.trainers.order(:full_name, :email)
+    @users_for_search = User.ordered_by_display_name
+    @topic_documents = @training_topic.documents.ordered
   end
 
   def require_trainer_or_admin_for_topic!

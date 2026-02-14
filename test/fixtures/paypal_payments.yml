@@ -9,7 +9,6 @@ sample_payment:
   payer_name: Sample Donor
   payer_id: PAYER123
   user: one
-  sheet_entry: member_list_entry
   raw_attributes:
     transaction_info:
       transaction_id: PAY-123

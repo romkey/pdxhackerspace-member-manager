@@ -1,0 +1,2 @@
+# Empty - trainer capabilities will be created dynamically in tests
+# because the user records are created during sign-in (sync_local_account)

@@ -12,5 +12,12 @@ regular_member:
   password_digest: <%= BCrypt::Password.create("memberpassword123") %>
   active: true
   admin: false
-  user: member_with_local_account
+  last_signed_in_at:
+
+trainer_account:
+  email: trainer@example.com
+  full_name: Trainer User
+  password_digest: <%= BCrypt::Password.create("trainerpassword123") %>
+  active: true
+  admin: false
   last_signed_in_at:

@@ -1,7 +1,9 @@
+# Manages resource links for training topics. Accessible to admins
+# and trainers who have capability for the associated topic.
 class TrainingTopicLinksController < AuthenticatedController
   before_action :set_training_topic
   before_action :require_trainer_or_admin_for_topic!
-  before_action :set_link, only: [:update, :destroy]
+  before_action :set_link, only: %i[update destroy]
 
   def create
     @link = @training_topic.links.build(link_params)
@@ -9,7 +11,8 @@ class TrainingTopicLinksController < AuthenticatedController
     if @link.save
       redirect_to edit_training_topic_path(@training_topic), notice: 'Link added successfully.'
     else
-      redirect_to edit_training_topic_path(@training_topic), alert: "Failed to add link: #{@link.errors.full_messages.join(', ')}"
+      redirect_to edit_training_topic_path(@training_topic),
+                  alert: "Failed to add link: #{@link.errors.full_messages.join(', ')}"
     end
   end
 
@@ -17,7 +20,8 @@ class TrainingTopicLinksController < AuthenticatedController
     if @link.update(link_params)
       redirect_to edit_training_topic_path(@training_topic), notice: 'Link updated successfully.'
     else
-      redirect_to edit_training_topic_path(@training_topic), alert: "Failed to update link: #{@link.errors.full_messages.join(', ')}"
+      redirect_to edit_training_topic_path(@training_topic),
+                  alert: "Failed to update link: #{@link.errors.full_messages.join(', ')}"
     end
   end
 

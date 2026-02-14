@@ -1,9 +1,7 @@
-# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
-
-one:
+laser_doc:
   document: one
-  training_topic: one
+  training_topic: laser_cutting
 
-two:
+woodworking_doc:
   document: two
-  training_topic: two
+  training_topic: woodworking

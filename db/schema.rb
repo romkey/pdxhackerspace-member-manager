@@ -10,17 +10,32 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_01_15_020002) do
+ActiveRecord::Schema[7.1].define(version: 2026_02_11_180000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "access_controller_logs", force: :cascade do |t|
+    t.bigint "access_controller_id", null: false
+    t.string "action", null: false
+    t.string "command_line"
+    t.text "output"
+    t.integer "exit_code"
+    t.string "status", default: "running", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["access_controller_id"], name: "index_access_controller_logs_on_access_controller_id"
+    t.index ["action"], name: "index_access_controller_logs_on_action"
+    t.index ["created_at"], name: "index_access_controller_logs_on_created_at"
+    t.index ["status"], name: "index_access_controller_logs_on_status"
+  end
 
   create_table "access_controller_types", force: :cascade do |t|
     t.string "name", null: false
     t.string "script_path", null: false
-    t.string "access_token"
     t.boolean "enabled", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.jsonb "actions", default: [], null: false
     t.index ["enabled"], name: "index_access_controller_types_on_enabled"
     t.index ["name"], name: "index_access_controller_types_on_name", unique: true
   end
@@ -32,11 +47,18 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_15_020002) do
     t.boolean "enabled", default: true, null: false
     t.datetime "last_sync_at"
     t.string "sync_status", default: "unknown", null: false
-    t.text "last_sync_message"
     t.integer "display_order", default: 0
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "access_controller_type_id"
+    t.string "access_token"
+    t.string "script_arguments"
+    t.string "nickname"
+    t.text "environment_variables"
+    t.string "ping_status", default: "unknown"
+    t.datetime "last_ping_at"
+    t.string "backup_status", default: "unknown"
+    t.datetime "last_backup_at"
     t.index ["access_controller_type_id"], name: "index_access_controllers_on_access_controller_type_id"
     t.index ["enabled"], name: "index_access_controllers_on_enabled"
     t.index ["hostname"], name: "index_access_controllers_on_hostname"
@@ -98,7 +120,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_15_020002) do
     t.boolean "use_can_train", default: false, null: false
     t.boolean "use_trained_in", default: false, null: false
     t.bigint "training_topic_id"
+    t.string "authentik_group_id"
     t.index ["application_id"], name: "index_application_groups_on_application_id"
+    t.index ["authentik_group_id"], name: "index_application_groups_on_authentik_group_id"
     t.index ["training_topic_id"], name: "index_application_groups_on_training_topic_id"
   end
 
@@ -121,6 +145,24 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_15_020002) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "authentik_users", force: :cascade do |t|
+    t.string "authentik_id", null: false
+    t.string "username"
+    t.string "email"
+    t.string "full_name"
+    t.boolean "is_active", default: true, null: false
+    t.boolean "is_superuser", default: false, null: false
+    t.jsonb "raw_attributes", default: {}, null: false
+    t.datetime "last_synced_at"
+    t.bigint "user_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["authentik_id"], name: "index_authentik_users_on_authentik_id", unique: true
+    t.index ["email"], name: "index_authentik_users_on_email"
+    t.index ["raw_attributes"], name: "index_authentik_users_on_raw_attributes", using: :gin
+    t.index ["user_id"], name: "index_authentik_users_on_user_id"
+  end
+
   create_table "default_settings", force: :cascade do |t|
     t.string "site_prefix", default: "ctrlh", null: false
     t.string "app_prefix", null: false
@@ -131,6 +173,22 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_15_020002) do
     t.datetime "updated_at", null: false
     t.string "trained_on_prefix", null: false
     t.string "can_train_prefix", null: false
+  end
+
+  create_table "document_training_topics", force: :cascade do |t|
+    t.bigint "document_id", null: false
+    t.bigint "training_topic_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["document_id"], name: "index_document_training_topics_on_document_id"
+    t.index ["training_topic_id"], name: "index_document_training_topics_on_training_topic_id"
+  end
+
+  create_table "documents", force: :cascade do |t|
+    t.string "title"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.boolean "show_on_all_profiles", default: false, null: false
   end
 
   create_table "email_templates", force: :cascade do |t|
@@ -182,6 +240,18 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_15_020002) do
     t.index ["incident_type"], name: "index_incident_reports_on_incident_type"
     t.index ["reporter_id"], name: "index_incident_reports_on_reporter_id"
     t.index ["status"], name: "index_incident_reports_on_status"
+  end
+
+  create_table "incoming_webhooks", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "webhook_type", null: false
+    t.string "slug", null: false
+    t.boolean "enabled", default: true, null: false
+    t.text "description"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["slug"], name: "index_incoming_webhooks_on_slug", unique: true
+    t.index ["webhook_type"], name: "index_incoming_webhooks_on_webhook_type", unique: true
   end
 
   create_table "journals", force: :cascade do |t|
@@ -266,7 +336,22 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_15_020002) do
     t.text "description"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "payment_link"
+    t.string "plan_type", default: "primary", null: false
+    t.string "paypal_transaction_subject"
+    t.boolean "manual", default: false, null: false
+    t.boolean "visible", default: true, null: false
+    t.index ["manual"], name: "index_membership_plans_on_manual"
     t.index ["name"], name: "index_membership_plans_on_name", unique: true
+    t.index ["plan_type"], name: "index_membership_plans_on_plan_type"
+    t.index ["visible"], name: "index_membership_plans_on_visible"
+  end
+
+  create_table "membership_settings", force: :cascade do |t|
+    t.integer "payment_grace_period_days", default: 14, null: false
+    t.integer "reactivation_grace_period_months", default: 3, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "payment_processors", force: :cascade do |t|
@@ -294,6 +379,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_15_020002) do
     t.text "notes"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "payment_link"
     t.index ["display_order"], name: "index_payment_processors_on_display_order"
     t.index ["enabled"], name: "index_payment_processors_on_enabled"
     t.index ["key"], name: "index_payment_processors_on_key", unique: true
@@ -314,10 +400,11 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_15_020002) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id"
-    t.bigint "sheet_entry_id"
+    t.boolean "dont_link", default: false, null: false
+    t.boolean "matches_plan", default: true, null: false
+    t.index ["matches_plan"], name: "index_paypal_payments_on_matches_plan"
     t.index ["payer_email"], name: "index_paypal_payments_on_payer_email"
     t.index ["paypal_id"], name: "index_paypal_payments_on_paypal_id", unique: true
-    t.index ["sheet_entry_id"], name: "index_paypal_payments_on_sheet_entry_id"
     t.index ["user_id"], name: "index_paypal_payments_on_user_id"
   end
 
@@ -333,12 +420,14 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_15_020002) do
     t.jsonb "raw_attributes", default: {}, null: false
     t.datetime "last_synced_at"
     t.bigint "user_id"
-    t.bigint "sheet_entry_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "customer_id"
+    t.boolean "dont_link", default: false, null: false
     t.index ["customer_email"], name: "index_recharge_payments_on_customer_email"
+    t.index ["customer_id"], name: "index_recharge_payments_on_customer_id"
+    t.index ["processed_at"], name: "index_recharge_payments_on_processed_at", order: :desc
     t.index ["recharge_id"], name: "index_recharge_payments_on_recharge_id", unique: true
-    t.index ["sheet_entry_id"], name: "index_recharge_payments_on_sheet_entry_id"
     t.index ["user_id"], name: "index_recharge_payments_on_user_id"
   end
 
@@ -416,10 +505,23 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_15_020002) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id"
+    t.boolean "slack_status", default: false, null: false
+    t.datetime "last_active_at"
+    t.string "pronouns"
+    t.boolean "dont_link", default: false, null: false
     t.index ["email"], name: "index_slack_users_on_email", unique: true, where: "(email IS NOT NULL)"
     t.index ["raw_attributes"], name: "index_slack_users_on_raw_attributes", using: :gin
     t.index ["slack_id"], name: "index_slack_users_on_slack_id", unique: true
     t.index ["user_id"], name: "index_slack_users_on_user_id"
+  end
+
+  create_table "text_fragments", force: :cascade do |t|
+    t.string "key"
+    t.string "title"
+    t.text "content"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["key"], name: "index_text_fragments_on_key", unique: true
   end
 
   create_table "trainer_capabilities", force: :cascade do |t|
@@ -430,6 +532,15 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_15_020002) do
     t.index ["training_topic_id"], name: "index_trainer_capabilities_on_training_topic_id"
     t.index ["user_id", "training_topic_id"], name: "index_trainer_capabilities_on_user_id_and_training_topic_id", unique: true
     t.index ["user_id"], name: "index_trainer_capabilities_on_user_id"
+  end
+
+  create_table "training_topic_links", force: :cascade do |t|
+    t.bigint "training_topic_id", null: false
+    t.string "title", null: false
+    t.string "url", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["training_topic_id"], name: "index_training_topic_links_on_training_topic_id"
   end
 
   create_table "training_topics", force: :cascade do |t|
@@ -452,6 +563,27 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_15_020002) do
     t.index ["trainee_id"], name: "index_trainings_on_trainee_id"
     t.index ["trainer_id"], name: "index_trainings_on_trainer_id"
     t.index ["training_topic_id"], name: "index_trainings_on_training_topic_id"
+  end
+
+  create_table "user_links", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "title", null: false
+    t.string "url", null: false
+    t.integer "position", default: 0
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id", "position"], name: "index_user_links_on_user_id_and_position"
+    t.index ["user_id"], name: "index_user_links_on_user_id"
+  end
+
+  create_table "user_supplementary_plans", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "membership_plan_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["membership_plan_id"], name: "index_user_supplementary_plans_on_membership_plan_id"
+    t.index ["user_id", "membership_plan_id"], name: "index_user_supplementary_plans_unique", unique: true
+    t.index ["user_id"], name: "index_user_supplementary_plans_on_user_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -484,15 +616,24 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_15_020002) do
     t.string "username"
     t.boolean "is_admin", default: false, null: false
     t.bigint "membership_plan_id"
+    t.string "pronouns"
+    t.string "profile_visibility", default: "members", null: false
+    t.text "bio"
+    t.date "membership_start_date"
+    t.boolean "seen_member_help", default: false, null: false
+    t.date "membership_ended_date"
+    t.boolean "authentik_dirty", default: false, null: false
     t.index ["authentik_attributes"], name: "index_users_on_authentik_attributes", using: :gin
+    t.index ["authentik_dirty"], name: "index_users_on_authentik_dirty"
     t.index ["authentik_id"], name: "index_users_on_authentik_id", unique: true
     t.index ["email"], name: "index_users_on_email", unique: true, where: "(email IS NOT NULL)"
     t.index ["membership_plan_id"], name: "index_users_on_membership_plan_id"
     t.index ["paypal_account_id"], name: "index_users_on_paypal_account_id"
     t.index ["recharge_customer_id"], name: "index_users_on_recharge_customer_id"
-    t.index ["username"], name: "index_users_on_username"
+    t.index ["username"], name: "index_users_on_username", unique: true, where: "(username IS NOT NULL)"
   end
 
+  add_foreign_key "access_controller_logs", "access_controllers"
   add_foreign_key "access_controllers", "access_controller_types"
   add_foreign_key "access_logs", "users"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
@@ -501,6 +642,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_15_020002) do
   add_foreign_key "application_groups", "training_topics"
   add_foreign_key "application_groups_users", "application_groups"
   add_foreign_key "application_groups_users", "users"
+  add_foreign_key "authentik_users", "users"
+  add_foreign_key "document_training_topics", "documents"
+  add_foreign_key "document_training_topics", "training_topics"
   add_foreign_key "incident_report_links", "incident_reports"
   add_foreign_key "incident_report_members", "incident_reports"
   add_foreign_key "incident_report_members", "users"
@@ -509,17 +653,19 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_15_020002) do
   add_foreign_key "journals", "users", column: "actor_user_id"
   add_foreign_key "kofi_payments", "sheet_entries"
   add_foreign_key "kofi_payments", "users"
-  add_foreign_key "paypal_payments", "sheet_entries"
   add_foreign_key "paypal_payments", "users"
-  add_foreign_key "recharge_payments", "sheet_entries"
   add_foreign_key "recharge_payments", "users"
   add_foreign_key "rfids", "users"
   add_foreign_key "sheet_entries", "users"
   add_foreign_key "slack_users", "users"
   add_foreign_key "trainer_capabilities", "training_topics"
   add_foreign_key "trainer_capabilities", "users"
+  add_foreign_key "training_topic_links", "training_topics"
   add_foreign_key "trainings", "training_topics"
   add_foreign_key "trainings", "users", column: "trainee_id"
   add_foreign_key "trainings", "users", column: "trainer_id"
+  add_foreign_key "user_links", "users"
+  add_foreign_key "user_supplementary_plans", "membership_plans"
+  add_foreign_key "user_supplementary_plans", "users"
   add_foreign_key "users", "membership_plans"
 end

@@ -8,7 +8,6 @@ recharge_payment:
   customer_email: user1@example.com
   customer_name: Example User One
   user: one
-  sheet_entry: member_list_entry
   raw_attributes:
     id: RC-100
     status: success

@@ -21,6 +21,8 @@ class Journal < ApplicationRecord
     training_removed
     trainer_capability_added
     trainer_capability_removed
+    subscription_created
+    subscription_cancelled
   ].freeze
 
   # Fields whose changes should trigger a highlight
@@ -90,7 +92,7 @@ class Journal < ApplicationRecord
   def changes_include_highlighted_fields?
     return false if changes_json.blank?
 
-    (changes_json.keys & HIGHLIGHTED_FIELDS).any?
+    changes_json.keys.intersect?(HIGHLIGHTED_FIELDS)
   end
 
   # Returns true if this journal entry only contains sync/system field changes

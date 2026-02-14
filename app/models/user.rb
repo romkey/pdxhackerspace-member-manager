@@ -133,8 +133,6 @@ class User < ApplicationRecord
       last_payment + 1.year
     when 'one-time'
       nil # One-time payments don't renew
-    else
-      nil
     end
   end
 
@@ -188,9 +186,7 @@ class User < ApplicationRecord
     updates = {}
 
     # Set paypal_account_id from the payment's payer_id
-    if payment.payer_id.present? && paypal_account_id != payment.payer_id
-      updates[:paypal_account_id] = payment.payer_id
-    end
+    updates[:paypal_account_id] = payment.payer_id if payment.payer_id.present? && paypal_account_id != payment.payer_id
 
     # Sync email from payment
     merge_email_from_external_source(payment.payer_email, updates)
@@ -290,9 +286,7 @@ class User < ApplicationRecord
     payment_date = payment_time.to_date
 
     # Update last_payment_date if this payment is more recent
-    if last_payment_date.nil? || payment_date > last_payment_date
-      updates[:last_payment_date] = payment_date
-    end
+    updates[:last_payment_date] = payment_date if last_payment_date.nil? || payment_date > last_payment_date
 
     # If payment is within the last 32 days, activate user and update status
     if payment_date >= 32.days.ago.to_date
@@ -304,7 +298,7 @@ class User < ApplicationRecord
     end
 
     # Try to match a membership plan based on payment amount if user doesn't have one
-    if membership_plan_id.blank? && payment_amount.present? && payment_amount > 0
+    if membership_plan_id.blank? && payment_amount.present? && payment_amount.positive?
       matched_plan = find_matching_membership_plan(payment_amount)
       updates[:membership_plan_id] = matched_plan.id if matched_plan
     end
@@ -388,7 +382,7 @@ class User < ApplicationRecord
       updates[:email] = external_email
     elsif email.downcase != external_email_normalized
       # User has different primary email, add to extra_emails if not already there
-      current_extra_emails = self.extra_emails || []
+      current_extra_emails = extra_emails || []
       unless current_extra_emails.map(&:downcase).include?(external_email_normalized)
         updates[:extra_emails] = current_extra_emails + [external_email]
       end
@@ -519,6 +513,7 @@ class User < ApplicationRecord
   def update_greeting_name_on_source_change
     # Update greeting_name if the source field changed and the corresponding boolean is set
     return if do_not_greet?
+
     if saved_change_to_full_name? && use_full_name_for_greeting?
       update_column(:greeting_name, full_name) if full_name.present?
     elsif saved_change_to_authentik_id? && use_username_for_greeting?
@@ -535,9 +530,7 @@ class User < ApplicationRecord
       return
     end
 
-    if use_full_name_for_greeting? && use_username_for_greeting?
-      self.use_username_for_greeting = false
-    end
+    self.use_username_for_greeting = false if use_full_name_for_greeting? && use_username_for_greeting?
 
     self.do_not_greet = false if use_full_name_for_greeting? || use_username_for_greeting?
   end

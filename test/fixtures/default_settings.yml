@@ -1,15 +1,10 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
 one:
-  site_prefix: MyString
-  app_prefix: MyString
-  members_prefix: MyString
-  active_members_group: MyString
-  admins_group: MyString
-
-two:
-  site_prefix: MyString
-  app_prefix: MyString
-  members_prefix: MyString
-  active_members_group: MyString
-  admins_group: MyString
+  site_prefix: ctrlh
+  app_prefix: app
+  members_prefix: members
+  active_members_group: active-members
+  admins_group: admins
+  trained_on_prefix: trained-on
+  can_train_prefix: can-train

@@ -26,6 +26,8 @@ class WebhooksController < ApplicationController
       access
     when 'authentik'
       authentik
+    when 'recharge'
+      recharge
     else
       head :not_found
     end
@@ -198,6 +200,36 @@ class WebhooksController < ApplicationController
     end
   end
 
+  # Recharge subscription webhook endpoint
+  # Receives subscription lifecycle events (created, cancelled) from Recharge
+  # Validates HMAC signature if RECHARGE_WEBHOOK_SECRET is configured
+  def recharge
+    unless valid_recharge_webhook?
+      Rails.logger.warn("[Recharge Webhook] HMAC validation failed from #{client_ip}")
+      head :unauthorized
+      return
+    end
+
+    topic = request.headers['X-Recharge-Topic']
+    if topic.blank?
+      Rails.logger.warn("[Recharge Webhook] Missing X-Recharge-Topic header from #{client_ip}")
+      head :bad_request
+      return
+    end
+
+    payload = JSON.parse(request.body.read)
+    Rails.logger.info("[Recharge Webhook] Received #{topic} from #{client_ip}")
+
+    result = Recharge::WebhookHandler.new(topic: topic, payload: payload).call
+    render json: { status: 'ok' }.merge(result)
+  rescue JSON::ParserError => e
+    Rails.logger.error("[Recharge Webhook] JSON parse error: #{e.message}")
+    head :bad_request
+  rescue StandardError => e
+    Rails.logger.error("[Recharge Webhook] Error: #{e.message}\n#{e.backtrace.first(5).join("\n")}")
+    head :internal_server_error
+  end
+
   def rfid
     unless ip_whitelisted?
       Rails.logger.warn("Webhook request from non-whitelisted IP: #{client_ip}")
@@ -240,6 +272,21 @@ class WebhooksController < ApplicationController
   end
 
   private
+
+  def valid_recharge_webhook?
+    secret = ENV.fetch('RECHARGE_WEBHOOK_SECRET', nil)
+    return true if secret.blank? # Skip validation if not configured
+
+    body = request.body.read
+    request.body.rewind
+    provided_hmac = request.headers['X-Recharge-Hmac-Sha256']
+    return false if provided_hmac.blank?
+
+    computed_hmac = Base64.strict_encode64(
+      OpenSSL::HMAC.digest('sha256', secret, body)
+    )
+    ActiveSupport::SecurityUtils.secure_compare(computed_hmac, provided_hmac)
+  end
 
   def valid_authentik_webhook?
     secret = ENV.fetch('AUTHENTIK_WEBHOOK_SECRET', nil)
