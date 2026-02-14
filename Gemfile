@@ -44,6 +44,7 @@ gem 'redis', '>= 4.0.1'
 # gem "kredis"
 
 # Background job processing
+gem 'connection_pool', '< 3.0' # Pin below 3.0 — sidekiq 7.x incompatible with connection_pool 3.0+
 gem 'sidekiq', '~> 7.0'
 gem 'sidekiq-cron', '~> 1.12'
 
