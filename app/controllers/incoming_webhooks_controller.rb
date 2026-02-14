@@ -1,6 +1,6 @@
 # Admin interface for viewing and managing incoming webhook URL configurations.
 class IncomingWebhooksController < AdminController
-  before_action :set_incoming_webhook, only: %i[edit update regenerate_slug]
+  before_action :set_incoming_webhook, only: %i[edit update]
 
   def index
     @incoming_webhooks = IncomingWebhook.order(:name)
@@ -20,14 +20,9 @@ class IncomingWebhooksController < AdminController
     end
   end
 
-  def regenerate_slug
-    custom_slug = params[:custom_slug].presence
-    error = validate_custom_slug(custom_slug) if custom_slug
-    return redirect_with_slug_error(error) if error
-
-    @incoming_webhook.regenerate_slug!(custom_slug)
-    redirect_to edit_incoming_webhook_path(@incoming_webhook),
-                notice: "Webhook URL for '#{@incoming_webhook.name}' has been regenerated."
+  # JSON endpoint for generating a random slug (used by the Randomize button)
+  def random_slug
+    render json: { slug: IncomingWebhook.generate_random_slug }
   end
 
   def seed
@@ -42,22 +37,6 @@ class IncomingWebhooksController < AdminController
   end
 
   def incoming_webhook_params
-    params.require(:incoming_webhook).permit(:description, :enabled)
-  end
-
-  def validate_custom_slug(slug)
-    unless slug.match?(IncomingWebhook::SLUG_FORMAT)
-      return 'Invalid slug format. Only letters, numbers, hyphens, and underscores.'
-    end
-
-    if IncomingWebhook.where.not(id: @incoming_webhook.id).exists?(slug: slug)
-      return 'That slug is already in use by another webhook.'
-    end
-
-    nil
-  end
-
-  def redirect_with_slug_error(error)
-    redirect_to edit_incoming_webhook_path(@incoming_webhook), alert: error
+    params.require(:incoming_webhook).permit(:slug, :description, :enabled)
   end
 end

@@ -164,10 +164,8 @@ Rails.application.routes.draw do
   resource :default_settings, only: [:show, :edit, :update], path: "settings/defaults"
   resource :membership_settings, only: [:show, :edit, :update], path: "settings/membership"
   resources :incoming_webhooks, only: [:index, :edit, :update], path: "settings/incoming_webhooks" do
-    member do
-      post :regenerate_slug
-    end
     collection do
+      get :random_slug
       post :seed
     end
   end

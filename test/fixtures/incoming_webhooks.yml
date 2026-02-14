@@ -1,0 +1,20 @@
+rfid_webhook:
+  name: RFID
+  webhook_type: rfid
+  slug: rfid
+  description: Receives RFID keyfob scans from readers.
+  enabled: true
+
+kofi_webhook:
+  name: Ko-Fi
+  webhook_type: kofi
+  slug: kofi
+  description: Receives payment notifications from Ko-Fi.
+  enabled: true
+
+disabled_webhook:
+  name: Access Log
+  webhook_type: access
+  slug: access-log-test
+  description: Receives access log lines from door controllers.
+  enabled: false
