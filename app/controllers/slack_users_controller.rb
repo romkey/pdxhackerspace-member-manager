@@ -31,6 +31,9 @@ class SlackUsersController < AdminController
 
     # Store filter/sort params for links using shared method
     @list_params = extract_filter_params
+
+    # Load users for link modal (only if there are unlinked entries)
+    @all_users = User.ordered_by_display_name if @unlinked_count.positive?
   end
 
   def show
@@ -68,17 +71,64 @@ class SlackUsersController < AdminController
     # to handle email syncing and Slack profile data
     @slack_user.update!(user_id: user.id)
 
-    redirect_to slack_user_path(@slack_user),
-                notice: "Linked to user #{user.display_name} and updated their Slack information."
+    # Add Slack name as alias if it differs
+    user.add_alias!(@slack_user.real_name) if @slack_user.real_name.present?
+
+    if params[:from_index] == 'true'
+      redirect_to slack_users_path(extract_filter_params),
+                  notice: "Linked #{@slack_user.display_name} to #{user.display_name}."
+    else
+      redirect_to slack_user_path(@slack_user),
+                  notice: "Linked to user #{user.display_name} and updated their Slack information."
+    end
   end
 
   def toggle_dont_link
     @slack_user = SlackUser.find(params[:id])
     new_value = !@slack_user.dont_link
     @slack_user.update!(dont_link: new_value)
-    
+
     notice = new_value ? "#{@slack_user.display_name} marked as Don't Link." : "#{@slack_user.display_name} unmarked as Don't Link."
-    redirect_to slack_user_path(@slack_user), notice: notice
+
+    if params[:from_index] == 'true'
+      redirect_to slack_users_path(extract_filter_params), notice: notice
+    else
+      redirect_to slack_user_path(@slack_user), notice: notice
+    end
+  end
+
+  def create_member
+    @slack_user = SlackUser.find(params[:id])
+
+    if @slack_user.user_id.present?
+      redirect_to slack_users_path(extract_filter_params), alert: 'This Slack user is already linked to a member.'
+      return
+    end
+
+    user = User.new(
+      full_name: @slack_user.real_name,
+      email: @slack_user.email,
+      slack_id: @slack_user.slack_id,
+      slack_handle: @slack_user.username,
+      active: true,
+      membership_status: 'unknown',
+      payment_type: 'unknown'
+    )
+
+    # Set avatar from Slack profile if available
+    profile = @slack_user.raw_attributes&.dig('profile') || {}
+    user.avatar = profile['image_192'] if profile['image_original'].present? && profile['image_192'].present?
+
+    # Set pronouns from Slack if available
+    user.pronouns = @slack_user.pronouns if @slack_user.pronouns.present?
+
+    if user.save
+      @slack_user.update!(user_id: user.id)
+      redirect_to user_path(user), notice: "Created member '#{user.display_name}' from Slack user."
+    else
+      redirect_to slack_users_path(extract_filter_params),
+                  alert: "Failed to create member: #{user.errors.full_messages.join(', ')}"
+    end
   end
 
   def sync

@@ -109,13 +109,16 @@
                   <span class="text-muted fst-italic">—</span>
                 <% end %>
               </td>
-              <td class="text-end">
+              <td class="text-end text-nowrap">
                 <% if log.user.blank? && log.name.present? %>
                   <button type="button" class="btn btn-sm btn-outline-primary"
                           data-bs-toggle="modal" data-bs-target="#linkUserModal"
                           data-log-id="<%= log.id %>" data-log-name="<%= log.name %>">
                     Link
                   </button>
+                  <%= button_to "Create Member", create_member_access_log_path(log, linked: params[:linked], q: params[:q], page: params[:page]),
+                      method: :post, class: "btn btn-sm btn-outline-success", data: { turbo: false,
+                      turbo_confirm: "Create a new member '#{log.name}'?" } %>
                 <% end %>
               </td>
             </tr>

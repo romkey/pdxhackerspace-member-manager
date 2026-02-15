@@ -121,6 +121,10 @@
                 <%= button_to "Don't Link", toggle_dont_link_slack_user_path(@slack_user), 
                     method: :post, class: "btn btn-sm btn-outline-secondary", data: { turbo: false },
                     title: "Mark this Slack user as not needing to be linked to a member" %>
+                <%= button_to "Create Member", create_member_slack_user_path(@slack_user),
+                    method: :post, class: "btn btn-sm btn-outline-success", data: { turbo: false,
+                    turbo_confirm: "Create a new member from '#{@slack_user.display_name}'?" },
+                    title: "Create a new member from this Slack user's information" %>
               </div>
             <% end %>
           </dd>

@@ -97,6 +97,40 @@ class AccessLogsController < AdminController
                 notice: "Linked '#{@log.name}' to #{user.display_name}.#{extra}"
   end
 
+  def create_member
+    @log = AccessLog.find(params[:id])
+
+    if @log.user_id.present?
+      redirect_to access_logs_path, alert: 'This access log entry is already linked to a member.'
+      return
+    end
+
+    # Create a new user from the access log name
+    user = User.new(
+      full_name: @log.name,
+      active: true,
+      membership_status: 'unknown',
+      payment_type: 'unknown'
+    )
+
+    if user.save
+      @log.update!(user: user)
+
+      # Also link other unlinked access log entries with the same name
+      linked_count = 0
+      if @log.name.present?
+        linked_count = AccessLog.where(user_id: nil, name: @log.name)
+                                .update_all(user_id: user.id)
+      end
+
+      extra = linked_count.positive? ? " Also linked #{linked_count} other #{'entry'.pluralize(linked_count)}." : ''
+      redirect_to user_path(user), notice: "Created member '#{user.display_name}' from access log.#{extra}"
+    else
+      redirect_to access_logs_path(linked: params[:linked], q: params[:q], page: params[:page]),
+                  alert: "Failed to create member: #{user.errors.full_messages.join(', ')}"
+    end
+  end
+
   def import
     AccessLogsImportJob.perform_later
     redirect_to access_logs_path, notice: 'Access log import started.'
