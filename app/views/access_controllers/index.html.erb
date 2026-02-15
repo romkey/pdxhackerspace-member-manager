@@ -1,13 +1,25 @@
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-3">
   <div>
     <h1 class="h3 mb-1">Access Controllers</h1>
     <p class="text-muted mb-0">Manage access control devices for RFID key synchronization.</p>
   </div>
   <div class="d-flex gap-2">
     <%= link_to "New Access Controller", new_access_controller_path, class: "btn btn-primary" %>
+    <%= link_to "Access Controller Types", access_controller_types_path, class: "btn btn-outline-primary" %>
     <%= button_to "Sync All", sync_all_access_controllers_path, method: :post, class: "btn btn-outline-primary", data: { turbo: false } %>
     <%= link_to "Back to Settings", settings_path, class: "btn btn-secondary" %>
   </div>
+</div>
+
+<div class="d-flex align-items-center mb-4">
+  <% settings = DefaultSetting.instance %>
+  <%= button_to toggle_sync_inactive_access_controllers_path, method: :post, class: "btn btn-sm #{settings.sync_inactive_members? ? 'btn-warning' : 'btn-outline-secondary'}", data: { turbo: false } do %>
+    <i class="bi bi-<%= settings.sync_inactive_members? ? 'toggle-on' : 'toggle-off' %> me-1"></i>
+    Sync inactive members
+  <% end %>
+  <span class="ms-2 text-muted small">
+    Currently syncing <strong><%= settings.sync_inactive_members? ? 'active and inactive' : 'active only' %></strong> members
+  </span>
 </div>
 
 <div data-controller="access-controller-live" data-access-controller-live-url-value="<%= recent_logs_access_controllers_path %>" data-access-controller-live-interval-value="3000">

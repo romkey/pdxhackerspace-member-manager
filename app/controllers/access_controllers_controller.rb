@@ -81,6 +81,13 @@ class AccessControllersController < AdminController
     redirect_to access_controllers_path, notice: "Sync started for #{enabled.count} access controller(s)."
   end
 
+  def toggle_sync_inactive
+    settings = DefaultSetting.instance
+    settings.update!(sync_inactive_members: !settings.sync_inactive_members)
+    status = settings.sync_inactive_members? ? 'active and inactive' : 'active only'
+    redirect_to access_controllers_path, notice: "Member sync updated: now syncing #{status} members."
+  end
+
   # JSON endpoint for live polling of recent logs
   def recent_logs
     since = params[:since].present? ? Time.zone.parse(params[:since]) : 1.hour.ago
