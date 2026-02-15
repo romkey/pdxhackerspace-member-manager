@@ -206,16 +206,18 @@
         <i class="bi bi-person me-1"></i> Profile
       <% end %>
     </li>
-    <li class="nav-item" role="presentation">
-      <%= link_to user_path(@user, tab: :payments, view_as: params[:view_as]), 
-          class: "nav-link #{'active' if @active_tab == :payments}", 
-          role: "tab" do %>
-        <i class="bi bi-credit-card me-1"></i> Payments
-        <% if @payments_count.to_i > 0 %>
-          <span class="badge bg-secondary ms-1"><%= @payments_count %></span>
+    <% unless @user.service_account? %>
+      <li class="nav-item" role="presentation">
+        <%= link_to user_path(@user, tab: :payments, view_as: params[:view_as]), 
+            class: "nav-link #{'active' if @active_tab == :payments}", 
+            role: "tab" do %>
+          <i class="bi bi-credit-card me-1"></i> Payments
+          <% if @payments_count.to_i > 0 %>
+            <span class="badge bg-secondary ms-1"><%= @payments_count %></span>
+          <% end %>
         <% end %>
-      <% end %>
-    </li>
+      </li>
+    <% end %>
     <li class="nav-item" role="presentation">
       <%= link_to user_path(@user, tab: :access, view_as: params[:view_as]), 
           class: "nav-link #{'active' if @active_tab == :access}", 

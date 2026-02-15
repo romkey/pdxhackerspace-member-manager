@@ -43,144 +43,146 @@
 
     <hr>
 
-    <%# Membership Details %>
+    <%# Membership Details - hidden for service accounts %>
     <div class="text-start">
-      <% if user.membership_status == 'sponsored' %>
+      <% unless user.service_account? %>
+        <% if user.membership_status == 'sponsored' %>
+          <div class="mb-3">
+            <small class="text-muted d-block">Sponsorship</small>
+            <span class="badge text-bg-primary fs-6">Sponsored</span>
+          </div>
+        <% end %>
+
         <div class="mb-3">
-          <small class="text-muted d-block">Sponsorship</small>
-          <span class="badge text-bg-primary fs-6">Sponsored</span>
+          <small class="text-muted d-block">Payment Type</small>
+          <span class="badge text-bg-info fs-6"><%= user.payment_type.humanize %></span>
         </div>
-      <% end %>
 
-      <div class="mb-3">
-        <small class="text-muted d-block">Payment Type</small>
-        <span class="badge text-bg-info fs-6"><%= user.payment_type.humanize %></span>
-      </div>
+        <% if user.membership_plan.present? || user.supplementary_plans.any? %>
+          <div class="mb-3">
+            <small class="text-muted d-block">Membership Plans</small>
+            <% if user.membership_plan.present? %>
+              <div class="mb-1">
+                <strong><%= link_to user.membership_plan.name, membership_plan_path(user.membership_plan), class: "text-decoration-none" %></strong>
+                <span class="badge text-bg-primary ms-1">Primary</span>
+                <br>
+                <span class="text-muted">$<%= format('%.2f', user.membership_plan.cost) %>/<%= user.membership_plan.billing_frequency %></span>
+              </div>
+            <% end %>
+            <% user.supplementary_plans.order(:name).each do |plan| %>
+              <div class="mb-1">
+                <strong><%= link_to plan.name, membership_plan_path(plan), class: "text-decoration-none" %></strong>
+                <span class="badge text-bg-info ms-1">Supplementary</span>
+                <br>
+                <span class="text-muted">$<%= format('%.2f', plan.cost) %>/<%= plan.billing_frequency %></span>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
 
-      <% if user.membership_plan.present? || user.supplementary_plans.any? %>
-        <div class="mb-3">
-          <small class="text-muted d-block">Membership Plans</small>
-          <% if user.membership_plan.present? %>
-            <div class="mb-1">
-              <strong><%= link_to user.membership_plan.name, membership_plan_path(user.membership_plan), class: "text-decoration-none" %></strong>
-              <span class="badge text-bg-primary ms-1">Primary</span>
-              <br>
-              <span class="text-muted">$<%= format('%.2f', user.membership_plan.cost) %>/<%= user.membership_plan.billing_frequency %></span>
+        <% next_payment = user.next_payment_date %>
+        <% if next_payment.present? %>
+          <div class="mb-3">
+            <small class="text-muted d-block">Next Payment</small>
+            <% if next_payment > Date.current %>
+              <span class="text-success">
+                <i class="bi bi-calendar-event me-1"></i>
+                Renews on <%= next_payment.strftime('%B %d, %Y') %>
+              </span>
+            <% else %>
+              <span class="text-warning">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                Was due <%= next_payment.strftime('%B %d, %Y') %>
+              </span>
+            <% end %>
+          </div>
+        <% end %>
+
+        <% if local_assigns[:show_dues] %>
+          <div class="mb-3">
+            <small class="text-muted d-block">Dues Status</small>
+            <% dues_badge_class = case user.dues_status
+               when "current" then "success"
+               when "lapsed" then "warning"
+               when "inactive" then "secondary"
+               when "unknown" then "secondary"
+               else "secondary"
+               end %>
+            <span class="badge text-bg-<%= dues_badge_class %> fs-6"><%= user.dues_status.humanize %></span>
+          </div>
+        <% end %>
+
+        <%# Reactivation options for lapsed members %>
+        <% if user.within_reactivation_grace_period? %>
+          <%# Can reactivate - show payment options and expiration %>
+          <% plans_with_links = MembershipPlan.with_payment_link.ordered %>
+          <% if plans_with_links.any? %>
+            <div class="mt-3 pt-3 border-top">
+              <div class="alert alert-warning py-2 mb-2">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                <strong>Membership Lapsed</strong>
+              </div>
+              <p class="small text-muted mb-2">
+                Your last payment was <%= time_ago_in_words(user.most_recent_payment_date) %> ago.
+                You can reactivate your membership by selecting a plan below:
+              </p>
+              <% expires_on = user.reactivation_expires_on %>
+              <% if expires_on.present? %>
+                <p class="small mb-2">
+                  <i class="bi bi-clock me-1"></i>
+                  <% if expires_on > Date.current %>
+                    <strong class="text-warning">Reactivation available for <%= distance_of_time_in_words_to_now(expires_on) %></strong>
+                    <br>
+                    <span class="text-muted">(until <%= expires_on.strftime('%B %d, %Y') %>)</span>
+                  <% else %>
+                    <strong class="text-danger">Reactivation expires today!</strong>
+                  <% end %>
+                </p>
+              <% end %>
+              <div class="d-grid gap-2">
+                <% plans_with_links.each do |plan| %>
+                  <%= link_to plan.payment_link, class: "btn btn-outline-primary btn-sm", target: "_blank", rel: "noopener" do %>
+                    <i class="bi bi-credit-card me-1"></i>
+                    <%= plan.name %> - $<%= format('%.2f', plan.cost) %>/<%= plan.billing_frequency %>
+                  <% end %>
+                <% end %>
+              </div>
             </div>
           <% end %>
-          <% user.supplementary_plans.order(:name).each do |plan| %>
-            <div class="mb-1">
-              <strong><%= link_to plan.name, membership_plan_path(plan), class: "text-decoration-none" %></strong>
-              <span class="badge text-bg-info ms-1">Supplementary</span>
-              <br>
-              <span class="text-muted">$<%= format('%.2f', plan.cost) %>/<%= plan.billing_frequency %></span>
+        <% elsif user.past_reactivation_grace_period? %>
+          <%# Past grace period - needs orientation %>
+          <div class="mt-3 pt-3 border-top">
+            <div class="alert alert-danger py-2 mb-2">
+              <i class="bi bi-x-circle me-1"></i>
+              <strong>Membership Expired</strong>
             </div>
-          <% end %>
-        </div>
-      <% end %>
+            <p class="small text-muted mb-2">
+              Your membership has been lapsed for too long to reactivate directly.
+            </p>
+            <p class="small mb-0">
+              <i class="bi bi-info-circle me-1"></i>
+              To rejoin, you'll need to go through orientation again. 
+              Please <strong>contact the space</strong> to schedule a new orientation session.
+            </p>
+          </div>
+        <% end %>
 
-      <% next_payment = user.next_payment_date %>
-      <% if next_payment.present? %>
-        <div class="mb-3">
-          <small class="text-muted d-block">Next Payment</small>
-          <% if next_payment > Date.current %>
-            <span class="text-success">
-              <i class="bi bi-calendar-event me-1"></i>
-              Renews on <%= next_payment.strftime('%B %d, %Y') %>
-            </span>
-          <% else %>
-            <span class="text-warning">
-              <i class="bi bi-exclamation-triangle me-1"></i>
-              Was due <%= next_payment.strftime('%B %d, %Y') %>
-            </span>
-          <% end %>
-        </div>
-      <% end %>
-
-      <% if local_assigns[:show_dues] %>
-        <div class="mb-3">
-          <small class="text-muted d-block">Dues Status</small>
-          <% dues_badge_class = case user.dues_status
-             when "current" then "success"
-             when "lapsed" then "warning"
-             when "inactive" then "secondary"
+        <div>
+          <small class="text-muted d-block">Membership Status</small>
+          <% badge_class = case user.membership_status
+             when "paying" then "success"
+             when "guest" then "warning"
+             when "banned" then "danger"
+             when "deceased" then "dark"
+             when "sponsored" then "primary"
+             when "applicant" then "light text-dark"
+             when "cancelled" then "secondary"
              when "unknown" then "secondary"
              else "secondary"
              end %>
-          <span class="badge text-bg-<%= dues_badge_class %> fs-6"><%= user.dues_status.humanize %></span>
+          <span class="badge text-bg-<%= badge_class %> fs-6"><%= user.membership_status.humanize %></span>
         </div>
       <% end %>
-
-      <%# Reactivation options for lapsed members %>
-      <% if user.within_reactivation_grace_period? %>
-        <%# Can reactivate - show payment options and expiration %>
-        <% plans_with_links = MembershipPlan.with_payment_link.ordered %>
-        <% if plans_with_links.any? %>
-          <div class="mt-3 pt-3 border-top">
-            <div class="alert alert-warning py-2 mb-2">
-              <i class="bi bi-exclamation-triangle me-1"></i>
-              <strong>Membership Lapsed</strong>
-            </div>
-            <p class="small text-muted mb-2">
-              Your last payment was <%= time_ago_in_words(user.most_recent_payment_date) %> ago.
-              You can reactivate your membership by selecting a plan below:
-            </p>
-            <% expires_on = user.reactivation_expires_on %>
-            <% if expires_on.present? %>
-              <p class="small mb-2">
-                <i class="bi bi-clock me-1"></i>
-                <% if expires_on > Date.current %>
-                  <strong class="text-warning">Reactivation available for <%= distance_of_time_in_words_to_now(expires_on) %></strong>
-                  <br>
-                  <span class="text-muted">(until <%= expires_on.strftime('%B %d, %Y') %>)</span>
-                <% else %>
-                  <strong class="text-danger">Reactivation expires today!</strong>
-                <% end %>
-              </p>
-            <% end %>
-            <div class="d-grid gap-2">
-              <% plans_with_links.each do |plan| %>
-                <%= link_to plan.payment_link, class: "btn btn-outline-primary btn-sm", target: "_blank", rel: "noopener" do %>
-                  <i class="bi bi-credit-card me-1"></i>
-                  <%= plan.name %> - $<%= format('%.2f', plan.cost) %>/<%= plan.billing_frequency %>
-                <% end %>
-              <% end %>
-            </div>
-          </div>
-        <% end %>
-      <% elsif user.past_reactivation_grace_period? %>
-        <%# Past grace period - needs orientation %>
-        <div class="mt-3 pt-3 border-top">
-          <div class="alert alert-danger py-2 mb-2">
-            <i class="bi bi-x-circle me-1"></i>
-            <strong>Membership Expired</strong>
-          </div>
-          <p class="small text-muted mb-2">
-            Your membership has been lapsed for too long to reactivate directly.
-          </p>
-          <p class="small mb-0">
-            <i class="bi bi-info-circle me-1"></i>
-            To rejoin, you'll need to go through orientation again. 
-            Please <strong>contact the space</strong> to schedule a new orientation session.
-          </p>
-        </div>
-      <% end %>
-
-      <div>
-        <small class="text-muted d-block">Membership Status</small>
-        <% badge_class = case user.membership_status
-           when "paying" then "success"
-           when "guest" then "warning"
-           when "banned" then "danger"
-           when "deceased" then "dark"
-           when "sponsored" then "primary"
-           when "applicant" then "light text-dark"
-           when "cancelled" then "secondary"
-           when "unknown" then "secondary"
-           else "secondary"
-           end %>
-        <span class="badge text-bg-<%= badge_class %> fs-6"><%= user.membership_status.humanize %></span>
-      </div>
 
       <%# Documents available to this user %>
       <% user_documents = user.available_documents %>

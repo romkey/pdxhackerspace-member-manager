@@ -66,103 +66,115 @@
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const memberSearch = document.getElementById('member_search');
-    const memberSearchContainer = document.getElementById('member_search_container');
-    const searchResults = document.getElementById('member_search_results');
-    const noResults = document.getElementById('no_member_results');
-    const selectedMember = document.getElementById('selected_member');
-    const selectedMemberName = document.getElementById('selected_member_name');
-    const userIdInput = document.getElementById('rfid_user_id');
-    const clearMemberBtn = document.getElementById('clear_member');
+  (function() {
+    function initKeyFobSearch() {
+      const memberSearch = document.getElementById('member_search');
+      const memberSearchContainer = document.getElementById('member_search_container');
+      const searchResults = document.getElementById('member_search_results');
+      const noResults = document.getElementById('no_member_results');
+      const selectedMember = document.getElementById('selected_member');
+      const selectedMemberName = document.getElementById('selected_member_name');
+      const userIdInput = document.getElementById('rfid_user_id');
+      const clearMemberBtn = document.getElementById('clear_member');
 
-    if (!memberSearch || !searchResults || !selectedMember || !userIdInput) return;
+      if (!memberSearch || !searchResults || !selectedMember || !userIdInput) return;
 
-    function filterMembers() {
-      const searchTerm = memberSearch.value.toLowerCase().trim();
-      const results = searchResults.querySelectorAll('.member-result');
-      let visibleCount = 0;
+      // Prevent double-init
+      if (memberSearch.dataset.initialized === 'true') return;
+      memberSearch.dataset.initialized = 'true';
 
-      if (searchTerm === '' || searchTerm.length < 2) {
-        searchResults.style.display = 'none';
-        noResults.style.display = 'none';
-        return;
+      function filterMembers() {
+        const searchTerm = memberSearch.value.toLowerCase().trim();
+        const results = searchResults.querySelectorAll('.member-result');
+        let visibleCount = 0;
+
+        if (searchTerm === '' || searchTerm.length < 2) {
+          searchResults.style.display = 'none';
+          noResults.style.display = 'none';
+          return;
+        }
+
+        results.forEach(function(result) {
+          const name = result.getAttribute('data-user-name');
+          if (name && name.includes(searchTerm)) {
+            result.style.display = '';
+            visibleCount++;
+          } else {
+            result.style.display = 'none';
+          }
+        });
+
+        if (visibleCount === 0) {
+          searchResults.style.display = 'none';
+          noResults.style.display = 'block';
+        } else {
+          searchResults.style.display = 'block';
+          noResults.style.display = 'none';
+        }
       }
 
-      results.forEach(function(result) {
-        const name = result.getAttribute('data-user-name');
-        if (name && name.includes(searchTerm)) {
-          result.style.display = '';
-          visibleCount++;
-        } else {
-          result.style.display = 'none';
+      function selectMember(userId, displayName) {
+        userIdInput.value = userId;
+        selectedMemberName.textContent = displayName;
+        selectedMember.style.display = 'block';
+        memberSearchContainer.style.display = 'none';
+        searchResults.style.display = 'none';
+        noResults.style.display = 'none';
+      }
+
+      function clearSelection() {
+        userIdInput.value = '';
+        selectedMemberName.textContent = '';
+        selectedMember.style.display = 'none';
+        memberSearchContainer.style.display = 'block';
+        memberSearch.value = '';
+        memberSearch.focus();
+      }
+
+      memberSearch.addEventListener('input', filterMembers);
+      memberSearch.addEventListener('focus', filterMembers);
+
+      // Click to select member
+      searchResults.querySelectorAll('.member-result').forEach(function(result) {
+        result.addEventListener('click', function() {
+          const userId = this.getAttribute('data-user-id');
+          const displayName = this.getAttribute('data-user-display');
+          selectMember(userId, displayName);
+        });
+
+        result.addEventListener('mouseenter', function() {
+          this.classList.add('bg-body-secondary');
+        });
+        result.addEventListener('mouseleave', function() {
+          this.classList.remove('bg-body-secondary');
+        });
+      });
+
+      // Clear selection
+      if (clearMemberBtn) {
+        clearMemberBtn.addEventListener('click', clearSelection);
+      }
+
+      // Hide results when clicking outside
+      document.addEventListener('click', function(e) {
+        if (!memberSearch.contains(e.target) && !searchResults.contains(e.target)) {
+          searchResults.style.display = 'none';
+          noResults.style.display = 'none';
         }
       });
 
-      if (visibleCount === 0) {
-        searchResults.style.display = 'none';
-        noResults.style.display = 'block';
-      } else {
-        searchResults.style.display = 'block';
-        noResults.style.display = 'none';
-      }
+      // Keyboard navigation
+      memberSearch.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          searchResults.style.display = 'none';
+          noResults.style.display = 'none';
+          memberSearch.blur();
+        }
+      });
     }
 
-    function selectMember(userId, displayName) {
-      userIdInput.value = userId;
-      selectedMemberName.textContent = displayName;
-      selectedMember.style.display = 'block';
-      memberSearchContainer.style.display = 'none';
-      searchResults.style.display = 'none';
-      noResults.style.display = 'none';
-    }
-
-    function clearSelection() {
-      userIdInput.value = '';
-      selectedMemberName.textContent = '';
-      selectedMember.style.display = 'none';
-      memberSearchContainer.style.display = 'block';
-      memberSearch.value = '';
-      memberSearch.focus();
-    }
-
-    memberSearch.addEventListener('input', filterMembers);
-    memberSearch.addEventListener('focus', filterMembers);
-
-    // Click to select member
-    searchResults.querySelectorAll('.member-result').forEach(function(result) {
-      result.addEventListener('click', function() {
-        const userId = this.getAttribute('data-user-id');
-        const displayName = this.getAttribute('data-user-display');
-        selectMember(userId, displayName);
-      });
-
-      result.addEventListener('mouseenter', function() {
-        this.classList.add('bg-body-secondary');
-      });
-      result.addEventListener('mouseleave', function() {
-        this.classList.remove('bg-body-secondary');
-      });
-    });
-
-    // Clear selection
-    clearMemberBtn.addEventListener('click', clearSelection);
-
-    // Hide results when clicking outside
-    document.addEventListener('click', function(e) {
-      if (!memberSearch.contains(e.target) && !searchResults.contains(e.target)) {
-        searchResults.style.display = 'none';
-        noResults.style.display = 'none';
-      }
-    });
-
-    // Keyboard navigation
-    memberSearch.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') {
-        searchResults.style.display = 'none';
-        noResults.style.display = 'none';
-        memberSearch.blur();
-      }
-    });
-  });
+    // Support both initial page load and Turbo navigation
+    document.addEventListener('DOMContentLoaded', initKeyFobSearch);
+    document.addEventListener('turbo:load', initKeyFobSearch);
+  })();
 </script>
