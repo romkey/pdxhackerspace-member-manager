@@ -6,6 +6,7 @@ class DefaultSetting < ApplicationRecord
   validates :admins_group, presence: true
   validates :trained_on_prefix, presence: true
   validates :can_train_prefix, presence: true
+  validates :sync_inactive_members, inclusion: { in: [true, false] }
 
   # Singleton pattern - only one record should exist
   def self.instance

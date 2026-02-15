@@ -63,6 +63,18 @@
         <div class="form-text">Automatically calculated as: <span id="can_train_prefix_preview"></span></div>
       </div>
 
+      <hr class="my-4">
+      <h5 class="mb-3">Access Controller Sync</h5>
+
+      <div class="mb-4 form-check form-switch">
+        <%= f.check_box :sync_inactive_members, class: "form-check-input", role: "switch" %>
+        <%= f.label :sync_inactive_members, "Sync inactive members to access controllers", class: "form-check-label" %>
+        <div class="form-text">
+          When enabled, both active and inactive members with RFID cards will be synced to access controller scripts.
+          When disabled (default), only active members are synced.
+        </div>
+      </div>
+
       <div class="d-flex gap-2">
         <%= f.submit "Update Settings", class: "btn btn-primary" %>
         <%= link_to "Cancel", default_settings_path, class: "btn btn-outline-secondary" %>

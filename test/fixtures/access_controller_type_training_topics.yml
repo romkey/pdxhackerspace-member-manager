@@ -1,0 +1,4 @@
+# laser_controller requires laser_cutting training
+laser_requires_laser_cutting:
+  access_controller_type: laser_controller
+  training_topic: laser_cutting

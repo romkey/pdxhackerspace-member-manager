@@ -31,6 +31,15 @@
 
       <dt class="col-sm-4 text-secondary">Can Train Prefix</dt>
       <dd class="col-sm-8"><code><%= @default_setting.can_train_prefix %></code></dd>
+
+      <dt class="col-sm-4 text-secondary">Sync Inactive Members to Access Controllers</dt>
+      <dd class="col-sm-8">
+        <% if @default_setting.sync_inactive_members %>
+          <span class="badge bg-warning">Yes — active and inactive members</span>
+        <% else %>
+          <span class="badge bg-success">No — active members only</span>
+        <% end %>
+      </dd>
     </dl>
   </div>
 </div>

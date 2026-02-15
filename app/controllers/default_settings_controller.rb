@@ -21,6 +21,6 @@ class DefaultSettingsController < AdminController
   private
 
   def default_setting_params
-    params.require(:default_setting).permit(:site_prefix, :app_prefix, :members_prefix, :active_members_group, :admins_group, :trained_on_prefix, :can_train_prefix)
+    params.require(:default_setting).permit(:site_prefix, :app_prefix, :members_prefix, :active_members_group, :admins_group, :trained_on_prefix, :can_train_prefix, :sync_inactive_members)
   end
 end

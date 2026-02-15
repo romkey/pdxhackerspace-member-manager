@@ -37,6 +37,29 @@
             </div>
           </div>
 
+          <% if @training_topics.any? %>
+            <hr class="my-3">
+            <div class="mb-4">
+              <label class="form-label fw-semibold">Required Training Topics</label>
+              <div class="form-text mb-2">
+                Only members trained in <strong>all</strong> selected topics will be synced to controllers of this type.
+                If none are selected, all eligible members are synced.
+              </div>
+              <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+                <% @training_topics.each do |topic| %>
+                  <div class="form-check">
+                    <%= check_box_tag 'access_controller_type[required_training_topic_ids][]',
+                        topic.id,
+                        false,
+                        id: "topic_#{topic.id}",
+                        class: "form-check-input" %>
+                    <%= label_tag "topic_#{topic.id}", topic.name, class: "form-check-label" %>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+
           <div class="d-flex gap-2">
             <%= f.submit "Create", class: "btn btn-primary" %>
             <%= link_to "Cancel", access_controller_types_path, class: "btn btn-outline-secondary" %>

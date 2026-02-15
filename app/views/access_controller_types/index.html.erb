@@ -25,7 +25,18 @@
         <tbody>
           <% @access_controller_types.each do |type| %>
             <tr class="<%= 'table-secondary' unless type.enabled? %>">
-              <td><strong><%= type.name %></strong></td>
+              <td>
+                <strong><%= type.name %></strong>
+                <% if type.required_training_topics.any? %>
+                  <br>
+                  <small class="text-muted">
+                    Requires:
+                    <% type.required_training_topics.order(:name).each do |topic| %>
+                      <span class="badge bg-info bg-opacity-25 text-info-emphasis"><%= topic.name %></span>
+                    <% end %>
+                  </small>
+                <% end %>
+              </td>
               <td><code><%= type.script_path %></code></td>
               <td>
                 <% if type.enabled? %>

@@ -31,7 +31,7 @@ class AccessControllerVerbJob < ApplicationJob
 
     env = build_env(access_controller, user_id)
 
-    payload = AccessControllerPayloadBuilder.call
+    payload = AccessControllerPayloadBuilder.call(access_controller_type: type)
     stdout, stderr, status = Open3.capture3(env, *cmd_args, stdin_data: payload)
     output = [stdout, stderr].map(&:to_s).map(&:strip).reject(&:blank?).join("\n")
 

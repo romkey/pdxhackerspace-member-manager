@@ -2,11 +2,12 @@ class AccessControllerTypesController < AdminController
   before_action :set_access_controller_type, only: [:edit, :update, :destroy, :toggle, :probe]
 
   def index
-    @access_controller_types = AccessControllerType.ordered
+    @access_controller_types = AccessControllerType.ordered.includes(:required_training_topics)
   end
 
   def new
     @access_controller_type = AccessControllerType.new
+    @training_topics = TrainingTopic.order(:name)
   end
 
   def create
@@ -15,16 +16,20 @@ class AccessControllerTypesController < AdminController
     if @access_controller_type.save
       redirect_to access_controller_types_path, notice: "Access controller type '#{@access_controller_type.name}' created."
     else
+      @training_topics = TrainingTopic.order(:name)
       render :new, status: :unprocessable_entity
     end
   end
 
-  def edit; end
+  def edit
+    @training_topics = TrainingTopic.order(:name)
+  end
 
   def update
     if @access_controller_type.update(access_controller_type_params)
       redirect_to access_controller_types_path, notice: "Access controller type '#{@access_controller_type.name}' updated."
     else
+      @training_topics = TrainingTopic.order(:name)
       render :edit, status: :unprocessable_entity
     end
   end
@@ -65,6 +70,6 @@ class AccessControllerTypesController < AdminController
   end
 
   def access_controller_type_params
-    params.require(:access_controller_type).permit(:name, :script_path, :enabled)
+    params.require(:access_controller_type).permit(:name, :script_path, :enabled, required_training_topic_ids: [])
   end
 end

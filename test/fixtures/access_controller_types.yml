@@ -1,0 +1,14 @@
+door_lock:
+  name: Door Lock
+  script_path: /opt/access/door_lock.sh
+  enabled: true
+
+laser_controller:
+  name: Laser Controller
+  script_path: /opt/access/laser.sh
+  enabled: true
+
+disabled_type:
+  name: Disabled Type
+  script_path: /opt/access/disabled.sh
+  enabled: false
