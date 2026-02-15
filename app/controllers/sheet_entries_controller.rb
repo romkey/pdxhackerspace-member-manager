@@ -19,9 +19,13 @@ class SheetEntriesController < AdminController
                             0
                           end
 
-    user_names = User.where.not(full_name: nil).pluck(Arel.sql('LOWER(full_name)'))
+    # Only count multi-word name matches to avoid false positives on common first names
+    user_names = User.where.not(full_name: nil)
+                     .where("full_name LIKE '% %'")
+                     .pluck(Arel.sql('LOWER(full_name)'))
     @shared_name_count = if user_names.any?
-                           SheetEntry.where('LOWER(name) IN (?)', user_names).count
+                           SheetEntry.where("name LIKE '% %'")
+                                     .where('LOWER(name) IN (?)', user_names).count
                          else
                            0
                          end
@@ -970,9 +974,8 @@ class SheetEntriesController < AdminController
     SheetEntry.where.not(email: nil).find_each do |sheet_entry|
       next if sheet_entry.name.blank?
 
-      # Find users with matching name (case-insensitive)
-      matching_users = User.where('LOWER(full_name) = ?', sheet_entry.name.downcase)
-                           .where.not(email: nil)
+      # Find users with matching name or alias (skip single-word names)
+      matching_users = User.by_name_or_alias(sheet_entry.name).where.not(email: nil)
 
       matching_users.each do |user|
         # Check if emails are different (case-insensitive)

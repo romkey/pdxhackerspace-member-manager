@@ -105,9 +105,9 @@ class SlackUsersController < AdminController
                               normalized_email)
       end
 
-      # Match by full name (real_name)
+      # Match by full name or alias (real_name) — only multi-word names
       if slack_user.real_name.present?
-        matches += User.where('LOWER(full_name) = ?', slack_user.real_name.downcase)
+        matches += User.by_name_or_alias(slack_user.real_name)
       end
 
       # Remove duplicates

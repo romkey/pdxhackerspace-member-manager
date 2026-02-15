@@ -53,9 +53,14 @@ class User < ApplicationRecord
   end
 
   # Find a user whose full_name or any alias matches the given name (case-insensitive).
+  # Requires at least two words to avoid false matches on common first names.
   scope :by_name_or_alias, ->(name) {
     normalized = name.to_s.strip.downcase
-    where('LOWER(full_name) = :name OR EXISTS (SELECT 1 FROM unnest(aliases) AS a WHERE LOWER(a) = :name)', name: normalized)
+    if normalized.split(/\s+/).size < 2
+      none
+    else
+      where('LOWER(full_name) = :name OR EXISTS (SELECT 1 FROM unnest(aliases) AS a WHERE LOWER(a) = :name)', name: normalized)
+    end
   }
 
   scope :active, -> { where(active: true) }
