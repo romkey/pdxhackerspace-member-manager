@@ -39,6 +39,9 @@ class AccessLogsController < AdminController
     @display_count = @access_logs.count
     @total_pages = (@display_count.to_f / PER_PAGE).ceil
     @access_logs = @access_logs.offset((@page - 1) * PER_PAGE).limit(PER_PAGE)
+
+    # Load users for the link modal (only if there are unlinked entries)
+    @all_users = User.ordered_by_display_name if @unlinked_count.positive?
   end
 
   def generate_users_json
@@ -68,6 +71,27 @@ class AccessLogsController < AdminController
       type: 'application/json',
       disposition: 'attachment'
     )
+  end
+
+  def link_user
+    @log = AccessLog.find(params[:id])
+    user = User.find(params[:user_id])
+
+    @log.update!(user: user)
+
+    # Add the access log name as an alias if it differs from the user's full_name
+    user.add_alias!(@log.name) if @log.name.present?
+
+    # Also link other unlinked access log entries with the same name
+    linked_count = 0
+    if @log.name.present?
+      linked_count = AccessLog.where(user_id: nil, name: @log.name)
+                              .update_all(user_id: user.id)
+    end
+
+    extra = linked_count.positive? ? " Also linked #{linked_count} other #{'entry'.pluralize(linked_count)} with the same name." : ''
+    redirect_to access_logs_path(linked: params[:linked], q: params[:q], page: params[:page]),
+                notice: "Linked '#{@log.name}' to #{user.display_name}.#{extra}"
   end
 
   def import

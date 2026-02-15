@@ -138,6 +138,9 @@ Rails.application.routes.draw do
       get :generate_users_json
       post :import
     end
+    member do
+      post :link_user
+    end
   end
 
   get "/search", to: "search#index", as: :search
