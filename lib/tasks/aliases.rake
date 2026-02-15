@@ -130,6 +130,16 @@ def link_unlinked_entries_via_aliases # rubocop:disable Metrics/MethodLength,Met
     end
   end
 
+  puts 'Linking unlinked Access Log entries by name/alias...'
+  AccessLog.where(user_id: nil).where.not(name: [nil, '']).find_each do |log|
+    user = User.by_name_or_alias(log.name).first
+    if user
+      log.update!(user: user)
+      total_linked += 1
+      puts "  -> linked Access Log '#{log.name}' (#{log.logged_at&.strftime('%Y-%m-%d %H:%M')}) to #{user.display_name}"
+    end
+  end
+
   total_linked
 end
 
