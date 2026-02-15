@@ -1,5 +1,7 @@
 module Slack
   class UserSynchronizer
+    include UserNameMatcher
+
     def initialize(client: Client.new, logger: Rails.logger)
       @client = client
       @logger = logger
@@ -50,9 +52,9 @@ module Slack
                               normalized_email)
       end
 
-      # Match by full name (real_name)
+      # Match by full name or alias (real_name)
       if attrs[:real_name].present?
-        matches += User.where('LOWER(full_name) = ?', attrs[:real_name].downcase)
+        matches += User.by_name_or_alias(attrs[:real_name])
       end
 
       # Remove duplicates
@@ -65,6 +67,9 @@ module Slack
 
       # Link the slack user to the user
       slack_user.update!(user_id: user.id)
+
+      # Record differing name as an alias
+      user.add_alias!(attrs[:real_name]) if attrs[:real_name].present?
 
       # Handle email differences
       if attrs[:email].present?

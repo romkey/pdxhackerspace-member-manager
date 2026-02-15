@@ -33,6 +33,17 @@
           <dt class="col-sm-3 text-secondary">Full name</dt>
           <dd class="col-sm-9"><%= user.full_name.presence || content_tag(:span, "Not provided", class: "text-muted fst-italic") %></dd>
 
+          <dt class="col-sm-3 text-secondary">Aliases</dt>
+          <dd class="col-sm-9">
+            <% if user.aliases.present? && user.aliases.any? %>
+              <% user.aliases.each do |a| %>
+                <span class="badge bg-secondary bg-opacity-25 text-body me-1 mb-1"><%= a %></span>
+              <% end %>
+            <% else %>
+              <span class="text-muted fst-italic">None</span>
+            <% end %>
+          </dd>
+
           <dt class="col-sm-3 text-secondary">About</dt>
           <dd class="col-sm-9">
             <% if user.bio.present? %>

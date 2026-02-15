@@ -1,5 +1,7 @@
 module Paypal
   class PaymentSynchronizer
+    include UserNameMatcher
+
     def initialize(client: Client.new, logger: Rails.logger)
       @client = client
       @logger = logger
@@ -132,13 +134,6 @@ module Paypal
       # Match by extra_emails array
       User.where('EXISTS (SELECT 1 FROM unnest(extra_emails) AS email WHERE LOWER(email) = ?)',
                  normalized_email).first
-    end
-
-    def find_user_by_name(name)
-      normalized_name = name.to_s.strip.downcase.presence
-      return nil if normalized_name.blank?
-
-      User.where('LOWER(full_name) = ?', normalized_name).first
     end
 
     def normalize_email(value)

@@ -117,6 +117,13 @@
     </div>
 
     <div>
+      <%= f.label :aliases, "Aliases (alternate names)", class: "form-label" %>
+      <%= f.text_field :aliases_text, value: @user.aliases&.join(", "), class: "form-control",
+          placeholder: "e.g., Bob Smith, Robert J. Smith" %>
+      <div class="form-text">Comma-separated list of alternate names used for matching payments and syncs.</div>
+    </div>
+
+    <div>
       <%= f.label :notes, class: "form-label" %>
       <%= f.text_area :notes, class: "form-control", rows: 4 %>
     </div>

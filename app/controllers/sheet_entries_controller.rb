@@ -88,7 +88,7 @@ class SheetEntriesController < AdminController
                               sheet_entry.email.downcase)
       end
 
-      matches += User.where('LOWER(full_name) = ?', sheet_entry.name.downcase) if sheet_entry.name.present?
+      matches += User.by_name_or_alias(sheet_entry.name) if sheet_entry.name.present?
 
       # Remove duplicates and get unique matches
       matches = matches.uniq
@@ -96,6 +96,9 @@ class SheetEntriesController < AdminController
       if matches.one?
         # Link to existing user
         user = matches.first
+
+        # Record differing name as alias
+        user.add_alias!(sheet_entry.name) if sheet_entry.name.present?
 
         # Link the sheet entry to the user
         sheet_entry.update!(user_id: user.id)
@@ -651,7 +654,7 @@ class SheetEntriesController < AdminController
                             @sheet_entry.email.downcase)
     end
 
-    matches += User.where('LOWER(full_name) = ?', @sheet_entry.name.downcase) if @sheet_entry.name.present?
+    matches += User.by_name_or_alias(@sheet_entry.name) if @sheet_entry.name.present?
 
     # Remove duplicates and get unique matches
     matches = matches.uniq
@@ -659,6 +662,9 @@ class SheetEntriesController < AdminController
     if matches.one?
       # Link to existing user
       user = matches.first
+
+      # Record differing name as alias
+      user.add_alias!(@sheet_entry.name) if @sheet_entry.name.present?
 
       # Link the sheet entry to the user
       @sheet_entry.update!(user_id: user.id)

@@ -1,5 +1,7 @@
 module Recharge
   class PaymentSynchronizer
+    include UserNameMatcher
+
     def initialize(client: Client.new, logger: Rails.logger)
       @client = client
       @logger = logger
@@ -149,15 +151,6 @@ module Recharge
 
       # Match by extra_emails array (check if email exists in the array, case-insensitive)
       User.where('EXISTS (SELECT 1 FROM unnest(extra_emails) AS email WHERE LOWER(email) = ?)', normalized).first
-    end
-
-    def find_user_by_name(name)
-      return if name.blank?
-
-      normalized_name = name.to_s.strip.downcase
-      return if normalized_name.blank?
-
-      User.where('LOWER(full_name) = ?', normalized_name).first
     end
 
     def normalize_email(value)

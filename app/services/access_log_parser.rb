@@ -182,9 +182,14 @@ class AccessLogParser
       return find_user_by_abbreviated_name(normalized_name)
     end
 
-    # Normal exact match
-    normalized_name_lower = normalized_name.downcase
-    User.where('LOWER(full_name) = ?', normalized_name_lower).first
+    # Match by full_name or aliases
+    user = User.by_name_or_alias(normalized_name).first
+    return nil unless user
+
+    # Auto-add differing name as alias
+    user.add_alias!(normalized_name) if user.full_name.present? && user.full_name.strip.downcase != normalized_name.downcase
+
+    user
   end
 
   def find_user_by_abbreviated_name(abbreviated_name)

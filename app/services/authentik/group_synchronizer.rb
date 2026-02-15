@@ -30,7 +30,16 @@ module Authentik
         # If not found by authentik_id, try to find by email (case-insensitive)
         if user.nil? && attrs[:email].present?
           user = User.find_by('LOWER(email) = ?', attrs[:email].downcase)
+          # Also try extra_emails
+          user ||= User.where('EXISTS (SELECT 1 FROM unnest(extra_emails) AS e WHERE LOWER(e) = ?)',
+                               attrs[:email].downcase).first
           # If found by email, link the authentik_id
+          user.authentik_id = attrs[:authentik_id] if user
+        end
+
+        # If still not found, try matching by name or alias
+        if user.nil? && attrs[:full_name].present?
+          user = User.by_name_or_alias(attrs[:full_name]).first
           user.authentik_id = attrs[:authentik_id] if user
         end
 
@@ -39,7 +48,11 @@ module Authentik
 
         # Merge in missing information - only set if blank/nil
         user.email = attrs[:email] if user.email.blank? && attrs[:email].present?
-        user.full_name = attrs[:full_name] if user.full_name.blank? && attrs[:full_name].present?
+        if user.full_name.blank? && attrs[:full_name].present?
+          user.full_name = attrs[:full_name]
+        elsif attrs[:full_name].present?
+          user.add_alias(attrs[:full_name])
+        end
 
         # Only reset active/membership_status/payment_type if this is a new record
         if user.new_record?

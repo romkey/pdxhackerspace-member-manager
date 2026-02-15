@@ -43,6 +43,21 @@ class User < ApplicationRecord
   validates :dues_status, inclusion: { in: %w[current lapsed inactive unknown] }
   validate :extra_emails_format
 
+  # Virtual attribute for comma-separated alias editing
+  def aliases_text
+    (aliases || []).join(', ')
+  end
+
+  def aliases_text=(value)
+    self.aliases = value.to_s.split(',').map(&:strip).compact_blank.uniq
+  end
+
+  # Find a user whose full_name or any alias matches the given name (case-insensitive).
+  scope :by_name_or_alias, ->(name) {
+    normalized = name.to_s.strip.downcase
+    where('LOWER(full_name) = :name OR EXISTS (SELECT 1 FROM unnest(aliases) AS a WHERE LOWER(a) = :name)', name: normalized)
+  }
+
   scope :active, -> { where(active: true) }
   scope :admin, -> { where(is_admin: true) }
   scope :authentik_dirty, -> { where(authentik_dirty: true) }
@@ -57,6 +72,25 @@ class User < ApplicationRecord
 
   def display_name
     full_name.presence || email.presence || authentik_id
+  end
+
+  # Add a name as an alias if it differs from full_name and isn't already present.
+  # Returns true if the alias was added, false otherwise.
+  def add_alias(name)
+    return false if name.blank?
+
+    normalized = name.to_s.strip
+    return false if normalized.blank?
+    return false if full_name.present? && full_name.strip.downcase == normalized.downcase
+    return false if (aliases || []).any? { |a| a.strip.downcase == normalized.downcase }
+
+    self.aliases = (aliases || []) + [normalized]
+    true
+  end
+
+  # Add alias and save immediately.
+  def add_alias!(name)
+    add_alias(name) && save!
   end
 
   def active?
