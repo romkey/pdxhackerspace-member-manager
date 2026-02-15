@@ -9,6 +9,7 @@ class AccessLogsController < AdminController
     @linked_count = base_logs.where.not(user_id: nil).count
     @unlinked_count = base_logs.where(user_id: nil).where.not(name: [nil, '']).count
     @no_name_count = base_logs.where(user_id: nil, name: [nil, '']).count
+    @service_account_count = base_logs.joins(:user).where(users: { service_account: true }).count
 
     @access_logs = base_logs
 
@@ -20,6 +21,8 @@ class AccessLogsController < AdminController
       @access_logs = @access_logs.where(user_id: nil).where.not(name: [nil, ''])
     when 'no_name'
       @access_logs = @access_logs.where(user_id: nil, name: [nil, ''])
+    when 'service'
+      @access_logs = @access_logs.joins(:user).where(users: { service_account: true })
     end
 
     @filter_active = params[:linked].present?

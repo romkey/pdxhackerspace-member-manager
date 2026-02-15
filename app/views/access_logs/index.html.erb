@@ -22,6 +22,7 @@
         when 'yes' then 'Linked'
         when 'no' then 'Unlinked (with name)'
         when 'no_name' then 'No name'
+        when 'service' then 'Service Accounts'
         end %> entries
     &mdash; <%= link_to 'Clear filter', access_logs_path(q: params[:q]), class: 'alert-link' %>
   </div>
@@ -42,6 +43,10 @@
       <% end %>
       <%= link_to access_logs_path(linked: 'no_name', q: params[:q]), class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if params[:linked] == 'no_name'}" do %>
         No name: <strong><%= @no_name_count %></strong>
+      <% end %>
+      <span class="border-start ms-2 ps-2"></span>
+      <%= link_to access_logs_path(linked: 'service', q: params[:q]), class: "badge text-bg-info text-decoration-none #{'border border-dark border-2' if params[:linked] == 'service'}" do %>
+        <i class="bi bi-gear-fill me-1"></i>Service: <strong><%= @service_account_count %></strong>
       <% end %>
     </div>
     <div class="d-flex gap-2">
@@ -85,6 +90,9 @@
               <td>
                 <% if log.user.present? %>
                   <%= link_to log.user.display_name, user_path(log.user), class: "text-decoration-none" %>
+                  <% if log.user.service_account? %>
+                    <span class="badge text-bg-info ms-1"><i class="bi bi-gear-fill"></i></span>
+                  <% end %>
                 <% elsif log.name.present? %>
                   <span class="text-warning-emphasis"><%= log.name %></span>
                   <span class="badge text-bg-warning ms-1">unlinked</span>

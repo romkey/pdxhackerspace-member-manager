@@ -38,6 +38,9 @@
       <% if params[:missing].present? %>
         — Missing: <strong><%= params[:missing] == 'rfid' ? 'No RFID' : 'No Email' %></strong>
       <% end %>
+      <% if params[:account_type].present? %>
+        — <strong><%= params[:account_type] == 'service' ? 'Service Accounts' : 'Members Only' %></strong>
+      <% end %>
     </div>
     <%= link_to "Clear filters", users_path(sort: @sort_column, direction: @sort_direction), class: "btn btn-outline-secondary btn-sm" %>
   </div>
@@ -104,6 +107,16 @@
       <% end %>
     </div>
     
+    <h2 class="h6 mb-3">Account Type</h2>
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      <%= link_to users_path(account_type: 'member'), class: "badge text-bg-primary text-decoration-none #{'border border-dark border-2' if params[:account_type] == 'member'}" do %>
+        Members: <strong><%= @user_count - @service_account_count %></strong>
+      <% end %>
+      <%= link_to users_path(account_type: 'service'), class: "badge text-bg-info text-decoration-none #{'border border-dark border-2' if params[:account_type] == 'service'}" do %>
+        <i class="bi bi-gear-fill me-1"></i>Service Accounts: <strong><%= @service_account_count %></strong>
+      <% end %>
+    </div>
+
     <h2 class="h6 mb-3">Missing Data</h2>
     <div class="d-flex flex-wrap gap-2">
       <%= link_to users_path(missing: 'rfid'), class: "badge text-bg-warning text-decoration-none #{'border border-dark border-2' if params[:missing] == 'rfid'}" do %>
@@ -157,6 +170,9 @@
             <td class="small text-monospace text-secondary fw-semibold"><%= link_to user.username, user_path(user, @list_params), class: "text-decoration-none text-secondary" %></td>
             <td class="fw-semibold">
               <%= link_to user.display_name, user_path(user, @list_params), class: "text-decoration-none" %>
+              <% if user.service_account? %>
+                <span class="badge text-bg-info ms-1"><i class="bi bi-gear-fill me-1"></i>Service</span>
+              <% end %>
             </td>
             <td>
               <% if user.email.present? %>

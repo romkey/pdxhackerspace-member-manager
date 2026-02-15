@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_15_190000) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_15_200000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -628,6 +628,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_190000) do
     t.string "recharge_customer_id"
     t.datetime "recharge_most_recent_payment_date"
     t.boolean "seen_member_help", default: false, null: false
+    t.boolean "service_account", default: false, null: false
     t.string "sign_name"
     t.string "slack_handle"
     t.string "slack_id"

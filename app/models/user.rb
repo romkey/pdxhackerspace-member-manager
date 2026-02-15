@@ -65,6 +65,8 @@ class User < ApplicationRecord
 
   scope :active, -> { where(active: true) }
   scope :admin, -> { where(is_admin: true) }
+  scope :service_accounts, -> { where(service_account: true) }
+  scope :non_service_accounts, -> { where(service_account: false) }
   scope :authentik_dirty, -> { where(authentik_dirty: true) }
   scope :with_attribute, ->(key, value) { where('authentik_attributes ->> ? = ?', key.to_s, value.to_s) }
   scope :ordered_by_display_name, lambda {

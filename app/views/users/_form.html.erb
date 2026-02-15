@@ -132,6 +132,12 @@
       <%= f.check_box :is_admin, class: "form-check-input", id: "user_is_admin" %>
       <%= f.label :is_admin, "Administrator", class: "form-check-label" %>
     </div>
+
+    <div class="form-check">
+      <%= f.check_box :service_account, class: "form-check-input", id: "user_service_account" %>
+      <%= f.label :service_account, "Service Account", class: "form-check-label" %>
+      <div class="form-text">Service accounts are used for access control and applications. They don't have payment plans or membership info.</div>
+    </div>
   <% end %>
 
   <div class="d-flex gap-2">

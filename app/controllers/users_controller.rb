@@ -42,6 +42,9 @@ class UsersController < AuthenticatedController
     @no_rfid_count = all_users.left_joins(:rfids).where(rfids: { id: nil }).count
     @no_email_count = all_users.where("email IS NULL OR email = ''").count
 
+    # Account type counts
+    @service_account_count = all_users.service_accounts.count
+
     # Now build filtered query
     @users = all_users
 
@@ -60,6 +63,13 @@ class UsersController < AuthenticatedController
     @users = @users.where(dues_status: params[:dues_status]) if params[:dues_status].present?
     @users = @users.where(active: params[:active] == 'true') if params[:active].present?
     
+    # Apply account type filter
+    if params[:account_type] == 'service'
+      @users = @users.service_accounts
+    elsif params[:account_type] == 'member'
+      @users = @users.non_service_accounts
+    end
+
     # Apply missing data filters
     if params[:missing] == 'rfid'
       @users = @users.left_joins(:rfids).where(rfids: { id: nil })
@@ -73,8 +83,9 @@ class UsersController < AuthenticatedController
     @users = @users.order("#{@sort_column} #{@sort_direction} NULLS LAST")
 
     # Track if any filter is active
-    @filter_active = params[:membership_status].present? || params[:payment_type].present? || 
-                     params[:dues_status].present? || params[:active].present? || params[:missing].present?
+    @filter_active = params[:membership_status].present? || params[:payment_type].present? ||
+                     params[:dues_status].present? || params[:active].present? ||
+                     params[:missing].present? || params[:account_type].present?
     @filtered_count = @users.count if @filter_active
 
     # Store filter/sort params for passing to user profile links
@@ -84,6 +95,7 @@ class UsersController < AuthenticatedController
     @list_params[:dues_status] = params[:dues_status] if params[:dues_status].present?
     @list_params[:active] = params[:active] if params[:active].present?
     @list_params[:missing] = params[:missing] if params[:missing].present?
+    @list_params[:account_type] = params[:account_type] if params[:account_type].present?
     @list_params[:sort] = params[:sort] if params[:sort].present?
     @list_params[:direction] = params[:direction] if params[:direction].present?
   end
@@ -391,7 +403,7 @@ class UsersController < AuthenticatedController
     ]
 
     if current_user_admin?
-      permitted += %i[membership_status payment_type notes active membership_plan_id aliases_text]
+      permitted += %i[membership_status payment_type notes active membership_plan_id aliases_text service_account]
       permitted << :is_admin
     end
 
