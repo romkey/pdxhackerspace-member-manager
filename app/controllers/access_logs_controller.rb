@@ -2,7 +2,27 @@ class AccessLogsController < AdminController
   PER_PAGE = 200
 
   def index
-    @access_logs = AccessLog.includes(:user).recent
+    base_logs = AccessLog.includes(:user).recent
+
+    # Calculate counts before filtering
+    @total_count = base_logs.count
+    @linked_count = base_logs.where.not(user_id: nil).count
+    @unlinked_count = base_logs.where(user_id: nil).where.not(name: [nil, '']).count
+    @no_name_count = base_logs.where(user_id: nil, name: [nil, '']).count
+
+    @access_logs = base_logs
+
+    # Apply linked/unlinked filter
+    case params[:linked]
+    when 'yes'
+      @access_logs = @access_logs.where.not(user_id: nil)
+    when 'no'
+      @access_logs = @access_logs.where(user_id: nil).where.not(name: [nil, ''])
+    when 'no_name'
+      @access_logs = @access_logs.where(user_id: nil, name: [nil, ''])
+    end
+
+    @filter_active = params[:linked].present?
 
     # Apply search filter if provided
     if params[:q].present?
@@ -16,8 +36,8 @@ class AccessLogsController < AdminController
     # Pagination
     @page = (params[:page] || 1).to_i
     @page = 1 if @page < 1
-    @total_count = @access_logs.count
-    @total_pages = (@total_count.to_f / PER_PAGE).ceil
+    @display_count = @access_logs.count
+    @total_pages = (@display_count.to_f / PER_PAGE).ceil
     @access_logs = @access_logs.offset((@page - 1) * PER_PAGE).limit(PER_PAGE)
   end
 

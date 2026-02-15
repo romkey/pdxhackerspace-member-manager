@@ -2,9 +2,10 @@
   <div>
     <h1 class="h3 mb-1">Access Logs</h1>
     <p class="text-muted mb-0">
-      <strong><%= @total_count %></strong> log entries
+      <strong><%= @display_count %></strong> log entries
+      <% if @filter_active %>(filtered from <%= @total_count %> total)<% end %>
       <% if @total_pages > 1 %>
-        (page <%= @page %> of <%= @total_pages %>)
+        &mdash; page <%= @page %> of <%= @total_pages %>
       <% end %>
     </p>
   </div>
@@ -14,8 +15,35 @@
   </div>
 </div>
 
+<% if @filter_active %>
+  <div class="alert alert-info py-2 mb-3">
+    <i class="bi bi-funnel me-1"></i> Filtering:
+    <%= case params[:linked]
+        when 'yes' then 'Linked'
+        when 'no' then 'Unlinked (with name)'
+        when 'no_name' then 'No name'
+        end %> entries
+    &mdash; <%= link_to 'Clear filter', access_logs_path(q: params[:q]), class: 'alert-link' %>
+  </div>
+<% end %>
+
 <div class="card shadow-sm border-0 mb-4">
   <div class="card-body">
+    <p class="small text-muted mb-3"><i class="bi bi-hand-index me-1"></i> Click any badge to filter the list</p>
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      <%= link_to access_logs_path(q: params[:q]), class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if !@filter_active}" do %>
+        All: <strong><%= @total_count %></strong>
+      <% end %>
+      <%= link_to access_logs_path(linked: 'yes', q: params[:q]), class: "badge text-bg-success text-decoration-none #{'border border-dark border-2' if params[:linked] == 'yes'}" do %>
+        Linked: <strong><%= @linked_count %></strong>
+      <% end %>
+      <%= link_to access_logs_path(linked: 'no', q: params[:q]), class: "badge text-bg-warning text-decoration-none #{'border border-dark border-2' if params[:linked] == 'no'}" do %>
+        Unlinked: <strong><%= @unlinked_count %></strong>
+      <% end %>
+      <%= link_to access_logs_path(linked: 'no_name', q: params[:q]), class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if params[:linked] == 'no_name'}" do %>
+        No name: <strong><%= @no_name_count %></strong>
+      <% end %>
+    </div>
     <div class="d-flex gap-2">
       <input type="text" id="access_logs_search" class="form-control" placeholder="Search by name, location, or raw text…" autocomplete="off" value="<%= params[:q] %>">
       <button type="button" id="clear_access_logs_search" class="btn btn-outline-secondary" style="<%= params[:q].present? ? '' : 'display: none;' %>">Clear</button>
@@ -56,6 +84,9 @@
               <td>
                 <% if log.user.present? %>
                   <%= link_to log.user.display_name, user_path(log.user), class: "text-decoration-none" %>
+                <% elsif log.name.present? %>
+                  <span class="text-warning-emphasis"><%= log.name %></span>
+                  <span class="badge text-bg-warning ms-1">unlinked</span>
                 <% else %>
                   <span class="text-muted fst-italic">Unknown</span>
                 <% end %>
@@ -84,9 +115,10 @@
 <% if @total_pages > 1 %>
   <nav aria-label="Access logs pagination" class="mt-4">
     <ul class="pagination justify-content-center">
+      <% page_params = { q: params[:q], linked: params[:linked] }.compact_blank %>
       <% if @page > 1 %>
         <li class="page-item">
-          <%= link_to "Previous", access_logs_path(page: @page - 1, q: params[:q]), class: "page-link" %>
+          <%= link_to "Previous", access_logs_path(page_params.merge(page: @page - 1)), class: "page-link" %>
         </li>
       <% else %>
         <li class="page-item disabled">
@@ -100,7 +132,7 @@
       
       <% if start_page > 1 %>
         <li class="page-item">
-          <%= link_to "1", access_logs_path(page: 1, q: params[:q]), class: "page-link" %>
+          <%= link_to "1", access_logs_path(page_params.merge(page: 1)), class: "page-link" %>
         </li>
         <% if start_page > 2 %>
           <li class="page-item disabled">
@@ -116,7 +148,7 @@
           </li>
         <% else %>
           <li class="page-item">
-            <%= link_to page_num, access_logs_path(page: page_num, q: params[:q]), class: "page-link" %>
+            <%= link_to page_num, access_logs_path(page_params.merge(page: page_num)), class: "page-link" %>
           </li>
         <% end %>
       <% end %>
@@ -128,13 +160,13 @@
           </li>
         <% end %>
         <li class="page-item">
-          <%= link_to @total_pages, access_logs_path(page: @total_pages, q: params[:q]), class: "page-link" %>
+          <%= link_to @total_pages, access_logs_path(page_params.merge(page: @total_pages)), class: "page-link" %>
         </li>
       <% end %>
       
       <% if @page < @total_pages %>
         <li class="page-item">
-          <%= link_to "Next", access_logs_path(page: @page + 1, q: params[:q]), class: "page-link" %>
+          <%= link_to "Next", access_logs_path(page_params.merge(page: @page + 1)), class: "page-link" %>
         </li>
       <% else %>
         <li class="page-item disabled">
