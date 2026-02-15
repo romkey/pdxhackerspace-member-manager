@@ -84,7 +84,8 @@ class RechargePaymentsController < AdminController
 
   def sync
     Recharge::PaymentSyncJob.perform_later
-    redirect_to recharge_payments_path, notice: 'Recharge payment sync has been scheduled.'
+    Recharge::SubscriptionSyncJob.perform_later
+    redirect_to recharge_payments_path, notice: 'Recharge payment and subscription sync has been scheduled.'
   end
 
   def test
