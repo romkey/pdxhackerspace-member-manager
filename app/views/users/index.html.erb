@@ -1,17 +1,15 @@
+<% lp = @include_legacy ? { include_legacy: '1' } : {} %>
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
     <h1 class="h3 mb-1">Members</h1>
     <p class="text-muted mb-0">Synced from Authentik group.</p>
     <p class="text-muted mb-0">
-      <strong><%= @user_count %></strong> members —
-      <%= link_to users_path(active: 'true'), class: "text-decoration-none" do %>
+      <strong><%= @user_count %></strong> members<%= " (including #{@legacy_count} legacy)" if @include_legacy && @legacy_count.positive? %> —
+      <%= link_to users_path(active: 'true', **lp), class: "text-decoration-none" do %>
         <strong><%= @active_count %></strong> active
       <% end %>,
-      <%= link_to users_path(active: 'false'), class: "text-decoration-none" do %>
+      <%= link_to users_path(active: 'false', **lp), class: "text-decoration-none" do %>
         <strong><%= @inactive_count %></strong> inactive
-      <% end %>
-      <% if @legacy_count.positive? %>
-        <span class="text-muted ms-2">(+ <%= link_to "#{@legacy_count} legacy", users_path(account_type: 'legacy'), class: "text-decoration-none" %>)</span>
       <% end %>
     </p>
   </div>
@@ -47,12 +45,11 @@
       <% if params[:account_type].present? %>
         — <strong><%= case params[:account_type]
                        when 'service' then 'Service Accounts'
-                       when 'legacy' then 'Legacy Members'
                        else 'Members Only'
                        end %></strong>
       <% end %>
     </div>
-    <%= link_to "Clear filters", users_path(sort: @sort_column, direction: @sort_direction), class: "btn btn-outline-secondary btn-sm" %>
+    <%= link_to "Clear filters", users_path(sort: @sort_column, direction: @sort_direction, **lp), class: "btn btn-outline-secondary btn-sm" %>
   </div>
 <% end %>
 
@@ -62,41 +59,41 @@
     
     <h2 class="h6 mb-3">Membership Status</h2>
     <div class="d-flex flex-wrap gap-2 mb-3">
-      <%= link_to users_path(membership_status: 'unknown'), class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if params[:membership_status] == 'unknown'}" do %>
+      <%= link_to users_path(membership_status: 'unknown', **lp), class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if params[:membership_status] == 'unknown'}" do %>
         Unknown: <strong><%= @membership_status_unknown %></strong>
       <% end %>
-      <%= link_to users_path(membership_status: 'sponsored'), class: "badge text-bg-primary text-decoration-none #{'border border-dark border-2' if params[:membership_status] == 'sponsored'}" do %>
+      <%= link_to users_path(membership_status: 'sponsored', **lp), class: "badge text-bg-primary text-decoration-none #{'border border-dark border-2' if params[:membership_status] == 'sponsored'}" do %>
         Sponsored: <strong><%= @membership_status_sponsored %></strong>
       <% end %>
-      <%= link_to users_path(membership_status: 'paying'), class: "badge text-bg-success text-decoration-none #{'border border-dark border-2' if params[:membership_status] == 'paying'}" do %>
+      <%= link_to users_path(membership_status: 'paying', **lp), class: "badge text-bg-success text-decoration-none #{'border border-dark border-2' if params[:membership_status] == 'paying'}" do %>
         Paying: <strong><%= @membership_status_paying %></strong>
       <% end %>
-      <%= link_to users_path(membership_status: 'applicant'), class: "badge text-bg-light text-dark text-decoration-none #{'border border-dark border-2' if params[:membership_status] == 'applicant'}" do %>
+      <%= link_to users_path(membership_status: 'applicant', **lp), class: "badge text-bg-light text-dark text-decoration-none #{'border border-dark border-2' if params[:membership_status] == 'applicant'}" do %>
         Applicant: <strong><%= @membership_status_applicant %></strong>
       <% end %>
-      <%= link_to users_path(membership_status: 'banned'), class: "badge text-bg-danger text-decoration-none #{'border border-dark border-2' if params[:membership_status] == 'banned'}" do %>
+      <%= link_to users_path(membership_status: 'banned', **lp), class: "badge text-bg-danger text-decoration-none #{'border border-dark border-2' if params[:membership_status] == 'banned'}" do %>
         Banned: <strong><%= @membership_status_banned %></strong>
       <% end %>
-      <%= link_to users_path(membership_status: 'deceased'), class: "badge text-bg-dark text-decoration-none #{'border border-dark border-2' if params[:membership_status] == 'deceased'}" do %>
+      <%= link_to users_path(membership_status: 'deceased', **lp), class: "badge text-bg-dark text-decoration-none #{'border border-dark border-2' if params[:membership_status] == 'deceased'}" do %>
         Deceased: <strong><%= @membership_status_deceased %></strong>
       <% end %>
     </div>
     
     <h2 class="h6 mb-3">Payment Type</h2>
     <div class="d-flex flex-wrap gap-2 mb-3">
-      <%= link_to users_path(payment_type: 'unknown'), class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if params[:payment_type] == 'unknown'}" do %>
+      <%= link_to users_path(payment_type: 'unknown', **lp), class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if params[:payment_type] == 'unknown'}" do %>
         Unknown: <strong><%= @payment_type_unknown %></strong>
       <% end %>
-      <%= link_to users_path(payment_type: 'sponsored'), class: "badge text-bg-primary text-decoration-none #{'border border-dark border-2' if params[:payment_type] == 'sponsored'}" do %>
+      <%= link_to users_path(payment_type: 'sponsored', **lp), class: "badge text-bg-primary text-decoration-none #{'border border-dark border-2' if params[:payment_type] == 'sponsored'}" do %>
         Sponsored: <strong><%= @payment_type_sponsored %></strong>
       <% end %>
-      <%= link_to users_path(payment_type: 'paypal'), class: "badge text-bg-info text-decoration-none #{'border border-dark border-2' if params[:payment_type] == 'paypal'}" do %>
+      <%= link_to users_path(payment_type: 'paypal', **lp), class: "badge text-bg-info text-decoration-none #{'border border-dark border-2' if params[:payment_type] == 'paypal'}" do %>
         PayPal: <strong><%= @payment_type_paypal %></strong>
       <% end %>
-      <%= link_to users_path(payment_type: 'recharge'), class: "badge text-bg-info text-decoration-none #{'border border-dark border-2' if params[:payment_type] == 'recharge'}" do %>
+      <%= link_to users_path(payment_type: 'recharge', **lp), class: "badge text-bg-info text-decoration-none #{'border border-dark border-2' if params[:payment_type] == 'recharge'}" do %>
         Recharge: <strong><%= @payment_type_recharge %></strong>
       <% end %>
-      <%= link_to users_path(payment_type: 'cash'), class: "badge text-bg-info text-decoration-none #{'border border-dark border-2' if params[:payment_type] == 'cash'}" do %>
+      <%= link_to users_path(payment_type: 'cash', **lp), class: "badge text-bg-info text-decoration-none #{'border border-dark border-2' if params[:payment_type] == 'cash'}" do %>
         Cash: <strong><%= @payment_type_cash %></strong>
       <% end %>
     </div>
@@ -105,12 +102,12 @@
     <div class="d-flex flex-wrap gap-2 mb-3">
       <% @plan_counts.each do |plan, count| %>
         <% next if count.zero? %>
-        <%= link_to users_path(membership_plan_id: plan.id), class: "badge text-bg-info text-decoration-none #{'border border-dark border-2' if params[:membership_plan_id] == plan.id.to_s}" do %>
+        <%= link_to users_path(membership_plan_id: plan.id, **lp), class: "badge text-bg-info text-decoration-none #{'border border-dark border-2' if params[:membership_plan_id] == plan.id.to_s}" do %>
           <%= plan.name %>: <strong><%= count %></strong>
         <% end %>
       <% end %>
       <% if @no_plan_count.positive? %>
-        <%= link_to users_path(membership_plan_id: 'none'), class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if params[:membership_plan_id] == 'none'}" do %>
+        <%= link_to users_path(membership_plan_id: 'none', **lp), class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if params[:membership_plan_id] == 'none'}" do %>
           No Plan: <strong><%= @no_plan_count %></strong>
         <% end %>
       <% end %>
@@ -118,41 +115,47 @@
 
     <h2 class="h6 mb-3">Dues Status</h2>
     <div class="d-flex flex-wrap gap-2 mb-3">
-      <%= link_to users_path(dues_status: 'current'), class: "badge text-bg-success text-decoration-none #{'border border-dark border-2' if params[:dues_status] == 'current'}" do %>
+      <%= link_to users_path(dues_status: 'current', **lp), class: "badge text-bg-success text-decoration-none #{'border border-dark border-2' if params[:dues_status] == 'current'}" do %>
         Current: <strong><%= @dues_status_current %></strong>
       <% end %>
-      <%= link_to users_path(dues_status: 'lapsed'), class: "badge text-bg-warning text-decoration-none #{'border border-dark border-2' if params[:dues_status] == 'lapsed'}" do %>
+      <%= link_to users_path(dues_status: 'lapsed', **lp), class: "badge text-bg-warning text-decoration-none #{'border border-dark border-2' if params[:dues_status] == 'lapsed'}" do %>
         Lapsed: <strong><%= @dues_status_lapsed %></strong>
       <% end %>
-      <%= link_to users_path(dues_status: 'inactive'), class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if params[:dues_status] == 'inactive'}" do %>
+      <%= link_to users_path(dues_status: 'inactive', **lp), class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if params[:dues_status] == 'inactive'}" do %>
         Inactive: <strong><%= @dues_status_inactive %></strong>
       <% end %>
-      <%= link_to users_path(dues_status: 'unknown'), class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if params[:dues_status] == 'unknown'}" do %>
+      <%= link_to users_path(dues_status: 'unknown', **lp), class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if params[:dues_status] == 'unknown'}" do %>
         Unknown: <strong><%= @dues_status_unknown %></strong>
       <% end %>
     </div>
     
     <h2 class="h6 mb-3">Account Type</h2>
-    <div class="d-flex flex-wrap gap-2 mb-3">
-      <%= link_to users_path(account_type: 'member'), class: "badge text-bg-primary text-decoration-none #{'border border-dark border-2' if params[:account_type] == 'member'}" do %>
+    <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+      <%= link_to users_path(account_type: 'member', include_legacy: @include_legacy ? '1' : nil), class: "badge text-bg-primary text-decoration-none #{'border border-dark border-2' if params[:account_type] == 'member'}" do %>
         Members: <strong><%= @user_count - @service_account_count %></strong>
       <% end %>
-      <%= link_to users_path(account_type: 'service'), class: "badge text-bg-info text-decoration-none #{'border border-dark border-2' if params[:account_type] == 'service'}" do %>
+      <%= link_to users_path(account_type: 'service', include_legacy: @include_legacy ? '1' : nil), class: "badge text-bg-info text-decoration-none #{'border border-dark border-2' if params[:account_type] == 'service'}" do %>
         <i class="bi bi-gear-fill me-1"></i>Service Accounts: <strong><%= @service_account_count %></strong>
       <% end %>
       <% if @legacy_count.positive? %>
-        <%= link_to users_path(account_type: 'legacy'), class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if params[:account_type] == 'legacy'}" do %>
-          <i class="bi bi-archive me-1"></i>Legacy: <strong><%= @legacy_count %></strong>
-        <% end %>
+        <span class="ms-3"></span>
+        <div class="form-check form-check-inline mb-0">
+          <input class="form-check-input" type="checkbox" id="include_legacy_checkbox"
+                 <%= 'checked' if @include_legacy %>
+                 onchange="toggleLegacy(this.checked)">
+          <label class="form-check-label small" for="include_legacy_checkbox">
+            <i class="bi bi-archive me-1"></i>Include legacy (<%= @legacy_count %>)
+          </label>
+        </div>
       <% end %>
     </div>
 
     <h2 class="h6 mb-3">Missing Data</h2>
     <div class="d-flex flex-wrap gap-2">
-      <%= link_to users_path(missing: 'rfid'), class: "badge text-bg-warning text-decoration-none #{'border border-dark border-2' if params[:missing] == 'rfid'}" do %>
+      <%= link_to users_path(missing: 'rfid', **lp), class: "badge text-bg-warning text-decoration-none #{'border border-dark border-2' if params[:missing] == 'rfid'}" do %>
         No RFID: <strong><%= @no_rfid_count %></strong>
       <% end %>
-      <%= link_to users_path(missing: 'email'), class: "badge text-bg-warning text-decoration-none #{'border border-dark border-2' if params[:missing] == 'email'}" do %>
+      <%= link_to users_path(missing: 'email', **lp), class: "badge text-bg-warning text-decoration-none #{'border border-dark border-2' if params[:missing] == 'email'}" do %>
         No Email: <strong><%= @no_email_count %></strong>
       <% end %>
     </div>
@@ -256,6 +259,16 @@
 </div>
 
 <script>
+  function toggleLegacy(checked) {
+    var url = new URL(window.location.href);
+    if (checked) {
+      url.searchParams.set('include_legacy', '1');
+    } else {
+      url.searchParams.delete('include_legacy');
+    }
+    window.location.href = url.toString();
+  }
+
   (function() {
     const searchInput = document.getElementById('user_search');
     const clearButton = document.getElementById('clear_search');

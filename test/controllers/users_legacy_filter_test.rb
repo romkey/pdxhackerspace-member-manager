@@ -27,26 +27,27 @@ class UsersLegacyFilterTest < ActionDispatch::IntegrationTest
     assert_match @regular_user.display_name, response.body
   end
 
-  test 'filtering by account_type=legacy shows only legacy members' do
-    get users_path(account_type: 'legacy')
+  test 'include_legacy checkbox includes legacy members in list' do
+    get users_path(include_legacy: '1')
     assert_response :success
     assert_match 'Legacy Filter Member', response.body
+    assert_match @regular_user.display_name, response.body
   end
 
-  test 'legacy badge is shown in account type section' do
+  test 'include legacy checkbox is shown in account type section' do
     get users_path
     assert_response :success
-    assert_match 'Legacy', response.body
+    assert_match 'Include legacy', response.body
   end
 
-  test 'filter info bar shows Legacy Members when filtering' do
-    get users_path(account_type: 'legacy')
+  test 'include_legacy checkbox is checked when param is present' do
+    get users_path(include_legacy: '1')
     assert_response :success
-    assert_match 'Legacy Members', response.body
+    assert_match 'checked', response.body
   end
 
-  test 'legacy user shows legacy badge in table row when viewing legacy filter' do
-    get users_path(account_type: 'legacy')
+  test 'legacy user shows legacy badge in table row when include_legacy is checked' do
+    get users_path(include_legacy: '1')
     assert_response :success
     assert_match 'bi-archive', response.body
   end

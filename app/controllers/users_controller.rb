@@ -16,9 +16,9 @@ class UsersController < AuthenticatedController
     # Legacy count (from all users)
     @legacy_count = all_users.legacy.count
 
-    # Default view excludes legacy members unless explicitly filtering for them
-    @showing_legacy = params[:account_type] == 'legacy'
-    default_users = @showing_legacy ? all_users.legacy : all_users.non_legacy
+    # Include legacy members when checkbox is checked
+    @include_legacy = params[:include_legacy] == '1'
+    default_users = @include_legacy ? all_users : all_users.non_legacy
 
     # Calculate counts from the default (non-legacy) view
     @user_count = default_users.count
