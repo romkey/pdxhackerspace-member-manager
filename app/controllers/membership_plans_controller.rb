@@ -99,7 +99,7 @@ class MembershipPlansController < AdminController
   end
 
   def membership_plan_params
-    params.require(:membership_plan).permit(:name, :cost, :billing_frequency, :description, :payment_link, :plan_type, :paypal_transaction_subject, :manual, :visible)
+    params.require(:membership_plan).permit(:name, :cost, :billing_frequency, :description, :payment_link, :plan_type, :paypal_transaction_subject, :manual, :visible, :display_order)
   end
 end
 

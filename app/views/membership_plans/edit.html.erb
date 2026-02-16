@@ -46,7 +46,7 @@
           </div>
         <% end %>
       </div>
-      <div class="col-md-3">
+      <div class="col-md-2">
         <%= f.label :plan_type, "Plan Type", class: "form-label" %>
         <%= f.select :plan_type, 
             options_for_select([['Primary', 'primary'], ['Supplementary', 'supplementary']], @membership_plan.plan_type),
@@ -57,6 +57,11 @@
             <%= @membership_plan.errors[:plan_type].first %>
           </div>
         <% end %>
+      </div>
+      <div class="col-md-1">
+        <%= f.label :display_order, "Order", class: "form-label" %>
+        <%= f.number_field :display_order, min: 1, class: "form-control" %>
+        <div class="form-text">Display order (1 = first)</div>
       </div>
       <div class="col-md-6">
         <%= f.label :payment_link, "Payment Link", class: "form-label" %>

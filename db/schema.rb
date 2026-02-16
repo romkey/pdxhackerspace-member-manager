@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_16_154227) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_16_214315) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -345,6 +345,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_16_154227) do
     t.decimal "cost", precision: 10, scale: 2, null: false
     t.datetime "created_at", null: false
     t.text "description"
+    t.integer "display_order", default: 1, null: false
     t.boolean "manual", default: false, null: false
     t.string "name", null: false
     t.string "payment_link"
@@ -352,6 +353,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_16_154227) do
     t.string "plan_type", default: "primary", null: false
     t.datetime "updated_at", null: false
     t.boolean "visible", default: true, null: false
+    t.index ["display_order"], name: "index_membership_plans_on_display_order"
     t.index ["manual"], name: "index_membership_plans_on_manual"
     t.index ["name"], name: "index_membership_plans_on_name", unique: true
     t.index ["plan_type"], name: "index_membership_plans_on_plan_type"
