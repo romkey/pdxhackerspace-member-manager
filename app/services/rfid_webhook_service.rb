@@ -18,6 +18,9 @@ class RfidWebhookService
 
     redis.setex(key, EXPIRATION_TIME.to_i, data)
     rfid_code
+  rescue Redis::CannotConnectError, Redis::TimeoutError
+    Rails.logger.warn("Redis unavailable in RfidWebhookService.store")
+    nil
   end
 
   def self.retrieve(rfid_code)
@@ -27,6 +30,9 @@ class RfidWebhookService
 
     JSON.parse(data).symbolize_keys
   rescue JSON::ParserError
+    nil
+  rescue Redis::CannotConnectError, Redis::TimeoutError
+    Rails.logger.warn("Redis unavailable in RfidWebhookService.retrieve")
     nil
   end
 
@@ -41,11 +47,17 @@ class RfidWebhookService
     else
       false
     end
+  rescue Redis::CannotConnectError, Redis::TimeoutError
+    Rails.logger.warn("Redis unavailable in RfidWebhookService.verify_and_consume")
+    false
   end
 
   def self.delete(rfid_code)
     key = redis_key(rfid_code)
     redis.del(key)
+  rescue Redis::CannotConnectError, Redis::TimeoutError
+    Rails.logger.warn("Redis unavailable in RfidWebhookService.delete")
+    nil
   end
 
   def self.find_recent(since_time)
@@ -77,6 +89,9 @@ class RfidWebhookService
     end
     
     most_recent
+  rescue Redis::CannotConnectError, Redis::TimeoutError
+    Rails.logger.warn("Redis unavailable in RfidWebhookService.find_recent")
+    nil
   end
 
   private

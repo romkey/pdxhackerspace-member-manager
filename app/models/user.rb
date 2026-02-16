@@ -562,10 +562,16 @@ class User < ApplicationRecord
     self.payment_type = 'inactive' if membership_status == 'deceased'
   end
 
-  # Auto-remove legacy flag when the account gets meaningful payment/membership data.
+  # Auto-remove legacy flag when the account *gets* meaningful payment/membership data.
+  # Only triggers when the relevant fields are actually changing in this save,
+  # not when legacy itself is being set on a record that already has some data.
   # This triggers a journal entry (un-marking legacy is journaled).
   def clear_legacy_if_meaningful_data
     return unless legacy?
+
+    # Only auto-clear if one of the meaningful data fields is changing in this save
+    meaningful_fields = %w[membership_plan_id dues_status last_payment_date recharge_most_recent_payment_date membership_status]
+    return unless (changes.keys & meaningful_fields).any?
 
     has_plan = membership_plan_id.present?
     has_non_unknown_dues = dues_status.present? && dues_status != 'unknown'

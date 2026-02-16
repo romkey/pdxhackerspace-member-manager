@@ -133,6 +133,39 @@ class UserLegacyTest < ActiveSupport::TestCase
     assert_not user.legacy?, 'Legacy should be cleared when membership_status becomes sponsored'
   end
 
+  # ─── Regression: setting legacy must not be undone by existing data ──
+
+  test 'marking legacy sticks even when dues_status is inactive' do
+    user = create_user(legacy: false, dues_status: 'inactive')
+
+    user.update!(legacy: true)
+    user.reload
+
+    assert user.legacy?, 'Legacy should stick when set on a member with existing inactive dues_status'
+  end
+
+  test 'marking legacy sticks even when dues_status is lapsed' do
+    user = create_user(legacy: false, dues_status: 'lapsed')
+
+    user.update!(legacy: true)
+    user.reload
+
+    assert user.legacy?, 'Legacy should stick when set on a member with existing lapsed dues_status'
+  end
+
+  test 'marking legacy sticks even when membership_plan is set' do
+    plan = MembershipPlan.create!(name: "Sticky Plan #{SecureRandom.hex(4)}", cost: 50, billing_frequency: 'monthly', plan_type: 'primary')
+    user = create_user(legacy: false)
+    user.update_columns(membership_plan_id: plan.id)
+
+    user.update!(legacy: true)
+    user.reload
+
+    assert user.legacy?, 'Legacy should stick when set on a member that already has a plan'
+  end
+
+  # ─── Auto-clear journal ────────────────────────────────────────────
+
   test 'auto-clear of legacy creates a journal entry' do
     user = create_user(legacy: true, dues_status: 'unknown')
     initial_journal_count = user.journals.count
