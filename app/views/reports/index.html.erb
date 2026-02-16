@@ -11,7 +11,8 @@
     { id: 'payment-type-unknown', name: 'Payment', count: @payment_type_unknown_count },
     { id: 'dues-status-unknown', name: 'Dues', count: @dues_status_unknown_count },
     { id: 'dues-status-lapsed', name: 'Lapsed', count: @dues_status_lapsed_count },
-    { id: 'lapsed-with-access', name: 'Lapsed + Access', count: @lapsed_with_access_count }
+    { id: 'lapsed-with-access', name: 'Lapsed + Access', count: @lapsed_with_access_count },
+    { id: 'no-email', name: 'No Email', count: @no_email_count }
   ]
 %>
 
@@ -215,6 +216,81 @@
           <% end %>
         <% else %>
           <p class="text-muted mb-0">No lapsed members with access records after their lapse.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Members with No Email -->
+  <div class="tab-pane fade <%= 'show active' if active_tab == 'no-email' %>"
+       id="no-email-pane"
+       role="tabpanel"
+       aria-labelledby="no-email-tab">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-body-tertiary">
+        <h2 class="h5 mb-0">Paying, Sponsored or Guest Members with No Email (<%= @no_email_count %>)</h2>
+      </div>
+      <div class="card-body">
+        <% if @no_email.any? %>
+          <p class="text-muted small mb-3">Active members (paying, sponsored, or guest) who have no email address on file.</p>
+          <div class="table-responsive">
+            <table class="table mb-0 align-middle">
+              <thead class="bg-body-tertiary">
+                <tr>
+                  <th scope="col" style="width: 48px;"></th>
+                  <th scope="col">Name</th>
+                  <th scope="col">Membership Status</th>
+                  <th scope="col">Payment Type</th>
+                  <th scope="col">Dues Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @no_email.each do |user| %>
+                  <tr>
+                    <td>
+                      <% if user.avatar.present? %>
+                        <img src="<%= user.avatar %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
+                      <% else %>
+                        <div style="width: 32px; height: 32px; border-radius: 4px; background-color: #dee2e6; display: inline-block;"></div>
+                      <% end %>
+                    </td>
+                    <td class="fw-semibold">
+                      <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
+                    </td>
+                    <td>
+                      <% badge_class = case user.membership_status
+                         when "paying" then "success"
+                         when "sponsored" then "primary"
+                         when "guest" then "warning"
+                         else "secondary"
+                         end %>
+                      <span class="badge text-bg-<%= badge_class %>"><%= user.membership_status.humanize %></span>
+                    </td>
+                    <td>
+                      <span class="badge text-bg-info"><%= user.payment_type.humanize %></span>
+                    </td>
+                    <td>
+                      <% dues_badge_class = case user.dues_status
+                         when "current" then "success"
+                         when "lapsed" then "warning"
+                         else "secondary"
+                         end %>
+                      <span class="badge text-bg-<%= dues_badge_class %>"><%= user.dues_status.humanize %></span>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+          <% if @no_email_count > 20 %>
+            <div class="mt-3 text-center">
+              <%= link_to "View all #{@no_email_count} members",
+                  reports_view_all_path('no-email'),
+                  class: "btn btn-outline-primary" %>
+            </div>
+          <% end %>
+        <% else %>
+          <p class="text-muted mb-0">All paying, sponsored, and guest members have email addresses.</p>
         <% end %>
       </div>
     </div>

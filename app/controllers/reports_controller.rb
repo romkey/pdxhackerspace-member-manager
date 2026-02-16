@@ -16,6 +16,19 @@ class ReportsController < AdminController
     # Lapsed members with access after lapse
     prepare_lapsed_with_access(limit: LIMIT)
 
+    # Active members with no email
+    @no_email = User.where(email: [nil, ''])
+                     .where(membership_status: %w[paying sponsored guest])
+                     .non_service_accounts
+                     .non_legacy
+                     .ordered_by_display_name
+                     .limit(LIMIT)
+    @no_email_count = User.where(email: [nil, ''])
+                          .where(membership_status: %w[paying sponsored guest])
+                          .non_service_accounts
+                          .non_legacy
+                          .count
+
     # Prepare chart data
     prepare_chart_data
   end
@@ -160,6 +173,13 @@ class ReportsController < AdminController
       @title = 'Lapsed Members with Access'
       render 'reports/lapsed_with_access_full'
       return
+    when 'no-email'
+      @users = User.where(email: [nil, ''])
+                    .where(membership_status: %w[paying sponsored guest])
+                    .non_service_accounts
+                    .non_legacy
+                    .ordered_by_display_name
+      @title = 'Members with No Email'
     else
       redirect_to reports_path, alert: 'Invalid report type.'
       return
