@@ -45,8 +45,17 @@
       <!-- Active Members Chart -->
       <div class="col-12">
         <div class="card shadow-sm border-0">
-          <div class="card-header bg-body-tertiary">
+          <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
             <h2 class="h5 mb-0">Active Members per Month</h2>
+            <div class="d-flex align-items-center gap-2">
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="activePrev" title="Back 3 months">
+                <i class="bi bi-chevron-left"></i>
+              </button>
+              <span class="text-muted small" id="activeRange"></span>
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="activeNext" title="Forward 3 months">
+                <i class="bi bi-chevron-right"></i>
+              </button>
+            </div>
           </div>
           <div class="card-body">
             <canvas id="activeMembersChart" height="80"></canvas>
@@ -57,8 +66,17 @@
       <!-- Revenue Chart -->
       <div class="col-12">
         <div class="card shadow-sm border-0">
-          <div class="card-header bg-body-tertiary">
+          <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
             <h2 class="h5 mb-0">Revenue per Month</h2>
+            <div class="d-flex align-items-center gap-2">
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="revenuePrev" title="Back 3 months">
+                <i class="bi bi-chevron-left"></i>
+              </button>
+              <span class="text-muted small" id="revenueRange"></span>
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="revenueNext" title="Forward 3 months">
+                <i class="bi bi-chevron-right"></i>
+              </button>
+            </div>
           </div>
           <div class="card-body">
             <canvas id="revenueChart" height="80"></canvas>
@@ -571,215 +589,144 @@
   document.addEventListener('DOMContentLoaded', setupReportsPage);
   document.addEventListener('turbo:load', setupReportsPage);
 
+  var _windowSize = 12;
+  var _stepSize = 3;
+
+  // --- Data ---
+  var _activeData = <%= raw @active_members_chart_data.to_json %>;
+  var _revenueData = <%= raw @revenue_chart_data.to_json %>;
+  var _churnData = <%= raw @churn_data.to_json %>;
+
+  // --- Offsets (default to most recent window) ---
+  var _activeOffset, _revenueOffset, _churnOffset;
+
   function initializeCharts() {
     destroyCharts();
 
-    // Active Members Chart
-    const activeMembersCtx = document.getElementById('activeMembersChart');
-    if (activeMembersCtx && typeof Chart !== 'undefined') {
-      _reportCharts.activeMembers = new Chart(activeMembersCtx, {
-        type: 'line',
-        data: {
-          labels: <%= raw @chart_months.to_json %>,
-          datasets: [{
-            label: 'Active Members',
-            data: <%= raw @active_members_counts.to_json %>,
-            borderColor: 'rgb(75, 192, 192)',
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-            tension: 0.1,
-            fill: true
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: {
-              display: true,
-              position: 'top'
-            },
-            tooltip: {
-              mode: 'index',
-              intersect: false
-            }
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: {
-                stepSize: 1
-              }
-            }
-          }
-        }
-      });
-    }
-    
-    // Revenue Chart
-    const revenueCtx = document.getElementById('revenueChart');
-    if (revenueCtx && typeof Chart !== 'undefined') {
-      _reportCharts.revenue = new Chart(revenueCtx, {
-        type: 'bar',
-        data: {
-          labels: <%= raw @chart_months.to_json %>,
-          datasets: [
-            {
-              label: 'PayPal',
-              data: <%= raw @paypal_revenue.to_json %>,
-              backgroundColor: 'rgba(0, 123, 255, 0.8)',
-              borderColor: 'rgb(0, 123, 255)',
-              borderWidth: 1
-            },
-            {
-              label: 'Recharge',
-              data: <%= raw @recharge_revenue.to_json %>,
-              backgroundColor: 'rgba(40, 167, 69, 0.8)',
-              borderColor: 'rgb(40, 167, 69)',
-              borderWidth: 1
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: {
-              display: true,
-              position: 'top'
-            },
-            tooltip: {
-              mode: 'index',
-              intersect: false,
-              callbacks: {
-                label: function(context) {
-                  return context.dataset.label + ': $' + context.parsed.y.toFixed(2);
-                }
-              }
-            }
-          },
-          scales: {
-            x: {
-              stacked: false
-            },
-            y: {
-              beginAtZero: true,
-              ticks: {
-                callback: function(value) {
-                  return '$' + value.toFixed(0);
-                }
-              }
-            }
-          }
-        }
-      });
-    }
+    _activeOffset = Math.max(0, _activeData.length - _windowSize);
+    _revenueOffset = Math.max(0, _revenueData.length - _windowSize);
+    _churnOffset = Math.max(0, _churnData.length - _windowSize);
 
-    // New & Lapsed Members Chart
-    initChurnChart();
+    initNavChart('active', _activeData, function() { return _activeOffset; }, function(v) { _activeOffset = v; }, renderActiveChart);
+    initNavChart('revenue', _revenueData, function() { return _revenueOffset; }, function(v) { _revenueOffset = v; }, renderRevenueChart);
+    initNavChart('churn', _churnData, function() { return _churnOffset; }, function(v) { _churnOffset = v; }, renderChurnChart);
 
-    // Membership Duration Chart
-    const durationCtx = document.getElementById('durationChart');
-    if (durationCtx && typeof Chart !== 'undefined') {
-      _reportCharts.duration = new Chart(durationCtx, {
-        type: 'bar',
-        data: {
-          labels: <%= raw @duration_labels.to_json %>,
-          datasets: [{
-            label: 'Members',
-            data: <%= raw @duration_counts.to_json %>,
-            backgroundColor: [
-              'rgba(220, 53, 69, 0.8)',
-              'rgba(255, 153, 0, 0.8)',
-              'rgba(255, 193, 7, 0.8)',
-              'rgba(13, 202, 240, 0.8)',
-              'rgba(25, 135, 84, 0.8)',
-              'rgba(13, 110, 253, 0.8)',
-              'rgba(102, 16, 242, 0.8)',
-              'rgba(111, 66, 193, 0.8)'
-            ],
-            borderColor: [
-              'rgb(220, 53, 69)',
-              'rgb(255, 153, 0)',
-              'rgb(255, 193, 7)',
-              'rgb(13, 202, 240)',
-              'rgb(25, 135, 84)',
-              'rgb(13, 110, 253)',
-              'rgb(102, 16, 242)',
-              'rgb(111, 66, 193)'
-            ],
-            borderWidth: 1
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  var total = <%= @duration_total %>;
-                  var pct = total > 0 ? ((context.parsed.y / total) * 100).toFixed(1) : 0;
-                  return context.parsed.y + ' members (' + pct + '%)';
-                }
-              }
-            }
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: { stepSize: 1 },
-              title: { display: true, text: 'Number of Members' }
-            },
-            x: {
-              title: { display: true, text: 'Membership Duration' }
-            }
-          }
-        }
-      });
-    }
-  }
-
-  var _churnAllData = <%= raw @churn_data.to_json %>;
-  var _churnWindowSize = 12;
-  var _churnOffset = Math.max(0, _churnAllData.length - _churnWindowSize);
-
-  function initChurnChart() {
-    var ctx = document.getElementById('churnChart');
-    if (!ctx || typeof Chart === 'undefined' || _churnAllData.length === 0) return;
-
-    // Default to showing the most recent 12 months
-    _churnOffset = Math.max(0, _churnAllData.length - _churnWindowSize);
+    renderActiveChart();
+    renderRevenueChart();
     renderChurnChart();
-
-    document.getElementById('churnPrev').addEventListener('click', function() {
-      _churnOffset = Math.max(0, _churnOffset - 3);
-      renderChurnChart();
-    });
-    document.getElementById('churnNext').addEventListener('click', function() {
-      _churnOffset = Math.min(_churnAllData.length - _churnWindowSize, _churnOffset + 3);
-      if (_churnOffset < 0) _churnOffset = 0;
-      renderChurnChart();
-    });
+    renderDurationChart();
   }
 
-  function renderChurnChart() {
-    var slice = _churnAllData.slice(_churnOffset, _churnOffset + _churnWindowSize);
-    var labels = slice.map(function(d) { return d.month; });
-    var newData = slice.map(function(d) { return d.new_members; });
-    var lapsedData = slice.map(function(d) { return d.lapsed_members; });
+  function initNavChart(prefix, allData, getOffset, setOffset, renderFn) {
+    var prevBtn = document.getElementById(prefix + 'Prev');
+    var nextBtn = document.getElementById(prefix + 'Next');
+    if (!prevBtn || !nextBtn) return;
 
-    // Update range label
-    var rangeEl = document.getElementById('churnRange');
+    prevBtn.onclick = function() {
+      setOffset(Math.max(0, getOffset() - _stepSize));
+      renderFn();
+    };
+    nextBtn.onclick = function() {
+      setOffset(Math.min(Math.max(0, allData.length - _windowSize), getOffset() + _stepSize));
+      renderFn();
+    };
+  }
+
+  function updateNav(prefix, allData, offset) {
+    var slice = allData.slice(offset, offset + _windowSize);
+    var labels = slice.map(function(d) { return d.month; });
+    var rangeEl = document.getElementById(prefix + 'Range');
     if (rangeEl && labels.length > 0) {
       rangeEl.textContent = labels[0] + ' \u2013 ' + labels[labels.length - 1];
     }
+    var prevBtn = document.getElementById(prefix + 'Prev');
+    var nextBtn = document.getElementById(prefix + 'Next');
+    if (prevBtn) prevBtn.disabled = (offset <= 0);
+    if (nextBtn) nextBtn.disabled = (offset + _windowSize >= allData.length);
+    return slice;
+  }
 
-    // Update button states
-    var prevBtn = document.getElementById('churnPrev');
-    var nextBtn = document.getElementById('churnNext');
-    if (prevBtn) prevBtn.disabled = (_churnOffset <= 0);
-    if (nextBtn) nextBtn.disabled = (_churnOffset + _churnWindowSize >= _churnAllData.length);
+  // --- Active Members ---
+  function renderActiveChart() {
+    var slice = updateNav('active', _activeData, _activeOffset);
+    var labels = slice.map(function(d) { return d.month; });
+    var counts = slice.map(function(d) { return d.count; });
+
+    if (_reportCharts.activeMembers) {
+      _reportCharts.activeMembers.data.labels = labels;
+      _reportCharts.activeMembers.data.datasets[0].data = counts;
+      _reportCharts.activeMembers.update();
+      return;
+    }
+    var ctx = document.getElementById('activeMembersChart');
+    if (!ctx || typeof Chart === 'undefined') return;
+    _reportCharts.activeMembers = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Active Members',
+          data: counts,
+          borderColor: 'rgb(75, 192, 192)',
+          backgroundColor: 'rgba(75, 192, 192, 0.2)',
+          tension: 0.1,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        plugins: { legend: { display: true, position: 'top' }, tooltip: { mode: 'index', intersect: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+      }
+    });
+  }
+
+  // --- Revenue ---
+  function renderRevenueChart() {
+    var slice = updateNav('revenue', _revenueData, _revenueOffset);
+    var labels = slice.map(function(d) { return d.month; });
+    var paypal = slice.map(function(d) { return d.paypal; });
+    var recharge = slice.map(function(d) { return d.recharge; });
+
+    if (_reportCharts.revenue) {
+      _reportCharts.revenue.data.labels = labels;
+      _reportCharts.revenue.data.datasets[0].data = paypal;
+      _reportCharts.revenue.data.datasets[1].data = recharge;
+      _reportCharts.revenue.update();
+      return;
+    }
+    var ctx = document.getElementById('revenueChart');
+    if (!ctx || typeof Chart === 'undefined') return;
+    _reportCharts.revenue = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          { label: 'PayPal', data: paypal, backgroundColor: 'rgba(0, 123, 255, 0.8)', borderColor: 'rgb(0, 123, 255)', borderWidth: 1 },
+          { label: 'Recharge', data: recharge, backgroundColor: 'rgba(40, 167, 69, 0.8)', borderColor: 'rgb(40, 167, 69)', borderWidth: 1 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        plugins: {
+          legend: { display: true, position: 'top' },
+          tooltip: { mode: 'index', intersect: false, callbacks: { label: function(c) { return c.dataset.label + ': $' + c.parsed.y.toFixed(2); } } }
+        },
+        scales: {
+          x: { stacked: false },
+          y: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toFixed(0); } } }
+        }
+      }
+    });
+  }
+
+  // --- New & Lapsed ---
+  function renderChurnChart() {
+    if (_churnData.length === 0) return;
+    var slice = updateNav('churn', _churnData, _churnOffset);
+    var labels = slice.map(function(d) { return d.month; });
+    var newData = slice.map(function(d) { return d.new_members; });
+    var lapsedData = slice.map(function(d) { return d.lapsed_members; });
 
     if (_reportCharts.churn) {
       _reportCharts.churn.data.labels = labels;
@@ -788,45 +735,63 @@
       _reportCharts.churn.update();
       return;
     }
-
     var ctx = document.getElementById('churnChart');
+    if (!ctx || typeof Chart === 'undefined') return;
     _reportCharts.churn = new Chart(ctx, {
       type: 'bar',
       data: {
         labels: labels,
         datasets: [
-          {
-            label: 'New Members',
-            data: newData,
-            backgroundColor: 'rgba(25, 135, 84, 0.8)',
-            borderColor: 'rgb(25, 135, 84)',
-            borderWidth: 1
-          },
-          {
-            label: 'Lapsed Members',
-            data: lapsedData,
-            backgroundColor: 'rgba(220, 53, 69, 0.8)',
-            borderColor: 'rgb(220, 53, 69)',
-            borderWidth: 1
-          }
+          { label: 'New Members', data: newData, backgroundColor: 'rgba(25, 135, 84, 0.8)', borderColor: 'rgb(25, 135, 84)', borderWidth: 1 },
+          { label: 'Lapsed Members', data: lapsedData, backgroundColor: 'rgba(220, 53, 69, 0.8)', borderColor: 'rgb(220, 53, 69)', borderWidth: 1 }
         ]
       },
       options: {
-        responsive: true,
-        maintainAspectRatio: true,
+        responsive: true, maintainAspectRatio: true,
+        plugins: { legend: { display: true, position: 'top' }, tooltip: { mode: 'index', intersect: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { stepSize: 1 }, title: { display: true, text: 'Members' } },
+          x: { title: { display: true, text: 'Month' } }
+        }
+      }
+    });
+  }
+
+  // --- Duration (static, no nav) ---
+  function renderDurationChart() {
+    var ctx = document.getElementById('durationChart');
+    if (!ctx || typeof Chart === 'undefined') return;
+    _reportCharts.duration = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: <%= raw @duration_labels.to_json %>,
+        datasets: [{
+          label: 'Members',
+          data: <%= raw @duration_counts.to_json %>,
+          backgroundColor: [
+            'rgba(220, 53, 69, 0.8)', 'rgba(255, 153, 0, 0.8)', 'rgba(255, 193, 7, 0.8)', 'rgba(13, 202, 240, 0.8)',
+            'rgba(25, 135, 84, 0.8)', 'rgba(13, 110, 253, 0.8)', 'rgba(102, 16, 242, 0.8)', 'rgba(111, 66, 193, 0.8)'
+          ],
+          borderColor: [
+            'rgb(220, 53, 69)', 'rgb(255, 153, 0)', 'rgb(255, 193, 7)', 'rgb(13, 202, 240)',
+            'rgb(25, 135, 84)', 'rgb(13, 110, 253)', 'rgb(102, 16, 242)', 'rgb(111, 66, 193)'
+          ],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true,
         plugins: {
-          legend: { display: true, position: 'top' },
-          tooltip: { mode: 'index', intersect: false }
+          legend: { display: false },
+          tooltip: { callbacks: { label: function(c) {
+            var total = <%= @duration_total %>;
+            var pct = total > 0 ? ((c.parsed.y / total) * 100).toFixed(1) : 0;
+            return c.parsed.y + ' members (' + pct + '%)';
+          } } }
         },
         scales: {
-          y: {
-            beginAtZero: true,
-            ticks: { stepSize: 1 },
-            title: { display: true, text: 'Members' }
-          },
-          x: {
-            title: { display: true, text: 'Month' }
-          }
+          y: { beginAtZero: true, ticks: { stepSize: 1 }, title: { display: true, text: 'Number of Members' } },
+          x: { title: { display: true, text: 'Membership Duration' } }
         }
       }
     });
