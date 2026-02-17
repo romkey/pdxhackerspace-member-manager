@@ -173,6 +173,27 @@ class ReportsController < AdminController
     @paypal_revenue = all_months.map { |m| @revenue_data[:paypal][m] }
     @recharge_revenue = all_months.map { |m| @revenue_data[:recharge][m] }
 
+    # New members and lapsed members per month (full history for client-side pagination)
+    all_start_dates = User.where.not(membership_start_date: nil)
+                          .non_service_accounts
+                          .non_legacy
+                          .pluck(:membership_start_date)
+    all_end_dates = User.where.not(membership_ended_date: nil)
+                        .non_service_accounts
+                        .non_legacy
+                        .pluck(:membership_ended_date)
+
+    new_by_month = Hash.new(0)
+    all_start_dates.each { |d| new_by_month[d.strftime('%Y-%m')] += 1 }
+
+    lapsed_by_month = Hash.new(0)
+    all_end_dates.each { |d| lapsed_by_month[d.strftime('%Y-%m')] += 1 }
+
+    churn_months = (new_by_month.keys + lapsed_by_month.keys).uniq.sort
+    @churn_data = churn_months.map do |m|
+      { month: m, new_members: new_by_month[m], lapsed_members: lapsed_by_month[m] }
+    end
+
     # Membership duration distribution for ended memberships
     ended_members = User.where.not(membership_start_date: nil)
                         .where.not(membership_ended_date: nil)

@@ -66,6 +66,31 @@
         </div>
       </div>
 
+      <!-- New & Lapsed Members Chart -->
+      <div class="col-12">
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+            <h2 class="h5 mb-0">New & Lapsed Members per Month</h2>
+            <div class="d-flex align-items-center gap-2">
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="churnPrev" title="Back 3 months">
+                <i class="bi bi-chevron-left"></i>
+              </button>
+              <span class="text-muted small" id="churnRange"></span>
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="churnNext" title="Forward 3 months">
+                <i class="bi bi-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <% if @churn_data.any? %>
+              <canvas id="churnChart" height="80"></canvas>
+            <% else %>
+              <p class="text-muted mb-0">No membership start or end date data available.</p>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
       <!-- Membership Duration Chart -->
       <div class="col-12">
         <div class="card shadow-sm border-0">
@@ -649,6 +674,9 @@
       });
     }
 
+    // New & Lapsed Members Chart
+    initChurnChart();
+
     // Membership Duration Chart
     const durationCtx = document.getElementById('durationChart');
     if (durationCtx && typeof Chart !== 'undefined') {
@@ -710,5 +738,97 @@
         }
       });
     }
+  }
+
+  var _churnAllData = <%= raw @churn_data.to_json %>;
+  var _churnWindowSize = 12;
+  var _churnOffset = Math.max(0, _churnAllData.length - _churnWindowSize);
+
+  function initChurnChart() {
+    var ctx = document.getElementById('churnChart');
+    if (!ctx || typeof Chart === 'undefined' || _churnAllData.length === 0) return;
+
+    // Default to showing the most recent 12 months
+    _churnOffset = Math.max(0, _churnAllData.length - _churnWindowSize);
+    renderChurnChart();
+
+    document.getElementById('churnPrev').addEventListener('click', function() {
+      _churnOffset = Math.max(0, _churnOffset - 3);
+      renderChurnChart();
+    });
+    document.getElementById('churnNext').addEventListener('click', function() {
+      _churnOffset = Math.min(_churnAllData.length - _churnWindowSize, _churnOffset + 3);
+      if (_churnOffset < 0) _churnOffset = 0;
+      renderChurnChart();
+    });
+  }
+
+  function renderChurnChart() {
+    var slice = _churnAllData.slice(_churnOffset, _churnOffset + _churnWindowSize);
+    var labels = slice.map(function(d) { return d.month; });
+    var newData = slice.map(function(d) { return d.new_members; });
+    var lapsedData = slice.map(function(d) { return d.lapsed_members; });
+
+    // Update range label
+    var rangeEl = document.getElementById('churnRange');
+    if (rangeEl && labels.length > 0) {
+      rangeEl.textContent = labels[0] + ' \u2013 ' + labels[labels.length - 1];
+    }
+
+    // Update button states
+    var prevBtn = document.getElementById('churnPrev');
+    var nextBtn = document.getElementById('churnNext');
+    if (prevBtn) prevBtn.disabled = (_churnOffset <= 0);
+    if (nextBtn) nextBtn.disabled = (_churnOffset + _churnWindowSize >= _churnAllData.length);
+
+    if (_reportCharts.churn) {
+      _reportCharts.churn.data.labels = labels;
+      _reportCharts.churn.data.datasets[0].data = newData;
+      _reportCharts.churn.data.datasets[1].data = lapsedData;
+      _reportCharts.churn.update();
+      return;
+    }
+
+    var ctx = document.getElementById('churnChart');
+    _reportCharts.churn = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'New Members',
+            data: newData,
+            backgroundColor: 'rgba(25, 135, 84, 0.8)',
+            borderColor: 'rgb(25, 135, 84)',
+            borderWidth: 1
+          },
+          {
+            label: 'Lapsed Members',
+            data: lapsedData,
+            backgroundColor: 'rgba(220, 53, 69, 0.8)',
+            borderColor: 'rgb(220, 53, 69)',
+            borderWidth: 1
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: { display: true, position: 'top' },
+          tooltip: { mode: 'index', intersect: false }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { stepSize: 1 },
+            title: { display: true, text: 'Members' }
+          },
+          x: {
+            title: { display: true, text: 'Month' }
+          }
+        }
+      }
+    });
   }
 </script>
