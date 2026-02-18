@@ -40,6 +40,12 @@ class ReportsController < AdminController
                           .non_legacy
                           .count
 
+    # Legacy members with access records
+    prepare_legacy_with_access(limit: LIMIT)
+
+    # Legacy members with recent (last year) access records
+    prepare_legacy_recent_access(limit: LIMIT)
+
     # Paying members with fewer than 3 access log entries
     few_access_ids = User.where(membership_status: 'paying')
                          .non_service_accounts
@@ -86,6 +92,62 @@ class ReportsController < AdminController
     @lapsed_with_access.sort_by! { |entry| entry[:most_recent_access].logged_at }.reverse!
     @lapsed_with_access_count = @lapsed_with_access.size
     @lapsed_with_access = @lapsed_with_access.first(limit) if limit
+  end
+
+  def prepare_legacy_with_access(limit: nil)
+    legacy_with_access_users = User.where(legacy: true)
+                                   .non_service_accounts
+                                   .joins(:access_logs)
+                                   .distinct
+                                   .includes(:access_logs)
+
+    @legacy_with_access = []
+
+    legacy_with_access_users.find_each do |user|
+      recent_accesses = user.access_logs.order(logged_at: :desc).limit(5)
+      most_recent = recent_accesses.first
+      next unless most_recent
+
+      @legacy_with_access << {
+        user: user,
+        access_count: user.access_logs.count,
+        most_recent_access: most_recent,
+        recent_accesses: recent_accesses
+      }
+    end
+
+    @legacy_with_access.sort_by! { |entry| entry[:most_recent_access].logged_at }.reverse!
+    @legacy_with_access_count = @legacy_with_access.size
+    @legacy_with_access = @legacy_with_access.first(limit) if limit
+  end
+
+  def prepare_legacy_recent_access(limit: nil)
+    one_year_ago = 1.year.ago
+    legacy_recent_users = User.where(legacy: true)
+                              .non_service_accounts
+                              .joins(:access_logs)
+                              .where('access_logs.logged_at >= ?', one_year_ago)
+                              .distinct
+                              .includes(:access_logs)
+
+    @legacy_recent_access = []
+
+    legacy_recent_users.find_each do |user|
+      recent_accesses = user.access_logs.where('logged_at >= ?', one_year_ago).order(logged_at: :desc).limit(10)
+      most_recent = recent_accesses.first
+      next unless most_recent
+
+      @legacy_recent_access << {
+        user: user,
+        access_count: user.access_logs.where('logged_at >= ?', one_year_ago).count,
+        most_recent_access: most_recent,
+        recent_accesses: recent_accesses
+      }
+    end
+
+    @legacy_recent_access.sort_by! { |entry| entry[:most_recent_access].logged_at }.reverse!
+    @legacy_recent_access_count = @legacy_recent_access.size
+    @legacy_recent_access = @legacy_recent_access.first(limit) if limit
   end
 
   def prepare_chart_data
@@ -257,6 +319,16 @@ class ReportsController < AdminController
                            .pluck('users.id')
       @users = User.where(id: few_access_ids).ordered_by_display_name
       @title = 'Paying Members with Few Access Records'
+    when 'legacy-with-access'
+      prepare_legacy_with_access
+      @title = 'Legacy Members with Access'
+      render 'reports/legacy_with_access_full'
+      return
+    when 'legacy-recent-access'
+      prepare_legacy_recent_access
+      @title = 'Legacy Members with Recent Access'
+      render 'reports/legacy_recent_access_full'
+      return
     else
       redirect_to reports_path, alert: 'Invalid report type.'
       return

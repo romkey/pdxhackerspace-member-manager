@@ -14,7 +14,9 @@
     { id: 'lapsed-with-access', name: 'Lapsed + Access', count: @lapsed_with_access_count },
     { id: 'no-email', name: 'No Email', count: @no_email_count },
     { id: 'sponsored-and-paying', name: 'Sponsored & Paying', count: @sponsored_and_paying_count },
-    { id: 'no-access', name: 'Few Access', count: @no_access_count }
+    { id: 'no-access', name: 'Few Access', count: @no_access_count },
+    { id: 'legacy-with-access', name: 'Legacy + Access', count: @legacy_with_access_count },
+    { id: 'legacy-recent-access', name: 'Legacy Recent', count: @legacy_recent_access_count }
   ]
 %>
 
@@ -532,6 +534,60 @@
           <% end %>
         <% else %>
           <p class="text-muted mb-0">All paying members have at least 3 access records.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Legacy Members with Access -->
+  <div class="tab-pane fade <%= 'show active' if active_tab == 'legacy-with-access' %>"
+       id="legacy-with-access-pane"
+       role="tabpanel"
+       aria-labelledby="legacy-with-access-tab">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-body-tertiary">
+        <h2 class="h5 mb-0">Legacy Members with Access Records (<%= @legacy_with_access_count %>)</h2>
+      </div>
+      <div class="card-body">
+        <% if @legacy_with_access.any? %>
+          <p class="text-muted small mb-3">Members marked as legacy who have access log records, sorted by most recent access.</p>
+          <%= render partial: 'legacy_access_table', locals: { entries: @legacy_with_access } %>
+          <% if @legacy_with_access_count > 20 %>
+            <div class="mt-3 text-center">
+              <%= link_to "View all #{@legacy_with_access_count} members",
+                  reports_view_all_path('legacy-with-access'),
+                  class: "btn btn-outline-primary" %>
+            </div>
+          <% end %>
+        <% else %>
+          <p class="text-muted mb-0">No legacy members have access records.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Legacy Members with Recent Access -->
+  <div class="tab-pane fade <%= 'show active' if active_tab == 'legacy-recent-access' %>"
+       id="legacy-recent-access-pane"
+       role="tabpanel"
+       aria-labelledby="legacy-recent-access-tab">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-body-tertiary">
+        <h2 class="h5 mb-0">Legacy Members with Recent Access (<%= @legacy_recent_access_count %>)</h2>
+      </div>
+      <div class="card-body">
+        <% if @legacy_recent_access.any? %>
+          <p class="text-muted small mb-3">Legacy members with access records in the last year, sorted by most recent access. Showing up to 10 recent records per member.</p>
+          <%= render partial: 'legacy_access_table', locals: { entries: @legacy_recent_access } %>
+          <% if @legacy_recent_access_count > 20 %>
+            <div class="mt-3 text-center">
+              <%= link_to "View all #{@legacy_recent_access_count} members",
+                  reports_view_all_path('legacy-recent-access'),
+                  class: "btn btn-outline-primary" %>
+            </div>
+          <% end %>
+        <% else %>
+          <p class="text-muted mb-0">No legacy members have access records in the last year.</p>
         <% end %>
       </div>
     </div>
