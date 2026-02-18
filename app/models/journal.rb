@@ -29,6 +29,7 @@ class Journal < ApplicationRecord
   HIGHLIGHTED_FIELDS = %w[
     membership_status
     dues_status
+    is_sponsored
     banned
     deceased
   ].freeze

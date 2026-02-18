@@ -578,7 +578,7 @@ class User < ApplicationRecord
     return unless legacy?
 
     # Only auto-clear if one of the meaningful data fields is changing in this save
-    meaningful_fields = %w[membership_plan_id dues_status last_payment_date recharge_most_recent_payment_date membership_status]
+    meaningful_fields = %w[membership_plan_id dues_status last_payment_date recharge_most_recent_payment_date membership_status is_sponsored]
     return unless (changes.keys & meaningful_fields).any?
 
     has_plan = membership_plan_id.present?
@@ -586,7 +586,7 @@ class User < ApplicationRecord
     has_payment_date = last_payment_date.present? || recharge_most_recent_payment_date.present?
     has_paying_status = membership_status.in?(%w[paying sponsored])
 
-    if has_plan || has_non_unknown_dues || has_payment_date || has_paying_status
+    if has_plan || has_non_unknown_dues || has_payment_date || has_paying_status || is_sponsored?
       self.legacy = false
     end
   end

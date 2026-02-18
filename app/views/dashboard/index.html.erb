@@ -174,12 +174,13 @@
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
+  function initDashboardSearch() {
     const searchInput = document.getElementById('dashboard_member_search');
     const searchResults = document.getElementById('dashboard_search_results');
     const noResults = document.getElementById('dashboard_no_results');
 
-    if (!searchInput || !searchResults) return;
+    if (!searchInput || !searchResults || searchInput.dataset.initialized) return;
+    searchInput.dataset.initialized = 'true';
 
     function filterMembers() {
       const searchTerm = searchInput.value.toLowerCase().trim();
@@ -251,5 +252,8 @@
         this.classList.remove('bg-body-secondary');
       });
     });
-  });
+  }
+
+  document.addEventListener('DOMContentLoaded', initDashboardSearch);
+  document.addEventListener('turbo:load', initDashboardSearch);
 </script>
