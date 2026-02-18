@@ -30,19 +30,10 @@
           <label for="dashboard_member_search" class="form-label fw-semibold">Find a Member</label>
           <div class="position-relative">
             <input type="text" id="dashboard_member_search" class="form-control form-control-lg" 
-                   placeholder="Type to search by name, email, or username..." autocomplete="off">
+                   placeholder="Type to search by name, email, or username..." autocomplete="off"
+                   data-search-url="<%= api_users_search_path %>">
             <div id="dashboard_search_results" class="position-absolute w-100 bg-body border rounded shadow-sm mt-1" 
                  style="max-height: 300px; overflow-y: auto; z-index: 1000; display: none;">
-              <% @users_for_search.each do |user| %>
-                <a href="<%= user_path(user) %>" 
-                   class="d-block p-3 text-decoration-none border-bottom search-result-item"
-                   data-search-text="<%= [user.display_name, user.email, user.username].compact.join(' ').downcase %>">
-                  <div class="fw-semibold"><%= user.display_name %></div>
-                  <% if user.email.present? %>
-                    <div class="text-muted small"><%= user.email %></div>
-                  <% end %>
-                </a>
-              <% end %>
             </div>
             <div id="dashboard_no_results" class="position-absolute w-100 bg-body border rounded shadow-sm mt-1 p-3 text-center text-muted" 
                  style="z-index: 1000; display: none;">
@@ -174,86 +165,101 @@
 </div>
 
 <script>
-  function initDashboardSearch() {
-    const searchInput = document.getElementById('dashboard_member_search');
-    const searchResults = document.getElementById('dashboard_search_results');
-    const noResults = document.getElementById('dashboard_no_results');
+  (function() {
+    var _debounceTimer = null;
+    var _abortController = null;
 
-    if (!searchInput || !searchResults || searchInput.dataset.initialized) return;
-    searchInput.dataset.initialized = 'true';
+    function initDashboardSearch() {
+      var searchInput = document.getElementById('dashboard_member_search');
+      var searchResults = document.getElementById('dashboard_search_results');
+      var noResults = document.getElementById('dashboard_no_results');
+      if (!searchInput || !searchResults) return;
 
-    function filterMembers() {
-      const searchTerm = searchInput.value.toLowerCase().trim();
-      const results = searchResults.querySelectorAll('.search-result-item');
-      let visibleCount = 0;
+      var searchUrl = searchInput.getAttribute('data-search-url');
 
-      if (searchTerm === '' || searchTerm.length < 2) {
+      function hideDropdowns() {
         searchResults.style.display = 'none';
         noResults.style.display = 'none';
-        return;
       }
 
-      results.forEach(function(result) {
-        const text = result.getAttribute('data-search-text');
-        if (text && text.includes(searchTerm)) {
-          result.style.display = '';
-          visibleCount++;
-        } else {
-          result.style.display = 'none';
+      function renderResults(users) {
+        searchResults.innerHTML = '';
+        users.forEach(function(user) {
+          var a = document.createElement('a');
+          a.href = '/users/' + user.id;
+          a.className = 'd-block p-3 text-decoration-none border-bottom search-result-item';
+          var nameDiv = document.createElement('div');
+          nameDiv.className = 'fw-semibold';
+          nameDiv.textContent = user.name;
+          a.appendChild(nameDiv);
+          if (user.email) {
+            var emailDiv = document.createElement('div');
+            emailDiv.className = 'text-muted small';
+            emailDiv.textContent = user.email;
+            a.appendChild(emailDiv);
+          }
+          a.addEventListener('mouseenter', function() { a.classList.add('bg-body-secondary'); });
+          a.addEventListener('mouseleave', function() { a.classList.remove('bg-body-secondary'); });
+          searchResults.appendChild(a);
+        });
+      }
+
+      function doSearch() {
+        var q = searchInput.value.trim();
+        if (q.length < 2) { hideDropdowns(); return; }
+
+        if (_abortController) _abortController.abort();
+        _abortController = new AbortController();
+
+        fetch(searchUrl + '?q=' + encodeURIComponent(q), {
+          signal: _abortController.signal,
+          headers: { 'Accept': 'application/json' }
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(users) {
+          if (users.length === 0) {
+            searchResults.style.display = 'none';
+            noResults.style.display = 'block';
+          } else {
+            renderResults(users);
+            searchResults.style.display = 'block';
+            noResults.style.display = 'none';
+          }
+        })
+        .catch(function(err) {
+          if (err.name !== 'AbortError') console.error('Search failed:', err);
+        });
+      }
+
+      searchInput.addEventListener('input', function() {
+        clearTimeout(_debounceTimer);
+        _debounceTimer = setTimeout(doSearch, 200);
+      });
+
+      searchInput.addEventListener('focus', function() {
+        if (searchInput.value.trim().length >= 2) doSearch();
+      });
+
+      document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+          hideDropdowns();
         }
       });
 
-      if (visibleCount === 0) {
-        searchResults.style.display = 'none';
-        noResults.style.display = 'block';
-      } else {
-        searchResults.style.display = 'block';
-        noResults.style.display = 'none';
-      }
+      searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          hideDropdowns();
+          searchInput.blur();
+        } else if (e.key === 'Enter') {
+          var firstVisible = searchResults.querySelector('.search-result-item');
+          if (firstVisible && searchResults.style.display !== 'none') {
+            window.location.href = firstVisible.href;
+          }
+        }
+      });
     }
 
-    searchInput.addEventListener('input', filterMembers);
-    searchInput.addEventListener('focus', function() {
-      if (searchInput.value.length >= 2) {
-        filterMembers();
-      }
-    });
-
-    // Hide results when clicking outside
-    document.addEventListener('click', function(e) {
-      if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
-        searchResults.style.display = 'none';
-        noResults.style.display = 'none';
-      }
-    });
-
-    // Keyboard navigation
-    searchInput.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') {
-        searchResults.style.display = 'none';
-        noResults.style.display = 'none';
-        searchInput.blur();
-      } else if (e.key === 'Enter') {
-        // Go to first visible result
-        const firstVisible = searchResults.querySelector('.search-result-item[style=""]') ||
-                            searchResults.querySelector('.search-result-item:not([style*="display: none"])');
-        if (firstVisible && searchResults.style.display !== 'none') {
-          window.location.href = firstVisible.href;
-        }
-      }
-    });
-
-    // Hover effect for results
-    searchResults.querySelectorAll('.search-result-item').forEach(function(item) {
-      item.addEventListener('mouseenter', function() {
-        this.classList.add('bg-body-secondary');
-      });
-      item.addEventListener('mouseleave', function() {
-        this.classList.remove('bg-body-secondary');
-      });
-    });
-  }
-
-  document.addEventListener('DOMContentLoaded', initDashboardSearch);
-  document.addEventListener('turbo:load', initDashboardSearch);
+    document.addEventListener('DOMContentLoaded', initDashboardSearch);
+    document.addEventListener('turbo:load', initDashboardSearch);
+  })();
 </script>

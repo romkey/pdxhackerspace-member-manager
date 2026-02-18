@@ -7,7 +7,6 @@ class DashboardController < AdminController
     @slack_user_count = SlackUser.count
     @paypal_payment_count = PaypalPayment.count
     @recharge_payment_count = RechargePayment.count
-    @users_for_search = User.ordered_by_display_name
 
     # Count members on manual plans
     manual_plan_ids = MembershipPlan.manual.pluck(:id)
