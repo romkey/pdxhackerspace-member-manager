@@ -7,6 +7,7 @@ class ApplicationGroup < ApplicationRecord
   validates :authentik_name, presence: true
   validates :training_topic_id, presence: true, if: -> { use_can_train? || use_trained_in? }
 
+  before_save :clear_authentik_group_id_if_name_changed
   before_save :ensure_mutual_exclusivity
 
   scope :with_authentik_group_id, -> { where.not(authentik_group_id: [nil, '']) }
@@ -45,6 +46,17 @@ class ApplicationGroup < ApplicationRecord
   end
 
   private
+
+  # If the Authentik group name changes on an existing record that already had
+  # an Authentik group ID, clear the ID so the next sync creates/links a new
+  # group instead of renaming the old one in Authentik.
+  def clear_authentik_group_id_if_name_changed
+    return if new_record?
+    return unless authentik_name_changed?
+    return if authentik_group_id.blank?
+
+    self.authentik_group_id = nil
+  end
 
   def ensure_mutual_exclusivity
     # Count how many options are selected
