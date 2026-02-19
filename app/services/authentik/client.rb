@@ -140,6 +140,39 @@ module Authentik
       delete_resource("#{API_PREFIX}/policies/event_matcher/#{policy_id}/")
     end
 
+    # ========== Expression Policies ==========
+
+    def list_expression_policies(search: nil)
+      validate_api_config!
+      params = { page_size: DEFAULT_PAGE_SIZE }
+      params[:search] = search if search.present?
+      get_paginated("#{API_PREFIX}/policies/expression/", params)
+    end
+
+    def find_expression_policy_by_name(name)
+      policies = list_expression_policies(search: name)
+      policies.find { |p| p['name'] == name }
+    end
+
+    def create_expression_policy(name:, expression:, execution_logging: false)
+      validate_api_config!
+      post_json("#{API_PREFIX}/policies/expression/", {
+        name: name,
+        expression: expression,
+        execution_logging: execution_logging
+      })
+    end
+
+    def update_expression_policy(policy_id, **attrs)
+      validate_api_config!
+      patch_json("#{API_PREFIX}/policies/expression/#{policy_id}/", attrs)
+    end
+
+    def delete_expression_policy(policy_id)
+      validate_api_config!
+      delete_resource("#{API_PREFIX}/policies/expression/#{policy_id}/")
+    end
+
     # ========== Notification Rules ==========
 
     def list_notification_rules(name: nil)

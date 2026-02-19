@@ -1,0 +1,200 @@
+<%= form_with model: [@application, @application_group], local: true do |f| %>
+  <% if @application_group.errors.any? %>
+    <div class="alert alert-danger">
+      <ul class="mb-0">
+        <% @application_group.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="mb-3">
+    <%= f.label :name, class: "form-label" %>
+    <%= f.text_field :name, class: "form-control", required: true %>
+  </div>
+
+  <div class="mb-3">
+    <%= f.label :authentik_name, "Authentik Group Name", class: "form-label" %>
+    <%= f.text_field :authentik_name, class: "form-control", required: true, id: "application_group_authentik_name" %>
+    <div class="form-text">The name of this group in Authentik.</div>
+  </div>
+
+  <h5 class="mt-4 mb-3">Group Members</h5>
+
+  <div class="mb-3">
+    <div class="form-check mb-2">
+      <input type="radio" name="application_group[member_source]" value="sync_group"
+             id="member_source_sync_group" class="form-check-input member-source-radio"
+             <%= 'checked' if @application_group.member_source == 'sync_group' || @application_group.member_source == 'active_members' || @application_group.member_source == 'admin_members' %>>
+      <label for="member_source_sync_group" class="form-check-label">Sync with group</label>
+      <div id="sync_group_select_wrapper" class="ms-4 mt-1 mb-1" style="display: <%= %w[sync_group active_members admin_members].include?(@application_group.member_source) ? 'block' : 'none' %>;">
+        <select name="application_group[sync_group_combined]" id="sync_group_combined" class="form-select form-select-sm" style="max-width: 400px;">
+          <option value="">Select a group...</option>
+          <option value="active_members" <%= 'selected' if @application_group.member_source == 'active_members' %>>Active Members</option>
+          <option value="admin_members" <%= 'selected' if @application_group.member_source == 'admin_members' %>>Admin Members</option>
+          <option disabled>──────────</option>
+          <% @syncable_groups.each do |group| %>
+            <option value="sync_group:<%= group.id %>"
+                    <%= 'selected' if @application_group.member_source == 'sync_group' && @application_group.sync_with_group_id == group.id %>>
+              <%= group.name %> (<%= group.application.name %>)
+            </option>
+          <% end %>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-check mb-2">
+      <input type="radio" name="application_group[member_source]" value="can_train"
+             id="member_source_can_train" class="form-check-input member-source-radio"
+             <%= 'checked' if @application_group.member_source == 'can_train' %>>
+      <label for="member_source_can_train" class="form-check-label">Members who can train</label>
+    </div>
+
+    <div class="form-check mb-2">
+      <input type="radio" name="application_group[member_source]" value="trained_in"
+             id="member_source_trained_in" class="form-check-input member-source-radio"
+             <%= 'checked' if @application_group.member_source == 'trained_in' %>>
+      <label for="member_source_trained_in" class="form-check-label">Members trained in</label>
+    </div>
+
+    <div id="training_topic_wrapper" class="ms-4 mb-2" style="display: <%= %w[can_train trained_in].include?(@application_group.member_source) ? 'block' : 'none' %>;">
+      <%= f.collection_select :training_topic_id, @training_topics, :id, :name,
+          { selected: @application_group.training_topic_id, prompt: "Select training topic..." },
+          { class: "form-select form-select-sm", id: "application_group_training_topic_id", style: "max-width: 400px;" } %>
+    </div>
+
+    <div class="form-check mb-2">
+      <input type="radio" name="application_group[member_source]" value="manual"
+             id="member_source_manual" class="form-check-input member-source-radio"
+             <%= 'checked' if @application_group.member_source == 'manual' %>>
+      <label for="member_source_manual" class="form-check-label">Choose members</label>
+    </div>
+  </div>
+
+  <%# Hidden fields updated by JS to carry the resolved member_source and sync_with_group_id %>
+  <input type="hidden" name="application_group[sync_with_group_id]" id="resolved_sync_with_group_id"
+         value="<%= @application_group.sync_with_group_id %>">
+
+  <div class="mb-3">
+    <%= f.label :authentik_group_id, "Authentik Group ID", class: "form-label" %>
+    <%= f.text_field :authentik_group_id, class: "form-control font-monospace", placeholder: "e.g., 3c894c72-0757-45aa-ac6d-f1bf220a57ec" %>
+    <div class="form-text">Optional. The UUID of this group in Authentik. If set, webhook events for this group will be synced.</div>
+  </div>
+
+  <div class="mb-3">
+    <%= f.label :note, class: "form-label" %>
+    <%= f.text_area :note, class: "form-control", rows: 3 %>
+    <div class="form-text">Optional note about this group.</div>
+  </div>
+
+  <div class="d-flex gap-2">
+    <%= f.submit @application_group.persisted? ? "Update Group" : "Create Group", class: "btn btn-primary" %>
+    <% if @application_group.persisted? %>
+      <%= link_to "Cancel", application_application_group_path(@application, @application_group), class: "btn btn-outline-secondary" %>
+    <% else %>
+      <%= link_to "Cancel", application_path(@application), class: "btn btn-outline-secondary" %>
+    <% end %>
+  </div>
+<% end %>
+
+<script>
+(function() {
+  const radios = document.querySelectorAll('.member-source-radio');
+  const syncGroupWrapper = document.getElementById('sync_group_select_wrapper');
+  const syncGroupCombined = document.getElementById('sync_group_combined');
+  const trainingTopicWrapper = document.getElementById('training_topic_wrapper');
+  const trainingTopicSelect = document.getElementById('application_group_training_topic_id');
+  const authentikNameField = document.getElementById('application_group_authentik_name');
+  const resolvedSyncGroupId = document.getElementById('resolved_sync_with_group_id');
+
+  if (!radios.length || !authentikNameField) return;
+
+  const originalAuthentikName = authentikNameField.value || '';
+  const defaultSettings = {
+    activeMembersGroup: '<%= @default_settings.active_members_group %>',
+    adminsGroup: '<%= @default_settings.admins_group %>',
+    trainedOnPrefix: '<%= @default_settings.trained_on_prefix %>',
+    canTrainPrefix: '<%= @default_settings.can_train_prefix %>'
+  };
+
+  const trainingTopics = {};
+  <% @training_topics.each do |topic| %>
+    trainingTopics['<%= topic.id %>'] = '<%= topic.name.downcase.gsub(/\s+/, "-") %>';
+  <% end %>
+
+  const syncGroupNames = {};
+  <% @syncable_groups.each do |group| %>
+    syncGroupNames['<%= group.id %>'] = '<%= j(group.authentik_name) %>';
+  <% end %>
+
+  function getSelectedSource() {
+    for (const r of radios) {
+      if (r.checked) return r.value;
+    }
+    return 'manual';
+  }
+
+  function update() {
+    const source = getSelectedSource();
+
+    syncGroupWrapper.style.display = (source === 'sync_group') ? 'block' : 'none';
+    trainingTopicWrapper.style.display = (source === 'can_train' || source === 'trained_in') ? 'block' : 'none';
+
+    resolvedSyncGroupId.value = '';
+
+    if (source === 'sync_group') {
+      const combined = syncGroupCombined.value;
+      if (combined === 'active_members') {
+        authentikNameField.value = defaultSettings.activeMembersGroup;
+      } else if (combined === 'admin_members') {
+        authentikNameField.value = defaultSettings.adminsGroup;
+      } else if (combined.startsWith('sync_group:')) {
+        const groupId = combined.split(':')[1];
+        resolvedSyncGroupId.value = groupId;
+        if (syncGroupNames[groupId]) {
+          authentikNameField.value = syncGroupNames[groupId];
+        }
+      } else {
+        authentikNameField.value = originalAuthentikName;
+      }
+    } else if (source === 'can_train' && trainingTopicSelect.value) {
+      const slug = trainingTopics[trainingTopicSelect.value];
+      if (slug) authentikNameField.value = defaultSettings.canTrainPrefix + ':' + slug;
+    } else if (source === 'trained_in' && trainingTopicSelect.value) {
+      const slug = trainingTopics[trainingTopicSelect.value];
+      if (slug) authentikNameField.value = defaultSettings.trainedOnPrefix + ':' + slug;
+    } else if (source === 'active_members') {
+      authentikNameField.value = defaultSettings.activeMembersGroup;
+    } else if (source === 'admin_members') {
+      authentikNameField.value = defaultSettings.adminsGroup;
+    } else {
+      authentikNameField.value = originalAuthentikName;
+    }
+  }
+
+  radios.forEach(function(r) { r.addEventListener('change', update); });
+  if (syncGroupCombined) syncGroupCombined.addEventListener('change', update);
+  if (trainingTopicSelect) trainingTopicSelect.addEventListener('change', update);
+
+  // Handle form submission: resolve combined select into proper member_source
+  const form = document.querySelector('form');
+  if (form) {
+    form.addEventListener('submit', function() {
+      const source = getSelectedSource();
+      if (source === 'sync_group') {
+        const combined = syncGroupCombined.value;
+        if (combined === 'active_members' || combined === 'admin_members') {
+          // Override the radio value to the specific source
+          const hiddenSource = document.createElement('input');
+          hiddenSource.type = 'hidden';
+          hiddenSource.name = 'application_group[member_source]';
+          hiddenSource.value = combined;
+          form.appendChild(hiddenSource);
+          resolvedSyncGroupId.value = '';
+        }
+      }
+    });
+  }
+})();
+</script>

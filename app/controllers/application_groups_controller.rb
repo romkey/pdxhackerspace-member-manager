@@ -9,36 +9,26 @@ class ApplicationGroupsController < AdminController
   end
 
   def new
-    @application_group = @application.application_groups.build
-    @training_topics = TrainingTopic.order(:name)
-    @default_settings = DefaultSetting.instance
-    
-    if @application.authentik_prefix.present?
-      @application_group.authentik_name = "#{@application.authentik_prefix}:"
-    else
-      @application_group.authentik_name = "#{@default_settings.app_prefix}:"
-    end
+    @application_group = @application.application_groups.build(member_source: 'manual')
+    load_form_data
+    set_default_authentik_name
   end
 
   def edit
-    @training_topics = TrainingTopic.order(:name)
-    @default_settings = DefaultSetting.instance
+    load_form_data
   end
 
   def create
     @application_group = @application.application_groups.build(application_group_params)
-    ensure_mutual_exclusivity(@application_group)
-    set_authentik_name_from_checkboxes(@application_group)
+    resolve_sync_group_combined(@application_group)
+    set_authentik_name_from_source(@application_group)
 
     if @application_group.save
-      # Create group in Authentik
       sync_result = sync_group_to_authentik(@application_group)
       notice = build_sync_notice('Application group created successfully.', sync_result)
-
       redirect_to application_application_group_path(@application, @application_group), notice: notice
     else
-      @training_topics = TrainingTopic.order(:name)
-      @default_settings = DefaultSetting.instance
+      load_form_data
       flash.now[:alert] = 'Unable to create application group.'
       render :new, status: :unprocessable_content
     end
@@ -46,18 +36,15 @@ class ApplicationGroupsController < AdminController
 
   def update
     @application_group.assign_attributes(application_group_params)
-    ensure_mutual_exclusivity(@application_group)
-    set_authentik_name_from_checkboxes(@application_group)
+    resolve_sync_group_combined(@application_group)
+    set_authentik_name_from_source(@application_group)
 
     if @application_group.save
-      # Sync to Authentik
       sync_result = sync_group_to_authentik(@application_group)
       notice = build_sync_notice('Application group updated successfully.', sync_result)
-
       redirect_to application_application_group_path(@application, @application_group), notice: notice
     else
-      @training_topics = TrainingTopic.order(:name)
-      @default_settings = DefaultSetting.instance
+      load_form_data
       flash.now[:alert] = 'Unable to update application group.'
       render :edit, status: :unprocessable_content
     end
@@ -66,7 +53,6 @@ class ApplicationGroupsController < AdminController
   def destroy
     group_name = @application_group.name
 
-    # Delete from Authentik first
     if @application_group.authentik_group_id.present?
       begin
         sync = Authentik::GroupSync.new(@application_group)
@@ -95,10 +81,8 @@ class ApplicationGroupsController < AdminController
     else
       @application_group.users << user
 
-      # Sync membership to Authentik
       sync_result = sync_group_members(@application_group)
       notice = build_sync_notice('Member added to group.', sync_result)
-
       redirect_to application_application_group_path(@application, @application_group), notice: notice
     end
   end
@@ -113,10 +97,8 @@ class ApplicationGroupsController < AdminController
     user = User.find(params[:user_id])
     @application_group.users.delete(user)
 
-    # Sync membership to Authentik
     sync_result = sync_group_members(@application_group)
     notice = build_sync_notice('Member removed from group.', sync_result)
-
     redirect_to application_application_group_path(@application, @application_group), notice: notice
   end
 
@@ -143,45 +125,67 @@ class ApplicationGroupsController < AdminController
   end
 
   def application_group_params
-    params.require(:application_group).permit(:name, :authentik_name, :authentik_group_id, :note, :use_default_members_group, :use_default_admins_group, :use_can_train, :use_trained_in, :training_topic_id)
+    params.require(:application_group).permit(
+      :name, :authentik_name, :authentik_group_id, :note,
+      :member_source, :sync_with_group_id, :training_topic_id
+    )
   end
 
-  def ensure_mutual_exclusivity(group)
-    # Get which option was just set
-    params_hash = params[:application_group] || {}
-    
-    if params_hash[:use_default_members_group] == '1'
-      group.use_default_admins_group = false
-      group.use_can_train = false
-      group.use_trained_in = false
-    elsif params_hash[:use_default_admins_group] == '1'
-      group.use_default_members_group = false
-      group.use_can_train = false
-      group.use_trained_in = false
-    elsif params_hash[:use_can_train] == '1'
-      group.use_default_members_group = false
-      group.use_default_admins_group = false
-      group.use_trained_in = false
-    elsif params_hash[:use_trained_in] == '1'
-      group.use_default_members_group = false
-      group.use_default_admins_group = false
-      group.use_can_train = false
+  def load_form_data
+    @training_topics = TrainingTopic.order(:name)
+    @default_settings = DefaultSetting.instance
+    @syncable_groups = build_syncable_groups_list
+  end
+
+  def build_syncable_groups_list
+    all_groups = ApplicationGroup.includes(:application).ordered_by_name
+    all_groups = all_groups.where.not(id: @application_group.id) if @application_group.persisted?
+    all_groups.to_a
+  end
+
+  def resolve_sync_group_combined(group)
+    return unless group.member_source == 'sync_group'
+
+    combined = params.dig(:application_group, :sync_group_combined).to_s
+    case combined
+    when 'active_members'
+      group.member_source = 'active_members'
+      group.sync_with_group_id = nil
+    when 'admin_members'
+      group.member_source = 'admin_members'
+      group.sync_with_group_id = nil
+    when /\Async_group:(\d+)\z/
+      group.sync_with_group_id = $1.to_i
     end
   end
 
-  def set_authentik_name_from_checkboxes(group)
+  def set_default_authentik_name
+    prefix = @application.authentik_prefix.presence || DefaultSetting.instance.app_prefix
+    @application_group.authentik_name = "#{prefix}:"
+  end
+
+  def set_authentik_name_from_source(group)
     defaults = DefaultSetting.instance
-    
-    if group.use_default_members_group?
+
+    case group.member_source
+    when 'active_members'
       group.authentik_name = defaults.active_members_group
-    elsif group.use_default_admins_group?
+    when 'admin_members'
       group.authentik_name = defaults.admins_group
-    elsif group.use_can_train? && group.training_topic
-      topic_slug = group.training_topic.name.downcase.gsub(/\s+/, '-')
-      group.authentik_name = "#{defaults.can_train_prefix}:#{topic_slug}"
-    elsif group.use_trained_in? && group.training_topic
-      topic_slug = group.training_topic.name.downcase.gsub(/\s+/, '-')
-      group.authentik_name = "#{defaults.trained_on_prefix}:#{topic_slug}"
+    when 'sync_group'
+      if group.sync_with_group.present?
+        group.authentik_name = group.sync_with_group.authentik_name
+      end
+    when 'can_train'
+      if group.training_topic.present?
+        topic_slug = group.training_topic.name.downcase.gsub(/\s+/, '-')
+        group.authentik_name = "#{defaults.can_train_prefix}:#{topic_slug}"
+      end
+    when 'trained_in'
+      if group.training_topic.present?
+        topic_slug = group.training_topic.name.downcase.gsub(/\s+/, '-')
+        group.authentik_name = "#{defaults.trained_on_prefix}:#{topic_slug}"
+      end
     end
   end
 

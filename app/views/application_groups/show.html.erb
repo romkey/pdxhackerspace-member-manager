@@ -23,7 +23,7 @@
       <dt class="col-sm-3 text-secondary">Name</dt>
       <dd class="col-sm-9"><%= @application_group.name %></dd>
 
-      <dt class="col-sm-3 text-secondary">Authentik Name</dt>
+      <dt class="col-sm-3 text-secondary">Authentik Group Name</dt>
       <dd class="col-sm-9"><code><%= @application_group.authentik_name %></code></dd>
 
       <dt class="col-sm-3 text-secondary">Authentik Group ID</dt>
@@ -33,6 +33,49 @@
           <span class="badge text-bg-success ms-2">Webhook Sync Enabled</span>
         <% else %>
           <span class="text-muted fst-italic">Not configured</span>
+        <% end %>
+      </dd>
+
+      <dt class="col-sm-3 text-secondary">Authentik Policy</dt>
+      <dd class="col-sm-9">
+        <% policy_id = @application_group.effective_policy_id %>
+        <% if policy_id.present? %>
+          <code><%= policy_id %></code>
+          <% if @application_group.sync_group? %>
+            <span class="badge text-bg-info ms-2">From synced group</span>
+          <% end %>
+        <% else %>
+          <span class="text-muted fst-italic">Not created yet</span>
+        <% end %>
+      </dd>
+
+      <dt class="col-sm-3 text-secondary">Member Source</dt>
+      <dd class="col-sm-9">
+        <% case @application_group.member_source %>
+        <% when 'active_members' %>
+          <span class="badge text-bg-primary">Active Members</span>
+        <% when 'admin_members' %>
+          <span class="badge text-bg-primary">Admin Members</span>
+        <% when 'sync_group' %>
+          <span class="badge text-bg-primary">Sync with group</span>
+          <% if @application_group.sync_with_group %>
+            &mdash; <%= link_to @application_group.sync_with_group.name,
+                  application_application_group_path(@application_group.sync_with_group.application, @application_group.sync_with_group),
+                  class: "text-decoration-none" %>
+            (<%= @application_group.sync_with_group.application.name %>)
+          <% end %>
+        <% when 'can_train' %>
+          <span class="badge text-bg-primary">Members who can train</span>
+          <% if @application_group.training_topic %>
+            &mdash; <%= @application_group.training_topic.name %>
+          <% end %>
+        <% when 'trained_in' %>
+          <span class="badge text-bg-primary">Members trained in</span>
+          <% if @application_group.training_topic %>
+            &mdash; <%= @application_group.training_topic.name %>
+          <% end %>
+        <% when 'manual' %>
+          <span class="badge text-bg-secondary">Choose members</span>
         <% end %>
       </dd>
 
@@ -74,14 +117,17 @@
   <div class="card shadow-sm border-0 mb-4">
     <div class="card-body">
       <div class="alert alert-info mb-3">
-        <% if @application_group.use_default_members_group? %>
+        <% case @application_group.member_source %>
+        <% when 'active_members' %>
           <strong>This group uses the default active members group.</strong> It automatically includes all active members and cannot have individual members added or removed.
-        <% elsif @application_group.use_default_admins_group? %>
+        <% when 'admin_members' %>
           <strong>This group uses the default admin members group.</strong> It automatically includes all admin members and cannot have individual members added or removed.
-        <% elsif @application_group.use_can_train? && @application_group.training_topic %>
-          <strong>This group uses members who can train in <%= @application_group.training_topic.name %>.</strong> It automatically includes all members who can train others in this topic and cannot have individual members added or removed.
-        <% elsif @application_group.use_trained_in? && @application_group.training_topic %>
-          <strong>This group uses members who are trained in <%= @application_group.training_topic.name %>.</strong> It automatically includes all members who have been trained in this topic and cannot have individual members added or removed.
+        <% when 'sync_group' %>
+          <strong>This group syncs with <%= @application_group.sync_with_group&.name || 'another group' %>.</strong> Its membership mirrors the synced group and cannot have individual members added or removed.
+        <% when 'can_train' %>
+          <strong>This group uses members who can train in <%= @application_group.training_topic&.name %>.</strong> It automatically includes all members who can train others in this topic.
+        <% when 'trained_in' %>
+          <strong>This group uses members who are trained in <%= @application_group.training_topic&.name %>.</strong> It automatically includes all members who have been trained in this topic.
         <% end %>
       </div>
 
@@ -171,9 +217,7 @@
             <th scope="col">Email</th>
             <th scope="col">Status</th>
             <th scope="col">Authentik</th>
-            <% unless @application_group.uses_default_group? %>
-              <th scope="col">Actions</th>
-            <% end %>
+            <th scope="col">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -220,20 +264,18 @@
                     </span>
                   <% end %>
                 </td>
-                <% unless @application_group.uses_default_group? %>
-                  <td>
-                    <%= button_to "Remove", remove_user_application_application_group_path(@application, @application_group, user_id: user.id), 
-                        method: :delete, 
-                        class: "btn btn-sm btn-outline-danger", 
-                        data: { turbo: false, confirm: "Are you sure you want to remove #{user.display_name} from this group?" } %>
-                  </td>
-                <% end %>
+                <td>
+                  <%= button_to "Remove", remove_user_application_application_group_path(@application, @application_group, user_id: user.id),
+                      method: :delete,
+                      class: "btn btn-sm btn-outline-danger",
+                      data: { turbo: false, confirm: "Are you sure you want to remove #{user.display_name} from this group?" } %>
+                </td>
               </tr>
             <% end %>
           <% else %>
             <tr>
-              <td colspan="<%= @application_group.uses_default_group? ? 4 : 5 %>" class="text-center text-muted py-4">
-                No members in this group yet.<%= ' Click "Add Member" to add some.' unless @application_group.uses_default_group? %>
+              <td colspan="5" class="text-center text-muted py-4">
+                No members in this group yet. Click "Add Member" to add some.
               </td>
             </tr>
           <% end %>
@@ -241,9 +283,8 @@
       </table>
     </div>
   </div>
-
-  <!-- Add User Modal -->
 <% end %>
+
 <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
@@ -253,7 +294,7 @@
       </div>
       <div class="modal-body">
         <div class="mb-3">
-          <input type="search" id="userSearchInput" class="form-control" placeholder="Search by name, email, or Authentik ID…" autocomplete="off">
+          <input type="search" id="userSearchInput" class="form-control" placeholder="Search by name, email, or Authentik ID..." autocomplete="off">
         </div>
         <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
           <table class="table table-sm mb-0" id="usersTable">
@@ -296,9 +337,9 @@
                     <% end %>
                   </td>
                   <td>
-                    <%= button_to "Add", add_user_application_application_group_path(@application, @application_group, user_id: user.id), 
-                        method: :post, 
-                        class: "btn btn-sm btn-primary", 
+                    <%= button_to "Add", add_user_application_application_group_path(@application, @application_group, user_id: user.id),
+                        method: :post,
+                        class: "btn btn-sm btn-primary",
                         data: { turbo: false } %>
                   </td>
                 </tr>
@@ -318,47 +359,31 @@
   document.addEventListener('DOMContentLoaded', function() {
     const addUserModal = document.getElementById('addUserModal');
     const searchInput = document.getElementById('userSearchInput');
-    
+
     if (addUserModal && searchInput) {
       let userRows = [];
-      
-      // Query rows when modal is shown
+
       addUserModal.addEventListener('shown.bs.modal', function() {
         userRows = Array.from(addUserModal.querySelectorAll('.user-row'));
       });
-      
-      // Add input listener once
+
       searchInput.addEventListener('input', function() {
         const searchTerm = this.value.toLowerCase().trim();
-        
-        // Re-query rows if not already cached (fallback)
         if (userRows.length === 0) {
           userRows = Array.from(addUserModal.querySelectorAll('.user-row'));
         }
-        
         userRows.forEach(function(row) {
           const name = row.getAttribute('data-name') || '';
           const email = row.getAttribute('data-email') || '';
           const authentikId = row.getAttribute('data-authentik-id') || '';
-          
-          if (searchTerm === '' || 
-              name.includes(searchTerm) || 
-              email.includes(searchTerm) || 
-              authentikId.includes(searchTerm)) {
-            row.style.display = '';
-          } else {
-            row.style.display = 'none';
-          }
+          row.style.display = (searchTerm === '' || name.includes(searchTerm) || email.includes(searchTerm) || authentikId.includes(searchTerm)) ? '' : 'none';
         });
       });
-      
-      // Clear search when modal is hidden
+
       addUserModal.addEventListener('hidden.bs.modal', function() {
         searchInput.value = '';
-        userRows.forEach(function(row) {
-          row.style.display = '';
-        });
-        userRows = []; // Clear cache
+        userRows.forEach(function(row) { row.style.display = ''; });
+        userRows = [];
       });
     }
   });

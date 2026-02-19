@@ -7,20 +7,18 @@ module Authentik
       @client = client || Authentik::Client.new
     end
 
-    # Create group in Authentik and set authentik_group_id
     def create!
       Rails.logger.info("[Authentik::GroupSync] Creating group '#{application_group.authentik_name}'")
 
-      # Check if group already exists
       existing = client.find_group_by_name(application_group.authentik_name)
       if existing
         Rails.logger.info("[Authentik::GroupSync] Group already exists with ID #{existing['pk']}")
         application_group.update_column(:authentik_group_id, existing['pk'])
+        ensure_expression_policy!
         sync_members!
         return { status: 'exists', group_id: existing['pk'] }
       end
 
-      # Create the group
       result = client.create_group(
         name: application_group.authentik_name,
         attributes: build_attributes
@@ -29,10 +27,8 @@ module Authentik
       group_id = result['pk']
       Rails.logger.info("[Authentik::GroupSync] Created group with ID #{group_id}")
 
-      # Save the Authentik group ID
       application_group.update_column(:authentik_group_id, group_id)
-
-      # Sync members
+      ensure_expression_policy!
       sync_members!
 
       { status: 'created', group_id: group_id }
@@ -41,7 +37,6 @@ module Authentik
       { status: 'error', error: e.message }
     end
 
-    # Update group name in Authentik
     def update!
       return { status: 'skipped', reason: 'no_authentik_group_id' } if application_group.authentik_group_id.blank?
 
@@ -53,18 +48,20 @@ module Authentik
         attributes: build_attributes
       )
 
+      ensure_expression_policy!
+
       { status: 'updated', group_id: application_group.authentik_group_id }
     rescue StandardError => e
       Rails.logger.error("[Authentik::GroupSync] Failed to update group: #{e.message}")
       { status: 'error', error: e.message }
     end
 
-    # Delete group from Authentik
     def delete!
       return { status: 'skipped', reason: 'no_authentik_group_id' } if application_group.authentik_group_id.blank?
 
       Rails.logger.info("[Authentik::GroupSync] Deleting group #{application_group.authentik_group_id}")
 
+      delete_expression_policy!
       client.delete_group(application_group.authentik_group_id)
 
       { status: 'deleted', group_id: application_group.authentik_group_id }
@@ -73,13 +70,11 @@ module Authentik
       { status: 'error', error: e.message }
     end
 
-    # Sync members to Authentik
     def sync_members!
       return { status: 'skipped', reason: 'no_authentik_group_id' } if application_group.authentik_group_id.blank?
 
       Rails.logger.info("[Authentik::GroupSync] Syncing members for group #{application_group.authentik_group_id}")
 
-      # Get current members from Authentik
       begin
         authentik_group = client.get_group(application_group.authentik_group_id)
         current_user_pks = (authentik_group['users'] || []).map(&:to_i)
@@ -88,23 +83,19 @@ module Authentik
         return { status: 'error', error: e.message }
       end
 
-      # Get desired members (only those with valid numeric Authentik IDs)
       desired_members = application_group.syncable_members
       desired_user_pks = desired_members.pluck(:authentik_id)
                                          .filter_map { |id| id.to_i if id.present? && id.to_s.match?(/\A\d+\z/) && id.to_i > 0 }
 
-      # Calculate differences
       to_add = desired_user_pks - current_user_pks
       to_remove = current_user_pks - desired_user_pks
 
       Rails.logger.info("[Authentik::GroupSync] Members to add: #{to_add.count}, to remove: #{to_remove.count}")
 
-      # Use set_group_users for efficiency (single API call)
       if to_add.any? || to_remove.any?
         client.set_group_users(application_group.authentik_group_id, desired_user_pks)
       end
 
-      # Report unsyncable members
       unsyncable = application_group.unsyncable_members
       if unsyncable.any?
         Rails.logger.warn("[Authentik::GroupSync] #{unsyncable.count} member(s) without Authentik ID cannot be synced")
@@ -123,7 +114,6 @@ module Authentik
       { status: 'error', error: e.message }
     end
 
-    # Full sync: create if needed, update, and sync members
     def sync!
       if application_group.authentik_group_id.blank?
         create!
@@ -139,6 +129,40 @@ module Authentik
           members: sync_result
         }
       end
+    end
+
+    def ensure_expression_policy!
+      return if application_group.sync_group?
+
+      policy_name = application_group.policy_name
+      expression = application_group.policy_expression
+
+      existing = client.find_expression_policy_by_name(policy_name)
+      if existing
+        policy_id = existing['pk']
+        client.update_expression_policy(policy_id, expression: expression)
+        Rails.logger.info("[Authentik::GroupSync] Updated expression policy #{policy_id}")
+      else
+        result = client.create_expression_policy(name: policy_name, expression: expression)
+        policy_id = result['pk']
+        Rails.logger.info("[Authentik::GroupSync] Created expression policy #{policy_id}")
+      end
+
+      application_group.update_column(:authentik_policy_id, policy_id) if application_group.authentik_policy_id != policy_id
+      { status: 'ok', policy_id: policy_id }
+    rescue StandardError => e
+      Rails.logger.error("[Authentik::GroupSync] Failed to ensure expression policy: #{e.message}")
+      { status: 'error', error: e.message }
+    end
+
+    def delete_expression_policy!
+      return if application_group.authentik_policy_id.blank?
+
+      client.delete_expression_policy(application_group.authentik_policy_id)
+      application_group.update_column(:authentik_policy_id, nil)
+      Rails.logger.info("[Authentik::GroupSync] Deleted expression policy #{application_group.authentik_policy_id}")
+    rescue StandardError => e
+      Rails.logger.error("[Authentik::GroupSync] Failed to delete expression policy: #{e.message}")
     end
 
     private

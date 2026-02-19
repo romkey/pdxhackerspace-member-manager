@@ -1,55 +1,85 @@
 class ApplicationGroup < ApplicationRecord
+  MEMBER_SOURCES = %w[manual active_members admin_members sync_group can_train trained_in].freeze
+
+  POLICY_NAME_PREFIX = 'mm-group-membership'.freeze
+
   belongs_to :application
   belongs_to :training_topic, optional: true
+  belongs_to :sync_with_group, class_name: 'ApplicationGroup', optional: true
   has_and_belongs_to_many :users
 
   validates :name, presence: true
   validates :authentik_name, presence: true
-  validates :training_topic_id, presence: true, if: -> { use_can_train? || use_trained_in? }
+  validates :member_source, presence: true, inclusion: { in: MEMBER_SOURCES }
+  validates :training_topic_id, presence: true, if: -> { can_train? || trained_in? }
+  validates :sync_with_group_id, presence: true, if: -> { sync_group? }
 
   before_save :clear_authentik_group_id_if_name_changed
-  before_save :ensure_mutual_exclusivity
+  before_save :clear_irrelevant_associations
 
   scope :with_authentik_group_id, -> { where.not(authentik_group_id: [nil, '']) }
+  scope :ordered_by_name, -> { order(:name) }
 
   def self.synced_authentik_group_ids
     with_authentik_group_id.pluck(:authentik_group_id).compact.uniq
   end
 
-  def uses_default_group?
-    use_default_members_group? || use_default_admins_group? || use_can_train? || use_trained_in?
+  MEMBER_SOURCES.each do |source|
+    define_method(:"#{source}?") { member_source == source }
   end
 
-  # Returns the effective members for this group based on its configuration
+  def uses_default_group?
+    member_source != 'manual'
+  end
+
   def effective_members
-    if use_default_members_group?
+    case member_source
+    when 'active_members'
       User.active
-    elsif use_default_admins_group?
+    when 'admin_members'
       User.admin
-    elsif use_can_train? && training_topic
-      training_topic.trainers
-    elsif use_trained_in? && training_topic
-      User.where(id: User.joins(:trainings_as_trainee).where(trainings: { training_topic_id: training_topic_id }).select(:id))
+    when 'sync_group'
+      sync_with_group&.effective_members || User.none
+    when 'can_train'
+      training_topic&.trainers || User.none
+    when 'trained_in'
+      if training_topic
+        User.where(id: User.joins(:trainings_as_trainee)
+          .where(trainings: { training_topic_id: training_topic_id }).select(:id))
+      else
+        User.none
+      end
     else
       users
     end
   end
 
-  # Returns members with Authentik IDs (can be synced)
   def syncable_members
     effective_members.where.not(authentik_id: [nil, ''])
   end
 
-  # Returns members without Authentik IDs (cannot be synced)
   def unsyncable_members
     effective_members.where(authentik_id: [nil, ''])
   end
 
+  def policy_name
+    "#{POLICY_NAME_PREFIX}:#{authentik_name}"
+  end
+
+  def policy_expression
+    %(return ak_is_group_member(request.user, name="#{authentik_name}"))
+  end
+
+  def effective_policy_id
+    if sync_group? && sync_with_group&.authentik_policy_id.present?
+      sync_with_group.authentik_policy_id
+    else
+      authentik_policy_id
+    end
+  end
+
   private
 
-  # If the Authentik group name changes on an existing record that already had
-  # an Authentik group ID, clear the ID so the next sync creates/links a new
-  # group instead of renaming the old one in Authentik.
   def clear_authentik_group_id_if_name_changed
     return if new_record?
     return unless authentik_name_changed?
@@ -58,29 +88,12 @@ class ApplicationGroup < ApplicationRecord
     self.authentik_group_id = nil
   end
 
-  def ensure_mutual_exclusivity
-    # Count how many options are selected
-    selected = [use_default_members_group?, use_default_admins_group?, use_can_train?, use_trained_in?].count(true)
-    
-    if selected > 1
-      # If multiple are selected, keep only the one that was just changed
-      if use_default_members_group_changed? && use_default_members_group?
-        self.use_default_admins_group = false
-        self.use_can_train = false
-        self.use_trained_in = false
-      elsif use_default_admins_group_changed? && use_default_admins_group?
-        self.use_default_members_group = false
-        self.use_can_train = false
-        self.use_trained_in = false
-      elsif use_can_train_changed? && use_can_train?
-        self.use_default_members_group = false
-        self.use_default_admins_group = false
-        self.use_trained_in = false
-      elsif use_trained_in_changed? && use_trained_in?
-        self.use_default_members_group = false
-        self.use_default_admins_group = false
-        self.use_can_train = false
-      end
+  def clear_irrelevant_associations
+    unless sync_group?
+      self.sync_with_group_id = nil
+    end
+    unless can_train? || trained_in?
+      self.training_topic_id = nil
     end
   end
 end

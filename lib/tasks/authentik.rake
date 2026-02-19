@@ -38,6 +38,58 @@ namespace :authentik do
       end
     end
 
+    desc 'Create expression policies in Authentik for all existing application groups'
+    task setup_group_policies: :environment do
+      puts 'Setting up Authentik expression policies for existing application groups...'
+      puts
+
+      groups = ApplicationGroup.where.not(authentik_group_id: [nil, ''])
+      if groups.empty?
+        puts 'No application groups with Authentik group IDs found.'
+        exit 0
+      end
+
+      client = Authentik::Client.new
+      created = 0
+      updated = 0
+      skipped = 0
+      errors = 0
+
+      groups.find_each do |group|
+        if group.sync_group?
+          puts "  SKIP #{group.name} (syncs with #{group.sync_with_group&.name || 'unknown'}, uses their policy)"
+          skipped += 1
+          next
+        end
+
+        policy_name = group.policy_name
+        expression = group.policy_expression
+
+        begin
+          existing = client.find_expression_policy_by_name(policy_name)
+          if existing
+            policy_id = existing['pk']
+            client.update_expression_policy(policy_id, expression: expression)
+            group.update_column(:authentik_policy_id, policy_id) if group.authentik_policy_id != policy_id
+            puts "  UPDATE #{group.name} -> #{policy_name} (#{policy_id})"
+            updated += 1
+          else
+            result = client.create_expression_policy(name: policy_name, expression: expression)
+            policy_id = result['pk']
+            group.update_column(:authentik_policy_id, policy_id)
+            puts "  CREATE #{group.name} -> #{policy_name} (#{policy_id})"
+            created += 1
+          end
+        rescue StandardError => e
+          puts "  ERROR #{group.name}: #{e.message}"
+          errors += 1
+        end
+      end
+
+      puts
+      puts "Done: #{created} created, #{updated} updated, #{skipped} skipped, #{errors} errors."
+    end
+
     desc 'Show current Authentik webhook configuration status'
     task status: :environment do
       puts 'Checking Authentik webhook configuration status...'
