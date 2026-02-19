@@ -4,6 +4,8 @@ class DefaultSetting < ApplicationRecord
   validates :members_prefix, presence: true
   validates :active_members_group, presence: true
   validates :admins_group, presence: true
+  validates :unbanned_members_group, presence: true
+  validates :all_members_group, presence: true
   validates :trained_on_prefix, presence: true
   validates :can_train_prefix, presence: true
   validates :sync_inactive_members, inclusion: { in: [true, false] }
@@ -16,6 +18,8 @@ class DefaultSetting < ApplicationRecord
       setting.members_prefix = "ctrlh:org:members"
       setting.active_members_group = "ctrlh:org:members:active"
       setting.admins_group = "ctrlh:org:members:admins"
+      setting.unbanned_members_group = "ctrlh:org:members:unbanned"
+      setting.all_members_group = "ctrlh:org:members:all"
       setting.trained_on_prefix = "ctrlh:org:members:trained-on"
       setting.can_train_prefix = "ctrlh:org:members:can-train"
     end
@@ -26,7 +30,6 @@ class DefaultSetting < ApplicationRecord
   private
 
   def update_derived_fields
-    # Auto-calculate derived fields if site_prefix changed
     if site_prefix_changed? || app_prefix.blank?
       self.app_prefix = "#{site_prefix}:app"
     end
@@ -38,6 +41,12 @@ class DefaultSetting < ApplicationRecord
     end
     if members_prefix_changed? || admins_group.blank?
       self.admins_group = "#{members_prefix}:admins"
+    end
+    if members_prefix_changed? || unbanned_members_group.blank?
+      self.unbanned_members_group = "#{members_prefix}:unbanned"
+    end
+    if members_prefix_changed? || all_members_group.blank?
+      self.all_members_group = "#{members_prefix}:all"
     end
     if members_prefix_changed? || trained_on_prefix.blank?
       self.trained_on_prefix = "#{members_prefix}:trained-on"

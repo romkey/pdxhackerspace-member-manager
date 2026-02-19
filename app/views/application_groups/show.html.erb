@@ -56,6 +56,10 @@
           <span class="badge text-bg-primary">Active Members</span>
         <% when 'admin_members' %>
           <span class="badge text-bg-primary">Admin Members</span>
+        <% when 'unbanned_members' %>
+          <span class="badge text-bg-primary">Unbanned Members</span>
+        <% when 'all_members' %>
+          <span class="badge text-bg-primary">All Members</span>
         <% when 'sync_group' %>
           <span class="badge text-bg-primary">Sync with group</span>
           <% if @application_group.sync_with_group %>
@@ -122,6 +126,10 @@
           <strong>This group uses the default active members group.</strong> It automatically includes all active members and cannot have individual members added or removed.
         <% when 'admin_members' %>
           <strong>This group uses the default admin members group.</strong> It automatically includes all admin members and cannot have individual members added or removed.
+        <% when 'unbanned_members' %>
+          <strong>This group uses the unbanned members group.</strong> It automatically includes all non-banned members and cannot have individual members added or removed.
+        <% when 'all_members' %>
+          <strong>This group uses the all members group.</strong> It automatically includes all members and cannot have individual members added or removed.
         <% when 'sync_group' %>
           <strong>This group syncs with <%= @application_group.sync_with_group&.name || 'another group' %>.</strong> Its membership mirrors the synced group and cannot have individual members added or removed.
         <% when 'can_train' %>

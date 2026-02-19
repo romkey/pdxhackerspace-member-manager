@@ -413,8 +413,10 @@ class User < ApplicationRecord
   before_save :mark_authentik_dirty_if_needed
   after_save :update_greeting_name_on_source_change
   after_create_commit :journal_created!
+  after_create_commit :sync_application_group_memberships_on_create
   after_update_commit :journal_updated!
   after_update_commit :sync_to_authentik_if_needed
+  after_update_commit :sync_application_group_memberships_on_update
 
   private
 
@@ -656,5 +658,43 @@ class User < ApplicationRecord
 
     # Perform sync asynchronously to avoid blocking
     Authentik::UserSyncJob.perform_later(id, changed_fields)
+  end
+
+  def sync_application_group_memberships_on_create
+    return if Current.skip_authentik_sync
+
+    sources = %w[all_members]
+    sources << 'active_members' if active?
+    sources << 'unbanned_members' unless banned?
+    sources << 'admin_members' if is_admin?
+
+    Authentik::ApplicationGroupMembershipSyncJob.perform_later(sources)
+  end
+
+  def sync_application_group_memberships_on_update
+    return if Current.skip_authentik_sync
+
+    sources = []
+
+    if saved_change_to_active?
+      sources << 'active_members'
+    end
+
+    if saved_change_to_membership_status?
+      old_status, new_status = saved_change_to_membership_status
+      if old_status == 'banned' || new_status == 'banned'
+        sources << 'unbanned_members'
+        sources << 'active_members' unless sources.include?('active_members')
+      end
+    end
+
+    if saved_change_to_is_admin?
+      sources << 'admin_members'
+    end
+
+    return if sources.empty?
+
+    sources << 'all_members'
+    Authentik::ApplicationGroupMembershipSyncJob.perform_later(sources.uniq)
   end
 end

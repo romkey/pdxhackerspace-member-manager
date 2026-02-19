@@ -56,7 +56,7 @@ class ApplicationGroupTest < ActiveSupport::TestCase
   end
 
   test 'uses_default_group? returns true for non-manual sources' do
-    %w[active_members admin_members sync_group can_train trained_in].each do |source|
+    %w[active_members admin_members unbanned_members all_members sync_group can_train trained_in].each do |source|
       @group.member_source = source
       assert @group.uses_default_group?, "Expected uses_default_group? to be true for #{source}"
     end
@@ -75,6 +75,17 @@ class ApplicationGroupTest < ActiveSupport::TestCase
   test 'effective_members returns active users for active_members' do
     @group.member_source = 'active_members'
     assert_equal User.active.count, @group.effective_members.count
+  end
+
+  test 'effective_members returns non-banned users for unbanned_members' do
+    @group.member_source = 'unbanned_members'
+    expected = User.non_service_accounts.where.not(membership_status: 'banned').count
+    assert_equal expected, @group.effective_members.count
+  end
+
+  test 'effective_members returns all non-service users for all_members' do
+    @group.member_source = 'all_members'
+    assert_equal User.non_service_accounts.count, @group.effective_members.count
   end
 
   test 'effective_members returns HABTM users for manual' do

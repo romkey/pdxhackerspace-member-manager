@@ -1,5 +1,5 @@
 class ApplicationGroup < ApplicationRecord
-  MEMBER_SOURCES = %w[manual active_members admin_members sync_group can_train trained_in].freeze
+  MEMBER_SOURCES = %w[manual active_members admin_members unbanned_members all_members sync_group can_train trained_in].freeze
 
   POLICY_NAME_PREFIX = 'mm-group-membership'.freeze
 
@@ -19,6 +19,7 @@ class ApplicationGroup < ApplicationRecord
 
   scope :with_authentik_group_id, -> { where.not(authentik_group_id: [nil, '']) }
   scope :ordered_by_name, -> { order(:name) }
+  scope :with_member_sources, ->(*sources) { where(member_source: sources.flatten) }
 
   def self.synced_authentik_group_ids
     with_authentik_group_id.pluck(:authentik_group_id).compact.uniq
@@ -38,6 +39,10 @@ class ApplicationGroup < ApplicationRecord
       User.active
     when 'admin_members'
       User.admin
+    when 'unbanned_members'
+      User.non_service_accounts.where.not(membership_status: 'banned')
+    when 'all_members'
+      User.non_service_accounts
     when 'sync_group'
       sync_with_group&.effective_members || User.none
     when 'can_train'

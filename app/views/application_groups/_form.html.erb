@@ -26,13 +26,15 @@
     <div class="form-check mb-2">
       <input type="radio" name="application_group[member_source]" value="sync_group"
              id="member_source_sync_group" class="form-check-input member-source-radio"
-             <%= 'checked' if @application_group.member_source == 'sync_group' || @application_group.member_source == 'active_members' || @application_group.member_source == 'admin_members' %>>
+             <%= 'checked' if %w[sync_group active_members admin_members unbanned_members all_members].include?(@application_group.member_source) %>>
       <label for="member_source_sync_group" class="form-check-label">Sync with group</label>
-      <div id="sync_group_select_wrapper" class="ms-4 mt-1 mb-1" style="display: <%= %w[sync_group active_members admin_members].include?(@application_group.member_source) ? 'block' : 'none' %>;">
+      <div id="sync_group_select_wrapper" class="ms-4 mt-1 mb-1" style="display: <%= %w[sync_group active_members admin_members unbanned_members all_members].include?(@application_group.member_source) ? 'block' : 'none' %>;">
         <select name="application_group[sync_group_combined]" id="sync_group_combined" class="form-select form-select-sm" style="max-width: 400px;">
           <option value="">Select a group...</option>
           <option value="active_members" <%= 'selected' if @application_group.member_source == 'active_members' %>>Active Members</option>
           <option value="admin_members" <%= 'selected' if @application_group.member_source == 'admin_members' %>>Admin Members</option>
+          <option value="unbanned_members" <%= 'selected' if @application_group.member_source == 'unbanned_members' %>>Unbanned Members</option>
+          <option value="all_members" <%= 'selected' if @application_group.member_source == 'all_members' %>>All Members</option>
           <option disabled>──────────</option>
           <% @syncable_groups.each do |group| %>
             <option value="sync_group:<%= group.id %>"
@@ -114,6 +116,8 @@
   const defaultSettings = {
     activeMembersGroup: '<%= @default_settings.active_members_group %>',
     adminsGroup: '<%= @default_settings.admins_group %>',
+    unbannedMembersGroup: '<%= @default_settings.unbanned_members_group %>',
+    allMembersGroup: '<%= @default_settings.all_members_group %>',
     trainedOnPrefix: '<%= @default_settings.trained_on_prefix %>',
     canTrainPrefix: '<%= @default_settings.can_train_prefix %>'
   };
@@ -149,6 +153,10 @@
         authentikNameField.value = defaultSettings.activeMembersGroup;
       } else if (combined === 'admin_members') {
         authentikNameField.value = defaultSettings.adminsGroup;
+      } else if (combined === 'unbanned_members') {
+        authentikNameField.value = defaultSettings.unbannedMembersGroup;
+      } else if (combined === 'all_members') {
+        authentikNameField.value = defaultSettings.allMembersGroup;
       } else if (combined.startsWith('sync_group:')) {
         const groupId = combined.split(':')[1];
         resolvedSyncGroupId.value = groupId;
@@ -184,7 +192,7 @@
       const source = getSelectedSource();
       if (source === 'sync_group') {
         const combined = syncGroupCombined.value;
-        if (combined === 'active_members' || combined === 'admin_members') {
+        if (['active_members', 'admin_members', 'unbanned_members', 'all_members'].includes(combined)) {
           // Override the radio value to the specific source
           const hiddenSource = document.createElement('input');
           hiddenSource.type = 'hidden';

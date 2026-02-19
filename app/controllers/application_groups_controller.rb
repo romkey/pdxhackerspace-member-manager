@@ -148,11 +148,8 @@ class ApplicationGroupsController < AdminController
 
     combined = params.dig(:application_group, :sync_group_combined).to_s
     case combined
-    when 'active_members'
-      group.member_source = 'active_members'
-      group.sync_with_group_id = nil
-    when 'admin_members'
-      group.member_source = 'admin_members'
+    when 'active_members', 'admin_members', 'unbanned_members', 'all_members'
+      group.member_source = combined
       group.sync_with_group_id = nil
     when /\Async_group:(\d+)\z/
       group.sync_with_group_id = $1.to_i
@@ -172,6 +169,10 @@ class ApplicationGroupsController < AdminController
       group.authentik_name = defaults.active_members_group
     when 'admin_members'
       group.authentik_name = defaults.admins_group
+    when 'unbanned_members'
+      group.authentik_name = defaults.unbanned_members_group
+    when 'all_members'
+      group.authentik_name = defaults.all_members_group
     when 'sync_group'
       if group.sync_with_group.present?
         group.authentik_name = group.sync_with_group.authentik_name
