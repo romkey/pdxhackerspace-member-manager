@@ -1,6 +1,7 @@
 class PaymentHistory
   def self.for_user(user)
     payments = []
+    payments.concat(CashPayment.for_user(user).ordered.to_a)
     payments.concat(PaypalPayment.for_user(user).ordered.to_a)
     payments.concat(RechargePayment.for_user(user).ordered.to_a)
     sort_payments(payments)

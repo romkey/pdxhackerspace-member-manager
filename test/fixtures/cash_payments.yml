@@ -1,0 +1,7 @@
+sample_cash_payment:
+  user: cash_payer
+  membership_plan: personal_equipment_donation
+  amount: 100.00
+  paid_on: 2026-02-01
+  notes: "Monthly payment for equipment donation arrangement"
+  recorded_by: one

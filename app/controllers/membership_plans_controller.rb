@@ -3,25 +3,42 @@ class MembershipPlansController < AdminController
   before_action :set_membership_plan, only: [:show, :edit, :update, :destroy]
 
   def index
-    @membership_plans = MembershipPlan.ordered.includes(:users)
+    @membership_plans = MembershipPlan.shared.ordered.includes(:users)
+    @personal_plans = MembershipPlan.personal.includes(:user).order(:name)
     @membership_plan = MembershipPlan.new
+    @personal_plan = MembershipPlan.new
   end
 
   def show
-    other_plans = MembershipPlan.where.not(id: @membership_plan.id).ordered
-    # Non-admins only see visible plans
+    other_plans = MembershipPlan.shared.where.not(id: @membership_plan.id).ordered
     other_plans = other_plans.visible unless true_user_admin?
     @other_plans = other_plans
   end
 
   def create
     @membership_plan = MembershipPlan.new(membership_plan_params)
-    @membership_plans = MembershipPlan.ordered
 
-    if @membership_plan.save
-      redirect_to membership_plans_path, notice: 'Membership plan created successfully.'
+    if @membership_plan.user_id.present?
+      # Personal plan creation
+      if @membership_plan.save
+        redirect_to membership_plans_path(anchor: 'personal-plans'), notice: "Personal plan created for #{@membership_plan.user.display_name}."
+      else
+        @membership_plans = MembershipPlan.shared.ordered.includes(:users)
+        @personal_plans = MembershipPlan.personal.includes(:user).order(:name)
+        @personal_plan = @membership_plan
+        @membership_plan = MembershipPlan.new
+        render :index, status: :unprocessable_content
+      end
     else
-      render :index, status: :unprocessable_content
+      # Shared plan creation
+      if @membership_plan.save
+        redirect_to membership_plans_path, notice: 'Membership plan created successfully.'
+      else
+        @membership_plans = MembershipPlan.shared.ordered.includes(:users)
+        @personal_plans = MembershipPlan.personal.includes(:user).order(:name)
+        @personal_plan = MembershipPlan.new
+        render :index, status: :unprocessable_content
+      end
     end
   end
 
@@ -37,13 +54,23 @@ class MembershipPlansController < AdminController
   end
 
   def destroy
-    has_users = @membership_plan.primary? ? @membership_plan.users.any? : @membership_plan.supplementary_users.any?
-    if has_users
-      redirect_to membership_plans_path,
-                  alert: 'Cannot delete membership plan that has members assigned to it.'
+    if @membership_plan.personal?
+      if @membership_plan.cash_payments.any?
+        redirect_to membership_plans_path(anchor: 'personal-plans'),
+                    alert: 'Cannot delete personal plan that has cash payments recorded against it.'
+      else
+        @membership_plan.destroy
+        redirect_to membership_plans_path(anchor: 'personal-plans'), notice: 'Personal plan deleted.'
+      end
     else
-      @membership_plan.destroy
-      redirect_to membership_plans_path, notice: 'Membership plan deleted successfully.'
+      has_users = @membership_plan.primary? ? @membership_plan.users.any? : @membership_plan.supplementary_users.any?
+      if has_users
+        redirect_to membership_plans_path,
+                    alert: 'Cannot delete membership plan that has members assigned to it.'
+      else
+        @membership_plan.destroy
+        redirect_to membership_plans_path, notice: 'Membership plan deleted successfully.'
+      end
     end
   end
 
@@ -99,7 +126,7 @@ class MembershipPlansController < AdminController
   end
 
   def membership_plan_params
-    params.require(:membership_plan).permit(:name, :cost, :billing_frequency, :description, :payment_link, :plan_type, :paypal_transaction_subject, :manual, :visible, :display_order)
+    params.require(:membership_plan).permit(:name, :cost, :billing_frequency, :description, :payment_link, :plan_type, :paypal_transaction_subject, :manual, :visible, :display_order, :user_id)
   end
 end
 

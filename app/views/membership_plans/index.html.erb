@@ -252,3 +252,123 @@
   </div>
 </div>
 
+<div id="personal-plans" class="card shadow-sm border-0 mt-4">
+  <div class="card-body">
+    <h2 class="h5 mb-3">Personal Plans</h2>
+    <p class="text-muted small mb-3">Personal plans are tied to individual members for custom cash payment arrangements. They are always manual and hidden from non-admin members.</p>
+
+    <% if @personal_plan&.errors&.any? %>
+      <div class="alert alert-danger">
+        <ul class="mb-0">
+          <% @personal_plan.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <div class="mb-4 border rounded p-3 bg-body-tertiary">
+      <h6 class="mb-3">Add Personal Plan</h6>
+      <%= form_with model: (@personal_plan || MembershipPlan.new), url: membership_plans_path, local: true, class: "row g-3" do |f| %>
+        <div class="col-md-4">
+          <%= f.label :user_id, "Member", class: "form-label" %>
+          <%= f.select :user_id,
+              options_from_collection_for_select(User.non_service_accounts.ordered_by_display_name, :id, :display_name, @personal_plan&.user_id),
+              { prompt: "Select a member" },
+              { class: "form-select #{'is-invalid' if @personal_plan&.errors&.key?(:user_id)}", required: true } %>
+          <% if @personal_plan&.errors&.key?(:user_id) %>
+            <div class="invalid-feedback"><%= @personal_plan.errors[:user_id].first %></div>
+          <% end %>
+        </div>
+        <div class="col-md-4">
+          <%= f.text_field :name, class: "form-control #{'is-invalid' if @personal_plan&.errors&.key?(:name)}", placeholder: "Plan name (e.g., Equipment Donation)", required: true %>
+          <% if @personal_plan&.errors&.key?(:name) %>
+            <div class="invalid-feedback"><%= @personal_plan.errors[:name].first %></div>
+          <% end %>
+        </div>
+        <div class="col-md-2">
+          <%= f.number_field :cost, step: 0.01, min: 0, class: "form-control #{'is-invalid' if @personal_plan&.errors&.key?(:cost)}", placeholder: "Cost", required: true %>
+          <% if @personal_plan&.errors&.key?(:cost) %>
+            <div class="invalid-feedback"><%= @personal_plan.errors[:cost].first %></div>
+          <% end %>
+        </div>
+        <div class="col-md-2">
+          <%= f.select :billing_frequency,
+              options_for_select([['Monthly', 'monthly'], ['Yearly', 'yearly'], ['One-time', 'one-time']], @personal_plan&.billing_frequency),
+              { prompt: 'Frequency' },
+              { class: "form-select", required: true } %>
+        </div>
+        <div class="col-md-8">
+          <%= f.text_area :description, class: "form-control", placeholder: "Description / notes about this arrangement (e.g., Donated CNC router, covers 12 months)", rows: 2 %>
+        </div>
+        <%= f.hidden_field :plan_type, value: 'primary' %>
+        <%= f.hidden_field :display_order, value: 1 %>
+        <div class="col-md-4 d-flex align-items-end">
+          <%= f.submit "Add Personal Plan", class: "btn btn-primary" %>
+        </div>
+      <% end %>
+    </div>
+
+    <% if @personal_plans.any? %>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="bg-body-tertiary">
+            <tr>
+              <th>Member</th>
+              <th>Plan Name</th>
+              <th>Cost</th>
+              <th>Frequency</th>
+              <th>Description</th>
+              <th>Payments</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @personal_plans.each do |plan| %>
+              <tr>
+                <td>
+                  <%= link_to plan.user.display_name, user_path(plan.user), class: "fw-semibold text-decoration-none" %>
+                </td>
+                <td><%= plan.name %></td>
+                <td><strong>$<%= format('%.2f', plan.cost) %></strong></td>
+                <td><span class="badge text-bg-secondary"><%= plan.billing_frequency.humanize %></span></td>
+                <td>
+                  <% if plan.description.present? %>
+                    <span class="text-muted small"><%= truncate(plan.description, length: 80) %></span>
+                  <% else %>
+                    <span class="text-muted fst-italic">—</span>
+                  <% end %>
+                </td>
+                <td>
+                  <% payment_count = plan.cash_payments.count %>
+                  <% if payment_count > 0 %>
+                    <span class="badge text-bg-success"><%= payment_count %></span>
+                  <% else %>
+                    <span class="badge text-bg-secondary">0</span>
+                  <% end %>
+                </td>
+                <td class="text-end">
+                  <div class="btn-group btn-group-sm">
+                    <%= link_to "Edit", edit_membership_plan_path(plan), class: "btn btn-outline-primary" %>
+                    <%= link_to "Record Payment", new_cash_payment_path(user_id: plan.user_id), class: "btn btn-outline-success" %>
+                    <% if plan.cash_payments.any? %>
+                      <button type="button" class="btn btn-outline-danger" disabled
+                              title="Cannot delete: has cash payments">Delete</button>
+                    <% else %>
+                      <%= button_to "Delete", membership_plan_path(plan), method: :delete,
+                          class: "btn btn-outline-danger",
+                          data: { turbo_confirm: "Delete personal plan '#{plan.name}' for #{plan.user.display_name}?" } %>
+                    <% end %>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <p class="text-muted mb-0">No personal plans yet. Add one above.</p>
+    <% end %>
+  </div>
+</div>
+

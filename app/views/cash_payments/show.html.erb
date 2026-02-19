@@ -1,0 +1,62 @@
+<div class="mb-4">
+  <%= link_to "&larr; Back to Cash Payments".html_safe, cash_payments_path, class: "text-decoration-none" %>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <h1 class="h4 mb-3">Cash Payment <%= @cash_payment.identifier %></h1>
+
+    <dl class="row mb-0">
+      <dt class="col-sm-3 text-secondary">Status</dt>
+      <dd class="col-sm-9"><span class="badge text-bg-success">Completed</span></dd>
+
+      <dt class="col-sm-3 text-secondary">Amount</dt>
+      <dd class="col-sm-9"><strong><%= number_to_currency(@cash_payment.amount) %></strong></dd>
+
+      <dt class="col-sm-3 text-secondary">Date Paid</dt>
+      <dd class="col-sm-9"><%= @cash_payment.paid_on.strftime('%B %d, %Y') %></dd>
+
+      <dt class="col-sm-3 text-secondary">Member</dt>
+      <dd class="col-sm-9">
+        <%= link_to @cash_payment.user.display_name, user_path(@cash_payment.user), class: "text-decoration-none" %>
+      </dd>
+
+      <dt class="col-sm-3 text-secondary">Plan</dt>
+      <dd class="col-sm-9">
+        <span class="badge text-bg-info"><%= @cash_payment.membership_plan.name %></span>
+        <span class="text-muted ms-1">
+          <%= number_to_currency(@cash_payment.membership_plan.cost) %>/<%= @cash_payment.membership_plan.billing_frequency %>
+        </span>
+      </dd>
+
+      <dt class="col-sm-3 text-secondary">Notes</dt>
+      <dd class="col-sm-9">
+        <% if @cash_payment.notes.present? %>
+          <%= simple_format(@cash_payment.notes) %>
+        <% else %>
+          <span class="text-muted fst-italic">No notes</span>
+        <% end %>
+      </dd>
+
+      <dt class="col-sm-3 text-secondary">Recorded By</dt>
+      <dd class="col-sm-9">
+        <% if @cash_payment.recorded_by.present? %>
+          <%= link_to @cash_payment.recorded_by.display_name, user_path(@cash_payment.recorded_by), class: "text-decoration-none" %>
+        <% else %>
+          <span class="text-muted fst-italic">Unknown</span>
+        <% end %>
+      </dd>
+
+      <dt class="col-sm-3 text-secondary">Recorded At</dt>
+      <dd class="col-sm-9"><%= @cash_payment.created_at.strftime('%B %d, %Y %H:%M') %></dd>
+    </dl>
+
+    <hr class="my-3">
+    <div class="d-flex gap-2">
+      <%= link_to "Edit", edit_cash_payment_path(@cash_payment), class: "btn btn-outline-primary" %>
+      <%= button_to "Delete", cash_payment_path(@cash_payment), method: :delete,
+          class: "btn btn-outline-danger",
+          data: { turbo_confirm: "Are you sure you want to delete this payment?" } %>
+    </div>
+  </div>
+</div>

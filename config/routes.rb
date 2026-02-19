@@ -116,6 +116,8 @@ Rails.application.routes.draw do
     end
   end
 
+  resources :cash_payments, only: [:index, :show, :new, :create, :edit, :update, :destroy]
+
   resources :kofi_payments, only: [:index, :show] do
     collection do
       get :export

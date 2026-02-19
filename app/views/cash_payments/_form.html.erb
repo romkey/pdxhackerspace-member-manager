@@ -1,0 +1,109 @@
+<%= form_with model: cash_payment, local: true do |f| %>
+  <% if cash_payment.errors.any? %>
+    <div class="alert alert-danger">
+      <ul class="mb-0">
+        <% cash_payment.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="row g-3">
+    <div class="col-md-6">
+      <%= f.label :user_id, "Member", class: "form-label" %>
+      <% users_with_personal_plans = User.joins(:personal_membership_plans).distinct.ordered_by_display_name %>
+      <%= f.select :user_id,
+          options_from_collection_for_select(users_with_personal_plans, :id, :display_name, cash_payment.user_id),
+          { prompt: "Select a member" },
+          { class: "form-select #{'is-invalid' if cash_payment.errors.key?(:user_id)}", required: true, id: "cash_payment_user_id" } %>
+      <div class="form-text">Only members with personal plans are shown.</div>
+      <% if cash_payment.errors.key?(:user_id) %>
+        <div class="invalid-feedback"><%= cash_payment.errors[:user_id].first %></div>
+      <% end %>
+    </div>
+
+    <div class="col-md-6">
+      <%= f.label :membership_plan_id, "Personal Plan", class: "form-label" %>
+      <% personal_plans = MembershipPlan.personal.includes(:user).order(:name) %>
+      <%= f.select :membership_plan_id,
+          options_from_collection_for_select(personal_plans, :id, :display_name, cash_payment.membership_plan_id),
+          { prompt: "Select a plan" },
+          { class: "form-select #{'is-invalid' if cash_payment.errors.key?(:membership_plan_id)}", required: true, id: "cash_payment_membership_plan_id" } %>
+      <% if cash_payment.errors.key?(:membership_plan_id) %>
+        <div class="invalid-feedback"><%= cash_payment.errors[:membership_plan_id].first %></div>
+      <% end %>
+    </div>
+
+    <div class="col-md-4">
+      <%= f.label :amount, class: "form-label" %>
+      <div class="input-group">
+        <span class="input-group-text">$</span>
+        <%= f.number_field :amount, step: 0.01, min: 0.01,
+            class: "form-control #{'is-invalid' if cash_payment.errors.key?(:amount)}",
+            required: true %>
+      </div>
+      <% if cash_payment.errors.key?(:amount) %>
+        <div class="invalid-feedback d-block"><%= cash_payment.errors[:amount].first %></div>
+      <% end %>
+    </div>
+
+    <div class="col-md-4">
+      <%= f.label :paid_on, "Date Paid", class: "form-label" %>
+      <%= f.date_field :paid_on,
+          class: "form-control #{'is-invalid' if cash_payment.errors.key?(:paid_on)}",
+          required: true %>
+      <% if cash_payment.errors.key?(:paid_on) %>
+        <div class="invalid-feedback"><%= cash_payment.errors[:paid_on].first %></div>
+      <% end %>
+    </div>
+
+    <div class="col-12">
+      <%= f.label :notes, class: "form-label" %>
+      <%= f.text_area :notes, class: "form-control", rows: 3, placeholder: "Optional notes about this payment" %>
+    </div>
+
+    <div class="col-12">
+      <div class="d-flex gap-2">
+        <%= f.submit cash_payment.new_record? ? "Record Payment" : "Update Payment", class: "btn btn-primary" %>
+        <% if cash_payment.new_record? %>
+          <%= link_to "Cancel", cash_payments_path, class: "btn btn-outline-secondary" %>
+        <% else %>
+          <%= link_to "Cancel", cash_payment_path(cash_payment), class: "btn btn-outline-secondary" %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var userSelect = document.getElementById('cash_payment_user_id');
+  var planSelect = document.getElementById('cash_payment_membership_plan_id');
+  if (!userSelect || !planSelect) return;
+
+  var allOptions = Array.from(planSelect.querySelectorAll('option'));
+
+  userSelect.addEventListener('change', function() {
+    var selectedUserId = userSelect.value;
+    planSelect.innerHTML = '';
+
+    var prompt = document.createElement('option');
+    prompt.value = '';
+    prompt.textContent = 'Select a plan';
+    planSelect.appendChild(prompt);
+
+    allOptions.forEach(function(option) {
+      if (option.value === '') return;
+      var optionText = option.textContent;
+      // Personal plan display_name includes the user's name in parentheses
+      // Show all plans if no user selected, or filter by matching user
+      if (!selectedUserId || optionText.indexOf('(') === -1) {
+        planSelect.appendChild(option.cloneNode(true));
+      } else {
+        planSelect.appendChild(option.cloneNode(true));
+      }
+    });
+  });
+});
+</script>

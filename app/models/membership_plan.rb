@@ -1,18 +1,26 @@
 class MembershipPlan < ApplicationRecord
   PLAN_TYPES = %w[primary supplementary].freeze
 
+  belongs_to :user, optional: true
+
   has_many :users, dependent: :nullify # Users with this as their primary plan
   has_many :user_supplementary_plans, dependent: :destroy
   has_many :supplementary_users, through: :user_supplementary_plans, source: :user
+  has_many :cash_payments, dependent: :destroy
 
-  validates :name, presence: true, uniqueness: true
+  validates :name, presence: true
+  validates :name, uniqueness: true, if: -> { user_id.nil? }
   validates :cost, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :billing_frequency, presence: true, inclusion: { in: %w[monthly yearly one-time] }
   validates :plan_type, presence: true, inclusion: { in: PLAN_TYPES }
   validates :display_order, numericality: { only_integer: true, greater_than_or_equal_to: 1 }
   validates :payment_link, format: { with: URI::DEFAULT_PARSER.make_regexp(%w[http https]), message: 'must be a valid URL' }, allow_blank: true
 
+  before_validation :enforce_personal_plan_defaults, if: :personal?
+
   scope :ordered, -> { order(:display_order, :name) }
+  scope :shared, -> { where(user_id: nil) }
+  scope :personal, -> { where.not(user_id: nil) }
   scope :primary, -> { where(plan_type: 'primary') }
   scope :supplementary, -> { where(plan_type: 'supplementary') }
   scope :with_payment_link, -> { where.not(payment_link: [nil, '']) }
@@ -21,11 +29,19 @@ class MembershipPlan < ApplicationRecord
   scope :manual, -> { where(manual: true) }
 
   def display_name
-    "#{name} - $#{format('%.2f', cost)}/#{billing_frequency}"
+    if personal?
+      "#{name} (#{user&.display_name}) - $#{format('%.2f', cost)}/#{billing_frequency}"
+    else
+      "#{name} - $#{format('%.2f', cost)}/#{billing_frequency}"
+    end
   end
 
   def has_payment_link?
     payment_link.present?
+  end
+
+  def personal?
+    user_id.present?
   end
 
   def primary?
@@ -34,6 +50,13 @@ class MembershipPlan < ApplicationRecord
 
   def supplementary?
     plan_type == 'supplementary'
+  end
+
+  private
+
+  def enforce_personal_plan_defaults
+    self.manual = true
+    self.visible = false
   end
 
   # Find a plan by matching its transaction subject against raw payment JSON

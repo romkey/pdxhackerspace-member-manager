@@ -71,6 +71,19 @@ private_profile_user:
   last_synced_at: 2025-11-14 10:03:05
   authentik_attributes: {}
 
+cash_payer:
+  authentik_id: authentik-user-cash
+  email: cashpayer@example.com
+  full_name: Cash Payer User
+  username: cashpayeruser
+  active: true
+  profile_visibility: members
+  membership_status: paying
+  payment_type: cash
+  dues_status: current
+  last_synced_at: 2025-11-14 10:03:05
+  authentik_attributes: {}
+
 member_with_local_account:
   authentik_id: authentik-user-7
   email: member@example.com

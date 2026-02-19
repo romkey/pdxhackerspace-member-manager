@@ -21,3 +21,13 @@ supplementary_storage:
   plan_type: supplementary
   visible: true
   manual: false
+
+personal_equipment_donation:
+  name: Equipment Donation
+  cost: 100.00
+  billing_frequency: monthly
+  plan_type: primary
+  visible: false
+  manual: true
+  description: "Donated CNC router, covers 12 months of membership"
+  user: cash_payer

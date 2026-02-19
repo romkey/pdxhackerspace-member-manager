@@ -25,6 +25,8 @@ module PaymentsHelper
 
   def payment_show_path(payment)
     case payment
+    when CashPayment
+      cash_payment_path(payment)
     when PaypalPayment
       paypal_payment_path(payment)
     when RechargePayment
@@ -38,6 +40,8 @@ module PaymentsHelper
 
   def payment_source_label(payment)
     case payment
+    when CashPayment
+      'Cash'
     when PaypalPayment
       'PayPal'
     when RechargePayment

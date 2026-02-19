@@ -1,13 +1,13 @@
 class PaymentProcessor < ApplicationRecord
   SYNC_STATUSES = %w[unknown healthy degraded failing disabled].freeze
-  PROCESSOR_KEYS = %w[paypal recharge kofi].freeze
+  PROCESSOR_KEYS = %w[cash kofi paypal recharge].freeze
 
   validates :key, presence: true, uniqueness: true, inclusion: { in: PROCESSOR_KEYS }
   validates :name, presence: true
   validates :sync_status, inclusion: { in: SYNC_STATUSES }
 
   scope :enabled, -> { where(enabled: true) }
-  scope :ordered, -> { order(:display_order, :name) }
+  scope :ordered, -> { order(:name) }
   scope :by_key, ->(key) { find_by(key: key) }
 
   # Find or create processor by key
@@ -21,6 +21,7 @@ class PaymentProcessor < ApplicationRecord
   # Update statistics from payment records
   def refresh_statistics!
     payment_class = case key
+                    when 'cash' then CashPayment
                     when 'paypal' then PaypalPayment
                     when 'recharge' then RechargePayment
                     when 'kofi' then KofiPayment
@@ -33,9 +34,9 @@ class PaymentProcessor < ApplicationRecord
     unmatched = total - matched
     total_amt = payment_class.sum(:amount) || 0
     thirty_days_ago = 30.days.ago
-    
-    # Get the timestamp field name (varies by processor)
+
     time_field = case key
+                 when 'cash' then :paid_on
                  when 'paypal' then :transaction_time
                  when 'recharge' then :processed_at
                  when 'kofi' then :timestamp
@@ -99,6 +100,8 @@ class PaymentProcessor < ApplicationRecord
   # Check if API is configured based on environment variables
   def check_api_configuration!
     configured = case key
+                 when 'cash'
+                   true
                  when 'paypal'
                    ENV['PAYPAL_CLIENT_ID'].present? && ENV['PAYPAL_CLIENT_SECRET'].present?
                  when 'recharge'
@@ -137,9 +140,10 @@ class PaymentProcessor < ApplicationRecord
   # Seed default processors
   def self.seed_defaults!
     [
-      { key: 'paypal', name: 'PayPal', display_order: 1 },
-      { key: 'recharge', name: 'Recharge', display_order: 2 },
-      { key: 'kofi', name: 'Ko-Fi', display_order: 3 }
+      { key: 'cash', name: 'Cash', display_order: 1 },
+      { key: 'kofi', name: 'Ko-Fi', display_order: 2 },
+      { key: 'paypal', name: 'PayPal', display_order: 3 },
+      { key: 'recharge', name: 'Recharge', display_order: 4 }
     ].each do |attrs|
       processor = find_or_initialize_by(key: attrs[:key])
       processor.assign_attributes(attrs)

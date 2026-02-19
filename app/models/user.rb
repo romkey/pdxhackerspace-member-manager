@@ -4,8 +4,10 @@ class User < ApplicationRecord
   has_many :supplementary_plans, through: :user_supplementary_plans, source: :membership_plan
   has_one :sheet_entry, dependent: :nullify
   has_one :slack_user, dependent: :nullify
+  has_many :personal_membership_plans, class_name: 'MembershipPlan', dependent: :destroy
   has_many :paypal_payments, dependent: :nullify
   has_many :recharge_payments, dependent: :nullify
+  has_many :cash_payments, dependent: :destroy
   has_many :journals, dependent: :destroy
   has_many :access_logs, dependent: :nullify
   has_many :rfids, dependent: :destroy
@@ -155,11 +157,12 @@ class User < ApplicationRecord
     dates << last_payment_date if last_payment_date.present?
     dates << recharge_most_recent_payment_date.to_date if recharge_most_recent_payment_date.present?
 
-    # Also check actual payment records
     latest_paypal = paypal_payments.maximum(:transaction_time)
     latest_recharge = recharge_payments.maximum(:processed_at)
+    latest_cash = cash_payments.maximum(:paid_on)
     dates << latest_paypal.to_date if latest_paypal.present?
     dates << latest_recharge.to_date if latest_recharge.present?
+    dates << latest_cash if latest_cash.present?
 
     dates.compact.max
   end

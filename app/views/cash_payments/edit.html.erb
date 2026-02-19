@@ -1,0 +1,10 @@
+<div class="mb-4">
+  <%= link_to "&larr; Back to Payment".html_safe, cash_payment_path(@cash_payment), class: "text-decoration-none" %>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <h1 class="h4 mb-3">Edit Cash Payment <%= @cash_payment.identifier %></h1>
+    <%= render 'form', cash_payment: @cash_payment %>
+  </div>
+</div>
