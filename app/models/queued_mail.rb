@@ -12,11 +12,25 @@ class QueuedMail < ApplicationRecord
   scope :pending, -> { where(status: 'pending') }
   scope :approved, -> { where(status: 'approved') }
   scope :rejected, -> { where(status: 'rejected') }
+  scope :unsent, -> { approved.where(sent_at: nil) }
+  scope :failed, -> { approved.where(sent_at: nil).where.not(last_error: nil) }
   scope :newest_first, -> { order(created_at: :desc) }
 
   def pending?  = status == 'pending'
   def approved? = status == 'approved'
   def rejected? = status == 'rejected'
+
+  def sent?
+    approved? && sent_at.present?
+  end
+
+  def delivery_pending?
+    approved? && sent_at.nil? && last_error.nil?
+  end
+
+  def delivery_failed?
+    approved? && sent_at.nil? && last_error.present?
+  end
 
   def self.enqueue(action, user, to: nil, reason: nil, **extra_args)
     dest = to || user.email
@@ -62,11 +76,9 @@ class QueuedMail < ApplicationRecord
   end
 
   def approve!(reviewer)
-    transaction do
-      update!(status: 'approved', reviewed_by: reviewer, reviewed_at: Time.current)
-      send_mail!
-    end
-    MailLogEntry.log!(self, 'approved', actor: reviewer, details: "Approved and sent to #{to}")
+    update!(status: 'approved', reviewed_by: reviewer, reviewed_at: Time.current)
+    MailLogEntry.log!(self, 'approved', actor: reviewer, details: "Approved for delivery to #{to}")
+    QueuedMailDeliveryJob.perform_later(id)
   end
 
   def reject!(reviewer)
@@ -105,12 +117,28 @@ class QueuedMail < ApplicationRecord
     recipient.present? && (email_template.present? || mailer_action.present?)
   end
 
-  private
-
-  def send_mail!
-    QueuedMailMailer.deliver_queued(self).deliver_later
-    update!(sent_at: Time.current)
+  def deliver_now!
+    increment!(:send_attempts)
+    QueuedMailMailer.deliver_queued(self).deliver_now
+    update!(sent_at: Time.current, last_error: nil, last_error_at: nil)
+    MailLogEntry.log!(self, 'sent', details: "Delivered to #{to}")
+  rescue StandardError => e
+    record_delivery_failure!(e)
+    raise
   end
+
+  def retry_delivery!
+    update!(last_error: nil, last_error_at: nil)
+    QueuedMailDeliveryJob.perform_later(id)
+  end
+
+  def record_delivery_failure!(error)
+    error_message = "#{error.class}: #{error.message}"
+    update!(last_error: error_message, last_error_at: Time.current)
+    MailLogEntry.log_once!(self, 'send_failed', details: error_message)
+  end
+
+  private
 
   def self.build_mailer_args(action, user, to_addr, extra_args)
     case action.to_s

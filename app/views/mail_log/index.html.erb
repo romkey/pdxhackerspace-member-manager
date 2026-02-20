@@ -38,7 +38,9 @@
                                  when 'edited'      then 'text-bg-warning'
                                  when 'regenerated' then 'text-bg-info'
                                  when 'approved'    then 'text-bg-success'
-                                 when 'rejected'    then 'text-bg-danger'
+                                 when 'sent'        then 'text-bg-success'
+                                 when 'rejected'    then 'text-bg-secondary'
+                                 when 'send_failed' then 'text-bg-danger'
                                  else 'text-bg-secondary'
                                  end %>
                 <span class="badge <%= badge_class %>"><%= entry.event.capitalize %></span>

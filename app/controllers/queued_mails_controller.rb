@@ -1,5 +1,5 @@
 class QueuedMailsController < AdminController
-  before_action :set_queued_mail, only: [:show, :edit, :update, :approve, :reject, :regenerate]
+  before_action :set_queued_mail, only: [:show, :edit, :update, :approve, :reject, :regenerate, :retry_delivery]
 
   def index
     @filter = params[:filter].presence || 'pending'
@@ -56,6 +56,21 @@ class QueuedMailsController < AdminController
 
     @queued_mail.reject!(current_user)
     redirect_to queued_mails_path, notice: "Message to #{@queued_mail.to} has been rejected."
+  end
+
+  def retry_delivery
+    unless @queued_mail.delivery_failed?
+      redirect_to queued_mail_path(@queued_mail), alert: 'Only failed messages can be retried.'
+      return
+    end
+
+    unless helpers.smtp_configured?
+      redirect_to queued_mail_path(@queued_mail), alert: 'Cannot send email: SMTP is not configured.'
+      return
+    end
+
+    @queued_mail.retry_delivery!
+    redirect_to queued_mail_path(@queued_mail), notice: "Retrying delivery to #{@queued_mail.to}..."
   end
 
   def regenerate

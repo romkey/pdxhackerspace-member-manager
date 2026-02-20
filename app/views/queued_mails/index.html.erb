@@ -52,7 +52,7 @@
         </thead>
         <tbody>
           <% @queued_mails.each do |qm| %>
-            <tr class="<%= 'table-success' if qm.approved? %><%= 'table-secondary' if qm.rejected? %>">
+            <tr class="<%= 'table-danger' if qm.delivery_failed? %><%= 'table-success' if qm.sent? %><%= 'table-secondary' if qm.rejected? %>">
               <td>
                 <div class="fw-semibold"><%= qm.to %></div>
                 <% if qm.recipient %>
@@ -66,12 +66,17 @@
               </td>
               <td class="text-muted small"><%= qm.reason %></td>
               <td>
-                <% case qm.status %>
-                <% when 'pending' %>
+                <% if qm.delivery_failed? %>
+                  <span class="badge text-bg-danger">Send Failed</span>
+                <% elsif qm.delivery_pending? %>
+                  <span class="badge text-bg-info">Sending...</span>
+                <% elsif qm.sent? %>
+                  <span class="badge text-bg-success">Sent</span>
+                <% elsif qm.pending? %>
                   <span class="badge text-bg-warning">Pending</span>
-                <% when 'approved' %>
+                <% elsif qm.approved? %>
                   <span class="badge text-bg-success">Approved</span>
-                <% when 'rejected' %>
+                <% elsif qm.rejected? %>
                   <span class="badge text-bg-secondary">Rejected</span>
                 <% end %>
               </td>
@@ -79,6 +84,11 @@
               <td class="text-end">
                 <div class="btn-group btn-group-sm">
                   <%= link_to "View", queued_mail_path(qm), class: "btn btn-outline-primary" %>
+                  <% if qm.delivery_failed? %>
+                    <%= button_to "Retry", retry_queued_mail_path(qm), method: :post,
+                        class: "btn btn-outline-warning",
+                        data: { turbo_confirm: "Retry sending this email to #{qm.to}?" } %>
+                  <% end %>
                   <% if qm.pending? %>
                     <% if smtp_configured? %>
                       <%= button_to "Approve & Send", approve_queued_mail_path(qm), method: :post,

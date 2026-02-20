@@ -2,17 +2,25 @@
   <div>
     <h1 class="h3 mb-1">Queued Message</h1>
     <p class="text-muted mb-0">
-      <% case @queued_mail.status %>
-      <% when 'pending' %>
+      <% if @queued_mail.delivery_failed? %>
+        <span class="badge text-bg-danger">Send Failed</span>
+      <% elsif @queued_mail.delivery_pending? %>
+        <span class="badge text-bg-info">Sending...</span>
+      <% elsif @queued_mail.sent? %>
+        <span class="badge text-bg-success">Sent</span>
+      <% elsif @queued_mail.pending? %>
         <span class="badge text-bg-warning">Pending Review</span>
-      <% when 'approved' %>
-        <span class="badge text-bg-success">Approved &amp; Sent</span>
-      <% when 'rejected' %>
+      <% elsif @queued_mail.rejected? %>
         <span class="badge text-bg-secondary">Rejected</span>
       <% end %>
     </p>
   </div>
   <div class="d-flex gap-2">
+    <% if @queued_mail.delivery_failed? %>
+      <%= button_to "Retry Sending", retry_queued_mail_path(@queued_mail), method: :post,
+          class: "btn btn-warning",
+          data: { turbo_confirm: "Retry sending this email to #{@queued_mail.to}?" } %>
+    <% end %>
     <% if @queued_mail.pending? %>
       <%= link_to "Edit", edit_queued_mail_path(@queued_mail), class: "btn btn-outline-primary" %>
       <% if @queued_mail.can_regenerate? %>
@@ -85,6 +93,21 @@
           <% if @queued_mail.sent_at %>
             <dt class="col-sm-4 text-secondary">Sent at</dt>
             <dd class="col-sm-8"><%= @queued_mail.sent_at.strftime('%b %d, %Y %l:%M %p') %></dd>
+          <% end %>
+
+          <% if @queued_mail.send_attempts > 0 %>
+            <dt class="col-sm-4 text-secondary">Attempts</dt>
+            <dd class="col-sm-8"><%= @queued_mail.send_attempts %></dd>
+          <% end %>
+
+          <% if @queued_mail.last_error.present? %>
+            <dt class="col-sm-4 text-danger">Last Error</dt>
+            <dd class="col-sm-8">
+              <code class="text-danger"><%= @queued_mail.last_error %></code>
+              <% if @queued_mail.last_error_at %>
+                <div class="text-muted small"><%= time_ago_in_words(@queued_mail.last_error_at) %> ago</div>
+              <% end %>
+            </dd>
           <% end %>
         </dl>
       </div>
