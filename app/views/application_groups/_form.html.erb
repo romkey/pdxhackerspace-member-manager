@@ -9,6 +9,8 @@
     </div>
   <% end %>
 
+  <% policy_only_on_load = @application_group.member_source != 'manual' %>
+
   <div class="mb-3">
     <%= f.label :name, class: "form-label" %>
     <%= f.text_field :name, class: "form-control", required: true, id: "application_group_name" %>
@@ -74,17 +76,17 @@
     </div>
   </div>
 
-  <div id="policy_warning" class="alert alert-info mb-3" style="display: none;">
+  <div id="policy_warning" class="alert alert-info mb-3" style="display: <%= policy_only_on_load ? 'block' : 'none' %>;">
     <i class="bi bi-info-circle me-2"></i>
     This will create an Authentik expression policy instead of an Authentik group. Bind this policy to your Authentik application to control access:<br>
-    <code id="policy_name_display" class="fs-6"></code>
+    <code id="policy_name_display" class="fs-6"><%= "#{ApplicationGroup::POLICY_NAME_PREFIX}:#{@application_group.authentik_name}" if policy_only_on_load %></code>
   </div>
 
   <%# Hidden fields updated by JS to carry the resolved member_source and sync_with_group_id %>
   <input type="hidden" name="application_group[sync_with_group_id]" id="resolved_sync_with_group_id"
          value="<%= @application_group.sync_with_group_id %>">
 
-  <div id="authentik_group_id_wrapper" class="mb-3" style="display: <%= %w[sync_group can_train trained_in].include?(@application_group.member_source) ? 'none' : 'block' %>;">
+  <div id="authentik_group_id_wrapper" class="mb-3" style="display: <%= policy_only_on_load ? 'none' : 'block' %>;">
     <%= f.label :authentik_group_id, "Authentik Group ID", class: "form-label" %>
     <%= f.text_field :authentik_group_id, class: "form-control font-monospace", placeholder: "e.g., 3c894c72-0757-45aa-ac6d-f1bf220a57ec" %>
     <div class="form-text">Optional. The UUID of this group in Authentik. If set, webhook events for this group will be synced.</div>
@@ -109,7 +111,6 @@
 <script>
 (function() {
   const POLICY_PREFIX = '<%= ApplicationGroup::POLICY_NAME_PREFIX %>';
-  const POLICY_ONLY_SOURCES = ['sync_group', 'can_train', 'trained_in'];
 
   const radios = document.querySelectorAll('.member-source-radio');
   const syncGroupWrapper = document.getElementById('sync_group_select_wrapper');
@@ -139,15 +140,8 @@
     return 'manual';
   }
 
-  function getEffectiveSource() {
-    const source = getSelectedSource();
-    if (source === 'sync_group') {
-      const combined = syncGroupCombined.value;
-      if (['active_members', 'admin_members', 'unbanned_members', 'all_members'].includes(combined)) {
-        return combined;
-      }
-    }
-    return source;
+  function isPolicyOnly() {
+    return getSelectedSource() !== 'manual';
   }
 
   function updateAuthentikName() {
@@ -157,10 +151,7 @@
   }
 
   function updatePolicyWarning() {
-    const effective = getEffectiveSource();
-    const isPolicyOnly = POLICY_ONLY_SOURCES.includes(effective);
-
-    if (isPolicyOnly) {
+    if (isPolicyOnly()) {
       policyWarning.style.display = 'block';
       policyNameDisplay.textContent = POLICY_PREFIX + ':' + authentikNameField.value;
     } else {
@@ -170,11 +161,10 @@
 
   function updateVisibility() {
     const source = getSelectedSource();
-    const effective = getEffectiveSource();
 
     syncGroupWrapper.style.display = (source === 'sync_group') ? 'block' : 'none';
     trainingTopicWrapper.style.display = (source === 'can_train' || source === 'trained_in') ? 'block' : 'none';
-    authentikGroupIdWrapper.style.display = POLICY_ONLY_SOURCES.includes(effective) ? 'none' : 'block';
+    authentikGroupIdWrapper.style.display = isPolicyOnly() ? 'none' : 'block';
 
     resolvedSyncGroupId.value = '';
     if (source === 'sync_group') {
@@ -209,7 +199,5 @@
       }
     });
   }
-
-  updateVisibility();
 })();
 </script>

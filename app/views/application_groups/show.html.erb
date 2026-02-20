@@ -26,15 +26,17 @@
       <dt class="col-sm-3 text-secondary">Authentik Group Name</dt>
       <dd class="col-sm-9"><code><%= @application_group.authentik_name %></code></dd>
 
-      <dt class="col-sm-3 text-secondary">Authentik Group ID</dt>
-      <dd class="col-sm-9">
-        <% if @application_group.authentik_group_id.present? %>
-          <code><%= @application_group.authentik_group_id %></code>
-          <span class="badge text-bg-success ms-2">Webhook Sync Enabled</span>
-        <% else %>
-          <span class="text-muted fst-italic">Not configured</span>
-        <% end %>
-      </dd>
+      <% if @application_group.manual? %>
+        <dt class="col-sm-3 text-secondary">Authentik Group ID</dt>
+        <dd class="col-sm-9">
+          <% if @application_group.authentik_group_id.present? %>
+            <code><%= @application_group.authentik_group_id %></code>
+            <span class="badge text-bg-success ms-2">Webhook Sync Enabled</span>
+          <% else %>
+            <span class="text-muted fst-italic">Not configured</span>
+          <% end %>
+        </dd>
+      <% end %>
 
       <dt class="col-sm-3 text-secondary">Authentik Policy</dt>
       <dd class="col-sm-9">
@@ -96,6 +98,14 @@
     </dl>
   </div>
 </div>
+
+<% unless @application_group.manual? %>
+  <div class="alert alert-info mb-4">
+    <i class="bi bi-info-circle me-2"></i>
+    This group uses an Authentik expression policy instead of an Authentik group. Bind this policy to your Authentik application to control access:<br>
+    <code class="fs-6"><%= @application_group.policy_name %></code>
+  </div>
+<% end %>
 
 <% if @unsyncable_members.any? %>
   <div class="alert alert-warning mb-4">
