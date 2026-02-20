@@ -187,9 +187,10 @@ Rails.application.routes.draw do
     end
     collection do
       post :seed
-      get :mail_log
     end
   end
+
+  get "/settings/mail_log", to: "mail_log#index", as: :mail_log
 
   resources :queued_mails, only: [:index, :show, :edit, :update] do
     member do

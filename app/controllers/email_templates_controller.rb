@@ -33,12 +33,6 @@ class EmailTemplatesController < AdminController
     redirect_to email_templates_path, notice: "Default email templates have been seeded."
   end
 
-  def mail_log
-    @log_entries = MailLogEntry.newest_first
-                               .includes(queued_mail: :recipient, actor: [])
-                               .limit(200)
-  end
-
   def test_send
     @email_template = EmailTemplate.find(params[:id])
     
