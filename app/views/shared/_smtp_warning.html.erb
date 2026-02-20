@@ -1,0 +1,9 @@
+<% unless smtp_configured? %>
+  <div class="alert alert-danger d-flex align-items-center mb-4">
+    <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+    <div>
+      <strong>SMTP not configured.</strong>
+      Email delivery is disabled. Set the <code>SMTP_ADDRESS</code>, <code>SMTP_USERNAME</code>, and <code>SMTP_PASSWORD</code> environment variables to enable sending.
+    </div>
+  </div>
+<% end %>

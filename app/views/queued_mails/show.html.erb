@@ -20,9 +20,13 @@
             class: "btn btn-outline-info",
             data: { turbo_confirm: "This will overwrite the current message with a fresh render from the template. Continue?" } %>
       <% end %>
-      <%= button_to "Approve & Send", approve_queued_mail_path(@queued_mail), method: :post,
-          class: "btn btn-success",
-          data: { turbo_confirm: "Send this email to #{@queued_mail.to}?" } %>
+      <% if smtp_configured? %>
+        <%= button_to "Approve & Send", approve_queued_mail_path(@queued_mail), method: :post,
+            class: "btn btn-success",
+            data: { turbo_confirm: "This will send this email to #{@queued_mail.to}. Continue?" } %>
+      <% else %>
+        <button class="btn btn-success" disabled title="SMTP not configured">Approve & Send</button>
+      <% end %>
       <%= button_to "Reject", reject_queued_mail_path(@queued_mail), method: :post,
           class: "btn btn-danger",
           data: { turbo_confirm: "Reject this email? It will not be sent." } %>
@@ -30,6 +34,8 @@
     <%= link_to "Back to Queue", queued_mails_path, class: "btn btn-secondary" %>
   </div>
 </div>
+
+<%= render 'shared/smtp_warning' %>
 
 <div class="row">
   <div class="col-lg-4 mb-4">

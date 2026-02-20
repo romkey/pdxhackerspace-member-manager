@@ -8,6 +8,8 @@
   </div>
 </div>
 
+<%= render 'shared/smtp_warning' %>
+
 <ul class="nav nav-tabs mb-4">
   <li class="nav-item">
     <%= link_to queued_mails_path(filter: 'pending'), class: "nav-link #{'active' if @filter == 'pending'}" do %>
@@ -78,9 +80,13 @@
                 <div class="btn-group btn-group-sm">
                   <%= link_to "View", queued_mail_path(qm), class: "btn btn-outline-primary" %>
                   <% if qm.pending? %>
-                    <%= button_to "Approve", approve_queued_mail_path(qm), method: :post,
-                        class: "btn btn-outline-success",
-                        data: { turbo_confirm: "Send this email to #{qm.to}?" } %>
+                    <% if smtp_configured? %>
+                      <%= button_to "Approve & Send", approve_queued_mail_path(qm), method: :post,
+                          class: "btn btn-outline-success",
+                          data: { turbo_confirm: "This will send this email to #{qm.to}. Continue?" } %>
+                    <% else %>
+                      <button class="btn btn-outline-success" disabled title="SMTP not configured">Approve & Send</button>
+                    <% end %>
                     <%= button_to "Reject", reject_queued_mail_path(qm), method: :post,
                         class: "btn btn-outline-danger",
                         data: { turbo_confirm: "Reject this email?" } %>

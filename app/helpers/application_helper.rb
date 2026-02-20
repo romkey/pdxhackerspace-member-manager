@@ -18,6 +18,16 @@ module ApplicationHelper
     "https://www.gravatar.com/avatar/#{hash}?s=#{size}&d=mp"
   end
 
+  def smtp_configured?
+    settings = Rails.configuration.action_mailer.smtp_settings
+    return false unless settings.is_a?(Hash)
+
+    settings[:address].present? &&
+      settings[:address] != 'smtp.example.com' &&
+      settings[:user_name].present? &&
+      settings[:password].present?
+  end
+
   # Generate a sortable column header link
   # @param column [String] the database column to sort by
   # @param title [String] the display text for the header

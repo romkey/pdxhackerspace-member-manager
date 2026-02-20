@@ -39,6 +39,11 @@ class QueuedMailsController < AdminController
       return
     end
 
+    unless helpers.smtp_configured?
+      redirect_to queued_mail_path(@queued_mail), alert: 'Cannot send email: SMTP is not configured.'
+      return
+    end
+
     @queued_mail.approve!(current_user)
     redirect_to queued_mails_path, notice: "Message to #{@queued_mail.to} has been approved and sent."
   end
