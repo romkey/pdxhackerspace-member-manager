@@ -184,6 +184,19 @@ class User < ApplicationRecord
     end
   end
 
+  PAYMENT_GRACE_DAYS = 2
+
+  # How long after a payment the user is still considered current.
+  # Based on the membership plan's billing cycle plus a small grace window.
+  # Returns nil for one-time plans (payment never expires).
+  # Falls back to 32 days when no plan is assigned.
+  def payment_currency_window
+    cycle = membership_plan&.billing_cycle_duration
+    return cycle + PAYMENT_GRACE_DAYS.days if cycle
+
+    membership_plan&.billing_frequency == 'one-time' ? nil : 32.days
+  end
+
   # Check if user is within the reactivation grace period
   def within_reactivation_grace_period?
     return false unless dues_status == 'lapsed'
@@ -336,12 +349,18 @@ class User < ApplicationRecord
     # Update last_payment_date if this payment is more recent
     updates[:last_payment_date] = payment_date if last_payment_date.nil? || payment_date > last_payment_date
 
-    # If payment is within the last 32 days, update membership and dues status
+    # If payment is within the billing cycle window, update membership and dues status.
     # (active will be computed automatically by the before_save callback)
-    if payment_date >= 32.days.ago.to_date
-      updates[:membership_status] = 'paying' if membership_status != 'paying'
+    window = payment_currency_window
+    payment_is_current = window.nil? || payment_date >= window.ago.to_date
+    if payment_is_current
+      # Don't override deliberate statuses — these are set by admin actions,
+      # webhooks, or subscription sync and should not be reverted by the
+      # presence of a historical payment.
+      unless membership_status.in?(%w[cancelled banned deceased sponsored])
+        updates[:membership_status] = 'paying' if membership_status != 'paying'
+      end
       updates[:dues_status] = 'current' if dues_status != 'current'
-      # Clear membership_ended_date if payment is recent
       updates[:membership_ended_date] = nil if membership_ended_date.present?
     end
 

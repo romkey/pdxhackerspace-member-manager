@@ -4,8 +4,9 @@ module Recharge
   class SubscriptionSyncJob < ApplicationJob
     queue_as :default
 
-    def perform
-      stats = Recharge::SubscriptionSynchronizer.new.call
+    def perform(lookback_seconds: nil)
+      lookback = lookback_seconds ? lookback_seconds.seconds : Recharge::SubscriptionSynchronizer::DEFAULT_LOOKBACK
+      stats = Recharge::SubscriptionSynchronizer.new(lookback: lookback).call
       Rails.logger.info(
         "[Recharge::SubscriptionSyncJob] Completed: " \
         "#{stats[:created]} activated, #{stats[:cancelled]} cancelled, #{stats[:skipped]} skipped"

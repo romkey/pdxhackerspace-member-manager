@@ -23,6 +23,9 @@ module MemberManager
     #
     # Set timezone from environment variable, default to UTC
     config.time_zone = ENV.fetch("TIMEZONE", "UTC")
+
+    # Force plain queue names — no prefix. This app has its own Redis instance.
+    config.active_job.queue_name_prefix = nil
     # config.eager_load_paths << Rails.root.join("extras")
   end
 end

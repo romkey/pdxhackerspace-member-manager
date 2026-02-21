@@ -7,15 +7,23 @@
 # mirroring the behavior of Recharge::WebhookHandler.
 module Recharge
   class SubscriptionSynchronizer
-    def initialize(client: Client.new, logger: Rails.logger)
+    DEFAULT_LOOKBACK = 7.days
+
+    # lookback:      how far back to fetch subscription changes (default 7 days)
+    # history_only:  when true, only creates PaymentEvents — does not touch
+    #                membership_status or create journal entries. Useful for
+    #                backfilling historical subscription lifecycle events.
+    def initialize(client: Client.new, logger: Rails.logger, lookback: DEFAULT_LOOKBACK, history_only: false)
       @client = client
       @logger = logger
+      @lookback = lookback
+      @history_only = history_only
     end
 
     def call
       raise ArgumentError, 'Recharge integration disabled' unless RechargeConfig.enabled?
 
-      subscriptions = fetch_subscriptions
+      subscriptions = @client.subscriptions(start_time: @lookback.ago)
       @logger.info("[Recharge::SubscriptionSynchronizer] Fetched #{subscriptions.size} recently updated subscriptions")
 
       stats = { created: 0, cancelled: 0, skipped: 0 }
@@ -30,15 +38,6 @@ module Recharge
     end
 
     private
-
-    def fetch_subscriptions
-      @client.subscriptions(start_time: lookback_time)
-    end
-
-    # Look back 48 hours to give plenty of overlap for catching missed webhooks.
-    def lookback_time
-      48.hours.ago
-    end
 
     def process_subscription(sub)
       case sub[:status]&.upcase
@@ -57,7 +56,13 @@ module Recharge
       user = find_user(sub)
       return :skipped unless user
 
-      # Only act if the user is currently cancelled — don't override other statuses
+      if @history_only
+        created = create_payment_event(user, sub, 'subscription_started')
+        link_customer_id(user, sub)
+        @logger.info("[Recharge::SubscriptionSynchronizer] [history] subscription_started for #{user.display_name}") if created
+        return created ? :created : :skipped
+      end
+
       return :skipped unless user.cancelled?
 
       old_status = user.membership_status
@@ -74,15 +79,29 @@ module Recharge
       user = find_user(sub)
       return :skipped unless user
 
+      if @history_only
+        created = create_payment_event(user, sub, 'subscription_cancelled')
+        @logger.info("[Recharge::SubscriptionSynchronizer] [history] subscription_cancelled for #{user.display_name}") if created
+        return created ? :cancelled : :skipped
+      end
+
       return :skipped if user.cancelled?
 
-      old_status = user.membership_status
-      user.update!(membership_status: 'cancelled')
-      create_journal_entry(user, 'subscription_cancelled', sub, old_status, 'cancelled')
-      create_payment_event(user, sub, 'subscription_cancelled')
+      event_is_new = create_payment_event(user, sub, 'subscription_cancelled')
 
-      @logger.info("[Recharge::SubscriptionSynchronizer] Cancelled #{user.display_name} (#{old_status} -> cancelled)")
-      :cancelled
+      if payment_period_expired?(user)
+        old_status = user.membership_status
+        user.update!(membership_status: 'cancelled')
+        create_journal_entry(user, 'subscription_cancelled', sub, old_status, 'cancelled') if event_is_new
+        @logger.info("[Recharge::SubscriptionSynchronizer] Cancelled #{user.display_name} (#{old_status} -> cancelled)")
+        :cancelled
+      elsif event_is_new
+        create_journal_entry(user, 'subscription_cancelled', sub, user.membership_status, user.membership_status)
+        @logger.info("[Recharge::SubscriptionSynchronizer] Recorded cancellation for #{user.display_name} (membership active until payment period ends)")
+        :cancelled
+      else
+        :skipped
+      end
     end
 
     def handle_paused(sub)
@@ -95,15 +114,27 @@ module Recharge
       :skipped
     end
 
+    def payment_period_expired?(user)
+      window = user.payment_currency_window
+      return false if window.nil?
+
+      last_payment = user.most_recent_payment_date
+      return true if last_payment.blank?
+
+      last_payment < window.ago.to_date
+    end
+
     def find_user(sub)
       user = User.find_by(recharge_customer_id: sub[:customer_id]) if sub[:customer_id].present?
       user || find_user_by_email(sub[:email])
     end
 
     def find_user_by_email(email)
-      return if email.blank?
+      normalized = email.to_s.strip.downcase
+      return if normalized.blank?
 
-      User.find_by('LOWER(email) = ?', email.to_s.strip.downcase)
+      User.find_by('LOWER(email) = ?', normalized) ||
+        User.where('EXISTS (SELECT 1 FROM unnest(extra_emails) AS e WHERE LOWER(e) = ?)', normalized).first
     end
 
     def link_customer_id(user, sub)
@@ -138,7 +169,12 @@ module Recharge
 
     def create_payment_event(user, sub, event_type)
       external_id = "recharge-sub-#{sub[:recharge_subscription_id]}-#{event_type}"
-      return if PaymentEvent.find_duplicate(source: 'recharge', external_id: external_id, event_type: event_type)
+      return false if PaymentEvent.find_duplicate(source: 'recharge', external_id: external_id, event_type: event_type)
+
+      occurred_at = case event_type
+                    when 'subscription_started'   then sub[:created_at]
+                    when 'subscription_cancelled'  then sub[:cancelled_at]
+                    end || sub[:updated_at] || Time.current
 
       PaymentEvent.create!(
         user: user,
@@ -146,12 +182,14 @@ module Recharge
         source: 'recharge',
         amount: sub[:price],
         currency: 'USD',
-        occurred_at: sub[:updated_at] || sub[:cancelled_at] || Time.current,
+        occurred_at: occurred_at,
         external_id: external_id,
         details: "Recharge #{event_type.humanize.downcase}: #{sub[:product_title]}"
       )
+      true
     rescue ActiveRecord::RecordInvalid => e
       @logger.error("[Recharge::SubscriptionSynchronizer] Failed to create payment event: #{e.message}")
+      false
     end
 
     def log_summary(stats)

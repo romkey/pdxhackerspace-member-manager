@@ -52,6 +52,14 @@ class MembershipPlan < ApplicationRecord
     plan_type == 'supplementary'
   end
 
+  def billing_cycle_duration
+    case billing_frequency
+    when 'monthly'  then 1.month
+    when 'yearly'   then 1.year
+    when 'one-time' then nil
+    end
+  end
+
   private
 
   def enforce_personal_plan_defaults

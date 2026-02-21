@@ -49,16 +49,23 @@ module Recharge
     def handle_subscription_cancelled
       user = find_user
       return user_not_found('subscription/cancelled') unless user
+      return log_and_respond('subscription/cancelled', user, 'cancelled', 'cancelled') if user.cancelled?
 
-      old_status = user.membership_status
-      user.update!(membership_status: 'cancelled') unless user.cancelled?
-
-      details = { 'previous_membership_status' => old_status,
+      details = { 'previous_membership_status' => user.membership_status,
                   'cancellation_reason' => @subscription['cancellation_reason'],
                   'cancelled_at' => @subscription['cancelled_at'] }
       create_journal_entry(user: user, action: 'subscription_cancelled', details: details)
       create_payment_event(user, 'subscription_cancelled')
-      log_and_respond('subscription/cancelled', user, old_status, 'cancelled')
+
+      if payment_period_expired?(user)
+        old_status = user.membership_status
+        user.update!(membership_status: 'cancelled')
+        log_and_respond('subscription/cancelled', user, old_status, 'cancelled')
+      else
+        Rails.logger.info("[Recharge::WebhookHandler] subscription/cancelled: #{user.display_name} " \
+                          "(membership active until payment period ends)")
+        { status: 'processed', user_id: user.id, action: 'subscription_cancelled', deferred: true }
+      end
     end
 
     def handle_subscription_resumed
@@ -90,6 +97,16 @@ module Recharge
       customer_id.present? && user.recharge_customer_id != customer_id
     end
 
+    def payment_period_expired?(user)
+      window = user.payment_currency_window
+      return false if window.nil?
+
+      last_payment = user.most_recent_payment_date
+      return true if last_payment.blank?
+
+      last_payment < window.ago.to_date
+    end
+
     def user_not_found(topic)
       Rails.logger.warn("[Recharge::WebhookHandler] #{topic}: no user found for #{identifier_summary}")
       { status: 'skipped', reason: 'user not found' }
@@ -101,8 +118,12 @@ module Recharge
     end
 
     def find_user
-      (customer_id.present? && User.find_by(recharge_customer_id: customer_id)) ||
-        (subscription_email.present? && User.find_by('LOWER(email) = ?', subscription_email.downcase))
+      return User.find_by(recharge_customer_id: customer_id) if customer_id.present? && User.exists?(recharge_customer_id: customer_id)
+      return if subscription_email.blank?
+
+      normalized = subscription_email.downcase
+      User.find_by('LOWER(email) = ?', normalized) ||
+        User.where('EXISTS (SELECT 1 FROM unnest(extra_emails) AS e WHERE LOWER(e) = ?)', normalized).first
     end
 
     def customer_id
