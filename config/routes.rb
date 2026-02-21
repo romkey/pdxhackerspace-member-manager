@@ -118,6 +118,8 @@ Rails.application.routes.draw do
 
   resources :cash_payments, only: [:index, :show, :new, :create, :edit, :update, :destroy]
 
+  resources :payment_events, only: [:index]
+
   resources :kofi_payments, only: [:index, :show] do
     collection do
       get :export

@@ -11,11 +11,13 @@
       <%= f.label :service_account, "Service Account", class: "form-check-label" %>
       <div class="form-text">Service accounts are used for access control and applications. They don't have payment plans or membership info.</div>
     </div>
-    <div class="form-check mb-2">
-      <%= f.check_box :legacy, class: "form-check-input", id: "user_legacy" %>
-      <%= f.label :legacy, "Legacy Member", class: "form-check-label" %>
-      <div class="form-text">Legacy members are former members with little information. They are hidden from the default member list.</div>
-    </div>
+    <% if @user.persisted? %>
+      <div class="form-check mb-2">
+        <%= f.check_box :legacy, class: "form-check-input", id: "user_legacy" %>
+        <%= f.label :legacy, "Legacy Member", class: "form-check-label" %>
+        <div class="form-text">Legacy members are former members with little information. They are hidden from the default member list.</div>
+      </div>
+    <% end %>
   <% end %>
 
   <div>
@@ -52,13 +54,15 @@
     <div class="form-text">Controls who can see your profile information.</div>
   </div>
 
-  <div data-controller="rich-editor" data-rich-editor-variables-value="[]">
-    <%= f.label :bio, "About Me", class: "form-label" %>
-    <div class="mb-2">
-      <small class="text-muted">Tell others about yourself, your interests, and what you're working on.</small>
+  <% if @user.persisted? %>
+    <div data-controller="rich-editor" data-rich-editor-variables-value="[]">
+      <%= f.label :bio, "About Me", class: "form-label" %>
+      <div class="mb-2">
+        <small class="text-muted">Tell others about yourself, your interests, and what you're working on.</small>
+      </div>
+      <%= f.text_area :bio, class: "form-control", rows: 5, data: { rich_editor_target: "editor" } %>
     </div>
-    <%= f.text_area :bio, class: "form-control", rows: 5, data: { rich_editor_target: "editor" } %>
-  </div>
+  <% end %>
 
   <div>
     <%= f.label :greeting_name, "Greeting Name", class: "form-label" %>
@@ -155,10 +159,12 @@
       <%= f.text_area :notes, class: "form-control", rows: 4 %>
     </div>
 
-    <div class="form-check">
-      <%= f.check_box :is_admin, class: "form-check-input", id: "user_is_admin" %>
-      <%= f.label :is_admin, "Administrator", class: "form-check-label" %>
-    </div>
+    <% if @user.persisted? %>
+      <div class="form-check">
+        <%= f.check_box :is_admin, class: "form-check-input", id: "user_is_admin" %>
+        <%= f.label :is_admin, "Administrator", class: "form-check-label" %>
+      </div>
+    <% end %>
 
   <% end %>
 

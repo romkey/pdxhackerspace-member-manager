@@ -51,7 +51,7 @@
                   </ul>
                 </li>
                 <li class="nav-item dropdown">
-                  <a class="nav-link dropdown-toggle <%= (current_page?(paypal_payments_path) || current_page?(recharge_payments_path) || current_page?(kofi_payments_path)) ? 'active' : '' %>"
+                  <a class="nav-link dropdown-toggle <%= (current_page?(paypal_payments_path) || current_page?(recharge_payments_path) || current_page?(kofi_payments_path) || current_page?(payment_events_path)) ? 'active' : '' %>"
                      href="#"
                      role="button"
                      data-bs-toggle="dropdown"
@@ -67,6 +67,10 @@
                     </li>
                     <li>
                       <%= link_to "Ko-Fi", kofi_payments_path, class: "dropdown-item #{current_page?(kofi_payments_path) ? 'active' : ''}" %>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                      <%= link_to "Payment Events", payment_events_path, class: "dropdown-item #{current_page?(payment_events_path) ? 'active' : ''}" %>
                     </li>
                   </ul>
                 </li>
