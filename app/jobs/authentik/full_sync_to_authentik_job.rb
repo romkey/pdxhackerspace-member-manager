@@ -19,7 +19,13 @@ module Authentik
         sync_user_to_authentik(user, client, results)
       end
 
-      # 2. Sync all ApplicationGroup groups
+      # 2a. Ensure core groups (active, admins, unbanned, all, training) exist
+      Rails.logger.info("[Authentik::FullSyncToAuthentik] Provisioning core groups...")
+      provisioner = Authentik::CoreGroupProvisioner.new
+      provision_results = provisioner.provision!
+      Rails.logger.info("[Authentik::FullSyncToAuthentik] Core groups: created=#{provision_results[:created].count}, existing=#{provision_results[:existing].count}")
+
+      # 2b. Sync all ApplicationGroup groups
       Rails.logger.info("[Authentik::FullSyncToAuthentik] Syncing application groups...")
       ApplicationGroup.find_each do |app_group|
         sync_application_group(app_group, client, results)

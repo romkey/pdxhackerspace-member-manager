@@ -7,6 +7,20 @@ class DefaultSettingsController < AdminController
     @default_setting = DefaultSetting.instance
   end
 
+  def provision_core_groups
+    provisioner = Authentik::CoreGroupProvisioner.new
+    results = provisioner.provision_and_sync!
+
+    parts = []
+    parts << "Created: #{results[:created].join(', ')}" if results[:created].any?
+    parts << "Already existed: #{results[:existing].count}" if results[:existing].any?
+    parts << "Synced: #{results[:synced].count}" if results[:synced].any?
+    parts << "Errors: #{results[:errors].join('; ')}" if results[:errors].any?
+
+    notice = "Core groups provisioned. #{parts.join('. ')}."
+    redirect_to default_settings_path, notice: notice
+  end
+
   def update
     @default_setting = DefaultSetting.instance
 

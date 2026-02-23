@@ -196,7 +196,9 @@ Rails.application.routes.draw do
       post :regenerate_key
     end
   end
-  resource :default_settings, only: [:show, :edit, :update], path: "settings/defaults"
+  resource :default_settings, only: [:show, :edit, :update], path: "settings/defaults" do
+    post :provision_core_groups, on: :member
+  end
   resource :membership_settings, only: [:show, :edit, :update], path: "settings/membership"
   resources :incoming_webhooks, only: [:index, :edit, :update], path: "settings/incoming_webhooks" do
     collection do

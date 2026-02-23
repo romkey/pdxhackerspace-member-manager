@@ -8,6 +8,11 @@
       <dt class="col-sm-2 text-secondary">Full name</dt>
       <dd class="col-sm-10"><%= user.full_name.presence || content_tag(:span, "Not provided", class: "text-muted fst-italic") %></dd>
 
+      <% if user.pronouns.present? %>
+        <dt class="col-sm-2 text-secondary">Pronouns</dt>
+        <dd class="col-sm-10"><%= user.pronouns %></dd>
+      <% end %>
+
       <% if user.bio.present? %>
         <dt class="col-sm-2 text-secondary">About</dt>
         <dd class="col-sm-10">
@@ -40,16 +45,14 @@
         <% end %>
       </dd>
 
-      <dt class="col-sm-2 text-secondary">Can train</dt>
-      <dd class="col-sm-10">
-        <% if user.training_topics.any? %>
+      <% if user.training_topics.any? %>
+        <dt class="col-sm-2 text-secondary">Can train</dt>
+        <dd class="col-sm-10">
           <% user.training_topics.order(:name).each do |topic| %>
             <span class="badge text-bg-success me-1 mb-1"><%= topic.name %></span>
           <% end %>
-        <% else %>
-          <span class="text-muted fst-italic">None</span>
-        <% end %>
-      </dd>
+        </dd>
+      <% end %>
     </dl>
   </div>
 </div>

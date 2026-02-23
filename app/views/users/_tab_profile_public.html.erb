@@ -2,6 +2,11 @@
 <div class="card shadow-sm border-0">
   <div class="card-body">
     <dl class="row mb-0">
+      <% if user.pronouns.present? %>
+        <dt class="col-sm-2 text-secondary">Pronouns</dt>
+        <dd class="col-sm-10"><%= user.pronouns %></dd>
+      <% end %>
+
       <% if user.bio.present? %>
         <dt class="col-sm-2 text-secondary">About</dt>
         <dd class="col-sm-10">
@@ -23,7 +28,7 @@
       <% end %>
     </dl>
 
-    <% if user.bio.blank? && user.user_links.empty? %>
+    <% if user.pronouns.blank? && user.bio.blank? && user.user_links.empty? %>
       <p class="text-muted text-center mb-0">This member hasn't added any profile information yet.</p>
     <% end %>
   </div>
