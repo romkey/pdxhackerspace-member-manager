@@ -56,7 +56,7 @@
             </div>
           <% end %>
 
-          <%= form_with url: onboard_save_rfid_path(@user), method: :post, class: "d-flex gap-2" do %>
+          <%= form_with url: onboard_save_rfid_path(@user), method: :post, class: "d-flex gap-2", data: { turbo: false } do %>
             <input type="text" name="rfid_code" class="form-control" placeholder="Scan or enter RFID code..."
                    autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
             <button type="submit" class="btn btn-success flex-shrink-0">

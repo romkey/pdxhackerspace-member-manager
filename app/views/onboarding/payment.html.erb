@@ -36,7 +36,7 @@
         </div>
         <div class="card-body">
 
-          <%= form_with url: onboard_save_payment_path(@user), method: :post, id: "payment-form" do |f| %>
+          <%= form_with url: onboard_save_payment_path(@user), method: :post, id: "payment-form", data: { turbo: false } do |f| %>
 
             <div class="mb-4">
               <label class="form-label fw-semibold">Membership Type</label>
