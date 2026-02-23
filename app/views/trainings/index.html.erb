@@ -19,7 +19,7 @@
           </div>
           <div class="card-body">
             <input type="text" id="training_member_search" class="form-control form-control-lg" 
-                   placeholder="Type to search by name, email, or username..." autocomplete="off">
+                   placeholder="Type to search by name, email, or username..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
             <div id="training_search_results" class="mt-2 d-none" style="max-height: 400px; overflow-y: auto;">
               <% @users_for_search.each do |user| %>
                 <a href="<%= train_member_path(user_id: user.id) %>" 

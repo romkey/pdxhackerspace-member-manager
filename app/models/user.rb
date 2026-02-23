@@ -263,6 +263,9 @@ class User < ApplicationRecord
 
     # Link all other PayPal payments with the same payer_id to this user
     link_all_paypal_payments_by_payer_id(payment.payer_id)
+
+    # Create payment events for all linked PayPal payments
+    ensure_paypal_payment_events(payment.payer_id)
   end
 
   # Called when a RechargePayment is linked to this User.
@@ -300,6 +303,9 @@ class User < ApplicationRecord
 
     # Link all other Recharge payments with the same customer_id to this user
     link_all_recharge_payments_by_customer_id(payment.customer_id)
+
+    # Create payment events for all linked Recharge payments
+    ensure_recharge_payment_events(payment.customer_id)
   end
 
   # Called when a SlackUser is linked to this User.
@@ -482,6 +488,44 @@ class User < ApplicationRecord
     # Use update_all to avoid triggering the after_save callback again
     PaypalPayment.where(payer_id: payer_id.to_s, user_id: nil)
                  .update_all(user_id: id)
+  end
+
+  # Find or create PaymentEvent records for all PayPal payments with the given payer_id.
+  # Updates existing orphaned events (user_id nil) and creates missing ones.
+  def ensure_paypal_payment_events(payer_id)
+    return if payer_id.blank?
+
+    PaypalPayment.where(payer_id: payer_id.to_s, user_id: id).find_each do |pp|
+      PaymentEvent.find_or_create_by!(source: 'paypal', external_id: pp.paypal_id, event_type: 'payment') do |pe|
+        pe.user = self
+        pe.amount = pp.amount
+        pe.currency = pp.currency || 'USD'
+        pe.occurred_at = pp.transaction_time || pp.created_at
+        pe.details = "PayPal payment from #{pp.payer_name || pp.payer_email}"
+        pe.paypal_payment = pp
+      end.tap do |pe|
+        pe.update!(user: self) if pe.user_id != id
+      end
+    end
+  end
+
+  # Find or create PaymentEvent records for all Recharge payments with the given customer_id.
+  # Updates existing orphaned events (user_id nil) and creates missing ones.
+  def ensure_recharge_payment_events(customer_id)
+    return if customer_id.blank?
+
+    RechargePayment.where(customer_id: customer_id.to_s, user_id: id).find_each do |rp|
+      PaymentEvent.find_or_create_by!(source: 'recharge', external_id: rp.recharge_id, event_type: 'payment') do |pe|
+        pe.user = self
+        pe.amount = rp.amount
+        pe.currency = rp.currency || 'USD'
+        pe.occurred_at = rp.processed_at || rp.created_at
+        pe.details = "Recharge payment from #{rp.customer_name || rp.customer_email}"
+        pe.recharge_payment = rp
+      end.tap do |pe|
+        pe.update!(user: self) if pe.user_id != id
+      end
+    end
   end
 
   def generate_username_if_blank

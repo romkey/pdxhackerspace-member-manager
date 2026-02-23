@@ -106,7 +106,7 @@
           <div class="d-flex gap-3 align-items-center">
             <% if current_user_admin? %>
               <%= form_with url: search_path, method: :get, local: true, class: "d-flex" do |f| %>
-                <input type="search" name="q" value="<%= params[:q] %>" class="form-control form-control-sm me-2" placeholder="Search…" aria-label="Search">
+                <input type="search" name="q" value="<%= params[:q] %>" class="form-control form-control-sm me-2" placeholder="Search…" aria-label="Search" autocorrect="off" autocapitalize="off" spellcheck="false">
               <% end %>
             <% end %>
             <% if user_signed_in? %>
