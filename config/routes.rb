@@ -54,6 +54,11 @@ Rails.application.routes.draw do
   get  "/onboard/:id/access",   to: "onboarding#access",          as: :onboard_access
   post "/onboard/:id/rfid",     to: "onboarding#save_rfid",       as: :onboard_save_rfid
   post "/onboard/:id/training", to: "onboarding#save_training",   as: :onboard_save_training
+  get  "/onboard/:id/mail",     to: "onboarding#mail",            as: :onboard_mail
+  post "/onboard/:id/mail/:mail_id/approve", to: "onboarding#approve_mail", as: :onboard_approve_mail
+  post "/onboard/:id/mail/:mail_id/reject",  to: "onboarding#reject_mail",  as: :onboard_reject_mail
+  post "/onboard/:id/mail/approve_all",      to: "onboarding#approve_all_mail", as: :onboard_approve_all_mail
+  post "/onboard/:id/mail/reject_all",       to: "onboarding#reject_all_mail",  as: :onboard_reject_all_mail
 
   resources :slack_users, only: [:index, :show] do
     collection do

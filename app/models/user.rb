@@ -18,6 +18,7 @@ class User < ApplicationRecord
   has_many :trainings_as_trainee, class_name: 'Training', foreign_key: 'trainee_id', dependent: :destroy
   has_many :trainings_as_trainer, class_name: 'Training', foreign_key: 'trainer_id', dependent: :destroy
   has_and_belongs_to_many :application_groups
+  has_many :queued_mails, foreign_key: 'recipient_id', dependent: :nullify
   has_many :reported_incidents, class_name: 'IncidentReport', foreign_key: 'reporter_id', dependent: :nullify
   has_and_belongs_to_many :incident_reports, join_table: 'incident_report_members'
   validates :authentik_id, uniqueness: true, allow_blank: true

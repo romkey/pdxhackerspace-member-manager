@@ -262,6 +262,16 @@
         <% end %>
       <% end %>
     </li>
+    <li class="nav-item" role="presentation">
+      <%= link_to user_path(@user, tab: :mail, view_as: params[:view_as]), 
+          class: "nav-link #{'active' if @active_tab == :mail}", 
+          role: "tab" do %>
+        <i class="bi bi-envelope me-1"></i> Mail
+        <% if @mail_count.to_i > 0 %>
+          <span class="badge bg-secondary ms-1"><%= @mail_count %></span>
+        <% end %>
+      <% end %>
+    </li>
   </ul>
 
   <div class="tab-content">
@@ -275,6 +285,8 @@
       <%= render 'users/tab_incidents', user_incidents: @user_incidents, pagy: @pagy_incidents, user: @user %>
     <% elsif @active_tab == :journal %>
       <%= render 'users/tab_journal', journals: @journals, pagy: @pagy_journals, user: @user %>
+    <% elsif @active_tab == :mail %>
+      <%= render 'users/tab_mail', queued_mails: @queued_mails, pagy: @pagy_mails, user: @user %>
     <% end %>
   </div>
 

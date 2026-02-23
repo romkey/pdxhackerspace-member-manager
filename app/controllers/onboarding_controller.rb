@@ -1,5 +1,6 @@
 class OnboardingController < AdminController
-  before_action :set_user, only: [:payment, :save_payment, :access, :save_rfid, :save_training]
+  before_action :set_user, only: [:payment, :save_payment, :access, :save_rfid, :save_training,
+                                  :mail, :approve_mail, :reject_mail, :approve_all_mail, :reject_all_mail]
 
   # Step 1: Member Info
   def member_info
@@ -132,6 +133,34 @@ class OnboardingController < AdminController
 
     flash[:notice] = "Building Access training recorded."
     redirect_to onboard_access_path(@user), status: :see_other
+  end
+
+  # Step 4: Review Mail
+  def mail
+    @queued_mails = @user.queued_mails.includes(:email_template, :reviewed_by).newest_first
+    @pending_count = @queued_mails.count(&:pending?)
+  end
+
+  def approve_mail
+    qm = QueuedMail.find(params[:mail_id])
+    qm.approve!(current_user) if qm.pending?
+    redirect_to onboard_mail_path(@user), status: :see_other
+  end
+
+  def reject_mail
+    qm = QueuedMail.find(params[:mail_id])
+    qm.reject!(current_user) if qm.pending?
+    redirect_to onboard_mail_path(@user), status: :see_other
+  end
+
+  def approve_all_mail
+    @user.queued_mails.pending.find_each { |qm| qm.approve!(current_user) }
+    redirect_to onboard_mail_path(@user), notice: "All pending messages approved.", status: :see_other
+  end
+
+  def reject_all_mail
+    @user.queued_mails.pending.find_each { |qm| qm.reject!(current_user) }
+    redirect_to onboard_mail_path(@user), notice: "All pending messages rejected.", status: :see_other
   end
 
   private

@@ -173,6 +173,11 @@ class UsersController < AuthenticatedController
         incidents_query = @user.incident_reports.includes(:reporter).ordered
         @incidents_count = incidents_query.count
         @pagy_incidents, @user_incidents = pagy(incidents_query, limit: 20, page_param: :incidents_page)
+
+        # Mail (queued mails for this recipient, with log entries)
+        mail_query = @user.queued_mails.includes(:email_template, :reviewed_by, :mail_log_entries).newest_first
+        @mail_count = mail_query.count
+        @pagy_mails, @queued_mails = pagy(mail_query, limit: 20, page_param: :mail_page)
       end
 
       # Find previous and next users for navigation (always for admin toolbar)

@@ -1,0 +1,140 @@
+<div class="py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+
+      <!-- Progress -->
+      <div class="d-flex align-items-center mb-4">
+        <span class="badge bg-success rounded-pill me-2"><i class="bi bi-check"></i></span>
+        <span class="text-muted">Member Info</span>
+        <i class="bi bi-chevron-right mx-2 text-muted"></i>
+        <span class="badge bg-success rounded-pill me-2"><i class="bi bi-check"></i></span>
+        <span class="text-muted">Payment</span>
+        <i class="bi bi-chevron-right mx-2 text-muted"></i>
+        <span class="badge bg-success rounded-pill me-2"><i class="bi bi-check"></i></span>
+        <span class="text-muted">Building Access</span>
+        <i class="bi bi-chevron-right mx-2 text-muted"></i>
+        <span class="badge bg-primary rounded-pill me-2">4</span>
+        <span class="fw-semibold text-primary">Mail</span>
+      </div>
+
+      <!-- Member Summary -->
+      <div class="card shadow-sm border-0 mb-3">
+        <div class="card-body py-2">
+          <div class="d-flex align-items-center gap-3">
+            <i class="bi bi-check-circle-fill text-success fs-4"></i>
+            <div>
+              <%= link_to @user.display_name, user_path(@user), class: "fw-semibold text-decoration-none" %>
+              <span class="text-muted ms-2"><%= @user.email %></span>
+              <% if @user.username.present? %>
+                <span class="text-muted ms-2">@<%= @user.username %></span>
+              <% end %>
+            </div>
+            <div class="ms-auto">
+              <span class="badge text-bg-<%= @user.active? ? 'success' : 'secondary' %>"><%= @user.membership_status&.titleize %></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Queued Mail -->
+      <div class="card shadow-sm border-0 mb-3">
+        <div class="card-header bg-body-tertiary">
+          <h4 class="card-title mb-0"><i class="bi bi-envelope me-2"></i>Queued Mail</h4>
+        </div>
+        <div class="card-body">
+          <% if @queued_mails.any? %>
+            <% if @pending_count > 0 %>
+              <div class="d-flex gap-2 mb-3">
+                <% if smtp_configured? %>
+                  <%= button_to "Approve & Send All", onboard_approve_all_mail_path(@user), method: :post,
+                      class: "btn btn-success btn-sm",
+                      data: { turbo_confirm: "Approve and send all #{@pending_count} pending message#{'s' if @pending_count != 1}?" } %>
+                <% else %>
+                  <button class="btn btn-success btn-sm" disabled title="SMTP not configured">Approve & Send All</button>
+                <% end %>
+                <%= button_to "Reject All", onboard_reject_all_mail_path(@user), method: :post,
+                    class: "btn btn-danger btn-sm",
+                    data: { turbo_confirm: "Reject all #{@pending_count} pending message#{'s' if @pending_count != 1}?" } %>
+              </div>
+            <% end %>
+
+            <div class="table-responsive">
+              <table class="table table-sm align-middle mb-0">
+                <thead class="bg-body-tertiary">
+                  <tr>
+                    <th>Subject</th>
+                    <th>Reason</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% @queued_mails.each do |qm| %>
+                    <tr class="<%= 'table-danger' if qm.delivery_failed? %><%= 'table-secondary' if qm.rejected? %>">
+                      <td>
+                        <span class="text-truncate d-inline-block" style="max-width: 300px;">
+                          <%= qm.subject %>
+                        </span>
+                        <br><span class="text-muted small"><%= time_ago_in_words(qm.created_at) %> ago</span>
+                      </td>
+                      <td class="text-muted small"><%= qm.reason %></td>
+                      <td>
+                        <% if qm.delivery_failed? %>
+                          <span class="badge text-bg-danger">Send Failed</span>
+                        <% elsif qm.delivery_pending? %>
+                          <span class="badge text-bg-info">Sending...</span>
+                        <% elsif qm.sent? %>
+                          <span class="badge text-bg-success">Sent</span>
+                        <% elsif qm.pending? %>
+                          <span class="badge text-bg-warning">Pending</span>
+                        <% elsif qm.rejected? %>
+                          <span class="badge text-bg-secondary">Rejected</span>
+                        <% end %>
+                      </td>
+                      <td class="text-end">
+                        <div class="btn-group btn-group-sm">
+                          <%= link_to "View", queued_mail_path(qm), class: "btn btn-outline-primary", target: "_blank" %>
+                          <% if qm.pending? %>
+                            <% if smtp_configured? %>
+                              <%= button_to "Approve", onboard_approve_mail_path(@user, qm), method: :post,
+                                  class: "btn btn-outline-success" %>
+                            <% else %>
+                              <button class="btn btn-outline-success" disabled title="SMTP not configured">Approve</button>
+                            <% end %>
+                            <%= button_to "Reject", onboard_reject_mail_path(@user, qm), method: :post,
+                                class: "btn btn-outline-danger" %>
+                          <% end %>
+                        </div>
+                      </td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          <% else %>
+            <div class="text-center py-3">
+              <i class="bi bi-envelope-check display-6 text-muted opacity-25 d-block mb-2"></i>
+              <p class="text-muted mb-0">No queued mail for this member.</p>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <!-- Completion -->
+      <div class="card shadow-sm border-0">
+        <div class="card-body text-center py-4">
+          <i class="bi bi-check-circle-fill text-success fs-1 mb-2"></i>
+          <h5 class="text-success">Onboarding Complete!</h5>
+          <p class="text-muted"><%= @user.display_name %> has been onboarded.</p>
+          <div class="d-flex justify-content-center gap-2 mt-3">
+            <%= link_to user_path(@user), class: "btn btn-primary btn-lg" do %>
+              <i class="bi bi-person me-1"></i>View Member Profile
+            <% end %>
+            <%= link_to "Back to Dashboard", root_path, class: "btn btn-outline-secondary btn-lg" %>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
