@@ -42,6 +42,11 @@ class DashboardController < AdminController
     # Urgent: Unlinked Recharge payments
     @unlinked_recharge_count = RechargePayment.where(user_id: nil, dont_link: false).count
 
+    # Important: Open and draft incident reports
+    @open_incident_count = IncidentReport.where(status: 'in_progress').count
+    @draft_incident_count = IncidentReport.where(status: 'draft').count
+    @active_incident_count = @open_incident_count + @draft_incident_count
+
     # Housekeeping: Lapsed members with access after lapse
     lapsed_users = User.where(dues_status: 'lapsed')
                        .where.not(membership_status: %w[banned deceased])

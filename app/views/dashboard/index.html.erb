@@ -169,6 +169,30 @@
             <% item_number += 1 %>
             <li class="list-group-item d-flex align-items-start gap-2 py-3">
               <span class="badge rounded-pill text-bg-secondary"><%= item_number %></span>
+              <% if @active_incident_count == 0 %>
+                <div>
+                  <i class="bi bi-check-circle-fill text-success me-1"></i>
+                  No open or draft incident reports
+                </div>
+              <% else %>
+                <div>
+                  <i class="bi bi-exclamation-circle-fill text-info me-1"></i>
+                  <%= link_to incident_reports_path, class: "text-decoration-none fw-semibold" do %>
+                    <strong><%= @active_incident_count %></strong> incident <%= 'report'.pluralize(@active_incident_count) %>
+                  <% end %>
+                  <div class="text-muted small mt-1">
+                    <% parts = [] %>
+                    <% parts << "#{@open_incident_count} open" if @open_incident_count > 0 %>
+                    <% parts << "#{@draft_incident_count} draft" if @draft_incident_count > 0 %>
+                    <%= parts.join(', ') %>
+                  </div>
+                </div>
+              <% end %>
+            </li>
+
+            <% item_number += 1 %>
+            <li class="list-group-item d-flex align-items-start gap-2 py-3">
+              <span class="badge rounded-pill text-bg-secondary"><%= item_number %></span>
               <div>
                 <i class="bi bi-check-circle-fill text-success me-1"></i>
                 <span class="text-muted">Manual payments due</span>
