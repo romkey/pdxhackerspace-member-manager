@@ -174,6 +174,8 @@ class ReportsController < AdminController
     @legacy_recent_access = @legacy_recent_access.first(limit) if limit
   end
 
+  SLACK_JOIN_ORDER = Arel.sql("LOWER(COALESCE(NULLIF(users.full_name, ''), NULLIF(users.email, ''), users.authentik_id)) ASC")
+
   def prepare_lapsed_with_slack(limit: nil)
     scope = User.where(dues_status: 'lapsed')
                 .where.not(membership_status: %w[banned deceased])
@@ -181,7 +183,7 @@ class ReportsController < AdminController
                 .non_legacy
                 .joins(:slack_user)
                 .includes(:slack_user)
-                .ordered_by_display_name
+                .order(SLACK_JOIN_ORDER)
     @lapsed_with_slack_count = scope.count
     @lapsed_with_slack = limit ? scope.limit(limit) : scope
   end
@@ -191,7 +193,7 @@ class ReportsController < AdminController
                 .non_service_accounts
                 .joins(:slack_user)
                 .includes(:slack_user)
-                .ordered_by_display_name
+                .order(SLACK_JOIN_ORDER)
     @legacy_with_slack_count = scope.count
     @legacy_with_slack = limit ? scope.limit(limit) : scope
   end
