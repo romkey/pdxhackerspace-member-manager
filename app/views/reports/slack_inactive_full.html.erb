@@ -1,0 +1,55 @@
+<div class="mb-4">
+  <%= link_to "&larr; Back to Reports".html_safe, reports_path, class: "text-decoration-none" %>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-header bg-body-tertiary">
+    <h2 class="h5 mb-0"><%= @title %> (<%= @slack_inactive_count %>)</h2>
+  </div>
+  <div class="card-body">
+    <% if @slack_inactive.any? %>
+      <p class="text-muted small mb-3">Non-deleted, non-bot Slack users who have not been active in the last year (or have no recorded activity).</p>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Slack User</th>
+              <th>Linked Member</th>
+              <th>Last Active</th>
+              <th>Joined Slack</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @slack_inactive.each do |su| %>
+              <tr>
+                <td>
+                  <strong><%= su.display_name %></strong>
+                  <% if su.username.present? %>
+                    <span class="text-muted small ms-1">@<%= su.username %></span>
+                  <% end %>
+                </td>
+                <td>
+                  <% if su.user.present? %>
+                    <%= link_to su.user.display_name, user_path(su.user), class: "text-decoration-none" %>
+                  <% else %>
+                    <span class="text-muted fst-italic">Not linked</span>
+                  <% end %>
+                </td>
+                <td>
+                  <% if su.last_active_at.present? %>
+                    <%= time_ago_in_words(su.last_active_at) %> ago
+                  <% else %>
+                    <span class="text-muted fst-italic">Never</span>
+                  <% end %>
+                </td>
+                <td><%= su.created_at.strftime('%Y-%m-%d') %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <p class="text-muted mb-0">All Slack users have been active in the last year.</p>
+    <% end %>
+  </div>
+</div>

@@ -21,7 +21,8 @@
     { id: 'lapsed-with-slack', name: 'Lapsed + Slack', count: @lapsed_with_slack_count },
     { id: 'legacy-with-slack', name: 'Legacy + Slack', count: @legacy_with_slack_count },
     { id: 'lapsed-active-slack', name: 'Lapsed Active Slack', count: @lapsed_active_slack_count },
-    { id: 'legacy-active-slack', name: 'Legacy Active Slack', count: @legacy_active_slack_count }
+    { id: 'legacy-active-slack', name: 'Legacy Active Slack', count: @legacy_active_slack_count },
+    { id: 'slack-inactive', name: 'Slack Inactive', count: @slack_inactive_count }
   ]
 %>
 
@@ -773,6 +774,71 @@
           <% end %>
         <% else %>
           <p class="text-muted mb-0">No legacy members are still active on Slack.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slack Users Inactive for Over a Year -->
+  <div class="tab-pane fade <%= 'show active' if active_tab == 'slack-inactive' %>"
+       id="slack-inactive-pane"
+       role="tabpanel"
+       aria-labelledby="slack-inactive-tab">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-body-tertiary">
+        <h2 class="h5 mb-0">Slack Users Inactive for Over a Year (<%= @slack_inactive_count %>)</h2>
+      </div>
+      <div class="card-body">
+        <% if @slack_inactive.any? %>
+          <p class="text-muted small mb-3">Non-deleted, non-bot Slack users who have not been active in the last year (or have no recorded activity).</p>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Slack User</th>
+                  <th>Linked Member</th>
+                  <th>Last Active</th>
+                  <th>Joined Slack</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @slack_inactive.each do |su| %>
+                  <tr>
+                    <td>
+                      <strong><%= su.display_name %></strong>
+                      <% if su.username.present? %>
+                        <span class="text-muted small ms-1">@<%= su.username %></span>
+                      <% end %>
+                    </td>
+                    <td>
+                      <% if su.user.present? %>
+                        <%= link_to su.user.display_name, user_path(su.user), class: "text-decoration-none" %>
+                      <% else %>
+                        <span class="text-muted fst-italic">Not linked</span>
+                      <% end %>
+                    </td>
+                    <td>
+                      <% if su.last_active_at.present? %>
+                        <%= time_ago_in_words(su.last_active_at) %> ago
+                      <% else %>
+                        <span class="text-muted fst-italic">Never</span>
+                      <% end %>
+                    </td>
+                    <td><%= su.created_at.strftime('%Y-%m-%d') %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+          <% if @slack_inactive_count > 20 %>
+            <div class="mt-3 text-center">
+              <%= link_to "View all #{@slack_inactive_count} Slack users",
+                  reports_view_all_path('slack-inactive'),
+                  class: "btn btn-outline-primary" %>
+            </div>
+          <% end %>
+        <% else %>
+          <p class="text-muted mb-0">All Slack users have been active in the last year.</p>
         <% end %>
       </div>
     </div>

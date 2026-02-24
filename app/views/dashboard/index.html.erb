@@ -320,6 +320,24 @@
               <% end %>
             </li>
 
+            <% item_number += 1 %>
+            <li class="list-group-item d-flex align-items-start gap-2 py-3">
+              <span class="badge rounded-pill text-bg-secondary"><%= item_number %></span>
+              <% if @slack_inactive_count == 0 %>
+                <div>
+                  <i class="bi bi-check-circle-fill text-success me-1"></i>
+                  All Slack users have been active in the last year
+                </div>
+              <% else %>
+                <div>
+                  <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
+                  <%= link_to reports_path(tab: 'slack-inactive'), class: "text-decoration-none fw-semibold" do %>
+                    <strong><%= @slack_inactive_count %></strong> Slack <%= 'user'.pluralize(@slack_inactive_count) %> inactive for over a year
+                  <% end %>
+                </div>
+              <% end %>
+            </li>
+
           </ul>
         </div>
       </div>

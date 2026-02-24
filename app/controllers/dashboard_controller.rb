@@ -100,5 +100,10 @@ class DashboardController < AdminController
                                      .joins(:slack_user)
                                      .where.not(slack_users: { last_active_at: nil })
                                      .count
+
+    # Housekeeping: Slack users inactive for over a year
+    @slack_inactive_count = SlackUser.active
+                                     .where('last_active_at < ? OR last_active_at IS NULL', 1.year.ago)
+                                     .count
   end
 end

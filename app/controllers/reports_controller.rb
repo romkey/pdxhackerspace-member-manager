@@ -81,6 +81,9 @@ class ReportsController < AdminController
     # Legacy members still active on Slack
     prepare_legacy_active_slack(limit: LIMIT)
 
+    # Slack users inactive for over a year
+    prepare_slack_inactive(limit: LIMIT)
+
     # Prepare chart data
     prepare_chart_data
   end
@@ -235,6 +238,15 @@ class ReportsController < AdminController
                 .order('slack_users.last_active_at DESC')
     @legacy_active_slack_count = scope.count
     @legacy_active_slack = limit ? scope.limit(limit) : scope
+  end
+
+  def prepare_slack_inactive(limit: nil)
+    one_year_ago = 1.year.ago
+    scope = SlackUser.active
+                     .where('last_active_at < ? OR last_active_at IS NULL', one_year_ago)
+                     .order(Arel.sql('COALESCE(last_active_at, created_at) ASC'))
+    @slack_inactive_count = scope.count
+    @slack_inactive = limit ? scope.limit(limit) : scope
   end
 
   def prepare_chart_data
@@ -445,6 +457,11 @@ class ReportsController < AdminController
       prepare_legacy_active_slack
       @title = 'Legacy Members Still Active on Slack'
       render 'reports/slack_members_full'
+      return
+    when 'slack-inactive'
+      prepare_slack_inactive
+      @title = 'Slack Users Inactive for Over a Year'
+      render 'reports/slack_inactive_full'
       return
     else
       redirect_to reports_path, alert: 'Invalid report type.'
