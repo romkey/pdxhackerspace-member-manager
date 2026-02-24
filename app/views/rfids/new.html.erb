@@ -16,6 +16,9 @@
             <span id="selected_member_name"></span>
             <button type="button" class="btn-close btn-close-white ms-2" style="font-size: 0.6rem;" aria-label="Remove" id="clear_member"></button>
           </span>
+          <div id="has_training_note" class="text-muted small mt-1" style="display: none;">
+            <i class="bi bi-check-circle text-success me-1"></i>This member already has Building Access training.
+          </div>
         </div>
         
         <!-- Hidden input for selected member -->
@@ -92,6 +95,7 @@
       const buttonsWithTraining = document.getElementById('buttons_with_training');
       const buttonsWithoutTraining = document.getElementById('buttons_without_training');
       const addTrainingInput = document.getElementById('add_training_input');
+      const hasTrainingNote = document.getElementById('has_training_note');
 
       if (!memberSearch || !searchResults || !selectedMember || !userIdInput) return;
 
@@ -140,9 +144,11 @@
         if (hasBuildingAccess === 'true') {
           buttonsWithTraining.style.display = 'none';
           buttonsWithoutTraining.style.display = 'flex';
+          hasTrainingNote.style.display = 'block';
         } else {
           buttonsWithTraining.style.display = 'flex';
           buttonsWithoutTraining.style.display = 'none';
+          hasTrainingNote.style.display = 'none';
         }
         addTrainingInput.value = '0';
       }
@@ -157,6 +163,7 @@
         buttonsWithTraining.style.display = 'none';
         buttonsWithoutTraining.style.display = 'flex';
         addTrainingInput.value = '0';
+        hasTrainingNote.style.display = 'none';
       }
 
       memberSearch.addEventListener('input', filterMembers);
