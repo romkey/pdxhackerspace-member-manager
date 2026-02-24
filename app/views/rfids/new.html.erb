@@ -33,6 +33,7 @@
                  data-user-id="<%= user.id %>" 
                  data-user-name="<%= [user.display_name, user.email, user.username].compact.join(' ').downcase %>"
                  data-user-display="<%= user.display_name %>"
+                 data-has-building-access="<%= @trained_user_ids.include?(user.id) %>"
                  style="cursor: pointer;">
               <div class="fw-semibold"><%= user.display_name %></div>
               <% if user.email.present? %>
@@ -57,7 +58,19 @@
         <%= f.text_area :notes, class: "form-control", rows: 2, placeholder: "Optional notes about this key fob..." %>
       </div>
 
-      <div class="d-flex gap-2">
+      <input type="hidden" name="add_training" id="add_training_input" value="0">
+
+      <div class="gap-2" id="buttons_with_training" style="display: none;">
+        <button type="submit" class="btn btn-success" onclick="document.getElementById('add_training_input').value='1'">
+          <i class="bi bi-key me-1"></i><i class="bi bi-mortarboard me-1"></i>Add Key Fob and Building Access Training
+        </button>
+        <button type="submit" class="btn btn-outline-success" onclick="document.getElementById('add_training_input').value='0'">
+          <i class="bi bi-key me-1"></i>Add Key Fob, Skip Training
+        </button>
+        <%= link_to "Cancel", root_path, class: "btn btn-outline-secondary" %>
+      </div>
+
+      <div class="gap-2" id="buttons_without_training" style="display: flex;">
         <%= f.submit "Add Key Fob", class: "btn btn-success" %>
         <%= link_to "Cancel", root_path, class: "btn btn-outline-secondary" %>
       </div>
@@ -76,6 +89,9 @@
       const selectedMemberName = document.getElementById('selected_member_name');
       const userIdInput = document.getElementById('rfid_user_id');
       const clearMemberBtn = document.getElementById('clear_member');
+      const buttonsWithTraining = document.getElementById('buttons_with_training');
+      const buttonsWithoutTraining = document.getElementById('buttons_without_training');
+      const addTrainingInput = document.getElementById('add_training_input');
 
       if (!memberSearch || !searchResults || !selectedMember || !userIdInput) return;
 
@@ -113,13 +129,22 @@
         }
       }
 
-      function selectMember(userId, displayName) {
+      function selectMember(userId, displayName, hasBuildingAccess) {
         userIdInput.value = userId;
         selectedMemberName.textContent = displayName;
         selectedMember.style.display = 'block';
         memberSearchContainer.style.display = 'none';
         searchResults.style.display = 'none';
         noResults.style.display = 'none';
+
+        if (hasBuildingAccess === 'true') {
+          buttonsWithTraining.style.display = 'none';
+          buttonsWithoutTraining.style.display = 'flex';
+        } else {
+          buttonsWithTraining.style.display = 'flex';
+          buttonsWithoutTraining.style.display = 'none';
+        }
+        addTrainingInput.value = '0';
       }
 
       function clearSelection() {
@@ -129,6 +154,9 @@
         memberSearchContainer.style.display = 'block';
         memberSearch.value = '';
         memberSearch.focus();
+        buttonsWithTraining.style.display = 'none';
+        buttonsWithoutTraining.style.display = 'flex';
+        addTrainingInput.value = '0';
       }
 
       memberSearch.addEventListener('input', filterMembers);
@@ -139,7 +167,8 @@
         result.addEventListener('click', function() {
           const userId = this.getAttribute('data-user-id');
           const displayName = this.getAttribute('data-user-display');
-          selectMember(userId, displayName);
+          const hasBuildingAccess = this.getAttribute('data-has-building-access');
+          selectMember(userId, displayName, hasBuildingAccess);
         });
 
         result.addEventListener('mouseenter', function() {
