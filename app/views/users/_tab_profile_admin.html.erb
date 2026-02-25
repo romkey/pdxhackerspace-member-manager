@@ -166,10 +166,15 @@
             <% if user.rfids.any? %>
               <div class="d-flex flex-column gap-2">
                 <% user.rfids.each do |rfid_record| %>
-                  <div>
+                  <div class="d-flex align-items-center">
                     <code class="bg-body-secondary px-2 py-1 rounded me-2"><%= rfid_record.rfid %></code>
                     <% if rfid_record.notes.present? %>
-                      <span class="text-muted small ms-2"><%= rfid_record.notes %></span>
+                      <span class="text-muted small me-2"><%= rfid_record.notes %></span>
+                    <% end %>
+                    <%= button_to rfid_path(rfid_record), method: :delete,
+                        class: "btn btn-outline-danger btn-sm",
+                        data: { turbo_confirm: "Remove key fob #{rfid_record.rfid} from #{user.display_name}?" } do %>
+                      <i class="bi bi-trash"></i> Remove
                     <% end %>
                   </div>
                 <% end %>
