@@ -25,6 +25,7 @@
               <th>Sent</th>
               <th>Expires</th>
               <th>Member</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -33,7 +34,9 @@
                 <td><%= invitation.email %></td>
                 <td><span class="badge text-bg-secondary"><%= invitation.type_label %></span></td>
                 <td>
-                  <% if invitation.accepted? %>
+                  <% if invitation.cancelled? %>
+                    <span class="badge text-bg-dark"><i class="bi bi-x-circle me-1"></i>Cancelled</span>
+                  <% elsif invitation.accepted? %>
                     <span class="badge text-bg-success"><i class="bi bi-check-circle me-1"></i>Accepted</span>
                   <% elsif invitation.expired? %>
                     <span class="badge text-bg-danger"><i class="bi bi-clock-history me-1"></i>Expired</span>
@@ -44,7 +47,7 @@
                 <td><%= invitation.invited_by.display_name %></td>
                 <td><%= time_ago_in_words(invitation.created_at) %> ago</td>
                 <td>
-                  <% if invitation.accepted? %>
+                  <% if invitation.accepted? || invitation.cancelled? %>
                     <span class="text-muted">—</span>
                   <% elsif invitation.expired? %>
                     <span class="text-danger small"><%= time_ago_in_words(invitation.expires_at) %> ago</span>
@@ -57,6 +60,15 @@
                     <%= link_to invitation.user.display_name, user_path(invitation.user), class: "text-decoration-none" %>
                   <% else %>
                     <span class="text-muted fst-italic">—</span>
+                  <% end %>
+                </td>
+                <td>
+                  <% if invitation.pending? %>
+                    <%= button_to cancel_invitation_path(invitation), method: :post,
+                        class: "btn btn-outline-danger btn-sm",
+                        data: { turbo_confirm: "Cancel invitation to #{invitation.email}?" } do %>
+                      <i class="bi bi-x-lg"></i> Cancel
+                    <% end %>
                   <% end %>
                 </td>
               </tr>

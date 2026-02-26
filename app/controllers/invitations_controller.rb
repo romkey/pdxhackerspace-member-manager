@@ -24,6 +24,18 @@ class InvitationsController < AdminController
     end
   end
 
+  def cancel
+    @invitation = Invitation.find(params[:id])
+    if @invitation.accepted?
+      redirect_to invitations_path, alert: "This invitation has already been accepted and cannot be cancelled."
+    elsif @invitation.cancelled?
+      redirect_to invitations_path, alert: "This invitation has already been cancelled."
+    else
+      @invitation.cancel!
+      redirect_to invitations_path, notice: "Invitation to #{@invitation.email} has been cancelled."
+    end
+  end
+
   private
 
   def enqueue_invitation_email(invitation)
