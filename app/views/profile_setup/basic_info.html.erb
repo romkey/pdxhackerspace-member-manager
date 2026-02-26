@@ -55,22 +55,4 @@
   </div>
 </div>
 
-<script>
-(function() {
-  var fullNameField = document.getElementById('setup_full_name');
-  var usernameField = document.getElementById('setup_username');
-  if (!fullNameField || !usernameField) return;
-
-  var userEdited = usernameField.value.trim().length > 0;
-
-  fullNameField.addEventListener('input', function() {
-    if (!userEdited) {
-      usernameField.value = fullNameField.value.toLowerCase().replace(/\s+/g, '');
-    }
-  });
-
-  usernameField.addEventListener('input', function() {
-    userEdited = usernameField.value.trim().length > 0;
-  });
-})();
-</script>
+<%= render 'shared/username_autogenerate', name_field_id: 'setup_full_name', username_field_id: 'setup_username' %>

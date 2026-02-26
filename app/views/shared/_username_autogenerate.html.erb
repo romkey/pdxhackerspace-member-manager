@@ -1,0 +1,23 @@
+<script>
+(function() {
+  var nameField = document.getElementById('<%= name_field_id %>');
+  var usernameField = document.getElementById('<%= username_field_id %>');
+  if (!nameField || !usernameField) return;
+
+  var userEdited = usernameField.value.trim().length > 0;
+
+  nameField.addEventListener('input', function() {
+    if (!userEdited || usernameField.value === '') {
+      usernameField.value = nameField.value
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, '')
+        .replace(/\s+/g, '');
+      userEdited = false;
+    }
+  });
+
+  usernameField.addEventListener('input', function() {
+    userEdited = usernameField.value.trim().length > 0;
+  });
+})();
+</script>

@@ -64,26 +64,4 @@
   </div>
 </div>
 
-<script>
-(function() {
-  const nameField = document.getElementById('onboard_full_name');
-  const usernameField = document.getElementById('onboard_username');
-  if (!nameField || !usernameField) return;
-
-  let userEditedUsername = false;
-
-  usernameField.addEventListener('input', function() {
-    userEditedUsername = true;
-  });
-
-  nameField.addEventListener('input', function() {
-    if (!userEditedUsername || usernameField.value === '') {
-      usernameField.value = nameField.value
-        .toLowerCase()
-        .replace(/[^a-z0-9\s]/g, '')
-        .replace(/\s+/g, '');
-      userEditedUsername = false;
-    }
-  });
-})();
-</script>
+<%= render 'shared/username_autogenerate', name_field_id: 'onboard_full_name', username_field_id: 'onboard_username' %>
