@@ -1,4 +1,8 @@
 class InvitationsController < AdminController
+  def index
+    @invitations = Invitation.newest_first.includes(:invited_by, :user)
+  end
+
   def new
     @invitation = Invitation.new(membership_type: 'member')
     @expiry_hours = MembershipSetting.instance.invitation_expiry_hours
@@ -13,7 +17,7 @@ class InvitationsController < AdminController
 
     if @invitation.save
       enqueue_invitation_email(@invitation)
-      redirect_to root_path, notice: "#{@invitation.type_label} invitation sent to #{@invitation.email}. It will expire in #{humanize_hours(MembershipSetting.instance.invitation_expiry_hours)}."
+      redirect_to queued_mails_path, notice: "#{@invitation.type_label} invitation queued for #{@invitation.email}. Review and approve it to send."
     else
       @expiry_hours = MembershipSetting.instance.invitation_expiry_hours
       render :new, status: :unprocessable_entity
@@ -46,8 +50,7 @@ class InvitationsController < AdminController
         reason: "#{invitation.type_label} invitation for #{invitation.email}",
         email_template: template,
         mailer_action: 'member_invitation',
-        mailer_args: { invitation_id: invitation.id },
-        status: 'approved'
+        mailer_args: { invitation_id: invitation.id }
       )
     else
       mail = QueuedMail.create!(
@@ -57,13 +60,11 @@ class InvitationsController < AdminController
         body_text: "You've been invited to join #{org} as a #{invitation.type_label}.\n\n#{invitation.type_description}\n\nCreate your account: #{invitation.invitation_url}\n\nThis invitation expires #{humanize_expiry(invitation.expires_at)}.",
         reason: "#{invitation.type_label} invitation for #{invitation.email}",
         mailer_action: 'member_invitation',
-        mailer_args: { invitation_id: invitation.id },
-        status: 'approved'
+        mailer_args: { invitation_id: invitation.id }
       )
     end
 
     MailLogEntry.log!(mail, 'created', details: "Queued #{invitation.type_label} invitation to #{invitation.email}")
-    QueuedMailDeliveryJob.perform_later(mail.id)
   end
 
   def humanize_expiry(time)
