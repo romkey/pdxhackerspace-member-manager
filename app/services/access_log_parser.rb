@@ -16,7 +16,14 @@ class AccessLogParser
 
   def initialize(line, file_year: nil)
     @original_line = line.to_s.chomp
-    @file_year = file_year || Time.current.year
+
+    if file_year
+      @file_year = file_year
+    else
+      # Extract year from a "YYYY-MM-DD.log:" filename prefix if present
+      prefix = @original_line.match(/\A(\d{4})-\d{2}-\d{2}\.log:/)
+      @file_year = prefix ? prefix[1].to_i : Time.current.year
+    end
   end
 
   def should_skip?
@@ -156,6 +163,15 @@ class AccessLogParser
   end
 
   def parse_timestamp(timestamp_str)
+    result = raw_parse_timestamp(timestamp_str)
+    return nil if result.nil?
+
+    # Never store a future timestamp — roll back one year if needed
+    result = result.change(year: result.year - 1) if result > Time.current
+    result
+  end
+
+  def raw_parse_timestamp(timestamp_str)
     # Try ISO 8601 format first: "2025-11-18T05:54:25-08:00"
     return Time.zone.parse(timestamp_str) if timestamp_str.match?(/\A\d{4}-\d{2}-\d{2}T/)
 

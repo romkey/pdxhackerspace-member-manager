@@ -219,6 +219,15 @@ def parse_log_line(line, file_year, original_line = nil)
 end
 
 def parse_timestamp(timestamp_str, file_year)
+  result = raw_parse_timestamp(timestamp_str, file_year)
+  return nil if result.nil?
+
+  # Never store a future timestamp — roll back one year if needed
+  result = result.change(year: result.year - 1) if result > Time.current
+  result
+end
+
+def raw_parse_timestamp(timestamp_str, file_year)
   # Try ISO 8601 format first: "2025-11-18T05:54:25-08:00"
   return Time.zone.parse(timestamp_str) if timestamp_str.match?(/\A\d{4}-\d{2}-\d{2}T/)
 
