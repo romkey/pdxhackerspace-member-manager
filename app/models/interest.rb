@@ -17,14 +17,14 @@ class Interest < ApplicationRecord
     seeded_set.exists?
   end
 
-  # Returns up to `limit` approved interests to suggest: most popular first, then random filler.
-  # Members only see approved interests in the suggestion list.
+  # Returns up to `limit` interests to suggest: most popular first, then random filler.
+  # All interests (including member-suggested ones pending review) are surfaced immediately.
   def self.suggested(limit: 20, exclude_ids: [])
-    top = approved.by_popularity.where.not(id: exclude_ids).limit(limit).to_a
+    top = by_popularity.where.not(id: exclude_ids).limit(limit).to_a
     return top if top.size >= limit
 
     filler_ids = top.map(&:id) + exclude_ids
-    filler = approved.where.not(id: filler_ids).order(Arel.sql('RANDOM()')).limit(limit - top.size).to_a
+    filler = where.not(id: filler_ids).order(Arel.sql('RANDOM()')).limit(limit - top.size).to_a
     top + filler
   end
 

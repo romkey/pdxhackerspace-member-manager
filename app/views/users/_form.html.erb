@@ -81,7 +81,7 @@
         <input type="radio" name="user[greeting_option]" value="username" id="user_greet_username"
                class="form-check-input" <%= 'checked' if current_greeting_option == 'username' %>>
         <label class="form-check-label" for="user_greet_username">
-          Use my username<% if @user.username.present? %> — <strong>@<%= @user.username %></strong><% end %>
+          Use my username<% if @user.username.present? %> — <strong><%= @user.username %></strong><% end %>
         </label>
       </div>
       <div class="form-check">
