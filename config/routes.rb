@@ -60,9 +60,12 @@ Rails.application.routes.draw do
   post "/profile/setup/visibility", to: "profile_setup#save_visibility",  as: :profile_setup_save_visibility
   get  "/profile/setup/optional",   to: "profile_setup#optional_info",    as: :profile_setup_optional
   post "/profile/setup/optional",   to: "profile_setup#save_optional_info", as: :profile_setup_save_optional
-  get    "/profile/setup/links",           to: "profile_setup#links",        as: :profile_setup_links
-  post   "/profile/setup/links",           to: "profile_setup#add_link",     as: :profile_setup_add_link
-  delete "/profile/setup/links/:link_id",  to: "profile_setup#remove_link",  as: :profile_setup_remove_link
+  get    "/profile/setup/links",                    to: "profile_setup#links",           as: :profile_setup_links
+  post   "/profile/setup/links",                    to: "profile_setup#add_link",        as: :profile_setup_add_link
+  delete "/profile/setup/links/:link_id",           to: "profile_setup#remove_link",     as: :profile_setup_remove_link
+  get    "/profile/setup/interests",                to: "profile_setup#interests",       as: :profile_setup_interests
+  post   "/profile/setup/interests/:id/add",        to: "profile_setup#add_interest",    as: :profile_setup_add_interest
+  delete "/profile/setup/interests/:id/remove",     to: "profile_setup#remove_interest", as: :profile_setup_remove_interest
 
   # Member onboarding wizard
   get  "/onboard",              to: "onboarding#member_info",      as: :onboard
@@ -206,6 +209,14 @@ Rails.application.routes.draw do
       post :regenerate_key
     end
   end
+  resources :interests, only: [:index, :new, :create, :edit, :update, :destroy], path: "settings/interests" do
+    member do
+      get  :members
+      get  :merge_form
+      post :merge
+    end
+  end
+
   resource :default_settings, only: [:show, :edit, :update], path: "settings/defaults" do
     post :provision_core_groups, on: :member
   end

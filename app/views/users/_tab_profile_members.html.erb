@@ -33,6 +33,18 @@
         </dd>
       <% end %>
 
+      <% member_interests = user.interests.order(:name) %>
+      <% if member_interests.any? %>
+        <dt class="col-sm-2 text-secondary">Interests</dt>
+        <dd class="col-sm-10">
+          <div class="d-flex flex-wrap gap-1">
+            <% member_interests.each do |interest| %>
+              <span class="badge rounded-pill text-bg-secondary"><%= interest.name %></span>
+            <% end %>
+          </div>
+        </dd>
+      <% end %>
+
       <dt class="col-sm-2 text-secondary">Trained on</dt>
       <dd class="col-sm-10">
         <% trained_topics = user.trainings_as_trainee.map(&:training_topic).uniq.sort_by(&:name) %>

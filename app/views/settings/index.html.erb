@@ -69,6 +69,15 @@
   <div class="col-md-6 col-lg-4">
     <div class="card shadow-sm border-0 h-100">
       <div class="card-body d-flex flex-column">
+        <h5 class="card-title">Interests</h5>
+        <p class="card-text text-muted">Manage the list of interests members can select for their profiles. Add, rename, merge, and see who's chosen each one.</p>
+        <%= link_to "Manage Interests", interests_path, class: "btn btn-primary mt-auto" %>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-lg-4">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body d-flex flex-column">
         <h5 class="card-title">Invitations</h5>
         <p class="card-text text-muted">View all membership invitations, their status, and linked member accounts.</p>
         <%= link_to "View Invitations", invitations_path, class: "btn btn-primary mt-auto" %>

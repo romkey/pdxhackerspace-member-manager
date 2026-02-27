@@ -1,0 +1,78 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">Manage Interests</h1>
+    <p class="text-muted mb-0">Members can select interests from this list during profile setup.</p>
+  </div>
+  <%= link_to "Back to Settings", settings_path, class: "btn btn-outline-secondary" %>
+</div>
+
+<!-- Add new interest -->
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-header bg-body-tertiary">
+    <h5 class="card-title mb-0">Add Interest</h5>
+  </div>
+  <div class="card-body">
+    <%= form_with model: @new_interest, url: interests_path, local: true, class: "row g-2 align-items-end" do |f| %>
+      <% if @new_interest.errors.any? %>
+        <div class="col-12">
+          <div class="alert alert-danger mb-2">
+            <%= @new_interest.errors.full_messages.first %>
+          </div>
+        </div>
+      <% end %>
+      <div class="col-md-8">
+        <%= f.label :name, "Interest name", class: "form-label" %>
+        <%= f.text_field :name, class: "form-control", placeholder: "e.g., 3D Printing, Electronics, Woodworking", autofocus: @new_interest.errors.any? %>
+      </div>
+      <div class="col-md-4">
+        <%= f.submit "Add Interest", class: "btn btn-primary w-100" %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Interests table -->
+<div class="card shadow-sm border-0">
+  <% if @interests.any? %>
+    <div class="table-responsive">
+      <table class="table mb-0 align-middle">
+        <thead class="bg-body-tertiary">
+          <tr>
+            <th scope="col">Interest</th>
+            <th scope="col" class="text-center" style="width: 130px;">Members</th>
+            <th scope="col" style="width: 260px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @interests.each do |interest| %>
+            <tr>
+              <td class="fw-semibold"><%= interest.name %></td>
+              <td class="text-center">
+                <% count = interest.user_interests.size %>
+                <% if count > 0 %>
+                  <%= link_to count, members_interest_path(interest), class: "badge text-bg-primary text-decoration-none" %>
+                <% else %>
+                  <span class="text-muted">0</span>
+                <% end %>
+              </td>
+              <td class="text-end">
+                <div class="d-flex gap-2 justify-content-end">
+                  <%= link_to "Edit", edit_interest_path(interest), class: "btn btn-outline-secondary btn-sm" %>
+                  <%= link_to "Merge", merge_form_interest_path(interest), class: "btn btn-outline-warning btn-sm" %>
+                  <%= button_to "Delete", interest_path(interest), method: :delete,
+                      class: "btn btn-outline-danger btn-sm",
+                      data: { turbo_confirm: "Delete '#{interest.name}'? This will remove it from all member profiles." } %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% else %>
+    <div class="card-body text-center py-5">
+      <i class="bi bi-tags display-4 text-muted d-block mb-3"></i>
+      <p class="text-muted mb-0">No interests yet. Add one above to get started.</p>
+    </div>
+  <% end %>
+</div>

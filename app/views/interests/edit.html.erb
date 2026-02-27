@@ -1,0 +1,31 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">Edit Interest</h1>
+    <p class="text-muted mb-0"><%= @interest.member_count %> <%= 'member'.pluralize(@interest.member_count) %> selected</p>
+  </div>
+  <%= link_to "Back to Interests", interests_path, class: "btn btn-outline-secondary" %>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-header bg-body-tertiary">
+    <h5 class="card-title mb-0">Rename</h5>
+  </div>
+  <div class="card-body">
+    <%= form_with model: @interest, url: interest_path(@interest), method: :patch, local: true do |f| %>
+      <% if @interest.errors.any? %>
+        <div class="alert alert-danger mb-3">
+          <%= @interest.errors.full_messages.first %>
+        </div>
+      <% end %>
+      <div class="row g-2 align-items-end">
+        <div class="col-md-8">
+          <%= f.label :name, "Interest name", class: "form-label" %>
+          <%= f.text_field :name, class: "form-control", autofocus: true %>
+        </div>
+        <div class="col-md-4">
+          <%= f.submit "Save", class: "btn btn-primary w-100" %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>

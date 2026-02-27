@@ -1,0 +1,33 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">Merge Interest</h1>
+    <p class="text-muted mb-0">Merging <strong><%= @interest.name %></strong> will move all <%= @interest.member_count %> <%= 'member'.pluralize(@interest.member_count) %> to the target and delete this interest.</p>
+  </div>
+  <%= link_to "Cancel", interests_path, class: "btn btn-outline-secondary" %>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <% if @target_interests.any? %>
+      <%= form_with url: merge_interest_path(@interest), method: :post, local: true do |f| %>
+        <div class="mb-4">
+          <label class="form-label fw-semibold">Merge <em><%= @interest.name %></em> into:</label>
+          <select name="target_interest_id" class="form-select" required>
+            <option value="">— choose target interest —</option>
+            <% @target_interests.each do |target| %>
+              <option value="<%= target.id %>"><%= target.name %> (<%= target.member_count %> <%= 'member'.pluralize(target.member_count) %>)</option>
+            <% end %>
+          </select>
+          <div class="form-text">Members who have both interests will only have the target after the merge.</div>
+        </div>
+        <div class="d-flex gap-2">
+          <%= f.submit "Merge", class: "btn btn-warning" %>
+          <%= link_to "Cancel", interests_path, class: "btn btn-outline-secondary" %>
+        </div>
+      <% end %>
+    <% else %>
+      <p class="text-muted">There are no other interests to merge into.</p>
+      <%= link_to "Back", interests_path, class: "btn btn-outline-secondary" %>
+    <% end %>
+  </div>
+</div>

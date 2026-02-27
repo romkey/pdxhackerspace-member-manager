@@ -43,6 +43,20 @@
             <% end %>
           </dd>
 
+          <dt class="col-sm-3 text-secondary">Interests</dt>
+          <dd class="col-sm-9">
+            <% user_interests = user.interests.order(:name) %>
+            <% if user_interests.any? %>
+              <div class="d-flex flex-wrap gap-1">
+                <% user_interests.each do |interest| %>
+                  <span class="badge rounded-pill text-bg-secondary"><%= interest.name %></span>
+                <% end %>
+              </div>
+            <% else %>
+              <span class="text-muted fst-italic">None selected</span>
+            <% end %>
+          </dd>
+
           <dt class="col-sm-3 text-secondary">Profile Visibility</dt>
           <dd class="col-sm-9">
             <% visibility_label = { 'public' => 'Public', 'members' => 'Other Members', 'private' => 'Private' }[user.profile_visibility] || user.profile_visibility.humanize %>

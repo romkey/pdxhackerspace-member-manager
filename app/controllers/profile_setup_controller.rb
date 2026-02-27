@@ -32,7 +32,30 @@ class ProfileSetupController < AuthenticatedController
     @user_links = @user.user_links.ordered
   end
 
-  # Step 4: Visibility & Greeting (with preview)
+  # Step 4: Interests
+  def interests
+    @user_interests    = @user.interests.order(:name)
+    @user_interest_ids = @user_interests.map(&:id).to_set
+    @suggested         = Interest.suggested(limit: 20, exclude_ids: [])
+  end
+
+  def add_interest
+    interest = Interest.find(params[:id])
+    @user.interests << interest unless @user.interests.include?(interest)
+    redirect_to profile_setup_interests_path, status: :see_other
+  rescue ActiveRecord::RecordNotFound
+    redirect_to profile_setup_interests_path, status: :see_other
+  end
+
+  def remove_interest
+    interest = Interest.find(params[:id])
+    @user.interests.delete(interest)
+    redirect_to profile_setup_interests_path, status: :see_other
+  rescue ActiveRecord::RecordNotFound
+    redirect_to profile_setup_interests_path, status: :see_other
+  end
+
+  # Step 5: Visibility & Greeting (with preview)
   def visibility
   end
 
