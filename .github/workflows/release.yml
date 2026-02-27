@@ -2,6 +2,7 @@ name: Release - Build and Push Image
 
 on:
   push:
+    branches: [main]
     tags:
       - "v*"
   workflow_dispatch:
@@ -21,7 +22,69 @@ permissions:
   packages: write
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: member_manager_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      RAILS_ENV: test
+      DB_HOST: localhost
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_PORT: 5432
+      REDIS_URL: redis://localhost:6379/0
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3.10'
+          bundler-cache: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'yarn'
+
+      - name: Install JS dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Prepare database
+        run: bin/rails db:test:prepare
+
+      - name: Run tests
+        run: bin/rails test
+
   build-and-push:
+    needs: test
     runs-on: ubuntu-latest
 
     env:
@@ -31,27 +94,35 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Get current version
-        id: current_version
+      - name: Determine version
+        id: version
         run: |
-          # Extract version number from tag (remove 'v' prefix)
-          VERSION="${GITHUB_REF_NAME#v}"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            # Triggered by a tag push - use the tag
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            # Triggered by a push to main - use the latest tag
+            VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "")
+            if [ -z "$VERSION" ]; then
+              VERSION="0.0.0"
+            fi
+          fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Current version: $VERSION"
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
 
       - name: Get latest version from registry
         id: latest_version
         run: |
-          # Try to get the version label from the :latest image
           LATEST_VERSION=""
           
-          # Use GitHub API to get package versions
           VERSIONS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/users/${{ github.repository_owner }}/packages/container/${{ github.event.repository.name }}/versions" \
             2>/dev/null || echo "[]")
           
-          # Find the version tagged as 'latest'
           LATEST_VERSION=$(echo "$VERSIONS" | jq -r '.[] | select(.metadata.container.tags | index("latest")) | .metadata.container.tags[] | select(test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))' | head -1 || echo "")
           
           if [ -z "$LATEST_VERSION" ]; then
@@ -65,12 +136,10 @@ jobs:
       - name: Compare versions
         id: compare
         run: |
-          CURRENT="${{ steps.current_version.outputs.version }}"
+          CURRENT="${{ steps.version.outputs.version }}"
           LATEST="${{ steps.latest_version.outputs.latest }}"
           
-          # Function to compare semver versions
           version_gt() {
-            # Returns 0 (true) if $1 > $2
             [ "$(printf '%s\n' "$1" "$2" | sort -V | tail -n1)" = "$1" ] && [ "$1" != "$2" ]
           }
           
@@ -110,6 +179,7 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
+            type=raw,value=${{ steps.version.outputs.version }}
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -118,7 +188,7 @@ jobs:
           push: true
           file: Dockerfile
           build-args: |
-            APP_VERSION=${{ github.ref_name }}
+            APP_VERSION=${{ steps.version.outputs.tag }}
           platforms: linux/amd64
           provenance: false
           tags: |
@@ -131,6 +201,4 @@ jobs:
           cache-to: |
             type=gha,mode=max
             type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
-          # Enable BuildKit for cache mounts and other optimizations
           builder: ${{ steps.buildx.outputs.name }}
-
