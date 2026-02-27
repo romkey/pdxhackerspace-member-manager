@@ -1,8 +1,20 @@
-class SearchController < AdminController
+class SearchController < AuthenticatedController
   def index
     @q = params[:q].to_s.strip
     return if @q.blank?
 
+    if current_user_admin?
+      @admin_search = true
+      search_admin
+    else
+      @admin_search = false
+      search_member
+    end
+  end
+
+  private
+
+  def search_admin
     pattern = "%#{@q.downcase}%"
 
     @users = User.where(
@@ -25,5 +37,44 @@ class SearchController < AdminController
     @kofi_payments = KofiPayment.where(
       "LOWER(COALESCE(email, '')) LIKE :p OR LOWER(COALESCE(from_name, '')) LIKE :p OR LOWER(kofi_transaction_id) LIKE :p", p: pattern
     ).order(timestamp: :desc).limit(25)
+  end
+
+  def search_member
+    pattern     = "%#{@q.downcase}%"
+    visible     = %w[public members]
+
+    # Matching member profiles
+    @matching_members = User.where(profile_visibility: visible)
+                            .where(
+                              "LOWER(COALESCE(full_name, '')) LIKE :p OR LOWER(COALESCE(username, '')) LIKE :p",
+                              p: pattern
+                            )
+                            .order(:full_name)
+                            .limit(25)
+
+    # Matching interests → members who have that interest and a visible profile
+    matching_interests = Interest.where("LOWER(name) LIKE ?", pattern).alphabetical
+    @interest_matches = matching_interests.filter_map do |interest|
+      members = interest.users
+                        .where(profile_visibility: visible)
+                        .order(:full_name)
+      next if members.empty?
+      { interest: interest, members: members }
+    end
+
+    # Matching training topics → trained members + trainers with visible profiles
+    matching_topics = TrainingTopic.where("LOWER(name) LIKE ?", pattern).order(:name)
+    @training_matches = matching_topics.filter_map do |topic|
+      trained = User.joins(:trainings_as_trainee)
+                    .where(trainings: { training_topic_id: topic.id })
+                    .where(profile_visibility: visible)
+                    .distinct
+                    .order(:full_name)
+      trainers = topic.trainers
+                      .where(profile_visibility: visible)
+                      .order(:full_name)
+      next if trained.empty? && trainers.empty?
+      { topic: topic, trained: trained, trainers: trainers }
+    end
   end
 end
