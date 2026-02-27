@@ -50,6 +50,9 @@ class DashboardController < AdminController
     # Important: Email templates needing review
     @templates_needing_review_count = EmailTemplate.needs_review.count
 
+    # Important: Member-suggested interests needing review
+    @interests_needing_review_count = Interest.needs_review.count
+
     # Housekeeping: Lapsed members with access after lapse
     lapsed_users = User.where(dues_status: 'lapsed')
                        .where.not(membership_status: %w[banned deceased])

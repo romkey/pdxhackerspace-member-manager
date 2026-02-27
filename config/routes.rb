@@ -63,9 +63,10 @@ Rails.application.routes.draw do
   get    "/profile/setup/links",                    to: "profile_setup#links",           as: :profile_setup_links
   post   "/profile/setup/links",                    to: "profile_setup#add_link",        as: :profile_setup_add_link
   delete "/profile/setup/links/:link_id",           to: "profile_setup#remove_link",     as: :profile_setup_remove_link
-  get    "/profile/setup/interests",                to: "profile_setup#interests",       as: :profile_setup_interests
-  post   "/profile/setup/interests/:id/add",        to: "profile_setup#add_interest",    as: :profile_setup_add_interest
-  delete "/profile/setup/interests/:id/remove",     to: "profile_setup#remove_interest", as: :profile_setup_remove_interest
+  get    "/profile/setup/interests",                to: "profile_setup#interests",          as: :profile_setup_interests
+  post   "/profile/setup/interests/suggest",        to: "profile_setup#suggest_interest",   as: :profile_setup_suggest_interest
+  post   "/profile/setup/interests/:id/add",        to: "profile_setup#add_interest",       as: :profile_setup_add_interest
+  delete "/profile/setup/interests/:id/remove",     to: "profile_setup#remove_interest",    as: :profile_setup_remove_interest
 
   # Member onboarding wizard
   get  "/onboard",              to: "onboarding#member_info",      as: :onboard
@@ -214,6 +215,10 @@ Rails.application.routes.draw do
       get  :members
       get  :merge_form
       post :merge
+      post :approve
+    end
+    collection do
+      post :seed
     end
   end
 

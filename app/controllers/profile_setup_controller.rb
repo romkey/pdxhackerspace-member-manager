@@ -55,6 +55,25 @@ class ProfileSetupController < AuthenticatedController
     redirect_to profile_setup_interests_path, status: :see_other
   end
 
+  def suggest_interest
+    name = params[:interest_name].to_s.strip
+    if name.blank?
+      redirect_to profile_setup_interests_path, alert: 'Please enter an interest name.'
+      return
+    end
+
+    interest = Interest.find_by('LOWER(name) = ?', name.downcase)
+    if interest.nil?
+      interest = Interest.create!(name: name, needs_review: true, seeded: false)
+    end
+
+    @user.interests << interest unless @user.interests.include?(interest)
+    notice = interest.needs_review? ? "'#{interest.name}' added to your profile and submitted for review." : "'#{interest.name}' added to your profile."
+    redirect_to profile_setup_interests_path, notice: notice, status: :see_other
+  rescue ActiveRecord::RecordInvalid => e
+    redirect_to profile_setup_interests_path, alert: "Couldn't add interest: #{e.message}", status: :see_other
+  end
+
   # Step 5: Visibility & Greeting (with preview)
   def visibility
   end

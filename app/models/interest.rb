@@ -6,16 +6,25 @@ class Interest < ApplicationRecord
 
   before_save :normalize_name
 
-  scope :alphabetical, -> { order(:name) }
-  scope :by_popularity, -> { left_joins(:user_interests).group(:id).order(Arel.sql('COUNT(user_interests.id) DESC, interests.name ASC')) }
+  scope :alphabetical,   -> { order(:name) }
+  scope :by_popularity,  -> { left_joins(:user_interests).group(:id).order(Arel.sql('COUNT(user_interests.id) DESC, interests.name ASC')) }
+  scope :seeded_set,     -> { where(seeded: true) }
+  scope :needs_review,   -> { where(needs_review: true) }
+  scope :approved,       -> { where(needs_review: false) }
 
-  # Returns up to `limit` interests to suggest: the most popular first, then random filler.
+  # Whether any seeded interests have been installed yet.
+  def self.seeded?
+    seeded_set.exists?
+  end
+
+  # Returns up to `limit` approved interests to suggest: most popular first, then random filler.
+  # Members only see approved interests in the suggestion list.
   def self.suggested(limit: 20, exclude_ids: [])
-    top = by_popularity.where.not(id: exclude_ids).limit(limit).to_a
+    top = approved.by_popularity.where.not(id: exclude_ids).limit(limit).to_a
     return top if top.size >= limit
 
     filler_ids = top.map(&:id) + exclude_ids
-    filler = where.not(id: filler_ids).order(Arel.sql('RANDOM()')).limit(limit - top.size).to_a
+    filler = approved.where.not(id: filler_ids).order(Arel.sql('RANDOM()')).limit(limit - top.size).to_a
     top + filler
   end
 

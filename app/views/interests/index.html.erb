@@ -3,7 +3,33 @@
     <h1 class="h3 mb-1">Manage Interests</h1>
     <p class="text-muted mb-0">Members can select interests from this list during profile setup.</p>
   </div>
-  <%= link_to "Back to Settings", settings_path, class: "btn btn-outline-secondary" %>
+  <div class="d-flex gap-2">
+    <% unless @already_seeded %>
+      <%= button_to "Seed Interests", seed_interests_path,
+          method: :post,
+          class: "btn btn-outline-success",
+          data: { turbo_confirm: "Install 50 preset makerspace interests? This can only be done once." } %>
+    <% end %>
+    <%= link_to "Back to Settings", settings_path, class: "btn btn-outline-secondary" %>
+  </div>
+</div>
+
+<!-- Filter tabs -->
+<div class="mb-4">
+  <ul class="nav nav-pills">
+    <li class="nav-item">
+      <%= link_to "All", interests_path, class: "nav-link #{'active' if @filter.blank?}" %>
+    </li>
+    <li class="nav-item">
+      <%= link_to interests_path(filter: 'needs_review'), class: "nav-link #{'active' if @filter == 'needs_review'}" do %>
+        Needs Review
+        <% pending_count = Interest.needs_review.count %>
+        <% if pending_count > 0 %>
+          <span class="badge text-bg-danger ms-1"><%= pending_count %></span>
+        <% end %>
+      <% end %>
+    </li>
+  </ul>
 </div>
 
 <!-- Add new interest -->
@@ -39,14 +65,22 @@
         <thead class="bg-body-tertiary">
           <tr>
             <th scope="col">Interest</th>
-            <th scope="col" class="text-center" style="width: 130px;">Members</th>
-            <th scope="col" style="width: 260px;"></th>
+            <th scope="col" class="text-center" style="width: 110px;">Members</th>
+            <th scope="col" style="width: 340px;"></th>
           </tr>
         </thead>
         <tbody>
           <% @interests.each do |interest| %>
-            <tr>
-              <td class="fw-semibold"><%= interest.name %></td>
+            <tr class="<%= 'table-warning' if interest.needs_review? %>">
+              <td>
+                <span class="fw-semibold"><%= interest.name %></span>
+                <% if interest.needs_review? %>
+                  <span class="badge text-bg-warning ms-2">Needs Review</span>
+                <% end %>
+                <% if interest.seeded? %>
+                  <span class="badge text-bg-secondary ms-1">Seeded</span>
+                <% end %>
+              </td>
               <td class="text-center">
                 <% count = interest.user_interests.size %>
                 <% if count > 0 %>
@@ -57,6 +91,10 @@
               </td>
               <td class="text-end">
                 <div class="d-flex gap-2 justify-content-end">
+                  <% if interest.needs_review? %>
+                    <%= button_to "Approve", approve_interest_path(interest), method: :post,
+                        class: "btn btn-success btn-sm" %>
+                  <% end %>
                   <%= link_to "Edit", edit_interest_path(interest), class: "btn btn-outline-secondary btn-sm" %>
                   <%= link_to "Merge", merge_form_interest_path(interest), class: "btn btn-outline-warning btn-sm" %>
                   <%= button_to "Delete", interest_path(interest), method: :delete,
@@ -72,7 +110,14 @@
   <% else %>
     <div class="card-body text-center py-5">
       <i class="bi bi-tags display-4 text-muted d-block mb-3"></i>
-      <p class="text-muted mb-0">No interests yet. Add one above to get started.</p>
+      <% if @filter == 'needs_review' %>
+        <p class="text-muted mb-0">
+          <i class="bi bi-check-circle-fill text-success me-1"></i>
+          No interests are waiting for review.
+        </p>
+      <% else %>
+        <p class="text-muted mb-0">No interests yet. Add one above or use the Seed Interests button to get started.</p>
+      <% end %>
     </div>
   <% end %>
 </div>
