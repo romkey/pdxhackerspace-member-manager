@@ -2,7 +2,6 @@ name: Release - Build and Push Image
 
 on:
   push:
-    branches: [main]
     tags:
       - "v*"
   workflow_dispatch:
