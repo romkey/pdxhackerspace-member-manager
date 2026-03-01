@@ -2,6 +2,8 @@ require 'test_helper'
 
 class QueuedMailsControllerTest < ActionDispatch::IntegrationTest
   setup do
+    @original_local_auth_enabled = Rails.application.config.x.local_auth.enabled
+    Rails.application.config.x.local_auth.enabled = true
     sign_in_as_local_admin
     @pending = queued_mails(:pending_mail)
     @approved = queued_mails(:approved_mail)
@@ -11,6 +13,7 @@ class QueuedMailsControllerTest < ActionDispatch::IntegrationTest
 
   teardown do
     Rails.configuration.action_mailer.smtp_settings = @original_smtp
+    Rails.application.config.x.local_auth.enabled = @original_local_auth_enabled
   end
 
   # ─── Index ────────────────────────────────────────────────────────
