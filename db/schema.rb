@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_26_030000) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_27_020000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -303,6 +303,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_26_030000) do
     t.index ["membership_type"], name: "index_invitations_on_membership_type"
     t.index ["token"], name: "index_invitations_on_token", unique: true
     t.index ["user_id"], name: "index_invitations_on_user_id"
+  end
+
+  create_table "interests", force: :cascade do |t|
+    t.string "name", null: false
+    t.boolean "needs_review", default: false, null: false
+    t.boolean "seeded", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_interests_on_name", unique: true
+    t.index ["needs_review"], name: "index_interests_on_needs_review"
+    t.index ["seeded"], name: "index_interests_on_seeded"
   end
 
   create_table "journals", force: :cascade do |t|
@@ -696,6 +707,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_26_030000) do
     t.index ["user_id"], name: "index_user_links_on_user_id"
   end
 
+  create_table "user_interests", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "interest_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["interest_id"], name: "index_user_interests_on_interest_id"
+    t.index ["user_id", "interest_id"], name: "index_user_interests_on_user_id_and_interest_id", unique: true
+    t.index ["user_id"], name: "index_user_interests_on_user_id"
+  end
+
   create_table "user_supplementary_plans", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.bigint "membership_plan_id", null: false
@@ -785,6 +806,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_26_030000) do
   add_foreign_key "invitations", "users", column: "invited_by_id"
   add_foreign_key "journals", "users"
   add_foreign_key "journals", "users", column: "actor_user_id"
+  add_foreign_key "user_interests", "interests"
+  add_foreign_key "user_interests", "users"
   add_foreign_key "kofi_payments", "sheet_entries"
   add_foreign_key "kofi_payments", "users"
   add_foreign_key "mail_log_entries", "queued_mails"
