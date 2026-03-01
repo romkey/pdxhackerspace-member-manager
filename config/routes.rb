@@ -190,6 +190,7 @@ Rails.application.routes.draw do
   end
 
   get "/search", to: "search#index", as: :search
+  get "/rag", to: "rag#index", defaults: { format: :json }
 
   get "/settings", to: "settings#index", as: :settings
   resources :training_topics, only: [:index, :create, :edit, :update, :destroy] do
