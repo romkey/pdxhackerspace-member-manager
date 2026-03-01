@@ -1,3 +1,24 @@
+x-web-common: &web-common
+  build:
+    context: /Users/romkey/Dropbox/src/MemberManager
+    args:
+      RUBY_VERSION: 3.3.10
+  image: member_manager_web:latest
+  env_file:
+    - .env
+  volumes:
+    - /Users/romkey/Dropbox/src/MemberManager:/rails
+    - ./tmp/access:/tmp/access
+
+x-db-env-dev: &db-env-dev
+  RAILS_ENV: development
+  DB_HOST: db
+  DB_USERNAME: postgres
+  DB_PASSWORD: postgres
+  DB_PORT: 5432
+  DATABASE_URL: postgres://postgres:postgres@db:5432/member_manager_development
+  REDIS_URL: redis://redis:6379/0
+
 services:
   db:
     image: postgres:16
@@ -23,25 +44,10 @@ services:
       - redis_data:/data
 
   web:
-    build:
-      context: /Users/romkey/Dropbox/src/MemberManager
-      args:
-        RUBY_VERSION: 3.3.10
-    image: member_manager_web:latest
+    <<: *web-common
     command: ./bin/rails server -b 0.0.0.0 -p 3000
-    env_file:
-      - .env
     environment:
-      RAILS_ENV: development
-      DB_HOST: db
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
-      DB_PORT: 5432
-      DATABASE_URL: postgres://postgres:postgres@db:5432/member_manager_development
-      REDIS_URL: redis://redis:6379/0
-    volumes:
-      - /Users/romkey/Dropbox/src/MemberManager:/rails
-      - ./tmp/access:/tmp/access
+      <<: *db-env-dev
     ports:
       - "3000:3000"
     depends_on:
@@ -49,31 +55,45 @@ services:
       - redis
 
   sidekiq:
-    build:
-      context: /Users/romkey/Dropbox/src/MemberManager
-      args:
-        RUBY_VERSION: 3.3.10
-    image: member_manager_web:latest
+    <<: *web-common
     command: bundle exec sidekiq
-    env_file:
-      - .env
     environment:
-      RAILS_ENV: development
-      DB_HOST: db
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
-      DB_PORT: 5432
-      DATABASE_URL: postgres://postgres:postgres@db:5432/member_manager_development
-      REDIS_URL: redis://redis:6379/0
-    volumes:
-      - /Users/romkey/Dropbox/src/MemberManager:/rails
-      - ./tmp/access:/tmp/access
+      <<: *db-env-dev
     depends_on:
       - db
       - redis
 
+  # Run database migrations against the development database.
+  # Usage: docker compose run --rm migrate
+  migrate:
+    <<: *web-common
+    command: bin/rails db:migrate
+    profiles: ["tools"]
+    environment:
+      <<: *db-env-dev
+    depends_on:
+      - db
+
+  # Run the full test suite.
+  # Creates and loads the test database schema before running tests.
+  # Usage: docker compose run --rm test
+  #        docker compose run --rm test bin/rails test test/models/interest_test.rb
+  test:
+    <<: *web-common
+    command: sh -c "bin/rails db:create db:schema:load && bin/rails test"
+    profiles: ["test"]
+    environment:
+      RAILS_ENV: test
+      DB_HOST: db
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_PORT: 5432
+      DATABASE_URL: postgres://postgres:postgres@db:5432/member_manager_test
+      REDIS_URL: redis://redis:6379/0
+      SKIP_CSS_BUILD: "1"
+    depends_on:
+      - db
+
 volumes:
   postgres_data:
   redis_data:
-
-

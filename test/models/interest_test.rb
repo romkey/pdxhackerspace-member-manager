@@ -15,10 +15,10 @@ class InterestTest < ActiveSupport::TestCase
   end
 
   test 'invalid with a duplicate name (case-insensitive)' do
-    Interest.create!(name: 'Electronics')
+    # 'Electronics' already exists via fixtures
     duplicate = Interest.new(name: 'electronics')
     assert_not duplicate.valid?
-    assert_includes interest_errors(duplicate, :name), 'has already been taken'
+    assert_includes duplicate.errors[:name], 'has already been taken'
   end
 
   test 'strips whitespace from name before save' do

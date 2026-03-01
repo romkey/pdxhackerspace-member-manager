@@ -76,6 +76,9 @@ class UserProfileVisibilityTest < ActionDispatch::IntegrationTest
   end
 
   test 'logged in member sees training info but not status panel on other profiles' do
+    Training.create!(trainee: @members_user, training_topic: training_topics(:laser_cutting), trained_at: 1.week.ago)
+    @members_user.training_topics << training_topics(:woodworking)
+
     sign_in_as_member
     get user_path(@members_user)
     assert_response :success
@@ -216,6 +219,8 @@ class UserProfileVisibilityTest < ActionDispatch::IntegrationTest
   end
 
   test 'admin can preview profile as members' do
+    Training.create!(trainee: @members_user, training_topic: training_topics(:laser_cutting), trained_at: 1.week.ago)
+
     sign_in_as_admin
     get user_path(@members_user, view_as: :members)
     assert_response :success
@@ -255,6 +260,8 @@ class UserProfileVisibilityTest < ActionDispatch::IntegrationTest
   end
 
   test 'user can preview their own profile as members' do
+    Training.create!(trainee: @member_with_account, training_topic: training_topics(:laser_cutting), trained_at: 1.week.ago)
+
     sign_in_as_member
     get user_path(@member_with_account, view_as: :members)
     assert_response :success

@@ -16,6 +16,12 @@ class InviteController < ApplicationController
     @user.membership_status = 'unknown'
     @user.dues_status = 'unknown'
 
+    if @user.full_name.blank?
+      @user.errors.add(:full_name, "can't be blank")
+      render :show, status: :unprocessable_entity
+      return
+    end
+
     if @user.save
       @invitation.accept!(@user)
 

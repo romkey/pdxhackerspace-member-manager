@@ -5,6 +5,7 @@ class TrainingTopic < ApplicationRecord
   has_many :links, class_name: 'TrainingTopicLink', dependent: :destroy
   has_many :document_training_topics, dependent: :destroy
   has_many :documents, through: :document_training_topics
+  has_many :application_groups, dependent: :destroy
 
   validates :name, presence: true, uniqueness: true
 

@@ -154,7 +154,8 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
     get search_path, params: { q: 'PrivateOnlyInterest' }
     assert_response :success
     # The interest section should not appear since no visible members have it
-    assert_no_match 'PrivateOnlyInterest', response.body
+    # (the term appears in the search input value, so check the results area specifically)
+    assert_match /No results found/i, response.body
   end
 
   # ── Member search – training topic matching ─────────────────────────────────

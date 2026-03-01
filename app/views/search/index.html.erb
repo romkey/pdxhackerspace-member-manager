@@ -7,10 +7,7 @@
 
 <% if @q.blank? %>
   <p class="text-muted">Enter a search term to find members, interests, and training topics.</p>
-  <% return %>
-<% end %>
-
-<% if @admin_search %>
+<% elsif @admin_search %>
 
   <%# ─── Admin search results ──────────────────────────────────────────── %>
 

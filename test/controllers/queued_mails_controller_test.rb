@@ -5,6 +5,12 @@ class QueuedMailsControllerTest < ActionDispatch::IntegrationTest
     sign_in_as_local_admin
     @pending = queued_mails(:pending_mail)
     @approved = queued_mails(:approved_mail)
+    @original_smtp = Rails.configuration.action_mailer.smtp_settings&.dup
+    Rails.configuration.action_mailer.smtp_settings = { address: 'smtp.test.example.com', user_name: 'test', password: 'test' }
+  end
+
+  teardown do
+    Rails.configuration.action_mailer.smtp_settings = @original_smtp
   end
 
   # ─── Index ────────────────────────────────────────────────────────
@@ -78,14 +84,14 @@ class QueuedMailsControllerTest < ActionDispatch::IntegrationTest
   # ─── Approve ──────────────────────────────────────────────────────
 
   test 'approves pending mail and sends it' do
-    assert_enqueued_jobs 1, only: ActionMailer::MailDeliveryJob do
+    assert_enqueued_jobs 1, only: QueuedMailDeliveryJob do
       post approve_queued_mail_path(@pending)
     end
     assert_redirected_to queued_mails_path
 
     @pending.reload
     assert @pending.approved?
-    assert_not_nil @pending.sent_at
+    # sent_at is set when the delivery job runs, not when enqueued
   end
 
   test 'cannot approve already reviewed mail' do

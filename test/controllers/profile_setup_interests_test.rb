@@ -111,7 +111,7 @@ class ProfileSetupInterestsTest < ActionDispatch::IntegrationTest
     assert_not new_interest.seeded?
     assert @current_user.reload.interests.include?(new_interest)
     assert_redirected_to profile_setup_interests_path
-    assert_match /submitted for review/i, flash[:notice]
+    assert_match /added to your profile/i, flash[:notice]
   end
 
   test 'suggest with an existing interest reuses it and adds to the user' do

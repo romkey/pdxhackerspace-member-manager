@@ -9,12 +9,12 @@ class UserGreetingTest < ActiveSupport::TestCase
   end
 
   test 'greeting_option returns username when use_username_for_greeting is true' do
-    user = User.new(use_username_for_greeting: true)
+    user = User.new(use_full_name_for_greeting: false, use_username_for_greeting: true)
     assert_equal 'username', user.greeting_option
   end
 
   test 'greeting_option returns do_not_greet when do_not_greet is true' do
-    user = User.new(do_not_greet: true)
+    user = User.new(use_full_name_for_greeting: false, use_username_for_greeting: false, do_not_greet: true)
     assert_equal 'do_not_greet', user.greeting_option
   end
 

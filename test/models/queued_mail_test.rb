@@ -1,6 +1,7 @@
 require 'test_helper'
 
 class QueuedMailTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
   setup do
     @pending = queued_mails(:pending_mail)
     @approved = queued_mails(:approved_mail)
@@ -98,14 +99,15 @@ class QueuedMailTest < ActiveSupport::TestCase
   test 'approve! sets status and sends mail' do
     reviewer = users(:one)
 
-    assert_enqueued_jobs 1, only: ActionMailer::MailDeliveryJob do
+    assert_enqueued_jobs 1, only: QueuedMailDeliveryJob do
       @pending.approve!(reviewer)
     end
 
     assert @pending.approved?
     assert_equal reviewer, @pending.reviewed_by
     assert_not_nil @pending.reviewed_at
-    assert_not_nil @pending.sent_at
+    # sent_at is set when the delivery job runs, not when enqueued
+    assert_nil @pending.sent_at
   end
 
   # ─── Reject ──────────────────────────────────────────────────────
@@ -113,7 +115,7 @@ class QueuedMailTest < ActiveSupport::TestCase
   test 'reject! sets status without sending mail' do
     reviewer = users(:one)
 
-    assert_no_enqueued_jobs only: ActionMailer::MailDeliveryJob do
+    assert_no_enqueued_jobs only: QueuedMailDeliveryJob do
       @pending.reject!(reviewer)
     end
 

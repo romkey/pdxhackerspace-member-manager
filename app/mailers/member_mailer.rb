@@ -50,7 +50,8 @@ class MemberMailer < ApplicationMailer
   end
 
   # Sent when a membership is cancelled (voluntary or involuntary)
-  def membership_cancelled(user, reason: nil)
+  def membership_cancelled(user, opts = {})
+    reason = opts.is_a?(Hash) ? opts[:reason] : opts
     @user = user
     @organization = organization_name
     @reason = reason
@@ -68,7 +69,8 @@ class MemberMailer < ApplicationMailer
   end
 
   # Sent when a member is banned
-  def membership_banned(user, reason: nil)
+  def membership_banned(user, opts = {})
+    reason = opts.is_a?(Hash) ? opts[:reason] : opts
     @user = user
     @organization = organization_name
     @reason = reason

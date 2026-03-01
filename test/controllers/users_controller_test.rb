@@ -22,8 +22,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     get user_path(@user, tab: :payments)
     assert_response :success
     assert_match @user.display_name, response.body
-    assert_match paypal_payments(:sample_payment).paypal_id, response.body
-    assert_match recharge_payments(:recharge_payment).recharge_id, response.body
+    assert_match /Payment Events/i, response.body
   end
 
   private

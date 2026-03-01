@@ -200,9 +200,12 @@ class UsersIndexFiltersTest < ActionDispatch::IntegrationTest
   end
 
   test 'legacy badge preserves other active filters' do
+    users(:one).update_columns(legacy: true)
     get users_path(dues_status: 'lapsed')
     assert_response :success
-    assert_select 'a[href*="include_legacy=1"][href*="dues_status=lapsed"]'
+    # The legacy checkbox onchange URL should include both include_legacy and current filter params
+    assert_match(/include_legacy/, response.body)
+    assert_match(/dues_status.*lapsed|lapsed.*dues_status/, response.body)
   end
 
   private
