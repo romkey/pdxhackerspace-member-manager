@@ -71,7 +71,7 @@
 
       <% if @payment.url.present? %>
         <dt class="col-sm-3 text-secondary">URL</dt>
-        <dd class="col-sm-9"><%= link_to @payment.url, @payment.url, target: "_blank", rel: "noopener" %></dd>
+        <dd class="col-sm-9"><%= link_to @payment.url, sanitize_url(@payment.url), target: "_blank", rel: "noopener" %></dd>
       <% end %>
 
       <dt class="col-sm-3 text-secondary">Member</dt>

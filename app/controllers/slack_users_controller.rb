@@ -271,9 +271,11 @@ class SlackUsersController < AdminController
     query = query.where(deleted: false) if params[:status] == 'active'
     query = query.where(deleted: true) if params[:status] == 'deactivated'
 
-    # Apply sorting
+    # Apply sorting — use Arel nodes to avoid string interpolation (CodeQL SQL injection rule)
     sort_column = SORTABLE_COLUMNS.include?(params[:sort]) ? params[:sort] : 'display_name'
     sort_direction = %w[asc desc].include?(params[:direction]) ? params[:direction] : 'asc'
-    query.order("#{sort_column} #{sort_direction} NULLS LAST")
+    col_node = SlackUser.arel_table[sort_column]
+    direction_node = sort_direction == 'desc' ? col_node.desc : col_node.asc
+    query.order(Arel::Nodes::NullsLast.new(direction_node))
   end
 end

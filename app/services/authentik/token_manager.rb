@@ -151,12 +151,27 @@ module Authentik
 
         endpoint = JSON.parse(response.body)['token_endpoint']
         if endpoint.present?
+          # Validate that the discovered endpoint is on the same host as the issuer
+          # to prevent SSRF via a tampered OIDC discovery response.
+          issuer_host = URI.parse(issuer).host
+          endpoint_host = URI.parse(endpoint).host
+          unless issuer_host == endpoint_host
+            Rails.logger.error(
+              "[Authentik::TokenManager] Discovered token_endpoint host (#{endpoint_host}) " \
+              "does not match issuer host (#{issuer_host}). Rejecting."
+            )
+            return nil
+          end
+
           # Cache discovery result for 24 hours — it rarely changes
           Rails.cache.write(DISCOVERY_CACHE_KEY, endpoint, expires_in: 24.hours)
           Rails.logger.info("[Authentik::TokenManager] Discovered token endpoint: #{endpoint}")
         end
 
         endpoint
+      rescue URI::InvalidURIError => e
+        Rails.logger.error("[Authentik::TokenManager] Invalid URI in OIDC discovery: #{e.message}")
+        nil
       rescue StandardError => e
         Rails.logger.error("[Authentik::TokenManager] OIDC discovery error: #{e.class}: #{e.message}")
         nil

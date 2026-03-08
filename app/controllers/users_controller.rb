@@ -109,10 +109,12 @@ class UsersController < AuthenticatedController
     @service_account_count = @users.service_accounts.count
     @member_account_count = @users.non_service_accounts.count
 
-    # Apply sorting
+    # Apply sorting — use Arel nodes to avoid string interpolation (CodeQL SQL injection rule)
     @sort_column = SORTABLE_COLUMNS.include?(params[:sort]) ? params[:sort] : 'full_name'
     @sort_direction = %w[asc desc].include?(params[:direction]) ? params[:direction] : 'asc'
-    @users = @users.order("#{@sort_column} #{@sort_direction} NULLS LAST")
+    col_node = User.arel_table[@sort_column]
+    direction_node = @sort_direction == 'desc' ? col_node.desc : col_node.asc
+    @users = @users.order(Arel::Nodes::NullsLast.new(direction_node))
 
     # Track if any filter is active (including legacy toggle)
     @filter_active = params[:membership_status].present? || params[:payment_type].present? ||
@@ -183,10 +185,12 @@ class UsersController < AuthenticatedController
       nav_query = nav_query.where(dues_status: params[:dues_status]) if params[:dues_status].present?
       nav_query = nav_query.where(active: params[:active] == 'true') if params[:active].present?
 
-      # Apply sorting
+      # Apply sorting — use Arel nodes to avoid string interpolation (CodeQL SQL injection rule)
       sort_column = SORTABLE_COLUMNS.include?(params[:sort]) ? params[:sort] : 'full_name'
       sort_direction = %w[asc desc].include?(params[:direction]) ? params[:direction] : 'asc'
-      nav_query = nav_query.order("#{sort_column} #{sort_direction} NULLS LAST")
+      nav_col_node = User.arel_table[sort_column]
+      nav_direction_node = sort_direction == 'desc' ? nav_col_node.desc : nav_col_node.asc
+      nav_query = nav_query.order(Arel::Nodes::NullsLast.new(nav_direction_node))
 
       ordered_ids = nav_query.pluck(:id)
       current_index = ordered_ids.index(@user.id)

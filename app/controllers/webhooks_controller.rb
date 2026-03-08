@@ -5,6 +5,10 @@
 require 'ipaddr'
 
 class WebhooksController < ApplicationController
+  # CSRF verification is intentionally skipped: all webhook endpoints receive
+  # machine-to-machine POST requests from external services (Ko-Fi, Authentik,
+  # Recharge, RFID hardware) that cannot include Rails session tokens.
+  # Each handler enforces its own authentication (HMAC, shared secret, or API key).
   skip_before_action :verify_authenticity_token
 
   # Dynamic dispatch based on incoming webhook slug
@@ -149,8 +153,8 @@ class WebhooksController < ApplicationController
 
     # Get the log line
     line = params[:line]
-    if line.blank?
-      render json: { error: 'line parameter is required' }, status: :bad_request
+    if line.blank? || line.length > AccessLogParser::MAX_LINE_LENGTH
+      render json: { error: 'line parameter is required and must be under 2000 characters' }, status: :bad_request
       return
     end
 

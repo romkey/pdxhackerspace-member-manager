@@ -370,10 +370,8 @@ module Authentik
           results.concat(payload['results'] || [])
 
           next_link = payload['next']
-          next_path = if next_link.is_a?(String) && next_link.start_with?('http')
-                        URI(next_link).request_uri
-                      elsif next_link.is_a?(String)
-                        next_link
+          next_path = if next_link.is_a?(String) && next_link.present?
+                        safe_relative_path(next_link)
                       end
         end
 
@@ -436,9 +434,7 @@ module Authentik
       return if next_link.blank?
 
       if next_link.is_a?(String)
-        return URI(next_link).request_uri if next_link.start_with?('http')
-
-        return next_link
+        return safe_relative_path(next_link)
       end
 
       if next_link.is_a?(Integer)
@@ -447,6 +443,28 @@ module Authentik
         return build_user_path(base_params.merge(page: next_link))
       end
 
+      nil
+    end
+
+    # Extracts the path+query from an absolute URL only if it belongs to the
+    # same host/port as @base_url, preventing SSRF via API-response-supplied URLs.
+    # Returns the string unchanged if it is already a relative path.
+    def safe_relative_path(url_string)
+      return url_string unless url_string.start_with?('http')
+
+      parsed = URI.parse(url_string)
+      configured = URI.parse(@base_url)
+
+      unless parsed.host == configured.host && parsed.port == configured.port
+        Rails.logger.warn(
+          "[Authentik::Client] Rejecting next-page URL with unexpected host: #{parsed.host}:#{parsed.port}"
+        )
+        return nil
+      end
+
+      parsed.request_uri
+    rescue URI::InvalidURIError => e
+      Rails.logger.warn("[Authentik::Client] Invalid next-page URI '#{url_string}': #{e.message}")
       nil
     end
 

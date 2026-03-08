@@ -249,18 +249,25 @@
       input.setAttribute('data-user-id', userId);
       selectedInputs.appendChild(input);
 
-      // Add badge
-      const badge = document.createElement('span');
-      badge.className = 'badge bg-primary d-flex align-items-center gap-1 selected-member-badge';
-      badge.setAttribute('data-user-id', userId);
-      badge.innerHTML = displayName + 
-        '<button type="button" class="btn-close btn-close-white ms-1" style="font-size: 0.6rem;" aria-label="Remove"></button>';
-      selectedMembers.appendChild(badge);
+     // Add badge — use textContent for user-supplied display name, never innerHTML
+     const badge = document.createElement('span');
+     badge.className = 'badge bg-primary d-flex align-items-center gap-1 selected-member-badge';
+     badge.setAttribute('data-user-id', userId);
 
-      // Add click handler for remove button
-      badge.querySelector('.btn-close').addEventListener('click', function() {
-        removeMember(userId);
-      });
+     const nameText = document.createTextNode(displayName);
+     badge.appendChild(nameText);
+
+     const closeBtn = document.createElement('button');
+     closeBtn.type = 'button';
+     closeBtn.className = 'btn-close btn-close-white ms-1';
+     closeBtn.style.fontSize = '0.6rem';
+     closeBtn.setAttribute('aria-label', 'Remove');
+     closeBtn.addEventListener('click', function() {
+       removeMember(userId);
+     });
+     badge.appendChild(closeBtn);
+
+     selectedMembers.appendChild(badge);
 
       // Clear search and hide results
       memberSearch.value = '';

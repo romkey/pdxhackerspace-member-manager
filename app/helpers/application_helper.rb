@@ -28,6 +28,17 @@ module ApplicationHelper
       settings[:password].present?
   end
 
+  # Sanitize a URL to only allow http/https schemes, returning '#' for unsafe URLs.
+  # Prevents stored XSS via javascript: or data: URLs in link hrefs.
+  def sanitize_url(url)
+    return '#' if url.blank?
+
+    parsed = URI.parse(url.to_s)
+    %w[http https].include?(parsed.scheme) ? url.to_s : '#'
+  rescue URI::InvalidURIError
+    '#'
+  end
+
   # Generate a sortable column header link
   # @param column [String] the database column to sort by
   # @param title [String] the display text for the header
