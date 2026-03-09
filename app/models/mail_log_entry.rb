@@ -40,7 +40,7 @@ class MailLogEntry < ApplicationRecord
     return nil unless seconds
 
     if seconds < 60
-      "less than a minute"
+      'less than a minute'
     elsif seconds < 3600
       "#{(seconds / 60).round} minutes"
     elsif seconds < 86_400

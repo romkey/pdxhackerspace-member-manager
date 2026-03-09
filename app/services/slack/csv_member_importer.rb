@@ -2,7 +2,7 @@ require 'csv'
 
 module Slack
   class CsvMemberImporter
-    ACTIVE_STATUS_VALUES = ['Admin', 'Member'].freeze
+    ACTIVE_STATUS_VALUES = %w[Admin Member].freeze
     ADMIN_STATUS_VALUES = ['Admin', 'Primary Owner'].freeze
     OWNER_STATUS_VALUES = ['Primary Owner'].freeze
     BOT_STATUS_VALUES = ['Bot'].freeze

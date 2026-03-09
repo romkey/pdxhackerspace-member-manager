@@ -16,7 +16,7 @@ class IncidentReport < ApplicationRecord
   ].freeze
 
   belongs_to :reporter, class_name: 'User'
-  has_and_belongs_to_many :involved_members, 
+  has_and_belongs_to_many :involved_members,
                           class_name: 'User',
                           join_table: 'incident_report_members'
   has_many_attached :photos

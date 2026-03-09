@@ -37,7 +37,7 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
     sign_in_as_admin
     get search_path, params: { q: '' }
     assert_response :success
-    assert_no_match /Members \(/, response.body
+    assert_no_match(/Members \(/, response.body)
   end
 
   test 'admin search finds users by full name' do
@@ -51,7 +51,7 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
   test 'admin search shows admin sections (sheet entries, payments, etc.)' do
     sign_in_as_admin
     get search_path, params: { q: 'example' }
-    assert_match /Sheet Entries|Authentik Users|Slack Users|PayPal|Recharge/i, response.body
+    assert_match(/Sheet Entries|Authentik Users|Slack Users|PayPal|Recharge/i, response.body)
   end
 
   # ── Member search – access ──────────────────────────────────────────────────
@@ -65,23 +65,23 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
   test 'member search does not show admin-only sections' do
     sign_in_as_member
     get search_path, params: { q: 'example' }
-    assert_no_match /Sheet Entries/i, response.body
-    assert_no_match /Authentik Users/i, response.body
-    assert_no_match /PayPal Payments/i, response.body
+    assert_no_match(/Sheet Entries/i, response.body)
+    assert_no_match(/Authentik Users/i, response.body)
+    assert_no_match(/PayPal Payments/i, response.body)
   end
 
   test 'member blank query renders help text' do
     sign_in_as_member
     get search_path, params: { q: '' }
     assert_response :success
-    assert_match /search term/i, response.body
+    assert_match(/search term/i, response.body)
   end
 
   test 'member search with no matches shows no results message' do
     sign_in_as_member
     get search_path, params: { q: 'xyzzy_no_match_999' }
     assert_response :success
-    assert_match /No results/i, response.body
+    assert_match(/No results/i, response.body)
   end
 
   # ── Member search – profile matching ───────────────────────────────────────
@@ -127,7 +127,7 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
     # users(:one) and users(:two) both have electronics, both profile_visibility: members
     get search_path, params: { q: 'Electronics' }
     assert_response :success
-    assert_match /Interests/i, response.body
+    assert_match(/Interests/i, response.body)
     assert_match interests(:electronics).name, response.body
   end
 
@@ -155,7 +155,7 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     # The interest section should not appear since no visible members have it
     # (the term appears in the search input value, so check the results area specifically)
-    assert_match /No results found/i, response.body
+    assert_match(/No results found/i, response.body)
   end
 
   # ── Member search – training topic matching ─────────────────────────────────
@@ -164,15 +164,15 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
     sign_in_as_member
     # training_topics(:laser_cutting) name = "Laser Cutting"
     Training.create!(
-      trainee:        users(:one),
-      trainer:        nil,
+      trainee: users(:one),
+      trainer: nil,
       training_topic: training_topics(:laser_cutting),
-      trained_at:     1.week.ago
+      trained_at: 1.week.ago
     )
 
     get search_path, params: { q: 'Laser' }
     assert_response :success
-    assert_match /Training Topics/i, response.body
+    assert_match(/Training Topics/i, response.body)
     assert_match training_topics(:laser_cutting).name, response.body
   end
 
@@ -180,15 +180,15 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
     sign_in_as_member
     # users(:one) has profile_visibility: members
     Training.create!(
-      trainee:        users(:one),
-      trainer:        nil,
+      trainee: users(:one),
+      trainer: nil,
       training_topic: training_topics(:laser_cutting),
-      trained_at:     1.week.ago
+      trained_at: 1.week.ago
     )
 
     get search_path, params: { q: 'Laser' }
     assert_match users(:one).display_name, response.body
-    assert_match /Trained in this topic/i, response.body
+    assert_match(/Trained in this topic/i, response.body)
   end
 
   test 'member search shows trainers for a training topic' do
@@ -198,16 +198,16 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
 
     get search_path, params: { q: 'Woodwork' }
     assert_match users(:two).display_name, response.body
-    assert_match /Can train others/i, response.body
+    assert_match(/Can train others/i, response.body)
   end
 
   test 'member training topic result excludes trained members with private profiles' do
     sign_in_as_member
     Training.create!(
-      trainee:        users(:private_profile_user),
-      trainer:        nil,
+      trainee: users(:private_profile_user),
+      trainer: nil,
       training_topic: training_topics(:laser_cutting),
-      trained_at:     1.week.ago
+      trained_at: 1.week.ago
     )
 
     get search_path, params: { q: 'Laser' }
@@ -219,16 +219,16 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
   test 'member training topic result is omitted when only private members are involved' do
     sign_in_as_member
     Training.create!(
-      trainee:        users(:private_profile_user),
-      trainer:        nil,
+      trainee: users(:private_profile_user),
+      trainer: nil,
       training_topic: training_topics(:electronics),
-      trained_at:     1.week.ago
+      trained_at: 1.week.ago
     )
 
     get search_path, params: { q: 'Electronics' }
     # The training_topics(:electronics) match should not add a training card
     # (only trained member is private; no trainers)
-    assert_no_match /Trained in this topic/i, response.body
+    assert_no_match(/Trained in this topic/i, response.body)
   end
 
   private

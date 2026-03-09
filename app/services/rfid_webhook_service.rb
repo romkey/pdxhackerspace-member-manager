@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: CC0-1.0
 
 class RfidWebhookService
-  REDIS_KEY_PREFIX = 'rfid_webhook:'
+  REDIS_KEY_PREFIX = 'rfid_webhook:'.freeze
   EXPIRATION_TIME = 5.minutes
 
   def self.store(rfid_code, pin_code, reader_id = nil, reader_name = nil)
@@ -19,7 +19,7 @@ class RfidWebhookService
     redis.setex(key, EXPIRATION_TIME.to_i, data)
     rfid_code
   rescue Redis::CannotConnectError, Redis::TimeoutError
-    Rails.logger.warn("Redis unavailable in RfidWebhookService.store")
+    Rails.logger.warn('Redis unavailable in RfidWebhookService.store')
     nil
   end
 
@@ -32,7 +32,7 @@ class RfidWebhookService
   rescue JSON::ParserError
     nil
   rescue Redis::CannotConnectError, Redis::TimeoutError
-    Rails.logger.warn("Redis unavailable in RfidWebhookService.retrieve")
+    Rails.logger.warn('Redis unavailable in RfidWebhookService.retrieve')
     nil
   end
 
@@ -48,7 +48,7 @@ class RfidWebhookService
       false
     end
   rescue Redis::CannotConnectError, Redis::TimeoutError
-    Rails.logger.warn("Redis unavailable in RfidWebhookService.verify_and_consume")
+    Rails.logger.warn('Redis unavailable in RfidWebhookService.verify_and_consume')
     false
   end
 
@@ -56,45 +56,41 @@ class RfidWebhookService
     key = redis_key(rfid_code)
     redis.del(key)
   rescue Redis::CannotConnectError, Redis::TimeoutError
-    Rails.logger.warn("Redis unavailable in RfidWebhookService.delete")
+    Rails.logger.warn('Redis unavailable in RfidWebhookService.delete')
     nil
   end
 
   def self.find_recent(since_time)
     # Scan all keys with our prefix
     keys = redis.keys("#{REDIS_KEY_PREFIX}*")
-    
+
     # Find the most recent webhook created after since_time
     most_recent = nil
     most_recent_time = nil
-    
+
     keys.each do |key|
       data = redis.get(key)
       next if data.nil?
-      
+
       begin
         parsed = JSON.parse(data).symbolize_keys
-        created_at = Time.at(parsed[:created_at])
-        
+        created_at = Time.zone.at(parsed[:created_at])
+
         # Only consider webhooks created after the session started
-        if created_at >= since_time
-          if most_recent_time.nil? || created_at > most_recent_time
-            most_recent = parsed
-            most_recent_time = created_at
-          end
+        if (created_at >= since_time) && (most_recent_time.nil? || created_at > most_recent_time)
+          most_recent = parsed
+          most_recent_time = created_at
         end
       rescue JSON::ParserError, ArgumentError
         next
       end
     end
-    
+
     most_recent
   rescue Redis::CannotConnectError, Redis::TimeoutError
-    Rails.logger.warn("Redis unavailable in RfidWebhookService.find_recent")
+    Rails.logger.warn('Redis unavailable in RfidWebhookService.find_recent')
     nil
   end
-
-  private
 
   def self.redis_key(rfid_code)
     "#{REDIS_KEY_PREFIX}#{rfid_code.to_s.downcase.strip}"
@@ -104,4 +100,3 @@ class RfidWebhookService
     @redis ||= Redis.new(url: ENV.fetch('REDIS_URL', 'redis://localhost:6379/0'))
   end
 end
-

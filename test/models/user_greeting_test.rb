@@ -21,9 +21,9 @@ class UserGreetingTest < ActiveSupport::TestCase
   test 'greeting_option returns custom when none of the booleans are set' do
     user = User.new(
       use_full_name_for_greeting: false,
-      use_username_for_greeting:  false,
-      do_not_greet:               false,
-      greeting_name:              'Sparky'
+      use_username_for_greeting: false,
+      do_not_greet: false,
+      greeting_name: 'Sparky'
     )
     assert_equal 'custom', user.greeting_option
   end
@@ -60,9 +60,9 @@ class UserGreetingTest < ActiveSupport::TestCase
     user = users(:one)
     user.update!(
       use_full_name_for_greeting: false,
-      use_username_for_greeting:  false,
-      do_not_greet:               false,
-      greeting_name:              'Sparky'
+      use_username_for_greeting: false,
+      do_not_greet: false,
+      greeting_name: 'Sparky'
     )
     assert_equal 'Sparky', user.reload.greeting_name
     assert_equal 'custom', user.greeting_option

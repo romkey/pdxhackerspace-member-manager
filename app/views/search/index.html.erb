@@ -36,18 +36,7 @@
                     <% end %>
                   </td>
                   <td>
-                    <% badge_class = case u.membership_status
-                       when "paying"    then "success"
-                       when "guest"     then "warning"
-                       when "banned"    then "danger"
-                       when "deceased"  then "dark"
-                       when "sponsored" then "primary"
-                       when "applicant" then "light text-dark"
-                       when "cancelled" then "secondary"
-                       when "unknown"   then "secondary"
-                       else "secondary"
-                       end %>
-                    <span class="badge text-bg-<%= badge_class %>">
+                    <span class="badge text-bg-<%= membership_status_badge_class(u.membership_status) %>">
                       <%= u.membership_status.humanize %>
                     </span>
                   </td>

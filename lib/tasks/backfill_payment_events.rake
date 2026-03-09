@@ -4,7 +4,7 @@ namespace :payment_events do
     created = 0
     skipped = 0
 
-    puts "Backfilling PayPal payments..."
+    puts 'Backfilling PayPal payments...'
     PaypalPayment.find_each do |pp|
       if PaymentEvent.exists?(source: 'paypal', external_id: pp.paypal_id, event_type: 'payment')
         skipped += 1
@@ -30,7 +30,7 @@ namespace :payment_events do
     created = 0
     skipped = 0
 
-    puts "Backfilling Recharge payments..."
+    puts 'Backfilling Recharge payments...'
     RechargePayment.find_each do |rp|
       if PaymentEvent.exists?(source: 'recharge', external_id: rp.recharge_id, event_type: 'payment')
         skipped += 1
@@ -56,7 +56,7 @@ namespace :payment_events do
     created = 0
     skipped = 0
 
-    puts "Backfilling Ko-Fi payments..."
+    puts 'Backfilling Ko-Fi payments...'
     KofiPayment.find_each do |kp|
       if PaymentEvent.exists?(source: 'kofi', external_id: kp.kofi_transaction_id, event_type: 'payment')
         skipped += 1
@@ -82,7 +82,7 @@ namespace :payment_events do
     created = 0
     skipped = 0
 
-    puts "Backfilling Cash payments..."
+    puts 'Backfilling Cash payments...'
     CashPayment.find_each do |cp|
       ext_id = "CASH-#{cp.id}"
       if PaymentEvent.exists?(source: 'cash', external_id: ext_id, event_type: 'payment')

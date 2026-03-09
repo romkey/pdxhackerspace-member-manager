@@ -48,6 +48,6 @@ class TrainingTopicLinksController < AuthenticatedController
   end
 
   def link_params
-    params.require(:training_topic_link).permit(:title, :url)
+    params.expect(training_topic_link: %i[title url])
   end
 end

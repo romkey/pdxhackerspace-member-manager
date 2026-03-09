@@ -20,9 +20,7 @@ class IncidentReportPdf
     generate
   end
 
-  def document
-    @document
-  end
+  attr_reader :document
 
   private
 
@@ -53,12 +51,12 @@ class IncidentReportPdf
 
   def metadata_section
     status_text = @incident_report.status_display
-    status_color = case @incident_report.status
-                   when 'draft' then '666666'
-                   when 'in_progress' then 'CC8800'
-                   when 'resolved' then '228822'
-                   else '000000'
-                   end
+    case @incident_report.status
+    when 'draft' then '666666'
+    when 'in_progress' then 'CC8800'
+    when 'resolved' then '228822'
+    else '000000'
+    end
 
     data = [
       ['Date:', @incident_report.incident_date.strftime('%B %d, %Y')],
@@ -181,7 +179,7 @@ class IncidentReportPdf
     end
   end
 
-  def draw_qr_code(url, x, y, size)
+  def draw_qr_code(url, x_pos, y_pos, size)
     qr = RQRCode::QRCode.new(url)
     modules = qr.modules
     module_count = modules.size
@@ -189,15 +187,14 @@ class IncidentReportPdf
 
     modules.each_with_index do |row, row_idx|
       row.each_with_index do |dark, col_idx|
-        if dark
-          # Draw a filled rectangle for dark modules
-          fill_color '000000'
-          fill_rectangle(
-            [x + (col_idx * module_size), y - (row_idx * module_size)],
-            module_size,
-            module_size
-          )
-        end
+        next unless dark
+
+        fill_color '000000'
+        fill_rectangle(
+          [x_pos + (col_idx * module_size), y_pos - (row_idx * module_size)],
+          module_size,
+          module_size
+        )
       end
     end
 

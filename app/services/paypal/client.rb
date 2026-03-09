@@ -24,11 +24,17 @@ module Paypal
 
       # Validate overall date range
       if current_start >= final_end
-        Rails.logger.warn("[PayPal::Client] Invalid date range: start_time (#{current_start.utc.iso8601}) >= end_time (#{final_end.utc.iso8601})")
+        Rails.logger.warn(
+          '[PayPal::Client] Invalid date range: start_time ' \
+          "(#{current_start.utc.iso8601}) >= end_time (#{final_end.utc.iso8601})"
+        )
         return []
       end
 
-      Rails.logger.info("[PayPal::Client] Fetching transactions from #{current_start.utc.iso8601} to #{final_end.utc.iso8601}")
+      Rails.logger.info(
+        '[PayPal::Client] Fetching transactions from ' \
+        "#{current_start.utc.iso8601} to #{final_end.utc.iso8601}"
+      )
       Rails.logger.info('[PayPal::Client] PayPal API limit: 31 days per request, will fetch in chunks')
 
       # Fetch data in 31-day chunks
@@ -44,7 +50,10 @@ module Paypal
         # PayPal requires start_date < end_date (not <=) and may reject identical timestamps
         time_diff = chunk_end - current_start
         if chunk_end <= current_start || time_diff < 1
-          Rails.logger.warn("[PayPal::Client] Skipping chunk with invalid date range: #{current_start.utc.iso8601} to #{chunk_end.utc.iso8601}, diff: #{time_diff}s")
+          Rails.logger.warn(
+            '[PayPal::Client] Skipping chunk with invalid date range: ' \
+            "#{current_start.utc.iso8601} to #{chunk_end.utc.iso8601}, diff: #{time_diff}s"
+          )
           break
         end
 
@@ -82,7 +91,11 @@ module Paypal
       # Also ensure there's at least 1 second difference (PayPal may reject identical timestamps)
       time_diff = end_time - start_time
       if start_time >= end_time || time_diff < 1
-        Rails.logger.warn("[PayPal::Client] Skipping invalid date range: start_time (#{start_time.utc.iso8601}) >= end_time (#{end_time.utc.iso8601}), diff: #{time_diff}s")
+        Rails.logger.warn(
+          '[PayPal::Client] Skipping invalid date range: start_time ' \
+          "(#{start_time.utc.iso8601}) >= end_time (#{end_time.utc.iso8601}), " \
+          "diff: #{time_diff}s"
+        )
         return []
       end
 
@@ -171,7 +184,8 @@ module Paypal
       Rails.logger.debug('[PayPal::Client] access_token called')
 
       # Check if we have a valid cached token
-      if defined?(@access_token) && @access_token.present? && @access_token_expires_at.present? && Time.current < @access_token_expires_at
+      if defined?(@access_token) && @access_token.present? &&
+         @access_token_expires_at.present? && Time.current < @access_token_expires_at
         time_until_expiry = @access_token_expires_at - Time.current
         Rails.logger.debug { "[PayPal::Client] Using cached access token (expires in #{time_until_expiry.round} seconds)" }
         Rails.logger.debug { "[PayPal::Client] Token expires at: #{@access_token_expires_at}" }

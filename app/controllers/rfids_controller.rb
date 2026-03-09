@@ -12,8 +12,8 @@ class RfidsController < AdminController
       @existing_rfid = existing
       @existing_owner = existing.user
       prepare_form_data
-      flash.now[:warning] = "This RFID code is already assigned to another member."
-      render :new, status: :unprocessable_entity
+      flash.now[:warning] = 'This RFID code is already assigned to another member.'
+      render :new, status: :unprocessable_content
       return
     end
 
@@ -25,17 +25,15 @@ class RfidsController < AdminController
 
       if @rfid.save
         training_added = false
-        if params[:add_training] == '1'
-          training_added = add_building_access_training(@rfid.user)
-        end
+        training_added = add_building_access_training(@rfid.user) if params[:add_training] == '1'
         notice = "Key fob added successfully for #{@rfid.user.display_name}."
         notice += " Reassigned from #{@reassigned_from.display_name}." if @reassigned_from
-        notice += " Building Access training also recorded." if training_added
+        notice += ' Building Access training also recorded.' if training_added
         redirect_to user_path(@rfid.user), notice: notice
       else
         prepare_form_data
         flash.now[:alert] = 'Unable to add key fob.'
-        render :new, status: :unprocessable_entity
+        render :new, status: :unprocessable_content
       end
     end
   end
@@ -50,12 +48,12 @@ class RfidsController < AdminController
   private
 
   def rfid_params
-    params.require(:rfid).permit(:user_id, :rfid, :notes)
+    params.expect(rfid: %i[user_id rfid notes])
   end
 
   def prepare_form_data
     @users = User.ordered_by_display_name
-    @building_access_topic = TrainingTopic.find_by("LOWER(name) LIKE ?", "%building access%")
+    @building_access_topic = TrainingTopic.find_by('LOWER(name) LIKE ?', '%building access%')
     @trained_user_ids = if @building_access_topic
                           Training.where(training_topic: @building_access_topic).pluck(:trainee_id).to_set
                         else
@@ -64,7 +62,7 @@ class RfidsController < AdminController
   end
 
   def add_building_access_training(user)
-    topic = TrainingTopic.find_by("LOWER(name) LIKE ?", "%building access%")
+    topic = TrainingTopic.find_by('LOWER(name) LIKE ?', '%building access%')
     return false unless topic
     return false if Training.exists?(trainee: user, training_topic: topic)
 

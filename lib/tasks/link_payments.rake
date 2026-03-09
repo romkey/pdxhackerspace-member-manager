@@ -1,9 +1,9 @@
 namespace :payments do
-  desc "Set user_id on PayPal and Recharge payments based on payer/customer ID matches, and set membership dates"
+  desc 'Set user_id on PayPal and Recharge payments based on payer/customer ID matches, and set membership dates'
   task link: :environment do
-    puts "=" * 60
-    puts "Linking payments to users"
-    puts "=" * 60
+    puts '=' * 60
+    puts 'Linking payments to users'
+    puts '=' * 60
 
     # Build lookup hashes for efficiency
     puts "\nBuilding user lookup tables..."
@@ -21,8 +21,8 @@ namespace :payments do
     puts "  Found #{recharge_user_map.size} users with Recharge customer IDs"
 
     # Process PayPal payments
-    puts "\n" + "-" * 60
-    puts "Processing PayPal payments..."
+    puts "\n#{'-' * 60}"
+    puts 'Processing PayPal payments...'
 
     paypal_by_payer_id = 0
     paypal_by_email = 0
@@ -105,8 +105,8 @@ namespace :payments do
     puts "  No matching user: #{paypal_no_match}"
 
     # Process Recharge payments
-    puts "\n" + "-" * 60
-    puts "Processing Recharge payments..."
+    puts "\n#{'-' * 60}"
+    puts 'Processing Recharge payments...'
 
     recharge_by_customer_id = 0
     recharge_by_email = 0
@@ -174,24 +174,24 @@ namespace :payments do
     puts "  No matching user: #{recharge_no_match}"
 
     # Update user statuses (payment type, membership status, dues status)
-    puts "\n" + "-" * 60
-    puts "Updating user statuses..."
+    puts "\n#{'-' * 60}"
+    puts 'Updating user statuses...'
     status_updates = update_user_statuses
 
     # Set membership dates
-    puts "\n" + "-" * 60
-    puts "Setting membership dates..."
+    puts "\n#{'-' * 60}"
+    puts 'Setting membership dates...'
     update_membership_dates
 
     # Link membership plans based on PayPal transaction subjects
-    puts "\n" + "-" * 60
-    puts "Linking membership plans from PayPal transaction subjects..."
+    puts "\n#{'-' * 60}"
+    puts 'Linking membership plans from PayPal transaction subjects...'
     plans_linked = link_membership_plans_from_paypal
 
     # Summary
-    puts "\n" + "=" * 60
-    puts "SUMMARY"
-    puts "=" * 60
+    puts "\n#{'=' * 60}"
+    puts 'SUMMARY'
+    puts '=' * 60
     puts "PayPal payments linked: #{paypal_updated}"
     puts "Recharge payments linked: #{recharge_updated}"
     puts "Total payments linked: #{paypal_updated + recharge_updated}"
@@ -237,11 +237,9 @@ namespace :payments do
         if most_recent_date >= cutoff_date
           updates[:membership_status] = 'paying' unless user.membership_status == 'paying'
           updates[:dues_status] = 'current' unless user.dues_status == 'current'
-        else
+        elsif user.dues_status == 'current'
           # Payment is older than 32 days - mark as lapsed if currently showing as current
-          if user.dues_status == 'current'
-            updates[:dues_status] = 'lapsed'
-          end
+          updates[:dues_status] = 'lapsed'
         end
       end
 
@@ -272,7 +270,10 @@ namespace :payments do
 
     User.find_each do |user|
       # Collect all payment dates for this user
-      paypal_dates = user.paypal_payments.where.not(transaction_time: nil).order(:transaction_time).pluck(:transaction_time)
+      paypal_dates = user.paypal_payments
+                         .where.not(transaction_time: nil)
+                         .order(:transaction_time)
+                         .pluck(:transaction_time)
       recharge_dates = user.recharge_payments.where.not(processed_at: nil).order(:processed_at).pluck(:processed_at)
 
       # Skip if no payments
@@ -289,11 +290,11 @@ namespace :payments do
 
       # Determine membership_start_date:
       # Set to 1 month after the first payment of whichever type came first
-      if earliest_paypal.present? && earliest_recharge.present?
-        earliest_payment = [earliest_paypal, earliest_recharge].min
-      else
-        earliest_payment = earliest_paypal || earliest_recharge
-      end
+      earliest_payment = if earliest_paypal.present? && earliest_recharge.present?
+                           [earliest_paypal, earliest_recharge].min
+                         else
+                           earliest_paypal || earliest_recharge
+                         end
 
       if earliest_payment.present?
         start_date = (earliest_payment + 1.month).to_date
@@ -306,20 +307,20 @@ namespace :payments do
 
       # Determine membership_ended_date:
       # Set to 1 month after the last payment, unless the last payment is within 32 days of now
-      if latest_paypal.present? && latest_recharge.present?
-        latest_payment = [latest_paypal, latest_recharge].max
-      else
-        latest_payment = latest_paypal || latest_recharge
-      end
+      latest_payment = if latest_paypal.present? && latest_recharge.present?
+                         [latest_paypal, latest_recharge].max
+                       else
+                         latest_paypal || latest_recharge
+                       end
 
       if latest_payment.present?
         # Only set membership_ended_date if last payment is older than 32 days
         if latest_payment.to_date < 32.days.ago.to_date
           ended_date = (latest_payment + 1.month).to_date
           updates[:membership_ended_date] = ended_date
-        else
+        elsif user.membership_ended_date.present?
           # Clear membership_ended_date if there's a recent payment
-          updates[:membership_ended_date] = nil if user.membership_ended_date.present?
+          updates[:membership_ended_date] = nil
         end
       end
 
@@ -327,8 +328,16 @@ namespace :payments do
         user.update_columns(updates)
         users_updated += 1
         if updates[:membership_start_date] || updates[:membership_ended_date]
-          start_str = updates[:membership_start_date] ? updates[:membership_start_date].to_s : (user.membership_start_date&.to_s || 'nil')
-          end_str = updates[:membership_ended_date] ? updates[:membership_ended_date].to_s : (updates.key?(:membership_ended_date) ? 'cleared' : (user.membership_ended_date&.to_s || 'nil'))
+          start_str = if updates[:membership_start_date]
+                        updates[:membership_start_date].to_s
+                      else
+                        user.membership_start_date&.to_s || 'nil'
+                      end
+          end_str = if updates[:membership_ended_date]
+                      updates[:membership_ended_date].to_s
+                    else
+                      (updates.key?(:membership_ended_date) ? 'cleared' : (user.membership_ended_date&.to_s || 'nil'))
+                    end
           puts "  #{user.display_name}: start=#{start_str}, ended=#{end_str}"
         end
       else
@@ -349,7 +358,7 @@ namespace :payments do
     plans_with_subjects = MembershipPlan.with_transaction_subject.to_a
 
     if plans_with_subjects.empty?
-      puts "  No membership plans with PayPal transaction subjects configured"
+      puts '  No membership plans with PayPal transaction subjects configured'
       return { primary: 0, supplementary: 0 }
     end
 
@@ -364,14 +373,12 @@ namespace :payments do
       matched_plans = Set.new
 
       user.paypal_payments.each do |payment|
-        next unless payment.raw_attributes.present?
+        next if payment.raw_attributes.blank?
 
         raw_json = payment.raw_attributes.to_s
 
         plans_with_subjects.each do |plan|
-          if raw_json.include?(plan.paypal_transaction_subject)
-            matched_plans << plan
-          end
+          matched_plans << plan if raw_json.include?(plan.paypal_transaction_subject)
         end
       end
 
@@ -387,16 +394,13 @@ namespace :payments do
             puts "  #{user.display_name}: Primary plan set to '#{plan.name}'"
           elsif user.membership_plan_id != plan.id
             # User already has a different primary plan - skip but note
-            puts "  #{user.display_name}: Already has primary plan '#{user.membership_plan.name}', skipping '#{plan.name}'"
+            puts "  #{user.display_name}: Already has primary plan " \
+                 "'#{user.membership_plan.name}', skipping '#{plan.name}'"
           end
-        else
+        elsif !user.has_plan?(plan) && user.add_supplementary_plan(plan)
           # Add supplementary plan if not already assigned
-          unless user.has_plan?(plan)
-            if user.add_supplementary_plan(plan)
-              supplementary_linked += 1
-              puts "  #{user.display_name}: Added supplementary plan '#{plan.name}'"
-            end
-          end
+          supplementary_linked += 1
+          puts "  #{user.display_name}: Added supplementary plan '#{plan.name}'"
         end
       end
     end
@@ -407,11 +411,11 @@ namespace :payments do
     { primary: primary_linked, supplementary: supplementary_linked }
   end
 
-  desc "Show payment linking statistics without making changes"
+  desc 'Show payment linking statistics without making changes'
   task link_stats: :environment do
-    puts "=" * 60
-    puts "Payment Linking Statistics"
-    puts "=" * 60
+    puts '=' * 60
+    puts 'Payment Linking Statistics'
+    puts '=' * 60
 
     # PayPal stats
     puts "\nPayPal Payments:"
@@ -478,86 +482,91 @@ namespace :payments do
       puts "  Users without primary plan: #{users_without_primary}"
     end
 
-    puts "\n" + "=" * 60
+    puts "\n#{'=' * 60}"
     puts "Run 'rails payments:link' to link #{matchable_paypal + matchable_recharge} payments"
   end
 
-  desc "Link orphaned payments (where one payment is linked but others with same ID are not)"
+  desc 'Link orphaned payments (where one payment is linked but others with same ID are not)'
   task link_orphans: :environment do
-    puts "=" * 60
-    puts "Linking orphaned payments"
-    puts "=" * 60
+    puts '=' * 60
+    puts 'Linking orphaned payments'
+    puts '=' * 60
 
     # Find PayPal payer_ids that have both linked and unlinked payments
     puts "\nScanning PayPal payments..."
-    
+
     paypal_orphans_linked = 0
-    
+
     # Get all payer_ids that have at least one linked payment (only plan-matching payments)
     linked_payer_ids = PaypalPayment.matching_plan.where.not(user_id: nil)
                                     .where.not(payer_id: [nil, ''])
                                     .distinct
                                     .pluck(:payer_id)
-    
+
     linked_payer_ids.each do |payer_id|
       # Find the user this payer_id is linked to
       linked_payment = PaypalPayment.matching_plan.where(payer_id: payer_id).where.not(user_id: nil).first
       next unless linked_payment
-      
+
       # Find and link any unlinked plan-matching payments with the same payer_id
       count = PaypalPayment.matching_plan.where(payer_id: payer_id, user_id: nil)
                            .update_all(user_id: linked_payment.user_id)
-      
-      if count > 0
-        puts "  Linked #{count} PayPal payment#{'s' if count != 1} for payer_id #{payer_id} to user #{linked_payment.user.display_name}"
-        paypal_orphans_linked += count
-      end
+
+      next unless count.positive?
+
+      puts "  Linked #{count} PayPal payment#{if count != 1
+                                                's'
+                                              end} for payer_id #{payer_id} to user #{linked_payment.user.display_name}"
+      paypal_orphans_linked += count
     end
-    
+
     puts "  Total PayPal orphans linked: #{paypal_orphans_linked}"
 
     # Find Recharge customer_ids that have both linked and unlinked payments
     puts "\nScanning Recharge payments..."
-    
+
     recharge_orphans_linked = 0
-    
+
     # Get all customer_ids that have at least one linked payment
     linked_customer_ids = RechargePayment.where.not(user_id: nil)
                                          .where.not(customer_id: [nil, ''])
                                          .distinct
                                          .pluck(:customer_id)
-    
+
     linked_customer_ids.each do |customer_id|
       # Find the user this customer_id is linked to
       linked_payment = RechargePayment.where(customer_id: customer_id).where.not(user_id: nil).first
       next unless linked_payment
-      
+
       # Find and link any unlinked payments with the same customer_id
       count = RechargePayment.where(customer_id: customer_id, user_id: nil)
                              .update_all(user_id: linked_payment.user_id)
-      
-      if count > 0
-        puts "  Linked #{count} Recharge payment#{'s' if count != 1} for customer_id #{customer_id} to user #{linked_payment.user.display_name}"
-        recharge_orphans_linked += count
-      end
+
+      next unless count.positive?
+
+      suffix = count == 1 ? '' : 's'
+      user_name = linked_payment.user.display_name
+      puts "  Linked #{count} Recharge payment#{suffix} " \
+           "for customer_id #{customer_id} to user #{user_name}"
+      recharge_orphans_linked += count
     end
-    
+
     puts "  Total Recharge orphans linked: #{recharge_orphans_linked}"
 
     # Summary
-    puts "\n" + "=" * 60
-    puts "SUMMARY"
-    puts "=" * 60
+    puts "\n#{'=' * 60}"
+    puts 'SUMMARY'
+    puts '=' * 60
     puts "PayPal orphans linked: #{paypal_orphans_linked}"
     puts "Recharge orphans linked: #{recharge_orphans_linked}"
     puts "Total orphans linked: #{paypal_orphans_linked + recharge_orphans_linked}"
     puts "\nDone!"
   end
 
-  desc "Download all available PayPal payments, store new ones, and process them (match plans, link users)"
+  desc 'Download all available PayPal payments, store new ones, and process them (match plans, link users)'
   task paypal_full_sync: :environment do
     unless PaypalConfig.enabled?
-      puts "PayPal integration is not configured. Set PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET."
+      puts 'PayPal integration is not configured. Set PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET.'
       next
     end
 
@@ -565,27 +574,28 @@ namespace :payments do
     lookback_days = ENV.fetch('PAYPAL_FULL_SYNC_DAYS', '1095').to_i # 3 years default
     start_time = Time.current - lookback_days.days
 
-    puts "=" * 60
-    puts "PayPal Full Sync"
-    puts "=" * 60
+    puts '=' * 60
+    puts 'PayPal Full Sync'
+    puts '=' * 60
     puts "Fetching all PayPal transactions from #{start_time.strftime('%Y-%m-%d')} to now (#{lookback_days} days)"
-    puts "Set PAYPAL_FULL_SYNC_DAYS to change the lookback period (max ~1095 for 3 years)"
-    puts ""
+    puts 'Set PAYPAL_FULL_SYNC_DAYS to change the lookback period (max ~1095 for 3 years)'
+    puts ''
 
     # Get allowed transaction subjects for plan matching
     plan_subjects = MembershipPlan.with_transaction_subject
-                                   .pluck(:paypal_transaction_subject)
-                                   .compact
-    puts "Payment plan subjects configured: #{plan_subjects.any? ? plan_subjects.join(', ') : 'NONE (all payments will be unmatched!)'}"
-    puts ""
+                                  .pluck(:paypal_transaction_subject)
+                                  .compact
+    subjects_display = plan_subjects.any? ? plan_subjects.join(', ') : 'NONE (all payments will be unmatched!)'
+    puts "Payment plan subjects configured: #{subjects_display}"
+    puts ''
 
     # Fetch transactions from PayPal API
-    puts "Downloading transactions from PayPal API..."
+    puts 'Downloading transactions from PayPal API...'
     client = Paypal::Client.new
     begin
       payments = client.transactions(start_time: start_time)
     rescue Faraday::ForbiddenError => e
-      puts "ERROR: PayPal API returned 403 Forbidden."
+      puts 'ERROR: PayPal API returned 403 Forbidden.'
       puts "Your PayPal app may not have 'Transaction Search' / 'Reporting API' enabled."
       next
     rescue StandardError => e
@@ -594,10 +604,10 @@ namespace :payments do
     end
 
     puts "Downloaded #{payments.count} transactions from PayPal"
-    puts ""
+    puts ''
 
     # Build user lookup tables
-    puts "Building user lookup tables..."
+    puts 'Building user lookup tables...'
     payer_id_to_user = User.where.not(paypal_account_id: [nil, ''])
                            .index_by(&:paypal_account_id)
 
@@ -615,13 +625,12 @@ namespace :payments do
     puts "  #{payer_id_to_user.size} users with PayPal account IDs"
     puts "  #{email_to_user.size} email addresses indexed"
     puts "  #{name_to_user.size} names indexed"
-    puts ""
+    puts ''
 
     # Process payments
     now = Time.current
     new_count = 0
     updated_count = 0
-    skipped_count = 0
     matched_plan_count = 0
     unmatched_plan_count = 0
     linked_user_count = 0
@@ -691,29 +700,29 @@ namespace :payments do
     end
 
     # Summary
-    puts ""
-    puts "=" * 60
-    puts "SUMMARY"
-    puts "=" * 60
+    puts ''
+    puts '=' * 60
+    puts 'SUMMARY'
+    puts '=' * 60
     puts "Total transactions from API:  #{payments.count}"
     puts "New payments stored:          #{new_count}"
     puts "Existing payments updated:    #{updated_count}"
     puts "Errors:                       #{error_count}"
-    puts ""
-    puts "Plan matching:"
+    puts ''
+    puts 'Plan matching:'
     puts "  Matched a plan:             #{matched_plan_count}"
     puts "  Did not match a plan:       #{unmatched_plan_count}"
-    puts ""
-    puts "User linking:"
+    puts ''
+    puts 'User linking:'
     puts "  Newly linked to users:      #{linked_user_count}"
-    puts ""
-    puts "Database totals:"
+    puts ''
+    puts 'Database totals:'
     puts "  Total PayPal payments:      #{PaypalPayment.count}"
     puts "  Matching plans:             #{PaypalPayment.matching_plan.count}"
     puts "  Not matching plans:         #{PaypalPayment.not_matching_plan.count}"
     puts "  Linked to users:            #{PaypalPayment.where.not(user_id: nil).count}"
     puts "  Unlinked:                   #{PaypalPayment.where(user_id: nil).count}"
-    puts ""
-    puts "Done!"
+    puts ''
+    puts 'Done!'
   end
 end

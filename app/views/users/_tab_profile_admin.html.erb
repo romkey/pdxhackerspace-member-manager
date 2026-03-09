@@ -58,9 +58,9 @@
             <% if user.user_links.any? %>
               <div class="d-flex flex-wrap gap-2">
                 <% user.user_links.ordered.each do |link| %>
-                  <a href="<%= link.url %>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">
+                  <%= link_to sanitize_url(link.url), target: '_blank', rel: 'noopener', class: 'btn btn-sm btn-outline-secondary' do %>
                     <i class="bi <%= link.icon_class %> me-1"></i><%= link.title %>
-                  </a>
+                  <% end %>
                 <% end %>
               </div>
             <% else %>

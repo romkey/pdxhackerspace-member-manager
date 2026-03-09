@@ -1,6 +1,6 @@
 # Manages document uploads. Admins have full access; trainers can manage
 # documents associated with their trainable topics via the topic edit page.
-class DocumentsController < AuthenticatedController # rubocop:disable Metrics/ClassLength
+class DocumentsController < AuthenticatedController
   before_action :require_admin!, only: %i[index]
   before_action :set_document, only: %i[show edit update destroy download]
   before_action :require_admin_or_topic_trainer!, only: %i[new create]
@@ -155,6 +155,6 @@ class DocumentsController < AuthenticatedController # rubocop:disable Metrics/Cl
   end
 
   def document_params
-    params.require(:document).permit(:title, :file, :show_on_all_profiles, training_topic_ids: [])
+    params.expect(document: [:title, :file, :show_on_all_profiles, { training_topic_ids: [] }])
   end
 end

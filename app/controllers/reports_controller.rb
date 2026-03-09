@@ -1,16 +1,20 @@
 class ReportsController < AdminController
   include Pagy::Backend
-  
+
   LIMIT = 20
 
   def index
-    @membership_status_unknown = User.where(membership_status: 'unknown', active: true).non_service_accounts.ordered_by_display_name.limit(LIMIT)
+    @membership_status_unknown = User.where(membership_status: 'unknown',
+                                            active: true).non_service_accounts.ordered_by_display_name.limit(LIMIT)
     @membership_status_unknown_count = User.where(membership_status: 'unknown', active: true).non_service_accounts.count
-    @payment_type_unknown = User.where(payment_type: 'unknown', active: true).non_service_accounts.ordered_by_display_name.limit(LIMIT)
+    @payment_type_unknown = User.where(payment_type: 'unknown',
+                                       active: true).non_service_accounts.ordered_by_display_name.limit(LIMIT)
     @payment_type_unknown_count = User.where(payment_type: 'unknown', active: true).non_service_accounts.count
-    @dues_status_unknown = User.where(dues_status: 'unknown', active: true).non_service_accounts.ordered_by_display_name.limit(LIMIT)
+    @dues_status_unknown = User.where(dues_status: 'unknown',
+                                      active: true).non_service_accounts.ordered_by_display_name.limit(LIMIT)
     @dues_status_unknown_count = User.where(dues_status: 'unknown', active: true).non_service_accounts.count
-    @dues_status_lapsed = User.where(dues_status: 'lapsed', active: true).non_service_accounts.ordered_by_display_name.limit(LIMIT)
+    @dues_status_lapsed = User.where(dues_status: 'lapsed',
+                                     active: true).non_service_accounts.ordered_by_display_name.limit(LIMIT)
     @dues_status_lapsed_count = User.where(dues_status: 'lapsed', active: true).non_service_accounts.count
 
     # Lapsed members with access after lapse
@@ -18,10 +22,10 @@ class ReportsController < AdminController
 
     # Sponsored members who are also paying
     @sponsored_and_paying = User.where(is_sponsored: true, membership_status: 'paying')
-                                 .non_service_accounts
-                                 .non_legacy
-                                 .ordered_by_display_name
-                                 .limit(LIMIT)
+                                .non_service_accounts
+                                .non_legacy
+                                .ordered_by_display_name
+                                .limit(LIMIT)
     @sponsored_and_paying_count = User.where(is_sponsored: true, membership_status: 'paying')
                                       .non_service_accounts
                                       .non_legacy
@@ -29,11 +33,11 @@ class ReportsController < AdminController
 
     # Active members with no email
     @no_email = User.where(email: [nil, ''])
-                     .where(membership_status: %w[paying sponsored guest])
-                     .non_service_accounts
-                     .non_legacy
-                     .ordered_by_display_name
-                     .limit(LIMIT)
+                    .where(membership_status: %w[paying sponsored guest])
+                    .non_service_accounts
+                    .non_legacy
+                    .ordered_by_display_name
+                    .limit(LIMIT)
     @no_email_count = User.where(email: [nil, ''])
                           .where(membership_status: %w[paying sponsored guest])
                           .non_service_accounts
@@ -48,14 +52,14 @@ class ReportsController < AdminController
 
     # Inactive members with RFID cards who would lose access if sync_inactive_members is disabled
     inactive_rfid_ids = User.where(active: false)
-                             .non_service_accounts
-                             .joins(:rfids)
-                             .distinct
-                             .pluck(:id)
+                            .non_service_accounts
+                            .joins(:rfids)
+                            .distinct
+                            .pluck(:id)
     @inactive_with_rfid = User.where(id: inactive_rfid_ids)
-                               .includes(:rfids, :membership_plan)
-                               .ordered_by_display_name
-                               .limit(LIMIT)
+                              .includes(:rfids, :membership_plan)
+                              .ordered_by_display_name
+                              .limit(LIMIT)
     @inactive_with_rfid_count = inactive_rfid_ids.size
 
     # Paying members with fewer than 3 access log entries
@@ -90,7 +94,7 @@ class ReportsController < AdminController
     # Prepare chart data
     prepare_chart_data
   end
-  
+
   def prepare_lapsed_with_access(limit: nil)
     # Find members whose dues have lapsed and who have access log entries after their last payment
     lapsed_users = User.where(dues_status: 'lapsed')
@@ -103,7 +107,7 @@ class ReportsController < AdminController
 
     lapsed_users.find_each do |user|
       last_payment = user.most_recent_payment_date
-      next unless last_payment.present?
+      next if last_payment.blank?
 
       # Find access logs after the last payment date
       accesses_after_lapse = user.access_logs.where('logged_at > ?', last_payment.end_of_day).order(logged_at: :desc)
@@ -156,20 +160,20 @@ class ReportsController < AdminController
     legacy_recent_users = User.where(legacy: true)
                               .non_service_accounts
                               .joins(:access_logs)
-                              .where('access_logs.logged_at >= ?', one_year_ago)
+                              .where(access_logs: { logged_at: one_year_ago.. })
                               .distinct
                               .includes(:access_logs)
 
     @legacy_recent_access = []
 
     legacy_recent_users.find_each do |user|
-      recent_accesses = user.access_logs.where('logged_at >= ?', one_year_ago).order(logged_at: :desc).limit(10)
+      recent_accesses = user.access_logs.where(logged_at: one_year_ago..).order(logged_at: :desc).limit(10)
       most_recent = recent_accesses.first
       next unless most_recent
 
       @legacy_recent_access << {
         user: user,
-        access_count: user.access_logs.where('logged_at >= ?', one_year_ago).count,
+        access_count: user.access_logs.where(logged_at: one_year_ago..).count,
         most_recent_access: most_recent,
         recent_accesses: recent_accesses
       }
@@ -180,7 +184,10 @@ class ReportsController < AdminController
     @legacy_recent_access = @legacy_recent_access.first(limit) if limit
   end
 
-  SLACK_JOIN_ORDER = Arel.sql("LOWER(COALESCE(NULLIF(users.full_name, ''), NULLIF(users.email, ''), users.authentik_id)) ASC")
+  SLACK_JOIN_ORDER = Arel.sql(
+    "LOWER(COALESCE(NULLIF(users.full_name, ''), " \
+    "NULLIF(users.email, ''), users.authentik_id)) ASC"
+  )
 
   def prepare_lapsed_with_slack(limit: nil)
     scope = User.where(dues_status: 'lapsed')
@@ -216,7 +223,7 @@ class ReportsController < AdminController
     @lapsed_active_slack = []
     lapsed_with_slack.find_each do |user|
       lapse_date = user.membership_ended_date || user.most_recent_payment_date
-      next unless lapse_date.present?
+      next if lapse_date.blank?
       next unless user.slack_user.last_active_at > lapse_date.to_time.end_of_day
 
       @lapsed_active_slack << {
@@ -279,10 +286,10 @@ class ReportsController < AdminController
 
     # Active members per month
     paypal_user_dates = PaypalPayment.joins(:user)
-                                      .where(users: { active: true })
-                                      .where.not(transaction_time: nil)
-                                      .group('users.id')
-                                      .minimum('paypal_payments.transaction_time')
+                                     .where(users: { active: true })
+                                     .where.not(transaction_time: nil)
+                                     .group('users.id')
+                                     .minimum('paypal_payments.transaction_time')
     recharge_user_dates = RechargePayment.joins(:user)
                                          .where(users: { active: true })
                                          .where.not(processed_at: nil)
@@ -387,7 +394,7 @@ class ReportsController < AdminController
 
   def view_all
     @report_type = params[:report_type]
-    
+
     case @report_type
     when 'membership-status-unknown'
       @users = User.where(membership_status: 'unknown', active: true).non_service_accounts.ordered_by_display_name
@@ -405,19 +412,19 @@ class ReportsController < AdminController
       prepare_lapsed_with_access
       @title = 'Lapsed Members with Access'
       render 'reports/lapsed_with_access_full'
-      return
+      nil
     when 'no-email'
       @users = User.where(email: [nil, ''])
-                    .where(membership_status: %w[paying sponsored guest])
-                    .non_service_accounts
-                    .non_legacy
-                    .ordered_by_display_name
+                   .where(membership_status: %w[paying sponsored guest])
+                   .non_service_accounts
+                   .non_legacy
+                   .ordered_by_display_name
       @title = 'Members with No Email'
     when 'sponsored-and-paying'
       @users = User.where(is_sponsored: true, membership_status: 'paying')
-                    .non_service_accounts
-                    .non_legacy
-                    .ordered_by_display_name
+                   .non_service_accounts
+                   .non_legacy
+                   .ordered_by_display_name
       @title = 'Sponsored & Paying Members'
     when 'no-access'
       few_access_ids = User.where(membership_status: 'paying')
@@ -436,52 +443,52 @@ class ReportsController < AdminController
                 .distinct
                 .pluck(:id)
       @users = User.where(id: ids)
-                    .includes(:rfids, :membership_plan)
-                    .ordered_by_display_name
+                   .includes(:rfids, :membership_plan)
+                   .ordered_by_display_name
       @title = 'Inactive Members with RFID Access'
     when 'legacy-with-access'
       prepare_legacy_with_access
       @title = 'Legacy Members with Access'
       render 'reports/legacy_with_access_full'
-      return
+      nil
     when 'legacy-recent-access'
       prepare_legacy_recent_access
       @title = 'Legacy Members with Recent Access'
       render 'reports/legacy_recent_access_full'
-      return
+      nil
     when 'lapsed-with-slack'
       prepare_lapsed_with_slack
       @title = 'Lapsed Members with Slack Accounts'
       render 'reports/slack_members_full'
-      return
+      nil
     when 'legacy-with-slack'
       prepare_legacy_with_slack
       @title = 'Legacy Members with Slack Accounts'
       render 'reports/slack_members_full'
-      return
+      nil
     when 'lapsed-active-slack'
       prepare_lapsed_active_slack
       @title = 'Lapsed Members Still Active on Slack'
       render 'reports/slack_active_full'
-      return
+      nil
     when 'legacy-active-slack'
       prepare_legacy_active_slack
       @title = 'Legacy Members Still Active on Slack'
       render 'reports/slack_members_full'
-      return
+      nil
     when 'slack-inactive'
       prepare_slack_inactive
       @title = 'Slack Users Inactive for Over a Year'
       render 'reports/slack_inactive_full'
-      return
+      nil
     when 'active-no-email'
       prepare_active_no_email
       @title = 'Active Members With No Email'
       render 'reports/active_no_email_full'
-      return
+      nil
     else
       redirect_to reports_path, alert: 'Invalid report type.'
-      return
+      nil
     end
   end
 
@@ -556,5 +563,4 @@ class ReportsController < AdminController
       redirect_to reports_path(tab: anchor), notice: notice
     end
   end
-  
 end

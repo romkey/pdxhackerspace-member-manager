@@ -1,5 +1,5 @@
 class PaymentProcessorsController < AdminController
-  before_action :set_payment_processor, only: [:show, :edit, :update, :toggle, :refresh_stats]
+  before_action :set_payment_processor, only: %i[show edit update toggle refresh_stats]
 
   def index
     @payment_processors = PaymentProcessor.ordered
@@ -13,7 +13,7 @@ class PaymentProcessorsController < AdminController
     if @payment_processor.update(payment_processor_params)
       redirect_to payment_processors_path, notice: "#{@payment_processor.name} settings updated."
     else
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
 
@@ -35,12 +35,12 @@ class PaymentProcessorsController < AdminController
       processor.check_api_configuration!
       processor.refresh_statistics!
     end
-    redirect_to payment_processors_path, notice: "All payment processor statistics refreshed."
+    redirect_to payment_processors_path, notice: 'All payment processor statistics refreshed.'
   end
 
   def seed
     PaymentProcessor.seed_defaults!
-    redirect_to payment_processors_path, notice: "Payment processors seeded."
+    redirect_to payment_processors_path, notice: 'Payment processors seeded.'
   end
 
   private
@@ -50,6 +50,6 @@ class PaymentProcessorsController < AdminController
   end
 
   def payment_processor_params
-    params.require(:payment_processor).permit(:name, :enabled, :display_order, :payment_link, :webhook_url, :notes)
+    params.expect(payment_processor: %i[name enabled display_order payment_link webhook_url notes])
   end
 end

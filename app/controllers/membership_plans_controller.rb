@@ -1,6 +1,6 @@
 class MembershipPlansController < AdminController
   skip_before_action :require_admin!, only: [:show]
-  before_action :set_membership_plan, only: [:show, :edit, :update, :destroy]
+  before_action :set_membership_plan, only: %i[show edit update destroy]
 
   def index
     @membership_plans = MembershipPlan.shared.ordered.includes(:users)
@@ -15,13 +15,16 @@ class MembershipPlansController < AdminController
     @other_plans = other_plans
   end
 
+  def edit; end
+
   def create
     @membership_plan = MembershipPlan.new(membership_plan_params)
 
     if @membership_plan.user_id.present?
       # Personal plan creation
       if @membership_plan.save
-        redirect_to membership_plans_path(anchor: 'personal-plans'), notice: "Personal plan created for #{@membership_plan.user.display_name}."
+        redirect_to membership_plans_path(anchor: 'personal-plans'),
+                    notice: "Personal plan created for #{@membership_plan.user.display_name}."
       else
         @membership_plans = MembershipPlan.shared.ordered.includes(:users)
         @personal_plans = MembershipPlan.personal.includes(:user).order(:name)
@@ -29,20 +32,15 @@ class MembershipPlansController < AdminController
         @membership_plan = MembershipPlan.new
         render :index, status: :unprocessable_content
       end
-    else
+    elsif @membership_plan.save
       # Shared plan creation
-      if @membership_plan.save
-        redirect_to membership_plans_path, notice: 'Membership plan created successfully.'
-      else
-        @membership_plans = MembershipPlan.shared.ordered.includes(:users)
-        @personal_plans = MembershipPlan.personal.includes(:user).order(:name)
-        @personal_plan = MembershipPlan.new
-        render :index, status: :unprocessable_content
-      end
+      redirect_to membership_plans_path, notice: 'Membership plan created successfully.'
+    else
+      @membership_plans = MembershipPlan.shared.ordered.includes(:users)
+      @personal_plans = MembershipPlan.personal.includes(:user).order(:name)
+      @personal_plan = MembershipPlan.new
+      render :index, status: :unprocessable_content
     end
-  end
-
-  def edit
   end
 
   def update
@@ -80,7 +78,7 @@ class MembershipPlansController < AdminController
 
     manual_plans.each do |plan|
       users = plan.primary? ? plan.users : plan.supplementary_users
-      users.includes(:membership_plan).each do |user|
+      users.includes(:membership_plan).find_each do |user|
         next_date = user.next_payment_date
         @members << {
           user: user,
@@ -114,7 +112,8 @@ class MembershipPlansController < AdminController
       actor_user: current_user,
       action: 'membership_status_changed',
       changed_at: Time.current,
-      changes_json: { 'dues_status' => { 'from' => old_dues_status, 'to' => 'current' }, 'note' => 'Manual dues received' }
+      changes_json: { 'dues_status' => { 'from' => old_dues_status, 'to' => 'current' },
+                      'note' => 'Manual dues received' }
     )
     redirect_to manual_payments_membership_plans_path, notice: "Marked dues received for #{user.display_name}."
   end
@@ -126,7 +125,7 @@ class MembershipPlansController < AdminController
   end
 
   def membership_plan_params
-    params.require(:membership_plan).permit(:name, :cost, :billing_frequency, :description, :payment_link, :plan_type, :paypal_transaction_subject, :manual, :visible, :display_order, :user_id)
+    params.expect(membership_plan: %i[name cost billing_frequency description payment_link plan_type
+                                      paypal_transaction_subject manual visible display_order user_id])
   end
 end
-

@@ -42,13 +42,13 @@ class WebhooksController < ApplicationController
   # See: https://help.ko-fi.com/hc/en-us/articles/360004162298-Does-Ko-fi-have-an-API-or-webhook
   def kofi
     # Verify the webhook token if configured
-    verification_token = ENV['KOFI_VERIFICATION_TOKEN']
+    verification_token = ENV.fetch('KOFI_VERIFICATION_TOKEN', nil)
 
     # Parse the incoming data (Ko-Fi sends it as a form field named 'data')
     begin
       raw_data = params[:data]
       if raw_data.blank?
-        Rails.logger.warn("Ko-Fi webhook received with no data")
+        Rails.logger.warn('Ko-Fi webhook received with no data')
         head :bad_request
         return
       end
@@ -58,7 +58,7 @@ class WebhooksController < ApplicationController
 
       # Verify the token if one is configured
       if verification_token.present? && data['verification_token'] != verification_token
-        Rails.logger.warn("Ko-Fi webhook verification token mismatch")
+        Rails.logger.warn('Ko-Fi webhook verification token mismatch')
         head :unauthorized
         return
       end
@@ -80,7 +80,7 @@ class WebhooksController < ApplicationController
       payment.status = 'completed'
       payment.amount = BigDecimal(data['amount'].to_s) if data['amount'].present?
       payment.currency = data['currency'] || 'USD'
-      payment.timestamp = Time.parse(data['timestamp']) if data['timestamp'].present?
+      payment.timestamp = Time.zone.parse(data['timestamp']) if data['timestamp'].present?
       payment.payment_type = data['type']
       payment.from_name = data['from_name']
       payment.email = data['email']
@@ -121,13 +121,17 @@ class WebhooksController < ApplicationController
       processor.record_webhook_received!
       processor.refresh_statistics!
 
-      Rails.logger.info("Ko-Fi webhook processed: #{transaction_id} - #{payment.payment_type} - #{payment.amount_with_currency} from #{payment.from_name}")
+      Rails.logger.info(
+        "Ko-Fi webhook processed: #{transaction_id} - " \
+        "#{payment.payment_type} - #{payment.amount_with_currency} " \
+        "from #{payment.from_name}"
+      )
 
       head :ok
     rescue JSON::ParserError => e
       Rails.logger.error("Ko-Fi webhook JSON parse error: #{e.message}")
       head :bad_request
-    rescue => e
+    rescue StandardError => e
       Rails.logger.error("Ko-Fi webhook error: #{e.message}\n#{e.backtrace.first(5).join("\n")}")
       head :internal_server_error
     end
@@ -141,7 +145,7 @@ class WebhooksController < ApplicationController
   #   - key: API key for authentication (optional, uses ACCESS_WEBHOOK_KEY env var)
   def access
     # Verify API key if configured
-    api_key = ENV['ACCESS_WEBHOOK_KEY']
+    api_key = ENV.fetch('ACCESS_WEBHOOK_KEY', nil)
     if api_key.present?
       provided_key = params[:key] || request.headers['X-Access-Key']
       unless ActiveSupport::SecurityUtils.secure_compare(provided_key.to_s, api_key)
@@ -163,7 +167,7 @@ class WebhooksController < ApplicationController
 
       # Skip system messages
       if parser.should_skip?
-        Rails.logger.debug("Access webhook: skipping system message: #{line.truncate(100)}")
+        Rails.logger.debug { "Access webhook: skipping system message: #{line.truncate(100)}" }
         render json: { status: 'skipped', reason: 'system message' }, status: :ok
         return
       end
@@ -171,7 +175,11 @@ class WebhooksController < ApplicationController
       # Parse and create the access log
       access_log = parser.create_access_log!
 
-      Rails.logger.info("Access webhook: created log entry - #{access_log.name || 'unknown'} #{access_log.action} #{access_log.location}")
+      Rails.logger.info(
+        'Access webhook: created log entry - ' \
+        "#{access_log.name || 'unknown'} #{access_log.action} " \
+        "#{access_log.location}"
+      )
 
       render json: {
         status: 'created',
@@ -184,8 +192,8 @@ class WebhooksController < ApplicationController
       }, status: :created
     rescue ActiveRecord::RecordInvalid => e
       Rails.logger.error("Access webhook: validation error: #{e.message}")
-      render json: { error: e.message }, status: :unprocessable_entity
-    rescue => e
+      render json: { error: e.message }, status: :unprocessable_content
+    rescue StandardError => e
       Rails.logger.error("Access webhook error: #{e.message}\n#{e.backtrace.first(5).join("\n")}")
       render json: { error: 'Internal error' }, status: :internal_server_error
     end
@@ -213,7 +221,7 @@ class WebhooksController < ApplicationController
       render json: { error: 'Invalid JSON' }, status: :bad_request
     rescue StandardError => e
       Rails.logger.error("[Authentik Webhook] Error: #{e.message}\n#{e.backtrace.first(5).join("\n")}")
-      render json: { error: 'Processing error' }, status: :unprocessable_entity
+      render json: { error: 'Processing error' }, status: :unprocessable_content
     end
   end
 
@@ -316,7 +324,7 @@ class WebhooksController < ApplicationController
   end
 
   def ip_whitelisted?
-    whitelist = ENV['RFID_WEBHOOK_IP_WHITELIST']
+    whitelist = ENV.fetch('RFID_WEBHOOK_IP_WHITELIST', nil)
     return false if whitelist.blank?
 
     client_ip_address = client_ip
@@ -354,8 +362,7 @@ class WebhooksController < ApplicationController
     else
       false
     end
-  rescue IPAddr::InvalidAddressError, ArgumentError
+  rescue ArgumentError
     false
   end
 end
-

@@ -7,18 +7,19 @@ class RfidReadersController < AdminController
   # instead of a full skip ensures the session is safely cleared on CSRF mismatch
   # rather than allowing the request through unchecked.
   protect_from_forgery with: :null_session, only: [:regenerate_key]
-  before_action :set_rfid_reader, only: [:show, :edit, :update, :destroy, :regenerate_key]
+  before_action :set_rfid_reader, only: %i[show edit update destroy regenerate_key]
 
   def index
     @rfid_readers = RfidReader.order(:name)
   end
 
-  def show
-  end
+  def show; end
 
   def new
     @rfid_reader = RfidReader.new
   end
+
+  def edit; end
 
   def create
     @rfid_reader = RfidReader.new(rfid_reader_params)
@@ -28,9 +29,6 @@ class RfidReadersController < AdminController
     else
       render :new, status: :unprocessable_content
     end
-  end
-
-  def edit
   end
 
   def update
@@ -48,7 +46,7 @@ class RfidReadersController < AdminController
 
   def regenerate_key
     @rfid_reader.generate_key!
-    
+
     respond_to do |format|
       format.html { redirect_to edit_rfid_reader_path(@rfid_reader), notice: 'Key regenerated successfully.' }
       format.json { render json: { key: @rfid_reader.key } }
@@ -62,7 +60,6 @@ class RfidReadersController < AdminController
   end
 
   def rfid_reader_params
-    params.require(:rfid_reader).permit(:name, :note)
+    params.expect(rfid_reader: %i[name note])
   end
 end
-

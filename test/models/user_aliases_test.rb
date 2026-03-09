@@ -61,7 +61,7 @@ class UserAliasesTest < ActiveSupport::TestCase
 
   test 'aliases_text= sets aliases from comma-separated string' do
     @user.aliases_text = 'One, Two, Three'
-    assert_equal ['One', 'Two', 'Three'], @user.aliases
+    assert_equal %w[One Two Three], @user.aliases
   end
 
   test 'aliases_text= deduplicates entries' do

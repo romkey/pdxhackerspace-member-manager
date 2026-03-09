@@ -1,7 +1,9 @@
 class TrainingsController < AuthenticatedController
   before_action :require_trainer_or_admin
-  before_action :set_trainee, only: [:add_training, :remove_training, :add_trainer_capability, :remove_trainer_capability]
-  before_action :set_training_topic, only: [:add_training, :remove_training, :add_trainer_capability, :remove_trainer_capability]
+  before_action :set_trainee,
+                only: %i[add_training remove_training add_trainer_capability remove_trainer_capability]
+  before_action :set_training_topic,
+                only: %i[add_training remove_training add_trainer_capability remove_trainer_capability]
 
   def index
     @users_for_search = User.ordered_by_display_name
@@ -17,7 +19,8 @@ class TrainingsController < AuthenticatedController
     # Check if training already exists
     existing = Training.find_by(trainee: @trainee, training_topic: @training_topic)
     if existing
-      redirect_to redirect_back_path(user_id: @trainee.id), notice: "#{@trainee.display_name} is already trained in #{@training_topic.name}."
+      redirect_to redirect_back_path(user_id: @trainee.id),
+                  notice: "#{@trainee.display_name} is already trained in #{@training_topic.name}."
       return
     end
 
@@ -46,12 +49,14 @@ class TrainingsController < AuthenticatedController
       )
       if @trainee.email.present?
         QueuedMail.enqueue(:training_completed, @trainee,
-          reason: "Trained in #{@training_topic.name}",
-          training_topic: @training_topic.name)
+                           reason: "Trained in #{@training_topic.name}",
+                           training_topic: @training_topic.name)
       end
-      redirect_to redirect_back_path(user_id: @trainee.id), notice: "#{@trainee.display_name} has been marked as trained in #{@training_topic.name}."
+      redirect_to redirect_back_path(user_id: @trainee.id),
+                  notice: "#{@trainee.display_name} has been marked as trained in #{@training_topic.name}."
     else
-      redirect_to redirect_back_path(user_id: @trainee.id), alert: "Failed to add training: #{training.errors.full_messages.join(', ')}"
+      redirect_to redirect_back_path(user_id: @trainee.id),
+                  alert: "Failed to add training: #{training.errors.full_messages.join(', ')}"
     end
   end
 
@@ -64,7 +69,7 @@ class TrainingsController < AuthenticatedController
     trainings = Training.where(trainee: @trainee, training_topic: @training_topic)
     count = trainings.count
 
-    if count > 0
+    if count.positive?
       trainings.destroy_all
       # Create journal entry for the trainee
       Journal.create!(
@@ -81,21 +86,24 @@ class TrainingsController < AuthenticatedController
         changed_at: Time.current,
         highlight: true
       )
-      redirect_to train_member_path(user_id: @trainee.id), notice: "Removed #{@training_topic.name} training from #{@trainee.display_name}."
+      redirect_to train_member_path(user_id: @trainee.id),
+                  notice: "Removed #{@training_topic.name} training from #{@trainee.display_name}."
     else
-      redirect_to train_member_path(user_id: @trainee.id), alert: "#{@trainee.display_name} was not trained in #{@training_topic.name}."
+      redirect_to train_member_path(user_id: @trainee.id),
+                  alert: "#{@trainee.display_name} was not trained in #{@training_topic.name}."
     end
   end
 
   def add_trainer_capability
     unless current_user_admin?
-      redirect_to train_member_path, alert: "Only admins can manage trainer capabilities."
+      redirect_to train_member_path, alert: 'Only admins can manage trainer capabilities.'
       return
     end
 
     existing = TrainerCapability.find_by(user: @trainee, training_topic: @training_topic)
     if existing
-      redirect_to train_member_path(user_id: @trainee.id), notice: "#{@trainee.display_name} can already train #{@training_topic.name}."
+      redirect_to train_member_path(user_id: @trainee.id),
+                  notice: "#{@trainee.display_name} can already train #{@training_topic.name}."
       return
     end
 
@@ -128,18 +136,20 @@ class TrainingsController < AuthenticatedController
       )
       if @trainee.email.present?
         QueuedMail.enqueue(:trainer_capability_granted, @trainee,
-          reason: "Can now train #{@training_topic.name}",
-          training_topic: @training_topic.name)
+                           reason: "Can now train #{@training_topic.name}",
+                           training_topic: @training_topic.name)
       end
-      redirect_to train_member_path(user_id: @trainee.id), notice: "#{@trainee.display_name} can now train others in #{@training_topic.name}."
+      redirect_to train_member_path(user_id: @trainee.id),
+                  notice: "#{@trainee.display_name} can now train others in #{@training_topic.name}."
     else
-      redirect_to train_member_path(user_id: @trainee.id), alert: "Failed to add trainer capability: #{capability.errors.full_messages.join(', ')}"
+      redirect_to train_member_path(user_id: @trainee.id),
+                  alert: "Failed to add trainer capability: #{capability.errors.full_messages.join(', ')}"
     end
   end
 
   def remove_trainer_capability
     unless current_user_admin?
-      redirect_to train_member_path, alert: "Only admins can manage trainer capabilities."
+      redirect_to train_member_path, alert: 'Only admins can manage trainer capabilities.'
       return
     end
 
@@ -160,9 +170,11 @@ class TrainingsController < AuthenticatedController
         changed_at: Time.current,
         highlight: true
       )
-      redirect_to train_member_path(user_id: @trainee.id), notice: "Removed #{@training_topic.name} trainer capability from #{@trainee.display_name}."
+      redirect_to train_member_path(user_id: @trainee.id),
+                  notice: "Removed #{@training_topic.name} trainer capability from #{@trainee.display_name}."
     else
-      redirect_to train_member_path(user_id: @trainee.id), alert: "#{@trainee.display_name} did not have trainer capability for #{@training_topic.name}."
+      redirect_to train_member_path(user_id: @trainee.id),
+                  alert: "#{@trainee.display_name} did not have trainer capability for #{@training_topic.name}."
     end
   end
 

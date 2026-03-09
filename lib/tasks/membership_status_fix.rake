@@ -1,10 +1,10 @@
 namespace :membership do
-  desc "Preview fixing unknown membership statuses and sponsored members who are paying"
+  desc 'Preview fixing unknown membership statuses and sponsored members who are paying'
   task preview_status_fix: :environment do
     MembershipStatusFixer.new(dry_run: true).run
   end
 
-  desc "Fix unknown membership statuses and sponsored members who are paying"
+  desc 'Fix unknown membership statuses and sponsored members who are paying'
   task fix_status: :environment do
     MembershipStatusFixer.new(dry_run: false).run
   end
@@ -23,10 +23,10 @@ class MembershipStatusFixer
   end
 
   def run
-    puts "#{@dry_run ? '[DRY RUN] ' : ''}Membership Status Fix"
-    puts "=" * 60
+    puts "#{'[DRY RUN] ' if @dry_run}Membership Status Fix"
+    puts '=' * 60
     puts
-    puts "Membership plans:"
+    puts 'Membership plans:'
     @plans.each { |p| puts "  - #{p.name}: $#{format('%.2f', p.cost)} (#{p.billing_frequency})" }
     puts
 
@@ -34,8 +34,8 @@ class MembershipStatusFixer
     fix_sponsored_who_are_paying
 
     puts
-    puts "=" * 60
-    puts "Summary:"
+    puts '=' * 60
+    puts 'Summary:'
     puts "  Unknown -> Paying:  #{@unknown_to_paying.size}"
     puts "  Unknown -> Lapsed:  #{@unknown_to_lapsed.size}"
     puts "  Unknown with no payments: #{@unknown_no_payments}"
@@ -43,13 +43,13 @@ class MembershipStatusFixer
     puts "  Sponsored -> Paying: #{@sponsored_to_paying.size}"
     puts "  Sponsored unchanged: #{@sponsored_unchanged}"
     puts
-    puts @dry_run ? "Run 'rake membership:fix_status' to apply changes." : "Done!"
+    puts @dry_run ? "Run 'rake membership:fix_status' to apply changes." : 'Done!'
   end
 
   private
 
   def fix_unknown_statuses
-    puts "--- Fixing Unknown Membership Status ---"
+    puts '--- Fixing Unknown Membership Status ---'
     puts
 
     User.where(membership_status: 'unknown').find_each do |user|
@@ -67,11 +67,17 @@ class MembershipStatusFixer
       latest = payments.last
       effective_plan = user.membership_plan || match_plan(latest[:amount])
       cutoff = MembershipTaskHelpers.cutoff_for_plan(effective_plan)
-      plan_label = effective_plan ? "#{effective_plan.name} (#{effective_plan.billing_frequency})" : "no plan (monthly default)"
+      plan_label = if effective_plan
+                     "#{effective_plan.name} (#{effective_plan.billing_frequency})"
+                   else
+                     'no plan (monthly default)'
+                   end
 
       if latest[:time] >= cutoff
         @unknown_to_paying << user
-        puts "  #{@dry_run ? 'WOULD SET' : 'SETTING'} #{user.display_name}: unknown -> paying, dues: current [#{plan_label}, last payment: #{latest[:time].to_date}]"
+        action = @dry_run ? 'WOULD SET' : 'SETTING'
+        puts "  #{action} #{user.display_name}: unknown -> paying, " \
+             "dues: current [#{plan_label}, last payment: #{latest[:time].to_date}]"
         unless @dry_run
           attrs = { membership_status: 'paying', dues_status: 'current' }
           attrs[:membership_plan_id] = effective_plan.id if effective_plan && user.membership_plan_id.blank?
@@ -80,7 +86,9 @@ class MembershipStatusFixer
         end
       else
         @unknown_to_lapsed << user
-        puts "  #{@dry_run ? 'WOULD SET' : 'SETTING'} #{user.display_name}: unknown -> paying (lapsed), dues: lapsed [#{plan_label}, last payment: #{latest[:time].to_date}]"
+        action = @dry_run ? 'WOULD SET' : 'SETTING'
+        puts "  #{action} #{user.display_name}: unknown -> paying (lapsed), " \
+             "dues: lapsed [#{plan_label}, last payment: #{latest[:time].to_date}]"
         unless @dry_run
           attrs = { membership_status: 'paying', dues_status: 'lapsed' }
           attrs[:membership_plan_id] = effective_plan.id if effective_plan && user.membership_plan_id.blank?
@@ -94,7 +102,7 @@ class MembershipStatusFixer
   end
 
   def fix_sponsored_who_are_paying
-    puts "--- Fixing Sponsored Members Who Are Paying ---"
+    puts '--- Fixing Sponsored Members Who Are Paying ---'
     puts
 
     User.where(membership_status: 'sponsored').non_service_accounts.non_legacy.find_each do |user|
@@ -107,11 +115,17 @@ class MembershipStatusFixer
       latest = payments.last
       effective_plan = user.membership_plan || match_plan(latest[:amount])
       cutoff = MembershipTaskHelpers.cutoff_for_plan(effective_plan)
-      plan_label = effective_plan ? "#{effective_plan.name} (#{effective_plan.billing_frequency})" : "no plan (monthly default)"
+      plan_label = if effective_plan
+                     "#{effective_plan.name} (#{effective_plan.billing_frequency})"
+                   else
+                     'no plan (monthly default)'
+                   end
 
       if latest[:time] >= cutoff
         @sponsored_to_paying << user
-        puts "  #{@dry_run ? 'WOULD SET' : 'SETTING'} #{user.display_name}: sponsored -> paying (current payments) [#{plan_label}, last payment: #{latest[:time].to_date}]"
+        action = @dry_run ? 'WOULD SET' : 'SETTING'
+        puts "  #{action} #{user.display_name}: sponsored -> paying " \
+             "(current payments) [#{plan_label}, last payment: #{latest[:time].to_date}]"
         unless @dry_run
           attrs = { membership_status: 'paying', dues_status: 'current' }
           attrs[:membership_plan_id] = effective_plan.id if effective_plan && user.membership_plan_id.blank?
@@ -130,15 +144,18 @@ class MembershipStatusFixer
   def collect_payments(user)
     payments = []
     user.paypal_payments.each do |p|
-      next unless p.transaction_time.present?
+      next if p.transaction_time.blank?
+
       payments << { time: p.transaction_time, amount: p.amount, type: 'paypal' }
     end
     user.recharge_payments.each do |p|
-      next unless p.processed_at.present?
+      next if p.processed_at.blank?
+
       payments << { time: p.processed_at, amount: p.amount, type: 'recharge' }
     end
-    KofiPayment.where(user_id: user.id).each do |p|
-      next unless p.timestamp.present?
+    KofiPayment.where(user_id: user.id).find_each do |p|
+      next if p.timestamp.blank?
+
       payments << { time: p.timestamp, amount: p.amount, type: 'kofi' }
     end
     payments.sort_by { |p| p[:time] }
@@ -146,6 +163,7 @@ class MembershipStatusFixer
 
   def match_plan(amount)
     return nil if amount.blank?
+
     MembershipTaskHelpers.find_matching_plan(@plans, amount)
   end
 end

@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: CC0-1.0
 
 class AuthentikUsersController < AdminController
-  before_action :set_authentik_user, only: [:show, :link_user, :accept_changes, :push_to_authentik]
+  before_action :set_authentik_user, only: %i[show link_user accept_changes push_to_authentik]
 
   def index
     @authentik_users = AuthentikUser.includes(:user).order(updated_at: :desc)
@@ -38,7 +38,9 @@ class AuthentikUsersController < AdminController
     ids = AuthentikUser.order(updated_at: :desc).pluck(:id)
     current_index = ids.index(@authentik_user.id)
     @previous_authentik_user = current_index&.positive? ? AuthentikUser.find(ids[current_index - 1]) : nil
-    @next_authentik_user = current_index && current_index < ids.length - 1 ? AuthentikUser.find(ids[current_index + 1]) : nil
+    @next_authentik_user = if current_index && current_index < ids.length - 1
+                             AuthentikUser.find(ids[current_index + 1])
+                           end
   end
 
   def sync
@@ -108,7 +110,8 @@ class AuthentikUsersController < AdminController
     #   username: @authentik_user.user.username
     # })
 
-    redirect_to @authentik_user, alert: 'Push to Authentik is not yet implemented. This requires Authentik API write access.'
+    redirect_to @authentik_user,
+                alert: 'Push to Authentik is not yet implemented. This requires Authentik API write access.'
   end
 
   private

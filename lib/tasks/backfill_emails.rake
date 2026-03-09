@@ -1,10 +1,10 @@
 namespace :emails do
-  desc "Preview copying email addresses from payments into members with no email"
+  desc 'Preview copying email addresses from payments into members with no email'
   task preview: :environment do
     EmailBackfiller.new(dry_run: true).run
   end
 
-  desc "Copy email addresses from payments into members with no email"
+  desc 'Copy email addresses from payments into members with no email'
   task backfill: :environment do
     EmailBackfiller.new(dry_run: false).run
   end
@@ -20,7 +20,7 @@ class EmailBackfiller
   end
 
   def run
-    puts "#{@dry_run ? '[DRY RUN] ' : ''}Finding members with payments but no email address..."
+    puts "#{'[DRY RUN] ' if @dry_run}Finding members with payments but no email address..."
     puts
 
     User.where(email: [nil, '']).find_each do |user|
@@ -41,13 +41,11 @@ class EmailBackfiller
       @updated += 1
       puts "  #{@dry_run ? 'WOULD SET' : 'SETTING'} #{user.display_name} (id: #{user.id}): email -> #{email}"
 
-      unless @dry_run
-        user.update!(email: email)
-      end
+      user.update!(email: email) unless @dry_run
     end
 
     puts
-    puts "Summary:"
+    puts 'Summary:'
     puts "  #{@dry_run ? 'Would update' : 'Updated'}: #{@updated}"
     puts "  Skipped (no email in payments): #{@skipped_no_email}"
     puts "  Skipped (email belongs to another member): #{@skipped_conflict}"

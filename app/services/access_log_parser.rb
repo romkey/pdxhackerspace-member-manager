@@ -82,7 +82,13 @@ class AccessLogParser
   # "2025-11-18T05:54:25-08:00 unit2 accesscontrol[2150]:  Sean Brown has opened unit2 front door"
   def parse_pattern1(line)
     # Atomic groups (?>...) and length caps prevent catastrophic backtracking (ReDoS)
-    pattern = /\A(?:(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2})|(\w{3}[ ]+\d{1,2}[ ]+\d{2}:\d{2}:\d{2}))[ ]+(\S+)[ ]+accesscontrol(?:\[\d+\])?:[ ]+((?>[^\n]{1,200}?))[ ]+has[ ]+(opened|locked|unlocked)[ ]+([^\n]{1,200})\z/
+    pattern = /
+      \A(?:(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2})
+      |(\w{3}\ +\d{1,2}\ +\d{2}:\d{2}:\d{2}))
+      \ +(\S+)\ +accesscontrol(?:\[\d+\])?:
+      \ +((?>[^\n]{1,200}?))\ +has
+      \ +(opened|locked|unlocked)\ +([^\n]{1,200})\z
+    /x
 
     match = line.match(pattern)
     return nil unless match
@@ -106,7 +112,12 @@ class AccessLogParser
   # "Sep 10 14:09:38 laser-access accesscontrol: Paul Maupoux enabled laser-access"
   def parse_pattern2(line)
     # Atomic groups (?>...) and length caps prevent catastrophic backtracking (ReDoS)
-    pattern = /\A(\w{3}[ ]+\d{1,2}[ ]+\d{2}:\d{2}:\d{2})[ ]+laser-access[ ]+accesscontrol:[ ]+((?>[^\n]{1,200}?))[ ]+(enabled|disabled)[ ]+(?:laser-access|unit\d+[ ]+laser)\z/
+    pattern = /
+      \A(\w{3}\ +\d{1,2}\ +\d{2}:\d{2}:\d{2})
+      \ +laser-access\ +accesscontrol:
+      \ +((?>[^\n]{1,200}?))\ +(enabled|disabled)
+      \ +(?:laser-access|unit\d+\ +laser)\z
+    /x
 
     match = line.match(pattern)
     return nil unless match
@@ -128,7 +139,13 @@ class AccessLogParser
   # "2025-10-25T17:26:03-07:00 unit2 accesscontrol[2214]: unit2 front door unlocked by Kenny McElroy"
   def parse_pattern3(line)
     # Atomic groups (?>...) and length caps prevent catastrophic backtracking (ReDoS)
-    pattern = /\A(?:(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2})|(\w{3}[ ]+\d{1,2}[ ]+\d{2}:\d{2}:\d{2}))[ ]+(\S+)[ ]+accesscontrol(?:\[\d+\])?:[ ]+((?>[^\n]{1,200}?))[ ]+(locked|unlocked)[ ]+by[ ]+([^\n]{1,200})\z/
+    pattern = /
+      \A(?:(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2})
+      |(\w{3}\ +\d{1,2}\ +\d{2}:\d{2}:\d{2}))
+      \ +(\S+)\ +accesscontrol(?:\[\d+\])?:
+      \ +((?>[^\n]{1,200}?))\ +(locked|unlocked)
+      \ +by\ +([^\n]{1,200})\z
+    /x
 
     match = line.match(pattern)
     return nil unless match
@@ -151,7 +168,14 @@ class AccessLogParser
   # "2025-11-01T16:38:02-07:00 unit2 accesscontrol[2214]: Tom Hansen found unit2 front door is already unlocked"
   def parse_pattern4(line)
     # Atomic groups (?>...) and length caps prevent catastrophic backtracking (ReDoS)
-    pattern = /\A(?:(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2})|(\w{3}[ ]+\d{1,2}[ ]+\d{2}:\d{2}:\d{2}))[ ]+(\S+)[ ]+accesscontrol(?:\[\d+\])?:[ ]+((?>[^\n]{1,200}?))[ ]+found[ ]+((?>[^\n]{1,200}?))[ ]+is[ ]+already[ ]+(locked|unlocked)\z/
+    pattern = /
+      \A(?:(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2})
+      |(\w{3}\ +\d{1,2}\ +\d{2}:\d{2}:\d{2}))
+      \ +(\S+)\ +accesscontrol(?:\[\d+\])?:
+      \ +((?>[^\n]{1,200}?))\ +found
+      \ +((?>[^\n]{1,200}?))\ +is\ +already
+      \ +(locked|unlocked)\z
+    /x
 
     match = line.match(pattern)
     return nil unless match
@@ -202,16 +226,16 @@ class AccessLogParser
     normalized_name = name.strip
 
     # Check if name has an abbreviated last name (e.g., "Jon H.")
-    if normalized_name.match?(/\A\w+\s+\w\.\z/i)
-      return find_user_by_abbreviated_name(normalized_name)
-    end
+    return find_user_by_abbreviated_name(normalized_name) if normalized_name.match?(/\A\w+\s+\w\.\z/i)
 
     # Match by full_name or aliases
     user = User.by_name_or_alias(normalized_name).first
     return nil unless user
 
     # Auto-add differing name as alias
-    user.add_alias!(normalized_name) if user.full_name.present? && user.full_name.strip.downcase != normalized_name.downcase
+    if user.full_name.present? && user.full_name.strip.downcase != normalized_name.downcase
+      user.add_alias!(normalized_name)
+    end
 
     user
   end
@@ -224,7 +248,8 @@ class AccessLogParser
     last_initial = match[2].upcase
 
     matching_users = User.where(
-      "LOWER(TRIM(SPLIT_PART(full_name, ' ', 1))) = ? AND UPPER(SUBSTRING(TRIM(SPLIT_PART(full_name, ' ', -1)) FROM 1 FOR 1)) = ?",
+      "LOWER(TRIM(SPLIT_PART(full_name, ' ', 1))) = ? AND " \
+      "UPPER(SUBSTRING(TRIM(SPLIT_PART(full_name, ' ', -1)) FROM 1 FOR 1)) = ?",
       first_name.downcase,
       last_initial
     ).to_a

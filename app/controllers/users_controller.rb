@@ -1,10 +1,15 @@
 class UsersController < AuthenticatedController
   skip_before_action :require_authenticated_user!, only: [:show]
   before_action :set_user_for_show, only: [:show]
-  before_action :set_user, only: [:edit, :update, :activate, :deactivate, :ban, :mark_deceased, :mark_sponsored, :unmark_sponsored, :destroy, :sync_to_authentik, :sync_from_authentik, :mark_help_seen]
-  before_action :require_admin!, except: [:show, :edit, :update, :mark_help_seen]
+  before_action :set_user,
+                only: %i[edit update activate deactivate ban
+                         mark_deceased mark_sponsored
+                         unmark_sponsored destroy
+                         sync_to_authentik sync_from_authentik
+                         mark_help_seen]
+  before_action :require_admin!, except: %i[show edit update mark_help_seen]
   before_action :authorize_profile_view, only: [:show]
-  before_action :authorize_self_or_admin, only: [:edit, :update]
+  before_action :authorize_self_or_admin, only: %i[edit update]
 
   SORTABLE_COLUMNS = %w[username full_name email membership_status payment_type last_synced_at].freeze
 
@@ -39,20 +44,25 @@ class UsersController < AuthenticatedController
     if params[:q].present?
       search_term = "%#{params[:q].downcase}%"
       @users = @users.where(
-        "LOWER(COALESCE(full_name, '')) LIKE :p OR LOWER(COALESCE(email, '')) LIKE :p OR LOWER(authentik_id) LIKE :p OR LOWER(COALESCE(username, '')) LIKE :p",
+        "LOWER(COALESCE(full_name, '')) LIKE :p " \
+        "OR LOWER(COALESCE(email, '')) LIKE :p " \
+        'OR LOWER(authentik_id) LIKE :p ' \
+        "OR LOWER(COALESCE(username, '')) LIKE :p",
         p: search_term
       )
     end
 
-    @users = @users.non_service_accounts.where(membership_status: params[:membership_status]) if params[:membership_status].present?
+    if params[:membership_status].present?
+      @users = @users.non_service_accounts.where(membership_status: params[:membership_status])
+    end
     @users = @users.non_service_accounts.where(payment_type: params[:payment_type]) if params[:payment_type].present?
     @users = @users.non_service_accounts.where(dues_status: params[:dues_status]) if params[:dues_status].present?
     if params[:membership_plan_id].present?
-      if params[:membership_plan_id] == 'none'
-        @users = @users.non_service_accounts.where(membership_plan_id: nil)
-      else
-        @users = @users.non_service_accounts.where(membership_plan_id: params[:membership_plan_id])
-      end
+      @users = if params[:membership_plan_id] == 'none'
+                 @users.non_service_accounts.where(membership_plan_id: nil)
+               else
+                 @users.non_service_accounts.where(membership_plan_id: params[:membership_plan_id])
+               end
     end
     @users = @users.where(active: params[:active] == 'true') if params[:active].present?
 
@@ -63,7 +73,7 @@ class UsersController < AuthenticatedController
     end
 
     if params[:missing] == 'rfid'
-      @users = @users.non_service_accounts.left_joins(:rfids).where(rfids: { id: nil })
+      @users = @users.non_service_accounts.where.missing(:rfids)
     elsif params[:missing] == 'email'
       @users = @users.non_service_accounts.where("email IS NULL OR email = ''")
     end
@@ -103,7 +113,7 @@ class UsersController < AuthenticatedController
     @dues_status_inactive = filtered_members.where(dues_status: 'inactive').count
     @dues_status_unknown = filtered_members.where(dues_status: 'unknown').count
 
-    @no_rfid_count = filtered_members.left_joins(:rfids).where(rfids: { id: nil }).count
+    @no_rfid_count = filtered_members.where.missing(:rfids).count
     @no_email_count = filtered_members.where("email IS NULL OR email = ''").count
 
     @service_account_count = @users.service_accounts.count
@@ -127,7 +137,7 @@ class UsersController < AuthenticatedController
     @list_params = @filter_params.dup
 
     @recent_members = User.non_service_accounts.non_legacy
-                          .where('created_at >= ?', 1.week.ago)
+                          .where(created_at: 1.week.ago..)
                           .ordered_by_display_name
   end
 
@@ -217,15 +227,22 @@ class UsersController < AuthenticatedController
     # Use true_user to ensure impersonation doesn't trigger the help for the admin
     @member_help_content = TextFragment.content_for('member_help')
     @show_member_help_auto = false
-    
-    if @member_help_content.present? && true_user && true_user.id == @user.id && !impersonating?
-      # Show automatically on first view (use true_user to not affect impersonated users)
-      @show_member_help_auto = !true_user.seen_member_help
-    end
+
+    return unless @member_help_content.present? && true_user && true_user.id == @user.id && !impersonating?
+
+    # Show automatically on first view (use true_user to not affect impersonated users)
+    @show_member_help_auto = !true_user.seen_member_help
   end
 
   def new
     @user = User.new
+  end
+
+  def edit
+    return unless !true_user_admin? && @user == current_user
+
+    redirect_to profile_setup_path
+    nil
   end
 
   def create
@@ -235,14 +252,7 @@ class UsersController < AuthenticatedController
       redirect_to user_path(@user), notice: 'Member created successfully.'
     else
       flash.now[:alert] = 'Unable to create member.'
-      render :new, status: :unprocessable_entity
-    end
-  end
-
-  def edit
-    if !true_user_admin? && @user == current_user
-      redirect_to profile_setup_path
-      return
+      render :new, status: :unprocessable_content
     end
   end
 
@@ -262,12 +272,15 @@ class UsersController < AuthenticatedController
 
   def sync_all_to_authentik
     Authentik::FullSyncToAuthentikJob.perform_later
-    redirect_to users_path, notice: 'Full sync to Authentik has been scheduled. All members, application groups, and the active members group will be synced.'
+    redirect_to users_path,
+                notice: 'Full sync to Authentik has been scheduled. ' \
+                        'All members, application groups, and the active members group will be synced.'
   end
 
   def activate
     unless @user.service_account?
-      redirect_to user_path(@user), alert: 'Active status for non-service accounts is determined by membership and dues status.'
+      redirect_to user_path(@user),
+                  alert: 'Active status for non-service accounts is determined by membership and dues status.'
       return
     end
     @user.update!(active: true)
@@ -276,7 +289,8 @@ class UsersController < AuthenticatedController
 
   def deactivate
     unless @user.service_account?
-      redirect_to user_path(@user), alert: 'Active status for non-service accounts is determined by membership and dues status.'
+      redirect_to user_path(@user),
+                  alert: 'Active status for non-service accounts is determined by membership and dues status.'
       return
     end
     @user.update!(active: false)
@@ -285,7 +299,7 @@ class UsersController < AuthenticatedController
 
   def ban
     @user.update!(membership_status: 'banned')
-    QueuedMail.enqueue(:membership_banned, @user, reason: "Member banned") if @user.email.present?
+    QueuedMail.enqueue(:membership_banned, @user, reason: 'Member banned') if @user.email.present?
     redirect_to user_path(@user), notice: 'Member banned.'
   end
 
@@ -296,7 +310,7 @@ class UsersController < AuthenticatedController
 
   def mark_sponsored
     @user.update!(is_sponsored: true)
-    QueuedMail.enqueue(:membership_sponsored, @user, reason: "Membership sponsored") if @user.email.present?
+    QueuedMail.enqueue(:membership_sponsored, @user, reason: 'Membership sponsored') if @user.email.present?
     redirect_to user_path(@user), notice: 'Member marked as sponsored.'
   end
 
@@ -365,8 +379,10 @@ class UsersController < AuthenticatedController
   private
 
   def set_user_for_show
-    @user = User.includes(:sheet_entry, :slack_user, :rfids, :user_links, trainings_as_trainee: :training_topic,
-                           training_topics: []).find_by_param(params[:id])
+    @user = User.includes(
+      :sheet_entry, :slack_user, :rfids, :user_links,
+      trainings_as_trainee: :training_topic, training_topics: []
+    ).find_by_param(params[:id])
   end
 
   def set_user
@@ -395,9 +411,7 @@ class UsersController < AuthenticatedController
       true
     when 'members'
       # Must be logged in
-      unless user_signed_in?
-        redirect_to login_path, alert: 'Please sign in to view this profile.'
-      end
+      redirect_to login_path, alert: 'Please sign in to view this profile.' unless user_signed_in?
     when 'private'
       # Only admin or self (already checked above)
       if user_signed_in?
@@ -425,7 +439,7 @@ class UsersController < AuthenticatedController
     # Check if user is requesting a specific view level via params
     requested_view = params[:view_as]&.to_sym
 
-    return @natural_view_level unless requested_view.present?
+    return @natural_view_level if requested_view.blank?
 
     # Validate that the user can access the requested view level
     allowed_views = allowed_preview_views
@@ -448,15 +462,13 @@ class UsersController < AuthenticatedController
   def setup_view_preview_options
     # Don't show preview selector when impersonating - show exact user view
     @can_preview_views = !impersonating? && allowed_preview_views.length > 1
-    @available_views = allowed_preview_views.map do |level|
-      label = case level
-              when :public then 'Public (not logged in)'
-              when :members then 'Other Members'
-              when :self then 'Profile Owner'
-              when :admin then 'Admin'
-              end
-      [label, level]
-    end
+    view_labels = {
+      public: 'Public (not logged in)',
+      members: 'Other Members',
+      self: 'Profile Owner',
+      admin: 'Admin'
+    }.freeze
+    @available_views = allowed_preview_views.map { |level| [view_labels[level], level] }
   end
 
   def user_params
@@ -483,7 +495,7 @@ class UsersController < AuthenticatedController
 
   def apply_greeting_option!(attrs)
     option = attrs.delete(:greeting_option)
-    return unless option.present?
+    return if option.blank?
 
     case option
     when 'full_name'

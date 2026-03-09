@@ -59,7 +59,7 @@ class CashPaymentTest < ActiveSupport::TestCase
   test 'for_user scope returns payments for given user' do
     user = users(:cash_payer)
     payments = CashPayment.for_user(user)
-    assert payments.all? { |p| p.user_id == user.id }
+    assert(payments.all? { |p| p.user_id == user.id })
   end
 
   test 'ordered scope sorts by paid_on descending' do

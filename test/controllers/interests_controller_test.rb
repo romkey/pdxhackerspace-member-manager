@@ -152,7 +152,7 @@ class InterestsControllerTest < ActionDispatch::IntegrationTest
     # newly created ones should be, and total should be close to 50.
     assert_operator Interest.seeded_set.count, :>=, 40
     assert_redirected_to interests_path
-    assert_match /seeded/i, flash[:notice]
+    assert_match(/seeded/i, flash[:notice])
   end
 
   test 'seed is idempotent when already seeded' do
@@ -161,18 +161,18 @@ class InterestsControllerTest < ActionDispatch::IntegrationTest
       post seed_interests_path
     end
     assert_redirected_to interests_path
-    assert_match /already been seeded/i, flash[:alert]
+    assert_match(/already been seeded/i, flash[:alert])
   end
 
   test 'seed button appears when no seeded interests exist' do
     get interests_path
-    assert_match /Seed Interests/i, response.body
+    assert_match(/Seed Interests/i, response.body)
   end
 
   test 'seed button is hidden after seeding' do
     Interest.create!(name: 'Seed Guard', seeded: true)
     get interests_path
-    assert_no_match /Seed Interests/i, response.body
+    assert_no_match(/Seed Interests/i, response.body)
   end
 
   # Approve
@@ -182,7 +182,7 @@ class InterestsControllerTest < ActionDispatch::IntegrationTest
     post approve_interest_path(@interest)
     assert_not @interest.reload.needs_review?
     assert_redirected_to interests_path
-    assert_match /approved/i, flash[:notice]
+    assert_match(/approved/i, flash[:notice])
   end
 
   test 'approve is a no-op on already approved interest' do
@@ -201,7 +201,7 @@ class InterestsControllerTest < ActionDispatch::IntegrationTest
     assert_match @interest.name, response.body
     # Woodworking (approved) should not appear as a table row — it does appear in
     # the "Add Interest" form placeholder, so check for the table cell specifically
-    assert_no_match(/class="fw-semibold">#{interests(:woodworking).name}<\/span>/, response.body)
+    assert_no_match(%r{class="fw-semibold">#{interests(:woodworking).name}</span>}, response.body)
   end
 
   test 'index with no filter shows all interests' do
@@ -215,7 +215,7 @@ class InterestsControllerTest < ActionDispatch::IntegrationTest
   test 'needs_review filter shows empty state when none pending' do
     get interests_path(filter: 'needs_review')
     assert_response :success
-    assert_match /No interests are waiting for review/i, response.body
+    assert_match(/No interests are waiting for review/i, response.body)
   end
 
   # Members list
@@ -230,7 +230,7 @@ class InterestsControllerTest < ActionDispatch::IntegrationTest
   test 'members shows empty state for interest with no members' do
     get members_interest_path(interests(:laser_cutting))
     assert_response :success
-    assert_match /No members/i, response.body
+    assert_match(/No members/i, response.body)
   end
 
   private

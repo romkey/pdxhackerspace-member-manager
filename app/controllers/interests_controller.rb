@@ -1,5 +1,5 @@
 class InterestsController < AdminController
-  before_action :set_interest, only: [:edit, :update, :destroy, :members, :merge_form, :merge, :approve]
+  before_action :set_interest, only: %i[edit update destroy members merge_form merge approve]
 
   SEED_INTERESTS = [
     # Electronics & Hardware
@@ -35,6 +35,8 @@ class InterestsController < AdminController
     @interest = Interest.new
   end
 
+  def edit; end
+
   def create
     @interest = Interest.new(interest_params)
     if @interest.save
@@ -43,18 +45,15 @@ class InterestsController < AdminController
       @interests      = Interest.alphabetical.includes(:user_interests)
       @new_interest   = @interest
       @already_seeded = Interest.seeded?
-      render :index, status: :unprocessable_entity
+      render :index, status: :unprocessable_content
     end
-  end
-
-  def edit
   end
 
   def update
     if @interest.update(interest_params)
-      redirect_to interests_path, notice: "Interest updated."
+      redirect_to interests_path, notice: 'Interest updated.'
     else
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
 
@@ -66,7 +65,7 @@ class InterestsController < AdminController
 
   def approve
     @interest.update!(needs_review: false)
-    redirect_back fallback_location: interests_path, notice: "'#{@interest.name}' approved."
+    redirect_back_or_to(interests_path, notice: "'#{@interest.name}' approved.")
   end
 
   def members
@@ -81,21 +80,19 @@ class InterestsController < AdminController
     target = Interest.find(params[:target_interest_id])
 
     @interest.user_interests.each do |ui|
-      unless UserInterest.exists?(user_id: ui.user_id, interest_id: target.id)
-        ui.update_columns(interest_id: target.id)
-      end
+      ui.update_columns(interest_id: target.id) unless UserInterest.exists?(user_id: ui.user_id, interest_id: target.id)
     end
 
     name = @interest.name
     @interest.reload.destroy!
     redirect_to interests_path, notice: "'#{name}' merged into '#{target.name}'."
   rescue ActiveRecord::RecordNotFound
-    redirect_to interests_path, alert: "Target interest not found."
+    redirect_to interests_path, alert: 'Target interest not found.'
   end
 
   def seed
     if Interest.seeded?
-      redirect_to interests_path, alert: "Interests have already been seeded."
+      redirect_to interests_path, alert: 'Interests have already been seeded.'
       return
     end
 
@@ -120,6 +117,6 @@ class InterestsController < AdminController
   end
 
   def interest_params
-    params.require(:interest).permit(:name)
+    params.expect(interest: [:name])
   end
 end

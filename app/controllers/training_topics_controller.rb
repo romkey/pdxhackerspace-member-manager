@@ -99,6 +99,6 @@ class TrainingTopicsController < AuthenticatedController
   end
 
   def training_topic_params
-    params.require(:training_topic).permit(:name)
+    params.expect(training_topic: [:name])
   end
 end

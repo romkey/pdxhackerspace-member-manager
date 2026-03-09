@@ -27,7 +27,10 @@ module Recharge
       }
       params[:status] = status if status.present?
 
-      Rails.logger.info("[Recharge::Client] Fetching subscriptions from #{params[:updated_at_min]} to #{params[:updated_at_max]}")
+      Rails.logger.info(
+        '[Recharge::Client] Fetching subscriptions from ' \
+        "#{params[:updated_at_min]} to #{params[:updated_at_max]}"
+      )
       paginate(SUBSCRIPTIONS_ENDPOINT, 'subscriptions', params) { |sub| normalize_subscription(sub) }
     end
 
@@ -40,7 +43,10 @@ module Recharge
         limit: MAX_LIMIT
       }
 
-      Rails.logger.info("[Recharge::Client] Fetching charges from #{params[:updated_at_min]} to #{params[:updated_at_max]}")
+      Rails.logger.info(
+        '[Recharge::Client] Fetching charges from ' \
+        "#{params[:updated_at_min]} to #{params[:updated_at_max]}"
+      )
       paginate(CHARGES_ENDPOINT, 'charges', params) { |charge| normalize_charge(charge) }
     end
 
@@ -48,7 +54,7 @@ module Recharge
 
     # Generic paginated fetch for any Recharge API list endpoint.
     # Yields each raw item to the block for normalization.
-    def paginate(endpoint, key, params) # rubocop:disable Metrics/MethodLength
+    def paginate(endpoint, key, params, &block)
       results = []
       page = 1
 
@@ -60,7 +66,7 @@ module Recharge
         Rails.logger.debug { "[Recharge::Client] #{endpoint} page #{page}: #{items.size} items" }
         break if items.empty?
 
-        results.concat(items.map { |item| yield(item) })
+        results.concat(items.map(&block))
 
         break unless more_pages?(payload, items.size)
 

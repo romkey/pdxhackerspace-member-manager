@@ -2,6 +2,7 @@ require 'test_helper'
 
 class QueuedMailTest < ActiveSupport::TestCase
   include ActiveJob::TestHelper
+
   setup do
     @pending = queued_mails(:pending_mail)
     @approved = queued_mails(:approved_mail)

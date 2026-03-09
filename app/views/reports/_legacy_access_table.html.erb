@@ -15,13 +15,7 @@
         <tr>
           <td>
             <%= link_to user_path(user) do %>
-              <% if user.avatar.present? %>
-                <img src="<%= user.avatar %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
-              <% elsif user.email.present? %>
-                <img src="<%= gravatar_url(user.email, size: 32) %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
-              <% else %>
-                <div style="width: 32px; height: 32px; border-radius: 4px; background-color: #dee2e6; display: inline-block;"></div>
-              <% end %>
+              <%= render 'shared/user_avatar', user: user %>
             <% end %>
           </td>
           <td>

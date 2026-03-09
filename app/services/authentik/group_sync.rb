@@ -85,16 +85,16 @@ module Authentik
 
       desired_members = application_group.syncable_members
       desired_user_pks = desired_members.pluck(:authentik_id)
-                                         .filter_map { |id| id.to_i if id.present? && id.to_s.match?(/\A\d+\z/) && id.to_i > 0 }
+                                        .filter_map do |id|
+                                          id.to_i if id.present? && id.to_s.match?(/\A\d+\z/) && id.to_i.positive?
+      end
 
       to_add = desired_user_pks - current_user_pks
       to_remove = current_user_pks - desired_user_pks
 
       Rails.logger.info("[Authentik::GroupSync] Members to add: #{to_add.count}, to remove: #{to_remove.count}")
 
-      if to_add.any? || to_remove.any?
-        client.set_group_users(application_group.authentik_group_id, desired_user_pks)
-      end
+      client.set_group_users(application_group.authentik_group_id, desired_user_pks) if to_add.any? || to_remove.any?
 
       unsyncable = application_group.unsyncable_members
       if unsyncable.any?
@@ -142,10 +142,16 @@ module Authentik
             name: policy_name,
             expression: expression
           )
-          Rails.logger.info("[Authentik::GroupSync] Renamed/updated expression policy #{application_group.authentik_policy_id} to '#{policy_name}'")
+          Rails.logger.info(
+            '[Authentik::GroupSync] Renamed/updated expression policy ' \
+            "#{application_group.authentik_policy_id} to '#{policy_name}'"
+          )
           return { status: 'ok', policy_id: application_group.authentik_policy_id }
         rescue StandardError => e
-          Rails.logger.warn("[Authentik::GroupSync] Could not update existing policy #{application_group.authentik_policy_id}: #{e.message}, will find or create")
+          Rails.logger.warn(
+            '[Authentik::GroupSync] Could not update existing policy ' \
+            "#{application_group.authentik_policy_id}: #{e.message}, will find or create"
+          )
         end
       end
 
@@ -160,7 +166,10 @@ module Authentik
         Rails.logger.info("[Authentik::GroupSync] Created expression policy #{policy_id}")
       end
 
-      application_group.update_column(:authentik_policy_id, policy_id) if application_group.authentik_policy_id != policy_id
+      if application_group.authentik_policy_id != policy_id
+        application_group.update_column(:authentik_policy_id,
+                                        policy_id)
+      end
       { status: 'ok', policy_id: policy_id }
     rescue StandardError => e
       Rails.logger.error("[Authentik::GroupSync] Failed to ensure expression policy: #{e.message}")

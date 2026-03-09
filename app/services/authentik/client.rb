@@ -157,10 +157,10 @@ module Authentik
     def create_expression_policy(name:, expression:, execution_logging: false)
       validate_api_config!
       post_json("#{API_PREFIX}/policies/expression/", {
-        name: name,
-        expression: expression,
-        execution_logging: execution_logging
-      })
+                  name: name,
+                  expression: expression,
+                  execution_logging: execution_logging
+                })
     end
 
     def update_expression_policy(policy_id, **attrs)
@@ -370,9 +370,7 @@ module Authentik
           results.concat(payload['results'] || [])
 
           next_link = payload['next']
-          next_path = if next_link.is_a?(String) && next_link.present?
-                        safe_relative_path(next_link)
-                      end
+          next_path = (safe_relative_path(next_link) if next_link.is_a?(String) && next_link.present?)
         end
 
         results
@@ -408,15 +406,13 @@ module Authentik
 
     # Retry a block once after refreshing the token on 401/403 errors.
     # This handles expired or rotated tokens transparently.
-    def with_token_refresh(&block)
+    def with_token_refresh
       yield
     rescue Faraday::UnauthorizedError, Faraday::ForbiddenError => e
-      if refresh_token!
-        Rails.logger.info("[Authentik::Client] Retrying after token refresh (was: #{e.class})")
-        yield
-      else
-        raise
-      end
+      raise unless refresh_token!
+
+      Rails.logger.info("[Authentik::Client] Retrying after token refresh (was: #{e.class})")
+      yield
     end
 
     def extract_members(payload)
@@ -433,9 +429,7 @@ module Authentik
       next_link = payload['next'].presence || (payload['pagination'] || {})['next']
       return if next_link.blank?
 
-      if next_link.is_a?(String)
-        return safe_relative_path(next_link)
-      end
+      return safe_relative_path(next_link) if next_link.is_a?(String)
 
       if next_link.is_a?(Integer)
         return if next_link <= 0

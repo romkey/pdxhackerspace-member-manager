@@ -14,6 +14,11 @@ class AddUnbannedAndAllMembersGroupsToDefaultSettings < ActiveRecord::Migration[
         change_column_null :default_settings, :unbanned_members_group, false
         change_column_null :default_settings, :all_members_group, false
       end
+
+      dir.down do
+        change_column_null :default_settings, :all_members_group, true
+        change_column_null :default_settings, :unbanned_members_group, true
+      end
     end
   end
 end

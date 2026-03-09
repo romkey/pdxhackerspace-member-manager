@@ -33,14 +33,7 @@
             <% end %>
           </td>
           <td>
-            <% badge_class = case user.membership_status
-                             when "paying" then "success"
-                             when "sponsored" then "info"
-                             when "banned" then "dark"
-                             when "guest" then "warning"
-                             else "secondary"
-                             end %>
-            <span class="badge text-bg-<%= badge_class %>"><%= user.membership_status.humanize %></span>
+            <span class="badge text-bg-<%= membership_status_badge_class(user.membership_status) %>"><%= user.membership_status.humanize %></span>
             <% if user.legacy? %>
               <span class="badge text-bg-secondary">Legacy</span>
             <% end %>

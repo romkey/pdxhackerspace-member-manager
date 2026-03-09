@@ -12,17 +12,14 @@ module Authentik
 
       # Check if this event is for a group we care about
       unless should_process_event?(payload)
-        Rails.logger.info("[Authentik Webhook] Skipping event - not for a synced group")
+        Rails.logger.info('[Authentik Webhook] Skipping event - not for a synced group')
         return { status: 'filtered', reason: 'not_synced_group' }
       end
 
       case model_type
-      when 'user'
-        handle_user_event(event_type, payload)
       when 'group'
         handle_group_event(event_type, payload)
       else
-        # Fall back to original behavior for unknown models
         handle_user_event(event_type, payload)
       end
     end
@@ -53,7 +50,9 @@ module Authentik
       # Check if payload contains user-like or group-like data
       model_data = payload.dig('context', 'model') || {}
       return 'user' if model_data['username'].present? || model_data['email'].present?
-      return 'group' if model_data['users'].present? || (model_data['name'].present? && model_data['users_obj'].present?)
+      if model_data['users'].present? || (model_data['name'].present? && model_data['users_obj'].present?)
+        return 'group'
+      end
 
       'unknown'
     end
@@ -67,7 +66,7 @@ module Authentik
 
       # Also always allow if the main group_id is in the event
       main_group_id = AuthentikConfig.settings.group_id
-      synced_group_ids = synced_group_ids + [main_group_id] if main_group_id.present?
+      synced_group_ids += [main_group_id] if main_group_id.present?
 
       # Extract group IDs from the event
       event_group_ids = extract_group_ids_from_event(payload)
@@ -76,7 +75,7 @@ module Authentik
       return true if event_group_ids.empty?
 
       # Check if any of the event's groups are in our synced list
-      (event_group_ids & synced_group_ids).any?
+      event_group_ids.intersect?(synced_group_ids)
     end
 
     def extract_group_ids_from_event(payload)
@@ -84,8 +83,8 @@ module Authentik
 
       # For group events, the group ID is the model PK
       model_data = payload.dig('context', 'model') || {}
-      if model_data['users'].present? || model_data['users_obj'].present?
-        group_ids << model_data['pk'].to_s if model_data['pk'].present?
+      if (model_data['users'].present? || model_data['users_obj'].present?) && model_data['pk'].present?
+        group_ids << model_data['pk'].to_s
       end
 
       # For user events, check the user's groups
@@ -133,7 +132,7 @@ module Authentik
       group_name = group_data['name']
 
       if group_id.blank?
-        Rails.logger.warn("[Authentik Webhook] No group ID found in membership change payload")
+        Rails.logger.warn('[Authentik Webhook] No group ID found in membership change payload')
         return { status: 'skipped', reason: 'no_group_id' }
       end
 
@@ -152,7 +151,7 @@ module Authentik
       group_name = group_data['name']
 
       if group_id.blank?
-        Rails.logger.warn("[Authentik Webhook] No group ID found in deletion payload")
+        Rails.logger.warn('[Authentik Webhook] No group ID found in deletion payload')
         return { status: 'skipped', reason: 'no_group_id' }
       end
 
@@ -168,7 +167,7 @@ module Authentik
       user_data = extract_user_data(payload)
 
       if user_data.blank? || user_data['pk'].blank?
-        Rails.logger.warn("[Authentik Webhook] No user data found in payload")
+        Rails.logger.warn('[Authentik Webhook] No user data found in payload')
         return { status: 'skipped', reason: 'no_user_data' }
       end
 
@@ -199,9 +198,7 @@ module Authentik
       user_sync_result = sync_to_linked_user(authentik_user, user_data)
 
       # Create journal entry if there are discrepancies with linked user
-      if authentik_user.has_discrepancies? && authentik_user.user
-        create_discrepancy_journal_entry(authentik_user)
-      end
+      create_discrepancy_journal_entry(authentik_user) if authentik_user.has_discrepancies? && authentik_user.user
 
       # Update MemberSource statistics
       MemberSource.for('authentik').refresh_statistics!
@@ -215,7 +212,7 @@ module Authentik
       authentik_id = user_data['pk']&.to_s || extract_authentik_id_from_context(payload)
 
       if authentik_id.blank?
-        Rails.logger.warn("[Authentik Webhook] No authentik_id found for deletion")
+        Rails.logger.warn('[Authentik Webhook] No authentik_id found for deletion')
         return { status: 'skipped', reason: 'no_authentik_id' }
       end
 
@@ -225,7 +222,8 @@ module Authentik
         authentik_user.update!(
           is_active: false,
           last_synced_at: Time.current,
-          raw_attributes: merge_raw_attributes(authentik_user.raw_attributes, { 'deleted_at' => Time.current.iso8601 }, payload)
+          raw_attributes: merge_raw_attributes(authentik_user.raw_attributes, { 'deleted_at' => Time.current.iso8601 },
+                                               payload)
         )
 
         # Update MemberSource statistics
@@ -246,7 +244,7 @@ module Authentik
         # Default model context
         payload.dig('context', 'model') ||
         # Event context
-        payload.dig('context') ||
+        payload['context'] ||
         # Direct user data
         payload['user'] ||
         {}
@@ -286,7 +284,7 @@ module Authentik
     end
 
     def create_discrepancy_journal_entry(authentik_user)
-      discrepancy_fields = authentik_user.discrepancies.map { |d| d[:field] }.join(', ')
+      discrepancy_fields = authentik_user.discrepancies.pluck(:field).join(', ')
 
       Journal.create!(
         user: authentik_user.user,

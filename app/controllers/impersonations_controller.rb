@@ -4,15 +4,15 @@ class ImpersonationsController < ApplicationController
 
   # POST /impersonate/:user_id
   def create
-    user = User.find_by_param(params[:user_id])
+    user = User.find_by(param: params[:user_id])
 
     if user.nil?
-      redirect_back fallback_location: users_path, alert: 'Member not found.'
+      redirect_back_or_to(users_path, alert: 'Member not found.')
       return
     end
 
     if user == true_user
-      redirect_back fallback_location: users_path, alert: 'You cannot impersonate yourself.'
+      redirect_back_or_to(users_path, alert: 'You cannot impersonate yourself.')
       return
     end
 
@@ -59,8 +59,8 @@ class ImpersonationsController < ApplicationController
 
   def require_true_admin!
     # Must be a real admin (not impersonating into admin)
-    unless true_user&.is_admin?
-      redirect_to root_path, alert: 'Only administrators can impersonate members.'
-    end
+    return if true_user&.is_admin?
+
+    redirect_to root_path, alert: 'Only administrators can impersonate members.'
   end
 end

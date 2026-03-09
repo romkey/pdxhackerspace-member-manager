@@ -11,11 +11,13 @@ class DashboardController < AdminController
     # Count members on manual plans
     manual_plan_ids = MembershipPlan.manual.pluck(:id)
     @manual_payment_member_count = if manual_plan_ids.any?
-      User.where(membership_plan_id: manual_plan_ids).count +
-        UserSupplementaryPlan.where(membership_plan_id: manual_plan_ids).select(:user_id).distinct.count
-    else
-      0
-    end
+                                     User.where(membership_plan_id: manual_plan_ids).count +
+                                       UserSupplementaryPlan
+                                       .where(membership_plan_id: manual_plan_ids)
+                                       .select(:user_id).distinct.count
+                                   else
+                                     0
+                                   end
 
     @queued_mail_count = QueuedMail.pending.count
 
@@ -24,7 +26,7 @@ class DashboardController < AdminController
     # Highlighted journal entries from the last 2 weeks
     @recent_highlights = Journal.highlighted
                                 .includes(:user, :actor_user)
-                                .where('changed_at >= ?', 2.weeks.ago)
+                                .where(changed_at: 2.weeks.ago..)
                                 .order(changed_at: :desc)
                                 .limit(50)
   end
@@ -62,17 +64,16 @@ class DashboardController < AdminController
     @lapsed_with_access_count = 0
     lapsed_users.find_each do |user|
       last_payment = user.most_recent_payment_date
-      next unless last_payment.present?
-      if user.access_logs.where('logged_at > ?', last_payment.end_of_day).exists?
-        @lapsed_with_access_count += 1
-      end
+      next if last_payment.blank?
+
+      @lapsed_with_access_count += 1 if user.access_logs.exists?(['logged_at > ?', last_payment.end_of_day])
     end
 
     # Housekeeping: Legacy members with recent access (last year)
     @legacy_recent_access_count = User.where(legacy: true)
                                       .non_service_accounts
                                       .joins(:access_logs)
-                                      .where('access_logs.logged_at >= ?', 1.year.ago)
+                                      .where(access_logs: { logged_at: 1.year.ago.. })
                                       .distinct
                                       .count
 
@@ -97,7 +98,10 @@ class DashboardController < AdminController
                                      .non_legacy
                                      .joins(:slack_user)
                                      .where.not(slack_users: { last_active_at: nil })
-                                     .where('slack_users.last_active_at > COALESCE(users.membership_ended_date, users.created_at)')
+                                     .where(
+                                       'slack_users.last_active_at > ' \
+                                       'COALESCE(users.membership_ended_date, users.created_at)'
+                                     )
                                      .count
 
     # Housekeeping: Legacy members still active on Slack

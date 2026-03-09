@@ -1,5 +1,6 @@
 class ApplicationGroup < ApplicationRecord
-  MEMBER_SOURCES = %w[manual active_members admin_members unbanned_members all_members sync_group can_train trained_in].freeze
+  MEMBER_SOURCES = %w[manual active_members admin_members unbanned_members all_members sync_group can_train
+                      trained_in].freeze
 
   POLICY_NAME_PREFIX = 'mm-group-membership'.freeze
 
@@ -10,8 +11,9 @@ class ApplicationGroup < ApplicationRecord
 
   validates :name, presence: true
   validates :authentik_name, presence: true,
-    format: { with: /\A[\w\-.:\/ ]+\z/,
-              message: "may only contain letters, numbers, hyphens, underscores, periods, colons, slashes, and spaces" }
+                             format: { with: %r{\A[\w\-.:/ ]+\z},
+                                       message: 'may only contain letters, numbers, hyphens, ' \
+                                                'underscores, periods, colons, slashes, and spaces' }
   validates :member_source, presence: true, inclusion: { in: MEMBER_SOURCES }
   validates :training_topic_id, presence: true, if: -> { can_train? || trained_in? }
   validates :sync_with_group_id, presence: true, if: -> { sync_group? }
@@ -52,7 +54,7 @@ class ApplicationGroup < ApplicationRecord
     when 'trained_in'
       if training_topic
         User.where(id: User.joins(:trainings_as_trainee)
-          .where(trainings: { training_topic_id: training_topic_id }).select(:id))
+                       .where(trainings: { training_topic_id: training_topic_id }).select(:id))
       else
         User.none
       end
@@ -96,11 +98,9 @@ class ApplicationGroup < ApplicationRecord
   end
 
   def clear_irrelevant_associations
-    unless sync_group?
-      self.sync_with_group_id = nil
-    end
-    unless can_train? || trained_in?
-      self.training_topic_id = nil
-    end
+    self.sync_with_group_id = nil unless sync_group?
+    return if can_train? || trained_in?
+
+    self.training_topic_id = nil
   end
 end

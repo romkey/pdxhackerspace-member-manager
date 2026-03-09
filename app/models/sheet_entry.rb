@@ -1,5 +1,6 @@
 class SheetEntry < ApplicationRecord
   include NormalizesEmail
+
   normalizes_email_field :email
 
   belongs_to :user, optional: true
@@ -33,5 +34,4 @@ class SheetEntry < ApplicationRecord
       column.to_s.humanize
     end
   end
-
 end

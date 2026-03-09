@@ -60,12 +60,16 @@ class User < ApplicationRecord
 
   # Find a user whose full_name or any alias matches the given name (case-insensitive).
   # Requires at least two words to avoid false matches on common first names.
-  scope :by_name_or_alias, ->(name) {
+  scope :by_name_or_alias, lambda { |name|
     normalized = name.to_s.strip.downcase
     if normalized.split(/\s+/).size < 2
       none
     else
-      where('LOWER(full_name) = :name OR EXISTS (SELECT 1 FROM unnest(aliases) AS a WHERE LOWER(a) = :name)', name: normalized)
+      where(
+        'LOWER(full_name) = :name OR EXISTS ' \
+        '(SELECT 1 FROM unnest(aliases) AS a WHERE LOWER(a) = :name)',
+        name: normalized
+      )
     end
   }
 
@@ -366,8 +370,8 @@ class User < ApplicationRecord
       # Don't override deliberate statuses — these are set by admin actions,
       # webhooks, or subscription sync and should not be reverted by the
       # presence of a historical payment.
-      unless membership_status.in?(%w[cancelled banned deceased sponsored])
-        updates[:membership_status] = 'paying' if membership_status != 'paying'
+      if !membership_status.in?(%w[cancelled banned deceased sponsored]) && (membership_status != 'paying')
+        updates[:membership_status] = 'paying'
       end
       updates[:dues_status] = 'current' if dues_status != 'current'
       updates[:membership_ended_date] = nil if membership_ended_date.present?
@@ -437,6 +441,7 @@ class User < ApplicationRecord
     return 'full_name' if use_full_name_for_greeting?
     return 'username' if use_username_for_greeting?
     return 'do_not_greet' if do_not_greet?
+
     'custom'
   end
 
@@ -515,9 +520,8 @@ class User < ApplicationRecord
         pe.occurred_at = pp.transaction_time || pp.created_at
         pe.details = "PayPal payment from #{pp.payer_name || pp.payer_email}"
         pe.paypal_payment = pp
-      end.tap do |pe|
-        pe.update!(user: self) if pe.user_id != id
       end
+      pe.update!(user: self) if pe.user_id != id
     end
   end
 
@@ -527,16 +531,17 @@ class User < ApplicationRecord
     return if customer_id.blank?
 
     RechargePayment.where(customer_id: customer_id.to_s, user_id: id).find_each do |rp|
-      PaymentEvent.find_or_create_by!(source: 'recharge', external_id: rp.recharge_id, event_type: 'payment') do |pe|
-        pe.user = self
-        pe.amount = rp.amount
-        pe.currency = rp.currency || 'USD'
-        pe.occurred_at = rp.processed_at || rp.created_at
-        pe.details = "Recharge payment from #{rp.customer_name || rp.customer_email}"
-        pe.recharge_payment = rp
-      end.tap do |pe|
-        pe.update!(user: self) if pe.user_id != id
+      pe = PaymentEvent.find_or_create_by!(
+        source: 'recharge', external_id: rp.recharge_id, event_type: 'payment'
+      ) do |event|
+        event.user = self
+        event.amount = rp.amount
+        event.currency = rp.currency || 'USD'
+        event.occurred_at = rp.processed_at || rp.created_at
+        event.details = "Recharge payment from #{rp.customer_name || rp.customer_email}"
+        event.recharge_payment = rp
       end
+      pe.update!(user: self) if pe.user_id != id
     end
   end
 
@@ -589,7 +594,7 @@ class User < ApplicationRecord
     # Skip journal when only change is marking as legacy (legacy false -> true).
     # We DO want a journal entry when un-marking legacy (true -> false).
     if saved_changes.key?('legacy')
-      from, to = saved_changes['legacy']
+      _, to = saved_changes['legacy']
       other_changes = saved_changes.except('updated_at', 'authentik_dirty', 'legacy')
       return if to == true && other_changes.empty?
     end
@@ -637,14 +642,10 @@ class User < ApplicationRecord
     end
 
     self.active = case membership_status
-                  when 'banned', 'deceased'
-                    false
                   when 'sponsored', 'guest'
                     true
                   when 'paying', 'cancelled', 'unknown'
                     dues_status == 'current'
-                  when 'applicant'
-                    false
                   else
                     false
                   end
@@ -660,17 +661,18 @@ class User < ApplicationRecord
     return unless legacy?
 
     # Only auto-clear if one of the meaningful data fields is changing in this save
-    meaningful_fields = %w[membership_plan_id dues_status last_payment_date recharge_most_recent_payment_date membership_status is_sponsored]
-    return unless (changes.keys & meaningful_fields).any?
+    meaningful_fields = %w[membership_plan_id dues_status last_payment_date recharge_most_recent_payment_date
+                           membership_status is_sponsored]
+    return unless changes.keys.intersect?(meaningful_fields)
 
     has_plan = membership_plan_id.present?
     has_non_unknown_dues = dues_status.present? && dues_status != 'unknown'
     has_payment_date = last_payment_date.present? || recharge_most_recent_payment_date.present?
     has_paying_status = membership_status.in?(%w[paying sponsored])
 
-    if has_plan || has_non_unknown_dues || has_payment_date || has_paying_status || is_sponsored?
-      self.legacy = false
-    end
+    return unless has_plan || has_non_unknown_dues || has_payment_date || has_paying_status || is_sponsored?
+
+    self.legacy = false
   end
 
   def clear_greeting_name_if_do_not_greet
@@ -693,9 +695,7 @@ class User < ApplicationRecord
 
     if saved_change_to_full_name? && use_full_name_for_greeting?
       update_column(:greeting_name, full_name) if full_name.present?
-    elsif saved_change_to_authentik_id? && use_username_for_greeting?
-      update_column(:greeting_name, username) if username.present?
-    elsif saved_change_to_username? && use_username_for_greeting?
+    elsif (saved_change_to_authentik_id? || saved_change_to_username?) && use_username_for_greeting?
       update_column(:greeting_name, username) if username.present?
     end
   end
@@ -714,6 +714,7 @@ class User < ApplicationRecord
 
   # Fields that correspond to Authentik user attributes
   AUTHENTIK_SYNCABLE_FIELDS = %w[email full_name username active].freeze
+  private_constant :AUTHENTIK_SYNCABLE_FIELDS
 
   # Mark user as needing sync to Authentik when syncable fields change
   def mark_authentik_dirty_if_needed
@@ -759,9 +760,7 @@ class User < ApplicationRecord
 
     sources = []
 
-    if saved_change_to_active?
-      sources << 'active_members'
-    end
+    sources << 'active_members' if saved_change_to_active?
 
     if saved_change_to_membership_status?
       old_status, new_status = saved_change_to_membership_status
@@ -771,9 +770,7 @@ class User < ApplicationRecord
       end
     end
 
-    if saved_change_to_is_admin?
-      sources << 'admin_members'
-    end
+    sources << 'admin_members' if saved_change_to_is_admin?
 
     return if sources.empty?
 

@@ -93,11 +93,11 @@ class AccessLogsController < AdminController
     end
 
     parts = ["#{imported} #{'entry'.pluralize(imported)} imported"]
-    parts << "#{duplicate} duplicate#{'s' if duplicate != 1} skipped" if duplicate > 0
-    parts << "#{skipped} system message#{'s' if skipped != 1} skipped" if skipped > 0
-    parts << "#{error} error#{'s' if error != 1}" if error > 0
+    parts << "#{duplicate} duplicate#{'s' if duplicate != 1} skipped" if duplicate.positive?
+    parts << "#{skipped} system message#{'s' if skipped != 1} skipped" if skipped.positive?
+    parts << "#{error} error#{'s' if error != 1}" if error.positive?
 
-    redirect_to access_logs_path, notice: parts.join(', ') + '.'
+    redirect_to access_logs_path, notice: "#{parts.join(', ')}."
   end
 
   def link_user
@@ -116,7 +116,12 @@ class AccessLogsController < AdminController
                               .update_all(user_id: user.id)
     end
 
-    extra = linked_count.positive? ? " Also linked #{linked_count} other #{'entry'.pluralize(linked_count)} with the same name." : ''
+    extra = if linked_count.positive?
+              " Also linked #{linked_count} other " \
+                "#{'entry'.pluralize(linked_count)} with the same name."
+            else
+              ''
+            end
     redirect_to access_logs_path(linked: params[:linked], q: params[:q], page: params[:page]),
                 notice: "Linked '#{@log.name}' to #{user.display_name}.#{extra}"
   end

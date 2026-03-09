@@ -63,7 +63,7 @@ module Recharge
         log_and_respond('subscription/cancelled', user, old_status, 'cancelled')
       else
         Rails.logger.info("[Recharge::WebhookHandler] subscription/cancelled: #{user.display_name} " \
-                          "(membership active until payment period ends)")
+                          '(membership active until payment period ends)')
         { status: 'processed', user_id: user.id, action: 'subscription_cancelled', deferred: true }
       end
     end
@@ -118,7 +118,9 @@ module Recharge
     end
 
     def find_user
-      return User.find_by(recharge_customer_id: customer_id) if customer_id.present? && User.exists?(recharge_customer_id: customer_id)
+      if customer_id.present? && User.exists?(recharge_customer_id: customer_id)
+        return User.find_by(recharge_customer_id: customer_id)
+      end
       return if subscription_email.blank?
 
       normalized = subscription_email.downcase

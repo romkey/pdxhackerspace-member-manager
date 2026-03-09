@@ -53,33 +53,33 @@ class SessionsController < ApplicationController
   end
 
   def rfid_wait
-    unless session[:waiting_for_keyfob].present?
+    if session[:waiting_for_keyfob].blank?
       redirect_to login_path, alert: 'No keyfob session found. Please try again.'
       return
     end
 
     # Check if any webhook data is available (created after session started)
-    session_start = Time.at(session[:waiting_for_keyfob])
+    session_start = Time.zone.at(session[:waiting_for_keyfob])
     webhook_data = RfidWebhookService.find_recent(session_start)
-    
-    if webhook_data.present?
-      # Store the RFID from webhook in session for verification
-      session[:pending_rfid] = webhook_data[:rfid]
-      redirect_to rfid_verify_path
-      return
-    end
+
+    return if webhook_data.blank?
+
+    # Store the RFID from webhook in session for verification
+    session[:pending_rfid] = webhook_data[:rfid]
+    redirect_to rfid_verify_path
+    nil
   end
 
   def rfid_verify
     rfid = session[:pending_rfid]
-    unless rfid.present?
+    if rfid.blank?
       redirect_to rfid_wait_path, alert: 'Waiting for keyfob scan. Please try again.'
       return
     end
 
     # Verify webhook data is still available
     @webhook_data = RfidWebhookService.retrieve(rfid)
-    unless @webhook_data.present?
+    if @webhook_data.blank?
       redirect_to rfid_wait_path, alert: 'Waiting for keyfob scan. Please try again.'
       return
     end
@@ -88,14 +88,14 @@ class SessionsController < ApplicationController
   end
 
   def rfid_check_webhook
-    unless session[:waiting_for_keyfob].present?
+    if session[:waiting_for_keyfob].blank?
       render json: { status: 'no_session' }, status: :ok
       return
     end
 
-    session_start = Time.at(session[:waiting_for_keyfob])
+    session_start = Time.zone.at(session[:waiting_for_keyfob])
     webhook_data = RfidWebhookService.find_recent(session_start)
-    
+
     if webhook_data.present?
       # Store the RFID from webhook in session
       session[:pending_rfid] = webhook_data[:rfid]
@@ -199,7 +199,7 @@ class SessionsController < ApplicationController
     # Check for explicit admin claim (boolean or string)
     # This should be set by an Authentik property mapping that checks group membership
     admin_claim = info[:is_admin] || info[:admin] || extra[:is_admin] || extra[:admin]
-    
+
     if admin_claim.present?
       # Handle boolean, string "true"/"false", or "1"/"0"
       return true if admin_claim == true || admin_claim.to_s.downcase.in?(%w[true 1 yes])
@@ -212,9 +212,7 @@ class SessionsController < ApplicationController
   def sync_local_account(account)
     local_authentik_id = "local:#{account.id}"
     user = User.find_by(authentik_id: local_authentik_id)
-    if user.nil? && account.email.present?
-      user = User.find_by('LOWER(email) = ?', account.email.to_s.strip.downcase)
-    end
+    user = User.find_by('LOWER(email) = ?', account.email.to_s.strip.downcase) if user.nil? && account.email.present?
     user ||= User.new
 
     user.assign_attributes(
@@ -230,11 +228,11 @@ class SessionsController < ApplicationController
   end
 
   def session_params
-    params.require(:session).permit(:email, :password)
+    params.expect(session: %i[email password])
   end
 
   def rfid_params
-    params.require(:rfid).permit(:token)
+    params.expect(rfid: [:token])
   end
 
   def rfid_token

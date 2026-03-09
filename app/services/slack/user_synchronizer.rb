@@ -53,9 +53,7 @@ module Slack
       end
 
       # Match by full name or alias (real_name)
-      if attrs[:real_name].present?
-        matches += User.by_name_or_alias(attrs[:real_name])
-      end
+      matches += User.by_name_or_alias(attrs[:real_name]) if attrs[:real_name].present?
 
       # Remove duplicates
       matches = matches.uniq
@@ -92,9 +90,7 @@ module Slack
       updates[:slack_handle] = attrs[:username] if user.slack_handle.blank?
 
       # Sync pronouns from Slack if user doesn't have pronouns set
-      if attrs[:pronouns].present? && user.pronouns.blank?
-        updates[:pronouns] = attrs[:pronouns]
-      end
+      updates[:pronouns] = attrs[:pronouns] if attrs[:pronouns].present? && user.pronouns.blank?
 
       # Set avatar from Slack profile image_192 if image_original exists (indicating a custom image)
       profile = attrs[:raw_attributes]&.dig('profile') || {}
@@ -104,9 +100,7 @@ module Slack
       end
 
       # Sync bio from Slack title field if user doesn't have bio set
-      if attrs[:title].present? && user.bio.blank?
-        updates[:bio] = attrs[:title]
-      end
+      updates[:bio] = attrs[:title] if attrs[:title].present? && user.bio.blank?
 
       user.update!(updates) if updates.any?
 
@@ -128,7 +122,7 @@ module Slack
 
       # Check for common profile fields that might contain URLs
       fields = profile['fields'] || {}
-      fields.each do |_field_id, field_data|
+      fields.each_value do |field_data|
         next unless field_data.is_a?(Hash)
 
         value = field_data['value'].to_s.strip

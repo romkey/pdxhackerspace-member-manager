@@ -5,7 +5,7 @@ class ApplicationController < ActionController::Base
 
   add_flash_types :success, :info
 
-  helper_method :current_user, :user_signed_in?, :local_auth_enabled?, :authentik_enabled?, 
+  helper_method :current_user, :user_signed_in?, :local_auth_enabled?, :authentik_enabled?,
                 :current_user_admin?, :true_user_admin?, :pagy_nav, :impersonating?, :true_user
 
   private
@@ -14,11 +14,11 @@ class ApplicationController < ActionController::Base
     return @current_user if defined?(@current_user)
 
     # If impersonating, return the impersonated user
-    if session[:impersonated_user_id].present?
-      @current_user = User.find_by(id: session[:impersonated_user_id])
-    else
-      @current_user = User.find_by(id: session[:user_id])
-    end
+    @current_user = if session[:impersonated_user_id].present?
+                      User.find_by(id: session[:impersonated_user_id])
+                    else
+                      User.find_by(id: session[:user_id])
+                    end
   end
 
   # The actual logged-in admin (even when impersonating)

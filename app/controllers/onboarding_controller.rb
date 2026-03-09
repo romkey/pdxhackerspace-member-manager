@@ -1,6 +1,6 @@
 class OnboardingController < AdminController
-  before_action :set_user, only: [:payment, :save_payment, :access, :save_rfid, :save_training,
-                                  :mail, :approve_mail, :reject_mail, :approve_all_mail, :reject_all_mail]
+  before_action :set_user, only: %i[payment save_payment access save_rfid save_training
+                                    mail approve_mail reject_mail approve_all_mail reject_all_mail]
 
   # Step 1: Member Info
   def member_info
@@ -16,7 +16,7 @@ class OnboardingController < AdminController
     if @user.save
       redirect_to onboard_payment_path(@user), status: :see_other
     else
-      render :member_info, status: :unprocessable_entity
+      render :member_info, status: :unprocessable_content
     end
   end
 
@@ -77,36 +77,36 @@ class OnboardingController < AdminController
     end
   rescue ActiveRecord::RecordInvalid => e
     flash.now[:alert] = "Error: #{e.message}"
-    render :payment, status: :unprocessable_entity
+    render :payment, status: :unprocessable_content
   end
 
   # Step 3: Building Access
   def access
     @rfids = @user.rfids
-    @building_access_topic = TrainingTopic.find_by("LOWER(name) LIKE ?", "%building access%")
+    @building_access_topic = TrainingTopic.find_by('LOWER(name) LIKE ?', '%building access%')
     @has_building_access_training = @building_access_topic &&
-      Training.exists?(trainee: @user, training_topic: @building_access_topic)
+                                    Training.exists?(trainee: @user, training_topic: @building_access_topic)
   end
 
   def save_rfid
     rfid_code = params[:rfid_code]&.strip
     if rfid_code.present?
-      rfid = @user.rfids.build(rfid: rfid_code, notes: "Added during onboarding")
+      rfid = @user.rfids.build(rfid: rfid_code, notes: 'Added during onboarding')
       if rfid.save
-        flash[:notice] = "RFID key fob added."
+        flash[:notice] = 'RFID key fob added.'
       else
         flash[:alert] = "Could not add RFID: #{rfid.errors.full_messages.join(', ')}"
       end
     else
-      flash[:alert] = "Please enter an RFID code."
+      flash[:alert] = 'Please enter an RFID code.'
     end
     redirect_to onboard_access_path(@user), status: :see_other
   end
 
   def save_training
-    topic = TrainingTopic.find_by("LOWER(name) LIKE ?", "%building access%")
+    topic = TrainingTopic.find_by('LOWER(name) LIKE ?', '%building access%')
     unless topic
-      flash[:alert] = "Building Access training topic not found. Please create it under Settings > Training Topics."
+      flash[:alert] = 'Building Access training topic not found. Please create it under Settings > Training Topics.'
       redirect_to onboard_mail_path(@user), status: :see_other
       return
     end
@@ -135,7 +135,7 @@ class OnboardingController < AdminController
       )
     end
 
-    flash[:notice] = "Building Access training recorded."
+    flash[:notice] = 'Building Access training recorded.'
     redirect_to onboard_mail_path(@user), status: :see_other
   end
 
@@ -159,21 +159,21 @@ class OnboardingController < AdminController
 
   def approve_all_mail
     @user.queued_mails.pending.find_each { |qm| qm.approve!(current_user) }
-    redirect_to onboard_mail_path(@user), notice: "All pending messages approved.", status: :see_other
+    redirect_to onboard_mail_path(@user), notice: 'All pending messages approved.', status: :see_other
   end
 
   def reject_all_mail
     @user.queued_mails.pending.find_each { |qm| qm.reject!(current_user) }
-    redirect_to onboard_mail_path(@user), notice: "All pending messages rejected.", status: :see_other
+    redirect_to onboard_mail_path(@user), notice: 'All pending messages rejected.', status: :see_other
   end
 
   private
 
   def set_user
-    @user = User.find_by_param(params[:id])
+    @user = User.find_by(param: params[:id])
   end
 
   def member_params
-    params.require(:user).permit(:full_name, :email, :username)
+    params.expect(user: %i[full_name email username])
   end
 end

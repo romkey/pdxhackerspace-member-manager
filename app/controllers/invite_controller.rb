@@ -1,9 +1,10 @@
 class InviteController < ApplicationController
   before_action :find_invitation
-  before_action :check_invitation_valid, only: [:show, :accept]
+  before_action :check_invitation_valid, only: %i[show accept]
 
   def show
     return if performed?
+
     @user = User.new
   end
 
@@ -18,7 +19,7 @@ class InviteController < ApplicationController
 
     if @user.full_name.blank?
       @user.errors.add(:full_name, "can't be blank")
-      render :show, status: :unprocessable_entity
+      render :show, status: :unprocessable_content
       return
     end
 
@@ -41,9 +42,10 @@ class InviteController < ApplicationController
       )
 
       session[:user_id] = @user.id
-      redirect_to profile_setup_path, notice: "Welcome to #{ENV.fetch('ORGANIZATION_NAME', 'Member Manager')}! Let's set up your profile."
+      redirect_to profile_setup_path,
+                  notice: "Welcome to #{ENV.fetch('ORGANIZATION_NAME', 'Member Manager')}! Let's set up your profile."
     else
-      render :show, status: :unprocessable_entity
+      render :show, status: :unprocessable_content
     end
   end
 
@@ -97,6 +99,6 @@ class InviteController < ApplicationController
   end
 
   def user_params
-    params.require(:user).permit(:full_name, :username)
+    params.expect(user: %i[full_name username])
   end
 end

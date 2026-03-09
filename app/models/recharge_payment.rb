@@ -1,5 +1,6 @@
 class RechargePayment < ApplicationRecord
   include NormalizesEmail
+
   normalizes_email_field :customer_email
 
   belongs_to :user, optional: true
@@ -11,7 +12,7 @@ class RechargePayment < ApplicationRecord
   scope :for_user, ->(user) { where(user_id: user.id) }
 
   # Unmatched payments - no user with matching recharge_customer_id
-  scope :unmatched, -> {
+  scope :unmatched, lambda {
     where.not(customer_id: [nil, ''])
          .where.not(customer_id: User.where.not(recharge_customer_id: [nil, '']).select(:recharge_customer_id))
   }
@@ -39,7 +40,7 @@ class RechargePayment < ApplicationRecord
 
   def extract_customer_id
     return if raw_attributes.blank?
-    
+
     self.customer_id = raw_attributes.dig('customer', 'id') || raw_attributes['customer_id']
   end
 

@@ -178,17 +178,17 @@ class MemberMailer < ApplicationMailer
       app_url: ENV.fetch('APP_BASE_URL', 'http://localhost:3000')
     }
 
-    if extra_args[:days_overdue]
-      vars[:days_overdue] = " by #{extra_args[:days_overdue]} days"
-    else
-      vars[:days_overdue] = ''
-    end
+    vars[:days_overdue] = if extra_args[:days_overdue]
+                            " by #{extra_args[:days_overdue]} days"
+                          else
+                            ''
+                          end
 
-    if extra_args[:reason].present?
-      vars[:reason] = "<p><strong>Reason:</strong> #{extra_args[:reason]}</p>"
-    else
-      vars[:reason] = ''
-    end
+    vars[:reason] = if extra_args[:reason].present?
+                      "<p><strong>Reason:</strong> #{extra_args[:reason]}</p>"
+                    else
+                      ''
+                    end
 
     vars[:training_topic] = extra_args[:training_topic] if extra_args[:training_topic].present?
 

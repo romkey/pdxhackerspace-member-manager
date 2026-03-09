@@ -7,7 +7,8 @@ class UsersActivateDeactivateTest < ActionDispatch::IntegrationTest
     sign_in_as_local_admin
 
     @regular_user = users(:one)
-    @regular_user.update_columns(service_account: false, membership_status: 'paying', dues_status: 'current', active: true)
+    @regular_user.update_columns(service_account: false, membership_status: 'paying', dues_status: 'current',
+                                 active: true)
   end
 
   teardown do

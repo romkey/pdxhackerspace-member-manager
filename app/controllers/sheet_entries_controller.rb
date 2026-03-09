@@ -2,7 +2,7 @@ class SheetEntriesController < AdminController
   def index
     # Base query
     base_query = SheetEntry.order(Arel.sql('LOWER(name) ASC'))
-    
+
     # Counts for all records
     @total_count = SheetEntry.count
     @with_email_count = SheetEntry.with_email.count
@@ -47,7 +47,7 @@ class SheetEntriesController < AdminController
                      else
                        base_query
                      end
-    
+
     @filter_active = params[:filter].present?
   end
 

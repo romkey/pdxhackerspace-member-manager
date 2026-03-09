@@ -59,7 +59,9 @@ module Recharge
       if @history_only
         created = create_payment_event(user, sub, 'subscription_started')
         link_customer_id(user, sub)
-        @logger.info("[Recharge::SubscriptionSynchronizer] [history] subscription_started for #{user.display_name}") if created
+        if created
+          @logger.info("[Recharge::SubscriptionSynchronizer] [history] subscription_started for #{user.display_name}")
+        end
         return created ? :created : :skipped
       end
 
@@ -81,7 +83,9 @@ module Recharge
 
       if @history_only
         created = create_payment_event(user, sub, 'subscription_cancelled')
-        @logger.info("[Recharge::SubscriptionSynchronizer] [history] subscription_cancelled for #{user.display_name}") if created
+        if created
+          @logger.info("[Recharge::SubscriptionSynchronizer] [history] subscription_cancelled for #{user.display_name}")
+        end
         return created ? :cancelled : :skipped
       end
 
@@ -97,7 +101,10 @@ module Recharge
         :cancelled
       elsif event_is_new
         create_journal_entry(user, 'subscription_cancelled', sub, user.membership_status, user.membership_status)
-        @logger.info("[Recharge::SubscriptionSynchronizer] Recorded cancellation for #{user.display_name} (membership active until payment period ends)")
+        @logger.info(
+          '[Recharge::SubscriptionSynchronizer] Recorded cancellation for ' \
+          "#{user.display_name} (membership active until payment period ends)"
+        )
         :cancelled
       else
         :skipped
@@ -172,8 +179,8 @@ module Recharge
       return false if PaymentEvent.find_duplicate(source: 'recharge', external_id: external_id, event_type: event_type)
 
       occurred_at = case event_type
-                    when 'subscription_started'   then sub[:created_at]
-                    when 'subscription_cancelled'  then sub[:cancelled_at]
+                    when 'subscription_started' then sub[:created_at]
+                    when 'subscription_cancelled' then sub[:cancelled_at]
                     end || sub[:updated_at] || Time.current
 
       PaymentEvent.create!(
@@ -194,7 +201,7 @@ module Recharge
 
     def log_summary(stats)
       @logger.info(
-        "[Recharge::SubscriptionSynchronizer] Done: " \
+        '[Recharge::SubscriptionSynchronizer] Done: ' \
         "#{stats[:created]} activated, #{stats[:cancelled]} cancelled, #{stats[:skipped]} skipped"
       )
     end

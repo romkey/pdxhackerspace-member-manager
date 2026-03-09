@@ -1,3 +1,9 @@
+inherit_from: .rubocop_todo.yml
+
+inherit_mode:
+  merge:
+    - Exclude
+
 plugins:
   - rubocop-rails
 
@@ -19,18 +25,111 @@ Style/StringLiterals:
 Style/FrozenStringLiteralComment:
   Enabled: false
 
+Style/Documentation:
+  Enabled: false
+
 Layout/LineLength:
   Max: 120
   Exclude:
     - 'db/schema.rb'
 
+# Metrics — thresholds tuned for a Rails app with service objects.
+# Rake tasks are excluded since they are scripts, not production classes.
+# Pre-existing violations are grandfathered in .rubocop_todo.yml;
+# new code must comply with these limits.
+Metrics/MethodLength:
+  Max: 25
+  Exclude:
+    - 'lib/tasks/**/*'
+
+Metrics/AbcSize:
+  Max: 40
+  Exclude:
+    - 'lib/tasks/**/*'
+
+Metrics/CyclomaticComplexity:
+  Max: 15
+  Exclude:
+    - 'lib/tasks/**/*'
+
+Metrics/PerceivedComplexity:
+  Max: 15
+  Exclude:
+    - 'lib/tasks/**/*'
+
+Metrics/ClassLength:
+  Max: 250
+  Exclude:
+    - 'test/**/*'
+
 Metrics/BlockLength:
+  Max: 30
   Exclude:
     - 'db/schema.rb'
     - 'config/**/*'
     - 'spec/**/*'
     - 'test/**/*'
+    - 'lib/tasks/**/*'
+
+Metrics/BlockNesting:
+  Max: 4
+  Exclude:
+    - 'lib/tasks/**/*'
 
 Lint/AmbiguousRegexpLiteral:
   Enabled: true
 
+# I18n is not yet implemented; re-enable when localizing the app.
+Rails/I18nLocaleTexts:
+  Enabled: false
+
+# update_column/update_all are used intentionally for performance
+# in sync jobs and bulk operations.
+Rails/SkipsModelValidations:
+  Enabled: false
+
+# Existing predicate methods (has_plan?, has_discrepancies?) are
+# part of the public API; renaming would break callers.
+Naming/PredicateMethod:
+  Enabled: false
+
+Naming/PredicatePrefix:
+  Enabled: false
+
+# HABTM associations exist in the schema; migrating to
+# has_many :through is a larger refactor.
+Rails/HasAndBelongsToMany:
+  Enabled: false
+
+# inverse_of is inferred by Rails in most cases.
+Rails/InverseOf:
+  Enabled: false
+
+# html_safe is needed in mailers for rendered HTML content.
+Rails/OutputSafety:
+  Exclude:
+    - 'app/mailers/**/*'
+    - 'app/helpers/**/*'
+
+# Multiple after_commit hooks on the same action are intentional
+# for separate sync concerns.
+Rails/AfterCommitOverride:
+  Enabled: false
+
+Rails/HelperInstanceVariable:
+  Enabled: false
+
+# Needs a migration to add a unique index; tracked separately.
+Rails/UniqueValidationWithoutIndex:
+  Enabled: false
+
+# find_by_param is a custom model method, not a dynamic finder.
+Rails/DynamicFindBy:
+  AllowedMethods:
+    - find_by_param
+
+# params.expect doesn't support dynamic permit arrays; keep
+# require/permit for controllers that build permit lists at runtime.
+Rails/StrongParametersExpect:
+  Exclude:
+    - 'app/controllers/users_controller.rb'

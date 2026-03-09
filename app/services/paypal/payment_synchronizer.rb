@@ -41,7 +41,6 @@ module Paypal
       end
       now = Time.current
       saved_count = 0
-      skipped_count = 0
 
       matched_count = 0
       unmatched_count = 0
@@ -84,7 +83,8 @@ module Paypal
           saved_count += 1
 
           if is_new
-            PaymentEvent.find_or_create_by!(source: 'paypal', external_id: attrs[:paypal_id], event_type: 'payment') do |pe|
+            PaymentEvent.find_or_create_by!(source: 'paypal', external_id: attrs[:paypal_id],
+                                            event_type: 'payment') do |pe|
               pe.user = record.user
               pe.amount = record.amount
               pe.currency = record.currency || 'USD'
@@ -98,7 +98,10 @@ module Paypal
         end
       end
 
-      @logger.info("[PayPal::PaymentSynchronizer] Processed #{payments.count} transactions: #{saved_count} saved (#{matched_count} matched plans, #{unmatched_count} unmatched)")
+      @logger.info(
+        "[PayPal::PaymentSynchronizer] Processed #{payments.count} transactions: " \
+        "#{saved_count} saved (#{matched_count} matched plans, #{unmatched_count} unmatched)"
+      )
 
       processor.record_successful_sync!(saved_count)
       saved_count
@@ -115,21 +118,27 @@ module Paypal
       if most_recent_payment&.transaction_time
         # Start 3 days before the most recent payment
         start_time = most_recent_payment.transaction_time - 3.days
-        @logger.info("[PayPal::PaymentSynchronizer] Most recent payment: #{most_recent_payment.transaction_time}, requesting from: #{start_time}")
+        @logger.info(
+          '[PayPal::PaymentSynchronizer] Most recent payment: ' \
+          "#{most_recent_payment.transaction_time}, requesting from: #{start_time}"
+        )
         start_time
       else
         # No payments exist, use default lookback
         days = PaypalConfig.settings.transactions_lookback_days
         days = 30 if days <= 0
         default_start = Time.current - days.days
-        @logger.info("[PayPal::PaymentSynchronizer] No existing payments, using default lookback: #{days} days from now (#{default_start})")
+        @logger.info(
+          '[PayPal::PaymentSynchronizer] No existing payments, ' \
+          "using default lookback: #{days} days from now (#{default_start})"
+        )
         default_start
       end
     end
 
     def find_user_by_payer_id(payer_id)
       return nil if payer_id.blank?
-      
+
       User.find_by(paypal_account_id: payer_id)
     end
 
@@ -163,7 +172,10 @@ module Paypal
 
       subjects = allowed_transaction_subjects
       if subjects.empty?
-        @logger.warn("[PayPal::PaymentSynchronizer] No payment plans have transaction subjects configured - skipping all payments")
+        @logger.warn(
+          '[PayPal::PaymentSynchronizer] No payment plans have transaction ' \
+          'subjects configured - skipping all payments'
+        )
         return false
       end
 
@@ -175,7 +187,7 @@ module Paypal
     # Extract transaction subject from payment for logging
     def extract_transaction_subject(attrs)
       return 'unknown' if attrs[:raw_attributes].blank?
-      
+
       # Try to find the transaction subject in common locations
       raw = attrs[:raw_attributes]
       raw.dig('transaction_info', 'transaction_subject') ||

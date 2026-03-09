@@ -13,7 +13,7 @@ class AccessControllerProbeJob < ApplicationJob
 
     return unless status.success?
 
-    actions = output.split(/[\r\n,]+/).map(&:strip).reject(&:blank?).uniq
+    actions = output.split(/[\r\n,]+/).map(&:strip).compact_blank.uniq
     actions = actions.reject { |action| action.casecmp('actions').zero? }.sort
     access_controller_type.update!(actions: actions)
   rescue StandardError => e

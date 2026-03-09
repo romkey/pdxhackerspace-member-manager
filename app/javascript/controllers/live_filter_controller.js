@@ -7,7 +7,7 @@ import { Controller } from "@hotwired/stimulus"
 //   <div data-controller="live-filter">
 //     <input data-live-filter-target="input" data-action="input->live-filter#filter">
 //     <button data-live-filter-target="clearButton"
-//             data-action="click->live-filter#clear" style="display:none">Clear</button>
+//             data-action="click->live-filter#clear" class="d-none">Clear</button>
 //     <tbody>
 //       <tr data-live-filter-target="item" data-search-text="...">...</tr>
 //     </tbody>
@@ -52,8 +52,8 @@ export default class extends Controller {
         // Pattern B: toggle via d-none class
         item.classList.toggle("d-none", !visible)
       } else {
-        // Pattern A: toggle via style.display
-        item.style.display = visible ? "" : "none"
+        // Pattern A: toggle via d-none class
+        item.classList.toggle("d-none", !visible)
       }
 
       if (visible) visibleCount++
@@ -86,6 +86,6 @@ export default class extends Controller {
 
   _updateClearButton(term) {
     if (!this.hasClearButtonTarget) return
-    this.clearButtonTarget.style.display = term !== "" ? "" : "none"
+    this.clearButtonTarget.classList.toggle("d-none", term === "")
   }
 }

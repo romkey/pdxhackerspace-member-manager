@@ -21,7 +21,8 @@ class UsersIndexFiltersTest < ActionDispatch::IntegrationTest
   # ─── Payment Plan filtering ────────────────────────────────────────
 
   test 'index shows payment plan badges' do
-    plan = MembershipPlan.create!(name: 'Test Monthly Plan', cost: 50, billing_frequency: 'monthly', plan_type: 'primary')
+    plan = MembershipPlan.create!(name: 'Test Monthly Plan', cost: 50, billing_frequency: 'monthly',
+                                  plan_type: 'primary')
     users(:one).update_columns(membership_plan_id: plan.id)
 
     get users_path
@@ -66,7 +67,7 @@ class UsersIndexFiltersTest < ActionDispatch::IntegrationTest
   # ─── Service account filtering ─────────────────────────────────────
 
   test 'filtering by account_type=service shows only service accounts' do
-    sa = User.create!(
+    User.create!(
       authentik_id: "sa-filter-#{SecureRandom.hex(4)}",
       full_name: 'Service Filter Test',
       payment_type: 'unknown',
@@ -80,7 +81,7 @@ class UsersIndexFiltersTest < ActionDispatch::IntegrationTest
   end
 
   test 'filtering by account_type=member excludes service accounts' do
-    sa = User.create!(
+    User.create!(
       authentik_id: "sa-exclude-#{SecureRandom.hex(4)}",
       full_name: 'Service Exclude Test',
       payment_type: 'unknown',
@@ -184,7 +185,7 @@ class UsersIndexFiltersTest < ActionDispatch::IntegrationTest
     assert_select 'a.border-dark' do |elements|
       lapsed_badge = elements.find { |e| e.text.include?('Lapsed') }
       assert lapsed_badge, 'Expected a highlighted Lapsed badge'
-      refute_includes lapsed_badge['href'], 'dues_status=' if lapsed_badge
+      assert_not_includes lapsed_badge['href'], 'dues_status=' if lapsed_badge
     end
   end
 

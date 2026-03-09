@@ -8,7 +8,7 @@ module Recharge
       lookback = lookback_seconds ? lookback_seconds.seconds : Recharge::SubscriptionSynchronizer::DEFAULT_LOOKBACK
       stats = Recharge::SubscriptionSynchronizer.new(lookback: lookback).call
       Rails.logger.info(
-        "[Recharge::SubscriptionSyncJob] Completed: " \
+        '[Recharge::SubscriptionSyncJob] Completed: ' \
         "#{stats[:created]} activated, #{stats[:cancelled]} cancelled, #{stats[:skipped]} skipped"
       )
     rescue StandardError => e

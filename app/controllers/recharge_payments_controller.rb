@@ -48,18 +48,15 @@ class RechargePaymentsController < AdminController
     user = @payment.user
 
     # Clear recharge_customer_id on the user so the auto-match breaks
-    if customer_id.present?
-      User.where(recharge_customer_id: customer_id.to_s).update_all(recharge_customer_id: nil)
-    end
+    User.where(recharge_customer_id: customer_id.to_s).update_all(recharge_customer_id: nil) if customer_id.present?
 
     # Clear user_id on this payment and all sibling payments with the same customer_id
     @payment.update!(user_id: nil)
-    if customer_id.present?
-      RechargePayment.where(customer_id: customer_id, user_id: user&.id).update_all(user_id: nil)
-    end
+    RechargePayment.where(customer_id: customer_id, user_id: user&.id).update_all(user_id: nil) if customer_id.present?
 
     redirect_to recharge_payment_path(@payment),
-                notice: "Unlinked from #{user&.display_name || 'member'}. All payments with customer ID #{customer_id} also unlinked."
+                notice: "Unlinked from #{user&.display_name || 'member'}. " \
+                        "All payments with customer ID #{customer_id} also unlinked."
   end
 
   def toggle_dont_link
@@ -96,7 +93,8 @@ class RechargePaymentsController < AdminController
       @payment.update!(user_id: user.id)
       redirect_to user_path(user), notice: "Created member #{user.display_name} and linked payment."
     else
-      redirect_to recharge_payment_path(@payment), alert: "Failed to create member: #{user.errors.full_messages.join(', ')}"
+      redirect_to recharge_payment_path(@payment),
+                  alert: "Failed to create member: #{user.errors.full_messages.join(', ')}"
     end
   end
 
@@ -140,44 +138,45 @@ class RechargePaymentsController < AdminController
     if customer_id.present?
       # Link the payment to the user
       @payment.update!(user_id: user.id)
-      
+
       # Explicitly link all other payments with the same customer_id
       # (The after_save callback should do this too, but being explicit to ensure it happens)
       linked_count = RechargePayment.where(customer_id: customer_id, user_id: nil)
                                     .update_all(user_id: user.id)
-      
+
       # Update the user's recharge_customer_id if not already set
-      if user.recharge_customer_id.blank?
-        user.update_column(:recharge_customer_id, customer_id.to_s)
-      end
-      
+      user.update_column(:recharge_customer_id, customer_id.to_s) if user.recharge_customer_id.blank?
+
       # Update user's payment status
       user.on_recharge_payment_linked(@payment)
-      
+
       # Redirect back to reports if coming from there, otherwise to payment detail page
       if params[:from_reports] == 'true'
         # Reload the unmatched payments count
         @unmatched_recharge_payments_count = RechargePayment.unmatched.count
         @unmatched_recharge_payments = RechargePayment.unmatched.ordered.limit(20).map do |payment|
-          { payment: payment, email: payment.customer_email, name: payment.customer_name, customer_id: payment.customer_id }
+          { payment: payment, email: payment.customer_email, name: payment.customer_name,
+            customer_id: payment.customer_id }
         end
         @all_users = User.ordered_by_display_name
-        
+
         respond_to do |format|
           format.html { redirect_to reports_path(tab: 'unmatched-recharge'), notice: "Linked to #{user.display_name}." }
           format.turbo_stream
         end
       else
-        extra_msg = linked_count > 0 ? " Also linked #{linked_count} other payment#{'s' if linked_count != 1} with the same customer ID." : ""
+        extra_msg = if linked_count.positive?
+                      " Also linked #{linked_count} other payment#{'s' if linked_count != 1} with the same customer ID."
+                    else
+                      ''
+                    end
         redirect_to recharge_payment_path(@payment),
                     notice: "Linked to #{user.display_name}.#{extra_msg}"
       end
+    elsif params[:from_reports] == 'true'
+      redirect_to reports_path(tab: 'unmatched-recharge'), alert: 'Cannot link: payment has no customer ID.'
     else
-      if params[:from_reports] == 'true'
-        redirect_to reports_path(tab: 'unmatched-recharge'), alert: 'Cannot link: payment has no customer ID.'
-      else
-        redirect_to recharge_payment_path(@payment), alert: 'Cannot link: payment has no customer ID.'
-      end
+      redirect_to recharge_payment_path(@payment), alert: 'Cannot link: payment has no customer ID.'
     end
   end
 
@@ -217,7 +216,8 @@ class RechargePaymentsController < AdminController
 
     send_data JSON.pretty_generate(export_data),
               type: 'application/json',
-              disposition: "attachment; filename=recharge_payments_backup_#{Time.current.strftime('%Y%m%d_%H%M%S')}.json"
+              disposition: 'attachment; filename=recharge_payments_backup_' \
+                           "#{Time.current.strftime('%Y%m%d_%H%M%S')}.json"
   end
 
   def import
@@ -228,7 +228,7 @@ class RechargePaymentsController < AdminController
 
     begin
       json_data = JSON.parse(params[:file].read)
-      
+
       unless json_data.is_a?(Hash) && json_data['payments'].is_a?(Array)
         redirect_to recharge_payments_path, alert: 'Invalid JSON format. Expected object with "payments" array.'
         return
@@ -241,74 +241,68 @@ class RechargePaymentsController < AdminController
 
       ActiveRecord::Base.transaction do
         json_data['payments'].each do |payment_data|
-          begin
-            # Find or initialize payment by recharge_id
-            payment = RechargePayment.find_or_initialize_by(recharge_id: payment_data['recharge_id'])
+          # Find or initialize payment by recharge_id
+          payment = RechargePayment.find_or_initialize_by(recharge_id: payment_data['recharge_id'])
 
-            # Update all attributes
-            payment.status = payment_data['status']
-            
-            # Handle amount conversion (can be string or number)
-            if payment_data['amount'].present?
-              payment.amount = BigDecimal(payment_data['amount'].to_s)
-            end
-            
-            payment.currency = payment_data['currency']
-            
-            # Parse timestamps
-            if payment_data['processed_at'].present?
-              payment.processed_at = Time.parse(payment_data['processed_at'])
-            end
-            
-            payment.charge_type = payment_data['charge_type']
-            payment.customer_email = payment_data['customer_email']
-            payment.customer_name = payment_data['customer_name']
-            payment.raw_attributes = payment_data['raw_attributes'] || {}
-            
-            if payment_data['last_synced_at'].present?
-              payment.last_synced_at = Time.parse(payment_data['last_synced_at'])
-            end
+          # Update all attributes
+          payment.status = payment_data['status']
 
-            # Restore user relationship
-            if payment_data['user_email'].present? || payment_data['user_authentik_id'].present?
-              user = nil
-              
-              # Try to find by email first
-              if payment_data['user_email'].present?
-                user = User.find_by('LOWER(email) = ?', payment_data['user_email'].to_s.strip.downcase)
-              end
-              
-              # Try to find by authentik_id if not found
-              if user.nil? && payment_data['user_authentik_id'].present?
-                user = User.find_by(authentik_id: payment_data['user_authentik_id'])
-              end
-              
-              payment.user = user if user
-            end
+          # Handle amount conversion (can be string or number)
+          payment.amount = BigDecimal(payment_data['amount'].to_s) if payment_data['amount'].present?
 
-            was_new = payment.new_record?
-            
-            # Save the payment first
-            payment.save!
-            
-            # Restore timestamps after save (Rails allows setting these directly)
-            if payment_data['created_at'].present?
-              payment.update_column(:created_at, Time.parse(payment_data['created_at']))
-            end
-            if payment_data['updated_at'].present?
-              payment.update_column(:updated_at, Time.parse(payment_data['updated_at']))
-            end
+          payment.currency = payment_data['currency']
 
-            if was_new
-              imported_count += 1
-            else
-              updated_count += 1
-            end
-          rescue => e
-            skipped_count += 1
-            errors << "Payment #{payment_data['recharge_id']}: #{e.message}"
-            Rails.logger.error("Failed to import Recharge payment #{payment_data['recharge_id']}: #{e.message}")
+          # Parse timestamps
+          payment.processed_at = Time.zone.parse(payment_data['processed_at']) if payment_data['processed_at'].present?
+
+          payment.charge_type = payment_data['charge_type']
+          payment.customer_email = payment_data['customer_email']
+          payment.customer_name = payment_data['customer_name']
+          payment.raw_attributes = payment_data['raw_attributes'] || {}
+
+          if payment_data['last_synced_at'].present?
+            payment.last_synced_at = Time.zone.parse(payment_data['last_synced_at'])
           end
+
+          # Restore user relationship
+          if payment_data['user_email'].present? || payment_data['user_authentik_id'].present?
+            user = nil
+
+            # Try to find by email first
+            if payment_data['user_email'].present?
+              user = User.find_by('LOWER(email) = ?', payment_data['user_email'].to_s.strip.downcase)
+            end
+
+            # Try to find by authentik_id if not found
+            if user.nil? && payment_data['user_authentik_id'].present?
+              user = User.find_by(authentik_id: payment_data['user_authentik_id'])
+            end
+
+            payment.user = user if user
+          end
+
+          was_new = payment.new_record?
+
+          # Save the payment first
+          payment.save!
+
+          # Restore timestamps after save (Rails allows setting these directly)
+          if payment_data['created_at'].present?
+            payment.update_column(:created_at, Time.zone.parse(payment_data['created_at']))
+          end
+          if payment_data['updated_at'].present?
+            payment.update_column(:updated_at, Time.zone.parse(payment_data['updated_at']))
+          end
+
+          if was_new
+            imported_count += 1
+          else
+            updated_count += 1
+          end
+        rescue StandardError => e
+          skipped_count += 1
+          errors << "Payment #{payment_data['recharge_id']}: #{e.message}"
+          Rails.logger.error("Failed to import Recharge payment #{payment_data['recharge_id']}: #{e.message}")
         end
       end
 
@@ -317,9 +311,9 @@ class RechargePaymentsController < AdminController
       processor.record_csv_import!
 
       notice_parts = ["Import complete: #{imported_count} imported, #{updated_count} updated"]
-      notice_parts << "#{skipped_count} skipped" if skipped_count > 0
+      notice_parts << "#{skipped_count} skipped" if skipped_count.positive?
       notice = notice_parts.join(', ')
-      
+
       if errors.any?
         notice += ". Errors: #{errors.first(5).join('; ')}"
         notice += " (#{errors.count - 5} more)" if errors.count > 5
@@ -328,7 +322,7 @@ class RechargePaymentsController < AdminController
       redirect_to recharge_payments_path, notice: notice
     rescue JSON::ParserError => e
       redirect_to recharge_payments_path, alert: "Invalid JSON: #{e.message}"
-    rescue => e
+    rescue StandardError => e
       redirect_to recharge_payments_path, alert: "Import failed: #{e.message}"
     end
   end

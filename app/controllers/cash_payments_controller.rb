@@ -1,26 +1,27 @@
 class CashPaymentsController < AdminController
   include Pagy::Backend
 
-  before_action :set_cash_payment, only: [:show, :edit, :update, :destroy]
+  before_action :set_cash_payment, only: %i[show edit update destroy]
 
   def index
     @cash_payments = CashPayment.includes(:user, :membership_plan, :recorded_by).ordered
     @pagy, @cash_payments = pagy(@cash_payments, limit: 25)
   end
 
-  def show
-  end
+  def show; end
 
   def new
     @cash_payment = CashPayment.new(paid_on: Date.current)
     @cash_payment.user_id = params[:user_id] if params[:user_id].present?
 
-    if @cash_payment.user_id.present?
-      user = User.find(@cash_payment.user_id)
-      personal_plans = user.personal_membership_plans
-      @cash_payment.membership_plan_id = personal_plans.first&.id if personal_plans.one?
-    end
+    return if @cash_payment.user_id.blank?
+
+    user = User.find(@cash_payment.user_id)
+    personal_plans = user.personal_membership_plans
+    @cash_payment.membership_plan_id = personal_plans.first&.id if personal_plans.one?
   end
+
+  def edit; end
 
   def create
     @cash_payment = CashPayment.new(cash_payment_params)
@@ -39,13 +40,11 @@ class CashPaymentsController < AdminController
         cash_payment: @cash_payment
       )
       update_user_dues_status(@cash_payment)
-      redirect_to cash_payment_path(@cash_payment), notice: "Cash payment recorded for #{@cash_payment.user.display_name}."
+      redirect_to cash_payment_path(@cash_payment),
+                  notice: "Cash payment recorded for #{@cash_payment.user.display_name}."
     else
       render :new, status: :unprocessable_content
     end
-  end
-
-  def edit
   end
 
   def update
@@ -69,7 +68,7 @@ class CashPaymentsController < AdminController
   end
 
   def cash_payment_params
-    params.require(:cash_payment).permit(:user_id, :membership_plan_id, :amount, :paid_on, :notes)
+    params.expect(cash_payment: %i[user_id membership_plan_id amount paid_on notes])
   end
 
   def update_user_dues_status(cash_payment)

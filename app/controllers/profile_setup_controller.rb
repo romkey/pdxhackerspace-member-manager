@@ -2,14 +2,13 @@ class ProfileSetupController < AuthenticatedController
   before_action :set_user
 
   # Step 1: Basic Info
-  def basic_info
-  end
+  def basic_info; end
 
   def save_basic_info
     if @user.update(basic_info_params)
       redirect_to profile_setup_optional_path, status: :see_other
     else
-      render :basic_info, status: :unprocessable_entity
+      render :basic_info, status: :unprocessable_content
     end
   end
 
@@ -23,7 +22,7 @@ class ProfileSetupController < AuthenticatedController
       redirect_to profile_setup_links_path, status: :see_other
     else
       @user_links = @user.user_links.ordered
-      render :optional_info, status: :unprocessable_entity
+      render :optional_info, status: :unprocessable_content
     end
   end
 
@@ -35,7 +34,7 @@ class ProfileSetupController < AuthenticatedController
   # Step 4: Interests
   def interests
     @user_interests    = @user.interests.order(:name)
-    @user_interest_ids = @user_interests.map(&:id).to_set
+    @user_interest_ids = @user_interests.to_set(&:id)
     @suggested         = Interest.suggested(limit: 20, exclude_ids: [])
     @all_interests     = Interest.alphabetical.pluck(:id, :name).map { |id, name| { id: id, name: name } }
   end
@@ -64,9 +63,7 @@ class ProfileSetupController < AuthenticatedController
     end
 
     interest = Interest.find_by('LOWER(name) = ?', name.downcase)
-    if interest.nil?
-      interest = Interest.create!(name: name, needs_review: true, seeded: false)
-    end
+    interest = Interest.create!(name: name, needs_review: true, seeded: false) if interest.nil?
 
     @user.interests << interest unless @user.interests.include?(interest)
     notice = "'#{interest.name}' added to your profile."
@@ -76,8 +73,7 @@ class ProfileSetupController < AuthenticatedController
   end
 
   # Step 5: Visibility & Greeting (with preview)
-  def visibility
-  end
+  def visibility; end
 
   def save_visibility
     attrs = visibility_params.to_h
@@ -106,7 +102,7 @@ class ProfileSetupController < AuthenticatedController
     if @user.update(attrs)
       redirect_to user_path(@user), notice: 'Profile setup complete!', status: :see_other
     else
-      render :visibility, status: :unprocessable_entity
+      render :visibility, status: :unprocessable_content
     end
   end
 
@@ -130,18 +126,18 @@ class ProfileSetupController < AuthenticatedController
   end
 
   def basic_info_params
-    params.require(:user).permit(:full_name, :email, :username)
+    params.expect(user: %i[full_name email username])
   end
 
   def visibility_params
-    params.require(:user).permit(:profile_visibility, :greeting_name)
+    params.expect(user: %i[profile_visibility greeting_name])
   end
 
   def optional_info_params
-    params.require(:user).permit(:pronouns, :bio)
+    params.expect(user: %i[pronouns bio])
   end
 
   def link_params
-    params.require(:user_link).permit(:title, :url)
+    params.expect(user_link: %i[title url])
   end
 end

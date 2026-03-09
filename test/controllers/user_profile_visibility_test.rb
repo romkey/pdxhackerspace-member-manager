@@ -84,8 +84,8 @@ class UserProfileVisibilityTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     # Should see training info
-    assert_match /Trained on/i, response.body
-    assert_match /Can train/i, response.body
+    assert_match(/Trained on/i, response.body)
+    assert_match(/Can train/i, response.body)
 
     # Should NOT see status panel info
     assert_no_match(/Payment Type/i, response.body)
@@ -120,9 +120,9 @@ class UserProfileVisibilityTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     # Should see nav tabs
-    assert_match /nav-tabs/, response.body
-    assert_match /Profile/, response.body
-    assert_match /Payment History/i, response.body
+    assert_match(/nav-tabs/, response.body)
+    assert_match(/Profile/, response.body)
+    assert_match(/Payment History/i, response.body)
   end
 
   test 'user sees status panel on their own profile' do
@@ -131,22 +131,22 @@ class UserProfileVisibilityTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     # Should see status panel
-    assert_match /Payment Type/i, response.body
-    assert_match /Membership Status/i, response.body
+    assert_match(/Payment Type/i, response.body)
+    assert_match(/Membership Status/i, response.body)
   end
 
   test 'user can access payments tab on their own profile' do
     sign_in_as_member
     get user_path(@member_with_account, tab: :payments)
     assert_response :success
-    assert_match /Payment History/i, response.body
+    assert_match(/Payment History/i, response.body)
   end
 
   test 'user sees edit button on their own profile' do
     sign_in_as_member
     get user_path(@member_with_account)
     assert_response :success
-    assert_match /Edit Profile/i, response.body
+    assert_match(/Edit Profile/i, response.body)
   end
 
   # ==========================================
@@ -165,11 +165,11 @@ class UserProfileVisibilityTest < ActionDispatch::IntegrationTest
     get user_path(@members_user)
     assert_response :success
 
-    assert_match /nav-tabs/, response.body
-    assert_match /Profile/, response.body
-    assert_match /Payments/, response.body
-    assert_match /Access/, response.body
-    assert_match /Journal/, response.body
+    assert_match(/nav-tabs/, response.body)
+    assert_match(/Profile/, response.body)
+    assert_match(/Payments/, response.body)
+    assert_match(/Access/, response.body)
+    assert_match(/Journal/, response.body)
   end
 
   test 'admin sees full profile info including notes and RFID' do
@@ -177,10 +177,10 @@ class UserProfileVisibilityTest < ActionDispatch::IntegrationTest
     get user_path(@members_user)
     assert_response :success
 
-    assert_match /Authentik ID/i, response.body
-    assert_match /Notes/i, response.body
-    assert_match /RFID Keys/i, response.body
-    assert_match /Last synced/i, response.body
+    assert_match(/Authentik ID/i, response.body)
+    assert_match(/Notes/i, response.body)
+    assert_match(/RFID Keys/i, response.body)
+    assert_match(/Last synced/i, response.body)
   end
 
   test 'admin can access all tabs' do
@@ -209,8 +209,8 @@ class UserProfileVisibilityTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     # Should see preview selector
-    assert_match /Preview profile as/i, response.body
-    assert_match /Previewing/, response.body
+    assert_match(/Preview profile as/i, response.body)
+    assert_match(/Previewing/, response.body)
 
     # Should NOT see admin-only info
     assert_no_match(/Authentik ID/i, response.body)
@@ -226,7 +226,7 @@ class UserProfileVisibilityTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     # Should see training info
-    assert_match /Trained on/i, response.body
+    assert_match(/Trained on/i, response.body)
 
     # Should NOT see status panel
     assert_no_match(/Payment Type/i, response.body)
@@ -239,8 +239,8 @@ class UserProfileVisibilityTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     # Should see self-view tabs
-    assert_match /nav-tabs/, response.body
-    assert_match /Payment History/i, response.body
+    assert_match(/nav-tabs/, response.body)
+    assert_match(/Payment History/i, response.body)
 
     # Should NOT see admin tabs
     assert_no_match(/Access.*Journal/i, response.body)
@@ -252,7 +252,7 @@ class UserProfileVisibilityTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     # Should see preview selector
-    assert_match /Preview profile as/i, response.body
+    assert_match(/Preview profile as/i, response.body)
 
     # Should see minimal public info
     assert_no_match(/Trained on/i, response.body)
@@ -260,14 +260,15 @@ class UserProfileVisibilityTest < ActionDispatch::IntegrationTest
   end
 
   test 'user can preview their own profile as members' do
-    Training.create!(trainee: @member_with_account, training_topic: training_topics(:laser_cutting), trained_at: 1.week.ago)
+    Training.create!(trainee: @member_with_account, training_topic: training_topics(:laser_cutting),
+                     trained_at: 1.week.ago)
 
     sign_in_as_member
     get user_path(@member_with_account, view_as: :members)
     assert_response :success
 
     # Should see training info but no status panel
-    assert_match /Trained on/i, response.body
+    assert_match(/Trained on/i, response.body)
     assert_no_match(/Payment Type/i, response.body)
   end
 

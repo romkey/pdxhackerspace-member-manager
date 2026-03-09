@@ -1,5 +1,5 @@
 class MemberSourcesController < AdminController
-  before_action :set_member_source, only: [:show, :edit, :update, :toggle, :refresh_stats]
+  before_action :set_member_source, only: %i[show edit update toggle refresh_stats]
 
   def index
     @member_sources = MemberSource.ordered
@@ -13,7 +13,7 @@ class MemberSourcesController < AdminController
     if @member_source.update(member_source_params)
       redirect_to member_sources_path, notice: "#{@member_source.name} settings updated."
     else
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
 
@@ -34,12 +34,12 @@ class MemberSourcesController < AdminController
       source.check_api_configuration!
       source.refresh_statistics!
     end
-    redirect_to member_sources_path, notice: "All member source statistics refreshed."
+    redirect_to member_sources_path, notice: 'All member source statistics refreshed.'
   end
 
   def seed
     MemberSource.seed_defaults!
-    redirect_to member_sources_path, notice: "Member sources seeded."
+    redirect_to member_sources_path, notice: 'Member sources seeded.'
   end
 
   private
@@ -49,6 +49,6 @@ class MemberSourcesController < AdminController
   end
 
   def member_source_params
-    params.require(:member_source).permit(:name, :enabled, :display_order, :notes)
+    params.expect(member_source: %i[name enabled display_order notes])
   end
 end

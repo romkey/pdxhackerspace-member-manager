@@ -15,7 +15,9 @@ class PaymentEvent < ApplicationRecord
   scope :ordered, -> { order(occurred_at: :desc, created_at: :desc) }
   scope :for_user, ->(user) { where(user_id: user.id) }
   scope :payments, -> { where(event_type: 'payment') }
-  scope :subscriptions, -> { where(event_type: %w[subscription_started subscription_cancelled subscription_paused subscription_resumed]) }
+  scope :subscriptions, lambda {
+    where(event_type: %w[subscription_started subscription_cancelled subscription_paused subscription_resumed])
+  }
   scope :by_type, ->(type) { where(event_type: type) }
   scope :by_source, ->(source) { where(source: source) }
 

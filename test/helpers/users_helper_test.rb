@@ -17,14 +17,14 @@ class UsersHelperTest < ActionView::TestCase
   test 'removes a filter when clicking the same value' do
     @filter_params = { dues_status: 'lapsed' }
     path = stacking_filter_path(:dues_status, 'lapsed')
-    refute_includes path, 'dues_status'
+    assert_not_includes path, 'dues_status'
   end
 
   test 'replaces a filter when clicking a different value in same category' do
     @filter_params = { dues_status: 'lapsed' }
     path = stacking_filter_path(:dues_status, 'current')
     assert_includes path, 'dues_status=current'
-    refute_includes path, 'lapsed'
+    assert_not_includes path, 'lapsed'
   end
 
   # ─── Stacking across categories ─────────────────────────────────
@@ -39,7 +39,7 @@ class UsersHelperTest < ActionView::TestCase
   test 'preserves other filters when toggling one off' do
     @filter_params = { dues_status: 'lapsed', membership_status: 'paying' }
     path = stacking_filter_path(:dues_status, 'lapsed')
-    refute_includes path, 'dues_status'
+    assert_not_includes path, 'dues_status'
     assert_includes path, 'membership_status=paying'
   end
 
@@ -56,14 +56,14 @@ class UsersHelperTest < ActionView::TestCase
   test 'nil value removes the filter key' do
     @filter_params = { include_legacy: '1', dues_status: 'lapsed' }
     path = stacking_filter_path(:include_legacy, nil)
-    refute_includes path, 'include_legacy'
+    assert_not_includes path, 'include_legacy'
     assert_includes path, 'dues_status=lapsed'
   end
 
   test 'nil value on absent key is a no-op' do
     @filter_params = { dues_status: 'lapsed' }
     path = stacking_filter_path(:include_legacy, nil)
-    refute_includes path, 'include_legacy'
+    assert_not_includes path, 'include_legacy'
     assert_includes path, 'dues_status=lapsed'
   end
 

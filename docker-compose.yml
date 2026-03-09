@@ -1,13 +1,13 @@
 x-web-common: &web-common
   build:
-    context: /Users/romkey/Dropbox/src/MemberManager
+    context: .
     args:
       RUBY_VERSION: 3.3.10
   image: member_manager_web:latest
   env_file:
     - .env
   volumes:
-    - /Users/romkey/Dropbox/src/MemberManager:/rails
+    - .:/rails
     - ./tmp/access:/tmp/access
 
 x-db-env-dev: &db-env-dev
@@ -93,6 +93,7 @@ services:
       SKIP_CSS_BUILD: "1"
     depends_on:
       - db
+      - redis
 
 volumes:
   postgres_data:

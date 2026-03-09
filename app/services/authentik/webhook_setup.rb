@@ -67,7 +67,10 @@ module Authentik
 
       {
         configured: transport.present? && rule.present?,
-        transport: transport ? { id: transport['pk'], name: transport['name'], webhook_url: transport['webhook_url'] } : nil,
+        transport: if transport
+                     { id: transport['pk'], name: transport['name'],
+                       webhook_url: transport['webhook_url'] }
+                   end,
         user_policy: user_policy ? { id: user_policy['pk'], name: user_policy['name'] } : nil,
         group_policy: group_policy ? { id: group_policy['pk'], name: group_policy['name'] } : nil,
         rule: rule ? { id: rule['pk'], name: rule['name'] } : nil
@@ -77,18 +80,21 @@ module Authentik
     private
 
     def default_webhook_url
-      base_url = ENV['MEMBER_MANAGER_BASE_URL']
+      base_url = ENV.fetch('MEMBER_MANAGER_BASE_URL', nil)
       return nil if base_url.blank?
 
       # Use the configured slug from IncomingWebhook if available
-      webhook = IncomingWebhook.find_by_type('authentik')
+      webhook = IncomingWebhook.find_by(type: 'authentik')
       slug = webhook&.slug || 'authentik'
 
       "#{base_url.delete_suffix('/')}/webhooks/#{slug}"
     end
 
     def validate_configuration!
-      raise ArgumentError, 'Webhook URL is required. Set MEMBER_MANAGER_BASE_URL environment variable.' if webhook_url.blank?
+      if webhook_url.blank?
+        raise ArgumentError,
+              'Webhook URL is required. Set MEMBER_MANAGER_BASE_URL environment variable.'
+      end
       raise ArgumentError, 'Admin group ID is required for notification rule binding.' if admin_group_id.blank?
     end
 

@@ -22,20 +22,20 @@ class InviteControllerTest < ActionDispatch::IntegrationTest
   test 'shows expired error for an expired invitation' do
     get invite_path(invitations(:expired).token)
     assert_response :success
-    assert_match /Invitation Expired/i, response.body
-    assert_no_match /form/i, response.body.gsub(/<form/, '') # no acceptance form
+    assert_match(/Invitation Expired/i, response.body)
+    assert_no_match(/form/i, response.body.gsub('<form', '')) # no acceptance form
   end
 
   test 'shows cancelled/invalid error for a cancelled invitation' do
     get invite_path(invitations(:cancelled).token)
     assert_response :success
-    assert_match /Invalid Invitation/i, response.body
+    assert_match(/Invalid Invitation/i, response.body)
   end
 
   test 'shows not-found error for an unknown token' do
     get invite_path('totally-bogus-token-xyz')
     assert_response :success
-    assert_match /Invitation Not Found/i, response.body
+    assert_match(/Invitation Not Found/i, response.body)
   end
 
   # Already-accepted: auto-login and redirect
@@ -107,7 +107,7 @@ class InviteControllerTest < ActionDispatch::IntegrationTest
       }
     end
     assert_response :success
-    assert_match /Invitation Expired/i, response.body
+    assert_match(/Invitation Expired/i, response.body)
   end
 
   test 'rejects accept on a cancelled invitation' do
@@ -117,6 +117,6 @@ class InviteControllerTest < ActionDispatch::IntegrationTest
       }
     end
     assert_response :success
-    assert_match /Invalid Invitation/i, response.body
+    assert_match(/Invalid Invitation/i, response.body)
   end
 end

@@ -8,16 +8,17 @@ module Authentik
       groups = ApplicationGroup.with_authentik_group_id.with_member_sources(member_sources)
       return if groups.empty?
 
-      Rails.logger.info("[ApplicationGroupMembershipSyncJob] Syncing #{groups.count} groups for sources: #{member_sources.join(', ')}")
+      Rails.logger.info(
+        "[ApplicationGroupMembershipSyncJob] Syncing #{groups.count} groups " \
+        "for sources: #{member_sources.join(', ')}"
+      )
 
       groups.find_each do |group|
-        begin
-          sync = Authentik::GroupSync.new(group)
-          result = sync.sync_members!
-          Rails.logger.info("[ApplicationGroupMembershipSyncJob] Synced #{group.name}: #{result[:status]}")
-        rescue StandardError => e
-          Rails.logger.error("[ApplicationGroupMembershipSyncJob] Failed to sync #{group.name}: #{e.message}")
-        end
+        sync = Authentik::GroupSync.new(group)
+        result = sync.sync_members!
+        Rails.logger.info("[ApplicationGroupMembershipSyncJob] Synced #{group.name}: #{result[:status]}")
+      rescue StandardError => e
+        Rails.logger.error("[ApplicationGroupMembershipSyncJob] Failed to sync #{group.name}: #{e.message}")
       end
     end
 

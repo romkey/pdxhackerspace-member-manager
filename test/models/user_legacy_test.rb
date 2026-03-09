@@ -61,7 +61,8 @@ class UserLegacyTest < ActiveSupport::TestCase
   # ─── Auto-clear legacy when meaningful data arrives ────────────────
 
   test 'setting a membership plan clears legacy flag' do
-    plan = MembershipPlan.create!(name: "Auto-clear Plan #{SecureRandom.hex(4)}", cost: 50, billing_frequency: 'monthly', plan_type: 'primary')
+    plan = MembershipPlan.create!(name: "Auto-clear Plan #{SecureRandom.hex(4)}", cost: 50,
+                                  billing_frequency: 'monthly', plan_type: 'primary')
     user = create_user(legacy: true)
 
     user.update!(membership_plan: plan)
@@ -154,7 +155,8 @@ class UserLegacyTest < ActiveSupport::TestCase
   end
 
   test 'marking legacy sticks even when membership_plan is set' do
-    plan = MembershipPlan.create!(name: "Sticky Plan #{SecureRandom.hex(4)}", cost: 50, billing_frequency: 'monthly', plan_type: 'primary')
+    plan = MembershipPlan.create!(name: "Sticky Plan #{SecureRandom.hex(4)}", cost: 50, billing_frequency: 'monthly',
+                                  plan_type: 'primary')
     user = create_user(legacy: false)
     user.update_columns(membership_plan_id: plan.id)
 

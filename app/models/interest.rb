@@ -7,7 +7,9 @@ class Interest < ApplicationRecord
   before_save :normalize_name
 
   scope :alphabetical,   -> { order(:name) }
-  scope :by_popularity,  -> { left_joins(:user_interests).group(:id).order(Arel.sql('COUNT(user_interests.id) DESC, interests.name ASC')) }
+  scope :by_popularity,  lambda {
+    left_joins(:user_interests).group(:id).order(Arel.sql('COUNT(user_interests.id) DESC, interests.name ASC'))
+  }
   scope :seeded_set,     -> { where(seeded: true) }
   scope :needs_review,   -> { where(needs_review: true) }
   scope :approved,       -> { where(needs_review: false) }

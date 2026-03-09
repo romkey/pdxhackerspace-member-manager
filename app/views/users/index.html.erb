@@ -165,7 +165,7 @@
     <div class="d-flex gap-2">
       <input type="text" class="form-control" placeholder="Search by name, email, or Authentik ID…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" value="<%= params[:q] %>"
              data-live-filter-target="input" data-action="input->live-filter#filter">
-      <button type="button" class="btn btn-outline-secondary" style="<%= params[:q].present? ? '' : 'display: none;' %>"
+      <button type="button" class="btn btn-outline-secondary <%= 'd-none' unless params[:q].present? %>"
               data-live-filter-target="clearButton" data-action="click->live-filter#clear">Clear</button>
     </div>
   </div>
@@ -193,13 +193,7 @@
             <tr>
               <td>
                 <%= link_to user_path(user, @list_params) do %>
-                  <% if user.avatar.present? %>
-                    <img src="<%= user.avatar %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
-                  <% elsif user.email.present? %>
-                    <img src="<%= gravatar_url(user.email, size: 32) %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
-                  <% else %>
-                    <div style="width: 32px; height: 32px; border-radius: 4px; background-color: #dee2e6; display: inline-block;"></div>
-                  <% end %>
+                  <%= render 'shared/user_avatar', user: user %>
                 <% end %>
               </td>
               <td class="small text-monospace text-secondary fw-semibold"><%= link_to user.username, user_path(user, @list_params), class: "text-decoration-none text-secondary" %></td>
@@ -212,13 +206,7 @@
                 <% end %>
               </td>
               <td>
-                <% badge_class = case user.membership_status
-                   when "paying" then "success"
-                   when "sponsored" then "primary"
-                   when "guest" then "warning"
-                   else "secondary"
-                   end %>
-                <span class="badge text-bg-<%= badge_class %>"><%= user.membership_status&.humanize %></span>
+                <span class="badge text-bg-<%= membership_status_badge_class(user.membership_status) %>"><%= user.membership_status&.humanize %></span>
               </td>
               <td class="text-muted small"><%= time_ago_in_words(user.created_at) %> ago</td>
             </tr>
@@ -250,13 +238,7 @@
               data-search-text="<%= [user.username, user.display_name, user.email, user.authentik_id].compact.join(' ').downcase %>">
             <td>
               <%= link_to user_path(user, @list_params) do %>
-                <% if user.avatar.present? %>
-                  <img src="<%= user.avatar %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
-                <% elsif user.email.present? %>
-                  <img src="<%= gravatar_url(user.email, size: 32) %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
-                <% else %>
-                  <div style="width: 32px; height: 32px; border-radius: 4px; background-color: #dee2e6; display: inline-block;"></div>
-                <% end %>
+                <%= render 'shared/user_avatar', user: user %>
               <% end %>
             </td>
             <td class="small text-monospace text-secondary fw-semibold"><%= link_to user.username, user_path(user, @list_params), class: "text-decoration-none text-secondary" %></td>
@@ -283,18 +265,7 @@
               <% if user.service_account? %>
                 <span class="text-muted">–</span>
               <% else %>
-                <% badge_class = case user.membership_status
-                   when "paying" then "success"
-                   when "guest" then "warning"
-                   when "banned" then "danger"
-                   when "deceased" then "dark"
-                   when "sponsored" then "primary"
-                   when "applicant" then "light text-dark"
-                   when "cancelled" then "secondary"
-                   when "unknown" then "secondary"
-                   else "secondary"
-                   end %>
-                <span class="badge text-bg-<%= badge_class %>">
+                <span class="badge text-bg-<%= membership_status_badge_class(user.membership_status) %>">
                   <%= user.membership_status.humanize %>
                 </span>
                 <% if user.active? %>

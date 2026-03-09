@@ -123,9 +123,9 @@ class ApplicationGroupsController < AdminController
   end
 
   def application_group_params
-    params.require(:application_group).permit(
-      :name, :authentik_name, :authentik_group_id, :note,
-      :member_source, :sync_with_group_id, :training_topic_id
+    params.expect(
+      application_group: %i[name authentik_name authentik_group_id note
+                            member_source sync_with_group_id training_topic_id]
     )
   end
 
@@ -150,7 +150,7 @@ class ApplicationGroupsController < AdminController
       group.member_source = combined
       group.sync_with_group_id = nil
     when /\Async_group:(\d+)\z/
-      group.sync_with_group_id = $1.to_i
+      group.sync_with_group_id = ::Regexp.last_match(1).to_i
     end
   end
 
@@ -194,13 +194,11 @@ class ApplicationGroupsController < AdminController
       "#{base_message} Linked to existing Authentik group."
     when 'updated', 'synced'
       members_info = sync_result[:members] || sync_result
-      if members_info[:added].to_i > 0 || members_info[:removed].to_i > 0
+      if members_info[:added].to_i.positive? || members_info[:removed].to_i.positive?
         "#{base_message} Authentik sync: +#{members_info[:added]} / -#{members_info[:removed]} members."
       else
         "#{base_message} Synced to Authentik."
       end
-    when 'skipped'
-      base_message
     when 'error'
       "#{base_message} Warning: Authentik sync failed - #{sync_result[:error]}"
     else

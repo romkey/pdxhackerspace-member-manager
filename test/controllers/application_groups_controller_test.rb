@@ -114,7 +114,7 @@ class ApplicationGroupsControllerTest < ActionDispatch::IntegrationTest
       user_id: user.id
     }
     assert_response :redirect
-    assert_match /Cannot add members/, flash[:alert]
+    assert_match(/Cannot add members/, flash[:alert])
   end
 
   test 'should remove user' do

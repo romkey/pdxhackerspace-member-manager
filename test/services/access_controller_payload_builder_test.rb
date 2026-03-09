@@ -14,7 +14,7 @@ class AccessControllerPayloadBuilderTest < ActiveSupport::TestCase
 
   test 'only includes active users by default' do
     payload = parse_payload
-    uids = payload.map { |u| u['uid'] }
+    uids = payload.pluck('uid')
 
     active_with_rfids = User.active.joins(:rfids).distinct
     active_with_rfids.each do |user|
@@ -27,8 +27,8 @@ class AccessControllerPayloadBuilderTest < ActiveSupport::TestCase
     @user_one.update!(active: false)
 
     payload = parse_payload
-    uids = payload.map { |u| u['uid'] }
-    refute_includes uids, @user_one.authentik_id
+    uids = payload.pluck('uid')
+    assert_not_includes uids, @user_one.authentik_id
   end
 
   test 'includes inactive users when sync_inactive_members is enabled' do
@@ -36,7 +36,7 @@ class AccessControllerPayloadBuilderTest < ActiveSupport::TestCase
     DefaultSetting.instance.update!(sync_inactive_members: true)
 
     payload = parse_payload
-    uids = payload.map { |u| u['uid'] }
+    uids = payload.pluck('uid')
     assert_includes uids, @user_one.authentik_id
   end
 
@@ -44,8 +44,8 @@ class AccessControllerPayloadBuilderTest < ActiveSupport::TestCase
     @user_one.rfids.destroy_all
 
     payload = parse_payload
-    uids = payload.map { |u| u['uid'] }
-    refute_includes uids, @user_one.authentik_id
+    uids = payload.pluck('uid')
+    assert_not_includes uids, @user_one.authentik_id
   end
 
   # --- Per-type training topic filtering ---
@@ -53,7 +53,7 @@ class AccessControllerPayloadBuilderTest < ActiveSupport::TestCase
   test 'includes all users when no training topics required' do
     # door_lock has no required topics
     payload = parse_payload(access_controller_type: @door_lock)
-    uids = payload.map { |u| u['uid'] }
+    uids = payload.pluck('uid')
 
     assert_includes uids, @user_one.authentik_id
     assert_includes uids, @user_two.authentik_id
@@ -65,10 +65,10 @@ class AccessControllerPayloadBuilderTest < ActiveSupport::TestCase
     Training.create!(trainee: @user_one, training_topic: @laser_topic, trained_at: 1.day.ago)
 
     payload = parse_payload(access_controller_type: @laser_controller)
-    uids = payload.map { |u| u['uid'] }
+    uids = payload.pluck('uid')
 
     assert_includes uids, @user_one.authentik_id
-    refute_includes uids, @user_two.authentik_id
+    assert_not_includes uids, @user_two.authentik_id
   end
 
   test 'requires ALL topics when multiple are set' do
@@ -79,21 +79,22 @@ class AccessControllerPayloadBuilderTest < ActiveSupport::TestCase
     Training.create!(trainee: @user_one, training_topic: @laser_topic, trained_at: 1.day.ago)
 
     payload = parse_payload(access_controller_type: @laser_controller)
-    uids = payload.map { |u| u['uid'] }
-    refute_includes uids, @user_one.authentik_id, 'User trained in only one of two required topics should be excluded'
+    uids = payload.pluck('uid')
+    assert_not_includes uids, @user_one.authentik_id,
+                        'User trained in only one of two required topics should be excluded'
 
     # Now train user_one in woodworking too
     Training.create!(trainee: @user_one, training_topic: @woodworking_topic, trained_at: 1.day.ago)
 
     payload = parse_payload(access_controller_type: @laser_controller)
-    uids = payload.map { |u| u['uid'] }
+    uids = payload.pluck('uid')
     assert_includes uids, @user_one.authentik_id, 'User trained in both required topics should be included'
   end
 
   test 'no type passed includes all active users with RFIDs' do
     # When called without an access_controller_type, no training filter is applied
     payload = parse_payload(access_controller_type: nil)
-    uids = payload.map { |u| u['uid'] }
+    uids = payload.pluck('uid')
 
     assert_includes uids, @user_one.authentik_id
     assert_includes uids, @user_two.authentik_id
@@ -117,7 +118,7 @@ class AccessControllerPayloadBuilderTest < ActiveSupport::TestCase
   end
 
   test 'user_meets_training_requirements? returns false when user lacks training' do
-    refute @laser_controller.user_meets_training_requirements?(@user_one)
+    assert_not @laser_controller.user_meets_training_requirements?(@user_one)
   end
 
   test 'user_meets_training_requirements? returns true when user has required training' do

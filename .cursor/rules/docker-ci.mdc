@@ -1,0 +1,30 @@
+---
+description: Docker and GitHub Actions CI/CD conventions
+globs: "{Dockerfile,docker-compose.yml,.github/workflows/**}"
+alwaysApply: false
+---
+
+# Docker and CI
+
+## Docker
+
+- **Base image:** `ruby:3.3.10-slim` with multi-stage build
+- **Node:** Installed via nodenv (Node 24.x) for asset compilation
+- **Yarn:** Use `yarn install --frozen-lockfile` — never modify `yarn.lock` in Docker builds
+- **Assets:** Precompiled with `SECRET_KEY_BASE_DUMMY=1`
+- **Runtime:** Non-root `rails` user; entrypoint at `bin/docker-entrypoint`
+
+## docker-compose
+
+- `docker compose run --rm test` — runs `db:create db:schema:load` then `bin/rails test`
+- `docker compose run --rm test rubocop` — runs RuboCop lint
+- Services: `db` (postgres:16), `redis` (redis:7-alpine), `web`, `sidekiq`
+- The `migrate` service runs under the `tools` profile
+- App source is bind-mounted at `/rails`
+
+## GitHub Actions
+
+- **ci.yml:** Runs on push/PR to `main`; sets up PostgreSQL 16 and Redis 7 as service containers; runs `bin/rails test`
+- **release.yml:** Triggered by `v*` tags; runs tests then builds and pushes Docker image to `ghcr.io`
+- Uses `ruby/setup-ruby` with bundler-cache and `actions/setup-node` with yarn cache
+- Concurrency: cancels in-progress runs for the same ref

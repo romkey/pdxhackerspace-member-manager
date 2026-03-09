@@ -100,13 +100,11 @@ module Authentik
 
     def sync_all!
       application.application_groups.find_each do |group|
-        begin
-          sync = Authentik::GroupSync.new(group)
-          result = sync.sync!
-          results[:synced] << "#{group.name}: #{result[:status]}"
-        rescue StandardError => e
-          results[:errors] << "Sync #{group.name}: #{e.message}"
-        end
+        sync = Authentik::GroupSync.new(group)
+        result = sync.sync!
+        results[:synced] << "#{group.name}: #{result[:status]}"
+      rescue StandardError => e
+        results[:errors] << "Sync #{group.name}: #{e.message}"
       end
     end
   end

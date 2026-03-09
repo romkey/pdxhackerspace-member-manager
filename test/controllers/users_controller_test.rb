@@ -22,7 +22,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     get user_path(@user, tab: :payments)
     assert_response :success
     assert_match @user.display_name, response.body
-    assert_match /Payment Events/i, response.body
+    assert_match(/Payment Events/i, response.body)
   end
 
   private

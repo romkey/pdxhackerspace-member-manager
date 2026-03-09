@@ -13,13 +13,14 @@ class MembershipSettingsController < AdminController
     if @membership_setting.update(membership_setting_params)
       redirect_to membership_settings_path, notice: 'Membership settings updated successfully.'
     else
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
 
   private
 
   def membership_setting_params
-    params.require(:membership_setting).permit(:payment_grace_period_days, :reactivation_grace_period_months, :invitation_expiry_hours)
+    params.expect(membership_setting: %i[payment_grace_period_days reactivation_grace_period_months
+                                         invitation_expiry_hours])
   end
 end

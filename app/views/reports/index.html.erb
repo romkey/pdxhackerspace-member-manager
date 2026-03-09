@@ -324,34 +324,19 @@
                 <% @no_email.each do |user| %>
                   <tr>
                     <td>
-                      <% if user.avatar.present? %>
-                        <img src="<%= user.avatar %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
-                      <% else %>
-                        <div style="width: 32px; height: 32px; border-radius: 4px; background-color: #dee2e6; display: inline-block;"></div>
-                      <% end %>
+                      <%= render 'shared/user_avatar', user: user %>
                     </td>
                     <td class="fw-semibold">
                       <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
                     </td>
                     <td>
-                      <% badge_class = case user.membership_status
-                         when "paying" then "success"
-                         when "sponsored" then "primary"
-                         when "guest" then "warning"
-                         else "secondary"
-                         end %>
-                      <span class="badge text-bg-<%= badge_class %>"><%= user.membership_status.humanize %></span>
+                      <span class="badge text-bg-<%= membership_status_badge_class(user.membership_status) %>"><%= user.membership_status.humanize %></span>
                     </td>
                     <td>
                       <span class="badge text-bg-info"><%= user.payment_type.humanize %></span>
                     </td>
                     <td>
-                      <% dues_badge_class = case user.dues_status
-                         when "current" then "success"
-                         when "lapsed" then "warning"
-                         else "secondary"
-                         end %>
-                      <span class="badge text-bg-<%= dues_badge_class %>"><%= user.dues_status.humanize %></span>
+                      <span class="badge text-bg-<%= dues_status_badge_class(user.dues_status) %>"><%= user.dues_status.humanize %></span>
                     </td>
                   </tr>
                 <% end %>
@@ -401,13 +386,7 @@
                 <% @sponsored_and_paying.each do |user| %>
                   <tr>
                     <td>
-                      <% if user.avatar.present? %>
-                        <img src="<%= user.avatar %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
-                      <% elsif user.email.present? %>
-                        <img src="<%= gravatar_url(user.email, size: 32) %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
-                      <% else %>
-                        <div style="width: 32px; height: 32px; border-radius: 4px; background-color: #dee2e6; display: inline-block;"></div>
-                      <% end %>
+                      <%= render 'shared/user_avatar', user: user %>
                     </td>
                     <td class="fw-semibold">
                       <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
@@ -423,12 +402,7 @@
                     <td><span class="badge text-bg-success">Paying</span></td>
                     <td><span class="badge text-bg-info"><%= user.payment_type.humanize %></span></td>
                     <td>
-                      <% dues_badge_class = case user.dues_status
-                         when "current" then "success"
-                         when "lapsed" then "warning"
-                         else "secondary"
-                         end %>
-                      <span class="badge text-bg-<%= dues_badge_class %>"><%= user.dues_status.humanize %></span>
+                      <span class="badge text-bg-<%= dues_status_badge_class(user.dues_status) %>"><%= user.dues_status.humanize %></span>
                     </td>
                     <td>
                       <% if user.membership_plan.present? %>
@@ -485,13 +459,7 @@
                 <% @no_access.each do |user| %>
                   <tr>
                     <td>
-                      <% if user.avatar.present? %>
-                        <img src="<%= user.avatar %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
-                      <% elsif user.email.present? %>
-                        <img src="<%= gravatar_url(user.email, size: 32) %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
-                      <% else %>
-                        <div style="width: 32px; height: 32px; border-radius: 4px; background-color: #dee2e6; display: inline-block;"></div>
-                      <% end %>
+                      <%= render 'shared/user_avatar', user: user %>
                     </td>
                     <td class="fw-semibold">
                       <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
@@ -512,12 +480,7 @@
                       <% end %>
                     </td>
                     <td>
-                      <% dues_badge_class = case user.dues_status
-                         when "current" then "success"
-                         when "lapsed" then "warning"
-                         else "secondary"
-                         end %>
-                      <span class="badge text-bg-<%= dues_badge_class %>"><%= user.dues_status.humanize %></span>
+                      <span class="badge text-bg-<%= dues_status_badge_class(user.dues_status) %>"><%= user.dues_status.humanize %></span>
                     </td>
                     <td><span class="badge text-bg-info"><%= user.payment_type.humanize %></span></td>
                     <td>
@@ -575,25 +538,13 @@
                 <% @inactive_with_rfid.each do |user| %>
                   <tr>
                     <td>
-                      <% if user.avatar.present? %>
-                        <img src="<%= user.avatar %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
-                      <% else %>
-                        <div style="width: 32px; height: 32px; border-radius: 4px; background-color: #dee2e6; display: inline-block;"></div>
-                      <% end %>
+                      <%= render 'shared/user_avatar', user: user %>
                     </td>
                     <td class="fw-semibold">
                       <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
                     </td>
                     <td>
-                      <% badge_class = case user.membership_status
-                         when "paying" then "success"
-                         when "cancelled" then "danger"
-                         when "sponsored" then "primary"
-                         when "banned" then "dark"
-                         when "guest" then "warning"
-                         else "secondary"
-                         end %>
-                      <span class="badge text-bg-<%= badge_class %>"><%= user.membership_status.humanize %></span>
+                      <span class="badge text-bg-<%= membership_status_badge_class(user.membership_status) %>"><%= user.membership_status.humanize %></span>
                     </td>
                     <td><span class="badge text-bg-secondary"><%= user.payment_type.humanize %></span></td>
                     <td><span class="badge text-bg-secondary"><%= user.dues_status.humanize %></span></td>

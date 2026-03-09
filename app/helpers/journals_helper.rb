@@ -3,9 +3,7 @@ module JournalsHelper
     return content_tag(:span, 'No field changes recorded', class: 'text-muted') if changes_hash.blank?
 
     # Handle special training-related entries
-    if changes_hash['training'].is_a?(Hash)
-      return render_training_change(changes_hash['training'])
-    end
+    return render_training_change(changes_hash['training']) if changes_hash['training'].is_a?(Hash)
 
     if changes_hash['trainer_capability'].is_a?(Hash)
       return render_trainer_capability_change(changes_hash['trainer_capability'])

@@ -21,7 +21,7 @@ namespace :aliases do
 end
 
 # Phase 1: Collect aliases from all linked entries, batched per user to avoid duplicates.
-def backfill_aliases_from_linked_entries # rubocop:disable Metrics/MethodLength,Metrics/AbcSize
+def backfill_aliases_from_linked_entries
   # Collect candidate aliases per user_id: { user_id => Set of names }
   candidates = Hash.new { |h, k| h[k] = Set.new }
 
@@ -63,11 +63,11 @@ def backfill_aliases_from_linked_entries # rubocop:disable Metrics/MethodLength,
 
     added_any = false
     names.each do |name|
-      if user.add_alias(name)
-        added_any = true
-        total_added += 1
-        puts "  + #{user.display_name}: '#{name}'"
-      end
+      next unless user.add_alias(name)
+
+      added_any = true
+      total_added += 1
+      puts "  + #{user.display_name}: '#{name}'"
     end
     user.save! if added_any
   end
@@ -77,7 +77,7 @@ end
 
 # Phase 2: Try to link unlinked entries using name/alias matching.
 # Only links when exactly one user matches to avoid ambiguity.
-def link_unlinked_entries_via_aliases # rubocop:disable Metrics/MethodLength,Metrics/AbcSize
+def link_unlinked_entries_via_aliases
   total_linked = 0
 
   puts "\nLinking unlinked PayPal payments by name/alias..."

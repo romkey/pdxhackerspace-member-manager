@@ -37,13 +37,12 @@ class InterestTest < ActiveSupport::TestCase
     # electronics and programming are both selected by users(:one);
     # electronics is also selected by users(:two), so it has 2 members
     ordered = Interest.by_popularity.pluck(:name)
-    electronics_index  = ordered.index('Electronics')
-    programming_index  = ordered.index('Programming')
-    woodworking_index  = ordered.index('Woodworking')
+    electronics_index = ordered.index('Electronics')
+    programming_index = ordered.index('Programming')
 
     assert electronics_index < programming_index,
            'Electronics (2 members) should appear before Programming (1 member)'
-    assert_includes ordered, woodworking_index.to_i >= 0 ? 'Woodworking' : 'Woodworking'
+    assert_includes ordered, 'Woodworking'
   end
 
   # suggested class method

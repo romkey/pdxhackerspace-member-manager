@@ -26,7 +26,7 @@ class Invitation < ApplicationRecord
   before_validation :set_expiry, on: :create
 
   scope :pending, -> { where(accepted_at: nil, cancelled_at: nil).where('expires_at > ?', Time.current) }
-  scope :expired, -> { where(accepted_at: nil, cancelled_at: nil).where('expires_at <= ?', Time.current) }
+  scope :expired, -> { where(accepted_at: nil, cancelled_at: nil).where(expires_at: ..Time.current) }
   scope :accepted, -> { where.not(accepted_at: nil) }
   scope :cancelled, -> { where.not(cancelled_at: nil) }
   scope :newest_first, -> { order(created_at: :desc) }

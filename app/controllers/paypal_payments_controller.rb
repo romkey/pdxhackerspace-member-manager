@@ -58,20 +58,18 @@ class PaypalPaymentsController < AdminController
     if @payment.payer_id.present?
       # Link the payment to the user
       @payment.update!(user_id: user.id)
-      
+
       # Explicitly link all other payments with the same payer_id
       # (The after_save callback should do this too, but being explicit to ensure it happens)
       linked_count = PaypalPayment.where(payer_id: @payment.payer_id, user_id: nil)
                                   .update_all(user_id: user.id)
-      
+
       # Update the user's paypal_account_id if not already set
-      if user.paypal_account_id.blank?
-        user.update_column(:paypal_account_id, @payment.payer_id)
-      end
-      
+      user.update_column(:paypal_account_id, @payment.payer_id) if user.paypal_account_id.blank?
+
       # Update user's payment status
       user.on_paypal_payment_linked(@payment)
-      
+
       # Redirect back to reports if coming from there, otherwise to payment detail page
       if params[:from_reports] == 'true'
         # Reload the unmatched payments list
@@ -89,22 +87,24 @@ class PaypalPaymentsController < AdminController
         @unmatched_paypal_payments_count = all_unmatched_paypal.count
         @unmatched_paypal_payments = all_unmatched_paypal.first(20)
         @all_users = User.ordered_by_display_name
-        
+
         respond_to do |format|
           format.html { redirect_to reports_path(tab: 'unmatched-paypal'), notice: "Linked to #{user.display_name}." }
           format.turbo_stream
         end
       else
-        extra_msg = linked_count > 0 ? " Also linked #{linked_count} other payment#{'s' if linked_count != 1} with the same payer ID." : ""
+        extra_msg = if linked_count.positive?
+                      " Also linked #{linked_count} other payment#{'s' if linked_count != 1} with the same payer ID."
+                    else
+                      ''
+                    end
         redirect_to paypal_payment_path(@payment),
                     notice: "Linked to #{user.display_name}.#{extra_msg}"
       end
+    elsif params[:from_reports] == 'true'
+      redirect_to reports_path(tab: 'unmatched-paypal'), alert: 'Cannot link: payment has no payer ID.'
     else
-      if params[:from_reports] == 'true'
-        redirect_to reports_path(tab: 'unmatched-paypal'), alert: 'Cannot link: payment has no payer ID.'
-      else
-        redirect_to paypal_payment_path(@payment), alert: 'Cannot link: payment has no payer ID.'
-      end
+      redirect_to paypal_payment_path(@payment), alert: 'Cannot link: payment has no payer ID.'
     end
   end
 
@@ -114,18 +114,15 @@ class PaypalPaymentsController < AdminController
     user = @payment.user
 
     # Clear paypal_account_id on the user so the auto-match breaks
-    if payer_id.present?
-      User.where(paypal_account_id: payer_id).update_all(paypal_account_id: nil)
-    end
+    User.where(paypal_account_id: payer_id).update_all(paypal_account_id: nil) if payer_id.present?
 
     # Clear user_id on this payment and all sibling payments with the same payer_id
     @payment.update!(user_id: nil)
-    if payer_id.present?
-      PaypalPayment.where(payer_id: payer_id, user_id: user&.id).update_all(user_id: nil)
-    end
+    PaypalPayment.where(payer_id: payer_id, user_id: user&.id).update_all(user_id: nil) if payer_id.present?
 
     redirect_to paypal_payment_path(@payment),
-                notice: "Unlinked from #{user&.display_name || 'member'}. All payments with payer ID #{payer_id} also unlinked."
+                notice: "Unlinked from #{user&.display_name || 'member'}. " \
+                        "All payments with payer ID #{payer_id} also unlinked."
   end
 
   def toggle_dont_link
@@ -162,7 +159,8 @@ class PaypalPaymentsController < AdminController
       @payment.update!(user_id: user.id)
       redirect_to user_path(user), notice: "Created member #{user.display_name} and linked payment."
     else
-      redirect_to paypal_payment_path(@payment), alert: "Failed to create member: #{user.errors.full_messages.join(', ')}"
+      redirect_to paypal_payment_path(@payment),
+                  alert: "Failed to create member: #{user.errors.full_messages.join(', ')}"
     end
   end
 
@@ -186,12 +184,12 @@ class PaypalPaymentsController < AdminController
 
   def test
     # Only consider payments for $40 (with small tolerance for decimal precision)
-    @payments_40 = PaypalPayment.where(amount: 39.99..40.01)
+    @payments40 = PaypalPayment.where(amount: 39.99..40.01)
 
     # Find payments that don't have a matching User by paypal_account_id
     @unmatched_payments = []
 
-    @payments_40.find_each do |payment|
+    @payments40.find_each do |payment|
       next if payment.payer_id.blank?
 
       # Check if any User has this payer_id as their paypal_account_id
@@ -206,8 +204,8 @@ class PaypalPaymentsController < AdminController
       end
     end
 
-    @total_40_payments = @payments_40.count
-    @matched_count = @total_40_payments - @unmatched_payments.count
+    @total40_payments = @payments40.count
+    @matched_count = @total40_payments - @unmatched_payments.count
   end
 
   def export
@@ -258,7 +256,7 @@ class PaypalPaymentsController < AdminController
 
     begin
       json_data = JSON.parse(params[:file].read)
-      
+
       unless json_data.is_a?(Hash) && json_data['payments'].is_a?(Array)
         redirect_to paypal_payments_path, alert: 'Invalid JSON format. Expected object with "payments" array.'
         return
@@ -271,75 +269,71 @@ class PaypalPaymentsController < AdminController
 
       ActiveRecord::Base.transaction do
         json_data['payments'].each do |payment_data|
-          begin
-            # Find or initialize payment by paypal_id
-            payment = PaypalPayment.find_or_initialize_by(paypal_id: payment_data['paypal_id'])
+          # Find or initialize payment by paypal_id
+          payment = PaypalPayment.find_or_initialize_by(paypal_id: payment_data['paypal_id'])
 
-            # Update all attributes
-            payment.status = payment_data['status']
-            
-            # Handle amount conversion (can be string or number)
-            if payment_data['amount'].present?
-              payment.amount = BigDecimal(payment_data['amount'].to_s)
-            end
-            
-            payment.currency = payment_data['currency']
-            
-            # Parse timestamps
-            if payment_data['transaction_time'].present?
-              payment.transaction_time = Time.parse(payment_data['transaction_time'])
-            end
-            
-            payment.transaction_type = payment_data['transaction_type']
-            payment.payer_email = payment_data['payer_email']
-            payment.payer_name = payment_data['payer_name']
-            payment.payer_id = payment_data['payer_id']
-            payment.raw_attributes = payment_data['raw_attributes'] || {}
-            
-            if payment_data['last_synced_at'].present?
-              payment.last_synced_at = Time.parse(payment_data['last_synced_at'])
-            end
+          # Update all attributes
+          payment.status = payment_data['status']
 
-            # Restore user relationship
-            if payment_data['user_email'].present? || payment_data['user_authentik_id'].present?
-              user = nil
-              
-              # Try to find by email first
-              if payment_data['user_email'].present?
-                user = User.find_by('LOWER(email) = ?', payment_data['user_email'].to_s.strip.downcase)
-              end
-              
-              # Try to find by authentik_id if not found
-              if user.nil? && payment_data['user_authentik_id'].present?
-                user = User.find_by(authentik_id: payment_data['user_authentik_id'])
-              end
-              
-              payment.user = user if user
-            end
+          # Handle amount conversion (can be string or number)
+          payment.amount = BigDecimal(payment_data['amount'].to_s) if payment_data['amount'].present?
 
-            was_new = payment.new_record?
-            
-            # Save the payment first
-            payment.save!
-            
-            # Restore timestamps after save (Rails allows setting these directly)
-            if payment_data['created_at'].present?
-              payment.update_column(:created_at, Time.parse(payment_data['created_at']))
-            end
-            if payment_data['updated_at'].present?
-              payment.update_column(:updated_at, Time.parse(payment_data['updated_at']))
-            end
+          payment.currency = payment_data['currency']
 
-            if was_new
-              imported_count += 1
-            else
-              updated_count += 1
-            end
-          rescue => e
-            skipped_count += 1
-            errors << "Payment #{payment_data['paypal_id']}: #{e.message}"
-            Rails.logger.error("Failed to import PayPal payment #{payment_data['paypal_id']}: #{e.message}")
+          # Parse timestamps
+          if payment_data['transaction_time'].present?
+            payment.transaction_time = Time.zone.parse(payment_data['transaction_time'])
           end
+
+          payment.transaction_type = payment_data['transaction_type']
+          payment.payer_email = payment_data['payer_email']
+          payment.payer_name = payment_data['payer_name']
+          payment.payer_id = payment_data['payer_id']
+          payment.raw_attributes = payment_data['raw_attributes'] || {}
+
+          if payment_data['last_synced_at'].present?
+            payment.last_synced_at = Time.zone.parse(payment_data['last_synced_at'])
+          end
+
+          # Restore user relationship
+          if payment_data['user_email'].present? || payment_data['user_authentik_id'].present?
+            user = nil
+
+            # Try to find by email first
+            if payment_data['user_email'].present?
+              user = User.find_by('LOWER(email) = ?', payment_data['user_email'].to_s.strip.downcase)
+            end
+
+            # Try to find by authentik_id if not found
+            if user.nil? && payment_data['user_authentik_id'].present?
+              user = User.find_by(authentik_id: payment_data['user_authentik_id'])
+            end
+
+            payment.user = user if user
+          end
+
+          was_new = payment.new_record?
+
+          # Save the payment first
+          payment.save!
+
+          # Restore timestamps after save (Rails allows setting these directly)
+          if payment_data['created_at'].present?
+            payment.update_column(:created_at, Time.zone.parse(payment_data['created_at']))
+          end
+          if payment_data['updated_at'].present?
+            payment.update_column(:updated_at, Time.zone.parse(payment_data['updated_at']))
+          end
+
+          if was_new
+            imported_count += 1
+          else
+            updated_count += 1
+          end
+        rescue StandardError => e
+          skipped_count += 1
+          errors << "Payment #{payment_data['paypal_id']}: #{e.message}"
+          Rails.logger.error("Failed to import PayPal payment #{payment_data['paypal_id']}: #{e.message}")
         end
       end
 
@@ -348,9 +342,9 @@ class PaypalPaymentsController < AdminController
       processor.record_csv_import!
 
       notice_parts = ["Import complete: #{imported_count} imported, #{updated_count} updated"]
-      notice_parts << "#{skipped_count} skipped" if skipped_count > 0
+      notice_parts << "#{skipped_count} skipped" if skipped_count.positive?
       notice = notice_parts.join(', ')
-      
+
       if errors.any?
         notice += ". Errors: #{errors.first(5).join('; ')}"
         notice += " (#{errors.count - 5} more)" if errors.count > 5
@@ -359,7 +353,7 @@ class PaypalPaymentsController < AdminController
       redirect_to paypal_payments_path, notice: notice
     rescue JSON::ParserError => e
       redirect_to paypal_payments_path, alert: "Invalid JSON: #{e.message}"
-    rescue => e
+    rescue StandardError => e
       redirect_to paypal_payments_path, alert: "Import failed: #{e.message}"
     end
   end

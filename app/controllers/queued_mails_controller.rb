@@ -1,5 +1,5 @@
 class QueuedMailsController < AdminController
-  before_action :set_queued_mail, only: [:show, :edit, :update, :approve, :reject, :regenerate, :retry_delivery]
+  before_action :set_queued_mail, only: %i[show edit update approve reject regenerate retry_delivery]
 
   def index
     @filter = params[:filter].presence || 'pending'
@@ -16,7 +16,10 @@ class QueuedMailsController < AdminController
   def show; end
 
   def edit
-    redirect_to queued_mail_path(@queued_mail), alert: 'Only pending messages can be edited.' unless @queued_mail.pending?
+    return if @queued_mail.pending?
+
+    redirect_to queued_mail_path(@queued_mail),
+                alert: 'Only pending messages can be edited.'
   end
 
   def update
@@ -29,7 +32,7 @@ class QueuedMailsController < AdminController
       @queued_mail.log_edit!(current_user)
       redirect_to queued_mail_path(@queued_mail), notice: 'Message updated.'
     else
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
 
@@ -99,7 +102,8 @@ class QueuedMailsController < AdminController
     end
 
     unless @queued_mail.can_regenerate?
-      redirect_to queued_mail_path(@queued_mail), alert: 'This message cannot be regenerated (no template or recipient).'
+      redirect_to queued_mail_path(@queued_mail),
+                  alert: 'This message cannot be regenerated (no template or recipient).'
       return
     end
 
@@ -114,6 +118,6 @@ class QueuedMailsController < AdminController
   end
 
   def queued_mail_params
-    params.require(:queued_mail).permit(:to, :subject, :body_html, :body_text)
+    params.expect(queued_mail: %i[to subject body_html body_text])
   end
 end

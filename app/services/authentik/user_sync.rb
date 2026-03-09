@@ -32,7 +32,10 @@ module Authentik
 
       return { status: 'skipped', reason: 'no_syncable_changes' } if fields_to_sync.empty?
 
-      Rails.logger.info("[Authentik::UserSync] Syncing user #{user.id} (#{user.authentik_id}) to Authentik: #{fields_to_sync.join(', ')}")
+      Rails.logger.info(
+        "[Authentik::UserSync] Syncing user #{user.id} " \
+        "(#{user.authentik_id}) to Authentik: #{fields_to_sync.join(', ')}"
+      )
 
       # Build the update payload
       attrs = {}
@@ -86,7 +89,7 @@ module Authentik
         changes[:username] = authentik_data['username']
       end
 
-      # Note: We intentionally don't sync is_active to active automatically
+      # NOTE: We intentionally don't sync is_active to active automatically
       # because active status in MemberManager has different business logic
 
       return { status: 'no_changes' } if changes.empty? && skip_if_no_changes

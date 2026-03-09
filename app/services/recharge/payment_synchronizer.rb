@@ -64,7 +64,7 @@ module Recharge
           # If still no match, try to match by full name
           user ||= find_user_by_name(attrs[:customer_name]) if attrs[:customer_name].present?
 
-          # Note: The RechargePayment after_save callback will handle setting
+          # NOTE: The RechargePayment after_save callback will handle setting
           # recharge_customer_id on the user when the payment is linked
 
           record.user = user
@@ -76,7 +76,8 @@ module Recharge
           if is_new
             @logger.debug { "[Recharge::PaymentSynchronizer] Created new payment: #{attrs[:recharge_id]} - #{attrs[:customer_email]} - #{attrs[:amount]} #{attrs[:currency]} - processed #{attrs[:processed_at]}" }
 
-            PaymentEvent.find_or_create_by!(source: 'recharge', external_id: attrs[:recharge_id], event_type: 'payment') do |pe|
+            PaymentEvent.find_or_create_by!(source: 'recharge', external_id: attrs[:recharge_id],
+                                            event_type: 'payment') do |pe|
               pe.user = record.user
               pe.amount = record.amount
               pe.currency = record.currency || 'USD'
@@ -111,7 +112,10 @@ module Recharge
         end
       end
 
-      @logger.info("[Recharge::PaymentSynchronizer] Processed #{charges.count} charges: #{saved_count} saved, #{skipped_count} skipped (non-SUCCESS status)")
+      @logger.info(
+        "[Recharge::PaymentSynchronizer] Processed #{charges.count} charges: " \
+        "#{saved_count} saved, #{skipped_count} skipped (non-SUCCESS status)"
+      )
 
       # Update User records with Recharge information
       update_user_recharge_fields
@@ -139,7 +143,10 @@ module Recharge
       # Add 3 days to that
       lookback_days = days_ago + 3
 
-      @logger.info("[Recharge::PaymentSynchronizer] Most recent payment was #{days_ago} days ago, looking back #{lookback_days} days")
+      @logger.info(
+        '[Recharge::PaymentSynchronizer] Most recent payment was ' \
+        "#{days_ago} days ago, looking back #{lookback_days} days"
+      )
 
       Time.current - lookback_days.days
     end
@@ -188,13 +195,17 @@ module Recharge
         )
 
         # Use shared method for payment-related membership updates (pass amount for plan matching)
-        updates = user.apply_payment_updates({ time: most_recent_payment.processed_at, amount: most_recent_payment.amount })
+        updates = user.apply_payment_updates({ time: most_recent_payment.processed_at,
+                                               amount: most_recent_payment.amount })
         user.update!(updates) if updates.any?
       end
 
       # Also update users who have no Recharge payments (clear their fields)
       users_without_payments = User.where.missing(:recharge_payments)
-                                   .where('users.recharge_most_recent_payment_date IS NOT NULL OR users.recharge_customer_id IS NOT NULL')
+                                   .where(
+                                     'users.recharge_most_recent_payment_date IS NOT NULL ' \
+                                     'OR users.recharge_customer_id IS NOT NULL'
+                                   )
 
       users_without_payments.update_all(
         recharge_most_recent_payment_date: nil,

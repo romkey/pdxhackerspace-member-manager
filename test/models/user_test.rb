@@ -5,7 +5,7 @@ class UserTest < ActiveSupport::TestCase
     ordered = User.ordered_by_display_name.map(&:display_name)
 
     # Verify the list is sorted case-insensitively
-    assert_equal ordered, ordered.sort_by { |name| name.downcase }
+    assert_equal(ordered, ordered.sort_by(&:downcase))
 
     # Verify all fixture users are included
     assert_includes ordered, 'Example User One'

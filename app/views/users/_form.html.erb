@@ -208,7 +208,7 @@
                 <div>
                   <strong><%= link.title %></strong>
                   <br>
-                  <a href="<%= link.url %>" target="_blank" rel="noopener" class="text-muted small text-decoration-none"><%= truncate(link.url, length: 50) %></a>
+                  <%= link_to truncate(link.url, length: 50), sanitize_url(link.url), target: '_blank', rel: 'noopener', class: 'text-muted small text-decoration-none' %>
                 </div>
               </div>
               <div class="d-flex gap-2">

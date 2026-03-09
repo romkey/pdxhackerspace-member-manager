@@ -32,7 +32,7 @@ module Authentik
           user = User.find_by('LOWER(email) = ?', attrs[:email].downcase)
           # Also try extra_emails
           user ||= User.where('EXISTS (SELECT 1 FROM unnest(extra_emails) AS e WHERE LOWER(e) = ?)',
-                               attrs[:email].downcase).first
+                              attrs[:email].downcase).first
           # If found by email, link the authentik_id
           user.authentik_id = attrs[:authentik_id] if user
         end

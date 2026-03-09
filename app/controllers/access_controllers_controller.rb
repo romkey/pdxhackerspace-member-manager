@@ -1,5 +1,5 @@
 class AccessControllersController < AdminController
-  before_action :set_access_controller, only: [:show, :edit, :update, :destroy, :toggle, :sync, :run_verb]
+  before_action :set_access_controller, only: %i[show edit update destroy toggle sync run_verb]
 
   def index
     @access_controllers = AccessController.includes(:access_controller_type).ordered
@@ -13,6 +13,10 @@ class AccessControllersController < AdminController
     @access_controller_types = AccessControllerType.ordered
   end
 
+  def edit
+    @access_controller_types = AccessControllerType.ordered
+  end
+
   def create
     @access_controller = AccessController.new(access_controller_params)
 
@@ -20,12 +24,8 @@ class AccessControllersController < AdminController
       redirect_to access_controllers_path, notice: "Access controller '#{@access_controller.name}' created."
     else
       @access_controller_types = AccessControllerType.ordered
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     end
-  end
-
-  def edit
-    @access_controller_types = AccessControllerType.ordered
   end
 
   def update
@@ -33,7 +33,7 @@ class AccessControllersController < AdminController
       redirect_to access_controllers_path, notice: "Access controller '#{@access_controller.name}' updated."
     else
       @access_controller_types = AccessControllerType.ordered
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
 
@@ -62,7 +62,7 @@ class AccessControllersController < AdminController
     action = params[:action_name].to_s.strip
     actions = Array(@access_controller.access_controller_type&.actions)
 
-    if action.blank? || !actions.include?(action)
+    if action.blank? || actions.exclude?(action)
       redirect_to access_controllers_path, alert: 'Invalid access controller verb.'
       return
     end
@@ -119,6 +119,10 @@ class AccessControllersController < AdminController
   end
 
   def access_controller_params
-    params.require(:access_controller).permit(:name, :nickname, :hostname, :description, :access_token, :script_arguments, :environment_variables, :enabled, :display_order, :access_controller_type_id)
+    params.expect(access_controller: %i[
+                    name nickname hostname description access_token
+                    script_arguments environment_variables enabled
+                    display_order access_controller_type_id
+                  ])
   end
 end

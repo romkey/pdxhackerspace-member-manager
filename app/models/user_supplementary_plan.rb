@@ -10,8 +10,8 @@ class UserSupplementaryPlan < ApplicationRecord
   def plan_must_be_supplementary
     return unless membership_plan
 
-    unless membership_plan.supplementary?
-      errors.add(:membership_plan, 'must be a supplementary plan')
-    end
+    return if membership_plan.supplementary?
+
+    errors.add(:membership_plan, 'must be a supplementary plan')
   end
 end

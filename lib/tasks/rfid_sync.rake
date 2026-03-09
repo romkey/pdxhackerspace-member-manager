@@ -1,10 +1,10 @@
 namespace :rfid do
-  desc "Preview overwriting Member RFID values from linked Sheet entries"
+  desc 'Preview overwriting Member RFID values from linked Sheet entries'
   task preview: :environment do
     RfidSheetSyncer.new(dry_run: true).run
   end
 
-  desc "Overwrite all Member RFID values from their linked Sheet entries"
+  desc 'Overwrite all Member RFID values from their linked Sheet entries'
   task sync_from_sheet: :environment do
     RfidSheetSyncer.new(dry_run: false).run
   end
@@ -20,7 +20,7 @@ class RfidSheetSyncer
   end
 
   def run
-    puts "#{@dry_run ? '[DRY RUN] ' : ''}Syncing Member RFID values from Sheet entries..."
+    puts "#{'[DRY RUN] ' if @dry_run}Syncing Member RFID values from Sheet entries..."
     puts
 
     User.includes(:sheet_entry, :rfids).find_each do |user|
@@ -42,7 +42,9 @@ class RfidSheetSyncer
 
         @updated += 1
         old_display = current_rfids.any? ? current_rfids.join(', ') : '(none)'
-        puts "  #{@dry_run ? 'WOULD UPDATE' : 'UPDATING'} #{user.display_name} (#{user.email || 'no email'}): #{old_display} -> #{sheet_rfid}"
+        action = @dry_run ? 'WOULD UPDATE' : 'UPDATING'
+        puts "  #{action} #{user.display_name} " \
+             "(#{user.email || 'no email'}): #{old_display} -> #{sheet_rfid}"
 
         unless @dry_run
           user.rfids.destroy_all
@@ -55,16 +57,16 @@ class RfidSheetSyncer
         end
 
         @cleared += 1
-        puts "  #{@dry_run ? 'WOULD CLEAR' : 'CLEARING'} #{user.display_name} (#{user.email || 'no email'}): #{current_rfids.join(', ')} -> (none)"
+        action = @dry_run ? 'WOULD CLEAR' : 'CLEARING'
+        puts "  #{action} #{user.display_name} " \
+             "(#{user.email || 'no email'}): #{current_rfids.join(', ')} -> (none)"
 
-        unless @dry_run
-          user.rfids.destroy_all
-        end
+        user.rfids.destroy_all unless @dry_run
       end
     end
 
     puts
-    puts "Summary:"
+    puts 'Summary:'
     puts "  #{@dry_run ? 'Would update' : 'Updated'}: #{@updated}"
     puts "  #{@dry_run ? 'Would clear' : 'Cleared'}: #{@cleared}"
     puts "  Unchanged: #{@unchanged}"

@@ -1,10 +1,10 @@
 namespace :legacy do
-  desc "Preview which members would be marked as legacy (dry run, no changes)"
+  desc 'Preview which members would be marked as legacy (dry run, no changes)'
   task preview: :environment do
     LegacyMarker.new(dry_run: true).run
   end
 
-  desc "Mark members with no payment history as legacy"
+  desc 'Mark members with no payment history as legacy'
   task mark: :environment do
     LegacyMarker.new(dry_run: false).run
   end
@@ -19,7 +19,7 @@ class LegacyMarker
   end
 
   def run
-    puts "#{@dry_run ? '[DRY RUN] ' : ''}Scanning members for legacy status..."
+    puts "#{'[DRY RUN] ' if @dry_run}Scanning members for legacy status..."
     puts
 
     User.non_service_accounts.find_each do |user|
@@ -31,7 +31,8 @@ class LegacyMarker
       if should_mark_legacy?(user)
         @marked_count += 1
         reason = build_reason(user)
-        puts "  #{@dry_run ? 'WOULD MARK' : 'MARKING'} legacy: #{user.display_name} (#{user.email || 'no email'}) — #{reason}"
+        action = @dry_run ? 'WOULD MARK' : 'MARKING'
+        puts "  #{action} legacy: #{user.display_name} (#{user.email || 'no email'}) — #{reason}"
         user.update!(legacy: true) unless @dry_run
       else
         @skipped_count += 1
@@ -39,7 +40,7 @@ class LegacyMarker
     end
 
     puts
-    puts "Summary:"
+    puts 'Summary:'
     puts "  Already legacy: #{@already_legacy_count}"
     puts "  #{@dry_run ? 'Would mark' : 'Marked'} as legacy: #{@marked_count}"
     puts "  Skipped (have payment info): #{@skipped_count}"
@@ -62,7 +63,7 @@ class LegacyMarker
     # Check for any payment records
     has_paypal = user.paypal_payments.exists?
     has_recharge = user.recharge_payments.exists?
-    has_kofi = KofiPayment.where(user_id: user.id).exists?
+    has_kofi = KofiPayment.exists?(user_id: user.id)
     has_payment_date = user.last_payment_date.present? || user.recharge_most_recent_payment_date.present?
 
     # If they have any payment info, they're not legacy
@@ -76,8 +77,10 @@ class LegacyMarker
     parts = []
     parts << "status: #{user.membership_status}"
     parts << "dues: #{user.dues_status}"
-    parts << "no payment records"
-    parts << "no payment dates" unless user.last_payment_date.present? || user.recharge_most_recent_payment_date.present?
+    parts << 'no payment records'
+    unless user.last_payment_date.present? || user.recharge_most_recent_payment_date.present?
+      parts << 'no payment dates'
+    end
     parts.join(', ')
   end
 end

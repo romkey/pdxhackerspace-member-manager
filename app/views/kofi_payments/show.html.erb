@@ -104,164 +104,17 @@
 
 <!-- Link User Modal -->
 <% if @user_by_email.nil? %>
-  <div class="modal fade" id="linkUserModal" tabindex="-1" aria-labelledby="linkUserModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="linkUserModalLabel">Link Member to Payment</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <%= form_with url: link_user_kofi_payment_path(@payment), method: :post, local: true do |f| %>
-          <div class="modal-body">
-            <p class="mb-3">
-              Select a user to link to this payment.
-              <% if @payment.email.present? %>
-                The user's email or extra_emails may be updated if they don't have one.
-              <% else %>
-                This payment has no email, so the user record will not be updated with an email.
-              <% end %>
-            </p>
-            <div class="mb-3">
-              <label for="user_search" class="form-label">Search Members</label>
-              <input type="text" id="user_search" class="form-control mb-2" placeholder="Type to search members..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Select Member</label>
-              <div id="user_list" class="border rounded" style="max-height: 300px; overflow-y: auto;">
-                <% @all_users.each do |user| %>
-                  <div class="user-item p-2 border-bottom" data-user-id="<%= user.id %>" data-user-name="<%= user.display_name.downcase %>" style="cursor: pointer;">
-                    <input type="radio" name="user_id" id="user_<%= user.id %>" value="<%= user.id %>" class="form-check-input me-2" required>
-                    <label for="user_<%= user.id %>" class="form-check-label mb-0" style="cursor: pointer;">
-                      <%= user.display_name %>
-                    </label>
-                  </div>
-                <% end %>
-              </div>
-              <div id="no_results" class="text-muted text-center p-3" style="display: none;">
-                No users found matching your search.
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <%= f.submit "Link Member", class: "btn btn-primary" %>
-          </div>
-        <% end %>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    (function() {
-      const modal = document.getElementById('linkUserModal');
-      if (!modal) return;
-
-      let searchHandler = null;
-
-      function filterUsers() {
-        const searchInput = document.getElementById('user_search');
-        const userList = document.getElementById('user_list');
-        const noResults = document.getElementById('no_results');
-
-        if (!searchInput || !userList) return;
-
-        const searchTerm = searchInput.value.toLowerCase().trim();
-        const userItems = userList.querySelectorAll('.user-item');
-        let visibleCount = 0;
-
-        userItems.forEach(function(item) {
-          const userName = item.getAttribute('data-user-name');
-          if (userName && userName.includes(searchTerm)) {
-            item.style.display = '';
-            visibleCount++;
-          } else {
-            item.style.display = 'none';
-          }
-        });
-
-        if (visibleCount === 0 && searchTerm !== '') {
-          userList.style.display = 'none';
-          if (noResults) {
-            noResults.style.display = 'block';
-          }
-        } else {
-          userList.style.display = 'block';
-          if (noResults) {
-            noResults.style.display = 'none';
-          }
-        }
-      }
-
-      function resetSearch() {
-        const searchInput = document.getElementById('user_search');
-        const userList = document.getElementById('user_list');
-        const noResults = document.getElementById('no_results');
-
-        if (searchInput) {
-          searchInput.value = '';
-        }
-        if (userList) {
-          const userItems = userList.querySelectorAll('.user-item');
-          userItems.forEach(function(item) {
-            item.style.display = '';
-          });
-          userList.style.display = 'block';
-        }
-        if (noResults) {
-          noResults.style.display = 'none';
-        }
-      }
-
-      function setupClickHandlers() {
-        const userList = document.getElementById('user_list');
-        if (!userList) return;
-
-        const userItems = userList.querySelectorAll('.user-item');
-        userItems.forEach(function(item) {
-          item.addEventListener('click', function(e) {
-            if (e.target.type !== 'radio' && e.target.tagName !== 'LABEL') {
-              const radio = item.querySelector('input[type="radio"]');
-              if (radio) {
-                radio.checked = true;
-              }
-            }
-          });
-        });
-      }
-
-      modal.addEventListener('show.bs.modal', function() {
-        resetSearch();
-
-        const searchInput = document.getElementById('user_search');
-        if (searchInput) {
-          if (searchHandler) {
-            searchInput.removeEventListener('input', searchHandler);
-          }
-
-          searchHandler = function() {
-            filterUsers();
-          };
-
-          searchInput.addEventListener('input', searchHandler);
-        }
-
-        setupClickHandlers();
-      });
-
-      modal.addEventListener('shown.bs.modal', function() {
-        const searchInput = document.getElementById('user_search');
-        if (searchInput) {
-          searchInput.focus();
-        }
-      });
-
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
-          setupClickHandlers();
-        });
-      } else {
-        setupClickHandlers();
-      }
-    })();
-  </script>
+  <% kofi_description = capture do %>
+    Select a user to link to this payment.
+    <% if @payment.email.present? %>
+      The user's email or extra_emails may be updated if they don't have one.
+    <% else %>
+      This payment has no email, so the user record will not be updated with an email.
+    <% end %>
+  <% end %>
+  <%= render 'shared/link_user_modal',
+    modal_title: 'Link Member to Payment',
+    form_url: link_user_kofi_payment_path(@payment),
+    description: kofi_description,
+    users: @all_users %>
 <% end %>

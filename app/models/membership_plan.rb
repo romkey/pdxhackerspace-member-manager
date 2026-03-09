@@ -14,7 +14,10 @@ class MembershipPlan < ApplicationRecord
   validates :billing_frequency, presence: true, inclusion: { in: %w[monthly yearly one-time] }
   validates :plan_type, presence: true, inclusion: { in: PLAN_TYPES }
   validates :display_order, numericality: { only_integer: true, greater_than_or_equal_to: 1 }
-  validates :payment_link, format: { with: URI::DEFAULT_PARSER.make_regexp(%w[http https]), message: 'must be a valid URL' }, allow_blank: true
+  validates :payment_link,
+            format: { with: URI::DEFAULT_PARSER.make_regexp(%w[http https]),
+                      message: 'must be a valid URL' },
+            allow_blank: true
 
   before_validation :enforce_personal_plan_defaults, if: :personal?
 
@@ -60,18 +63,16 @@ class MembershipPlan < ApplicationRecord
     end
   end
 
+  def self.find_by_transaction_subject(raw_json_string)
+    with_transaction_subject.find do |plan|
+      raw_json_string.include?(plan.paypal_transaction_subject)
+    end
+  end
+
   private
 
   def enforce_personal_plan_defaults
     self.manual = true
     self.visible = false
   end
-
-  # Find a plan by matching its transaction subject against raw payment JSON
-  def self.find_by_transaction_subject(raw_json_string)
-    with_transaction_subject.find do |plan|
-      raw_json_string.include?(plan.paypal_transaction_subject)
-    end
-  end
 end
-

@@ -123,7 +123,12 @@ def parse_log_line(line, file_year, original_line = nil)
   # Pattern 1: Standard access control format
   # "Nov 15 14:41:35 unit2 accesscontrol[2113]: Valeriy Novytskyy has opened unit2 front door"
   # "2025-11-18T05:54:25-08:00 unit2 accesscontrol[2150]:  Sean Brown has opened unit2 front door"
-  pattern1 = /\A(?:(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2})|(\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}))\s+(\S+)\s+accesscontrol(?:\[\d+\])?:\s+(.+?)\s+has\s+(opened|locked|unlocked)\s+(.+)\z/
+  pattern1 = /
+    \A(?:(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2})|
+    (\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}))\s+(\S+)
+    \s+accesscontrol(?:\[\d+\])?:\s+(.+?)\s+has
+    \s+(opened|locked|unlocked)\s+(.+)\z
+  /x
 
   match = parse_line.match(pattern1)
   if match
@@ -148,7 +153,11 @@ def parse_log_line(line, file_year, original_line = nil)
   # "Sep  8 21:20:14 laser-access accesscontrol: John Bates disabled laser-access"
   # "Sep 10 14:09:38 laser-access accesscontrol: Paul Maupoux enabled laser-access"
   # "Aug 30 19:58:37 laser-access accesscontrol: Jon H. enabled unit1 laser"
-  pattern2 = /\A(\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+laser-access\s+accesscontrol:\s+(.+?)\s+(enabled|disabled)\s+(?:laser-access|unit\d+\s+laser)\z/
+  pattern2 = /
+    \A(\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+laser-access
+    \s+accesscontrol:\s+(.+?)\s+(enabled|disabled)
+    \s+(?:laser-access|unit\d+\s+laser)\z
+  /x
 
   match = parse_line.match(pattern2)
   if match
@@ -170,7 +179,12 @@ def parse_log_line(line, file_year, original_line = nil)
   # Pattern 3: "location action by name" format
   # "2025-10-25T17:26:03-07:00 unit2 accesscontrol[2214]: unit2 front door unlocked by Kenny McElroy"
   # "2025-10-25T17:05:39-07:00 unit2 accesscontrol[2214]: unit2 front door locked by Jon Hannis"
-  pattern3 = /\A(?:(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2})|(\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}))\s+(\S+)\s+accesscontrol(?:\[\d+\])?:\s+(.+?)\s+(locked|unlocked)\s+by\s+(.+)\z/
+  pattern3 = /
+    \A(?:(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2})|
+    (\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}))\s+(\S+)
+    \s+accesscontrol(?:\[\d+\])?:\s+(.+?)
+    \s+(locked|unlocked)\s+by\s+(.+)\z
+  /x
 
   match = parse_line.match(pattern3)
   if match
@@ -193,7 +207,12 @@ def parse_log_line(line, file_year, original_line = nil)
 
   # Pattern 4: "name found location is already action" format
   # "2025-11-01T16:38:02-07:00 unit2 accesscontrol[2214]: Tom Hansen found unit2 front door is already unlocked"
-  pattern4 = /\A(?:(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2})|(\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}))\s+(\S+)\s+accesscontrol(?:\[\d+\])?:\s+(.+?)\s+found\s+(.+?)\s+is\s+already\s+(locked|unlocked)\z/
+  pattern4 = /
+    \A(?:(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2})|
+    (\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}))\s+(\S+)
+    \s+accesscontrol(?:\[\d+\])?:\s+(.+?)\s+found
+    \s+(.+?)\s+is\s+already\s+(locked|unlocked)\z
+  /x
 
   match = parse_line.match(pattern4)
   if match
@@ -262,7 +281,9 @@ def find_user_by_name(name)
   return nil unless user
 
   # Auto-add differing name as alias
-  user.add_alias!(normalized_name) if user.full_name.present? && user.full_name.strip.downcase != normalized_name.downcase
+  if user.full_name.present? && user.full_name.strip.downcase != normalized_name.downcase
+    user.add_alias!(normalized_name)
+  end
 
   user
 end
@@ -280,7 +301,8 @@ def find_user_by_abbreviated_name(abbreviated_name)
   # Handle names that might have multiple spaces or parts
   # Use TRIM to handle extra spaces and get the last word as the last name
   matching_users = User.where(
-    "LOWER(TRIM(SPLIT_PART(full_name, ' ', 1))) = ? AND UPPER(SUBSTRING(TRIM(SPLIT_PART(full_name, ' ', -1)) FROM 1 FOR 1)) = ?",
+    "LOWER(TRIM(SPLIT_PART(full_name, ' ', 1))) = ? AND " \
+    "UPPER(SUBSTRING(TRIM(SPLIT_PART(full_name, ' ', -1)) FROM 1 FOR 1)) = ?",
     first_name.downcase,
     last_initial
   ).to_a

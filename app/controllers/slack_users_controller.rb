@@ -48,7 +48,7 @@ class SlackUsersController < AdminController
 
     # Rebuild the same filtered/sorted query from the index page for navigation
     nav_query = build_filtered_query
-    
+
     ordered_ids = nav_query.pluck(:id)
     current_index = ordered_ids.index(@slack_user.id)
 
@@ -88,7 +88,11 @@ class SlackUsersController < AdminController
     new_value = !@slack_user.dont_link
     @slack_user.update!(dont_link: new_value)
 
-    notice = new_value ? "#{@slack_user.display_name} marked as Don't Link." : "#{@slack_user.display_name} unmarked as Don't Link."
+    notice = if new_value
+               "#{@slack_user.display_name} marked as Don't Link."
+             else
+               "#{@slack_user.display_name} unmarked as Don't Link."
+             end
 
     if params[:from_index] == 'true'
       redirect_to slack_users_path(extract_filter_params), notice: notice
@@ -156,9 +160,7 @@ class SlackUsersController < AdminController
       end
 
       # Match by full name or alias (real_name) — only multi-word names
-      if slack_user.real_name.present?
-        matches += User.by_name_or_alias(slack_user.real_name)
-      end
+      matches += User.by_name_or_alias(slack_user.real_name) if slack_user.real_name.present?
 
       # Remove duplicates
       matches = matches.uniq

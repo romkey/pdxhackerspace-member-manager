@@ -1,5 +1,6 @@
 class KofiPayment < ApplicationRecord
   include NormalizesEmail
+
   normalizes_email_field :email
 
   belongs_to :user, optional: true
@@ -25,5 +26,4 @@ class KofiPayment < ApplicationRecord
   def processed_time
     timestamp
   end
-
 end

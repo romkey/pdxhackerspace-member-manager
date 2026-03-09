@@ -11,7 +11,7 @@ namespace :authentik do
       puts 'Setting up Authentik webhook configuration...'
       puts
 
-      webhook_url = ENV['MEMBER_MANAGER_BASE_URL']
+      webhook_url = ENV.fetch('MEMBER_MANAGER_BASE_URL', nil)
       if webhook_url.blank?
         puts 'ERROR: MEMBER_MANAGER_BASE_URL environment variable is required.'
         puts 'Set it to your MemberManager public URL (e.g., https://members.example.org)'
@@ -29,7 +29,7 @@ namespace :authentik do
         puts "Group Policy: #{result[:group_policy]['name']} (#{result[:group_policy]['pk']})"
         puts "Rule: #{result[:rule]['name']} (#{result[:rule]['pk']})"
         puts
-        authentik_webhook = IncomingWebhook.find_by_type('authentik')
+        authentik_webhook = IncomingWebhook.find_by(type: 'authentik')
         slug = authentik_webhook&.slug || 'authentik'
         puts "Webhook URL: #{webhook_url}/webhooks/#{slug}"
       else

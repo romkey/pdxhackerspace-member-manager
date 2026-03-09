@@ -15,9 +15,7 @@ class AccessControllerVerbJob < ApplicationJob
 
     # Build command line arguments
     cmd_args = [script_path, action]
-    if access_controller.script_arguments.present?
-      cmd_args += access_controller.script_arguments.split(/\s+/)
-    end
+    cmd_args += access_controller.script_arguments.split(/\s+/) if access_controller.script_arguments.present?
     cmd_args << access_controller.hostname
 
     command_line = cmd_args.map { |a| a.include?(' ') ? "\"#{a}\"" : a }.join(' ')
@@ -33,7 +31,7 @@ class AccessControllerVerbJob < ApplicationJob
 
     payload = AccessControllerPayloadBuilder.call(access_controller_type: type)
     stdout, stderr, status = Open3.capture3(env, *cmd_args, stdin_data: payload)
-    output = [stdout, stderr].map(&:to_s).map(&:strip).reject(&:blank?).join("\n")
+    output = [stdout, stderr].map(&:to_s).map(&:strip).compact_blank.join("\n")
 
     log_status = status.success? ? 'success' : 'failed'
     log.update!(

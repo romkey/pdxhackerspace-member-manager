@@ -40,36 +40,36 @@ class QueuedMail < ApplicationRecord
     variables = MemberMailer.build_template_variables(user, extra_args)
 
     record = if template
-      rendered = template.render(variables)
-      create!(
-        to: dest,
-        subject: rendered[:subject],
-        body_html: rendered[:body_html],
-        body_text: rendered[:body_text] || '',
-        reason: reason || action.to_s.humanize,
-        email_template: template,
-        recipient: user,
-        mailer_action: action.to_s,
-        mailer_args: extra_args
-      )
-    else
-      message = MemberMailer.public_send(action, *build_mailer_args(action, user, to, extra_args))
-      msg = message.message
+               rendered = template.render(variables)
+               create!(
+                 to: dest,
+                 subject: rendered[:subject],
+                 body_html: rendered[:body_html],
+                 body_text: rendered[:body_text] || '',
+                 reason: reason || action.to_s.humanize,
+                 email_template: template,
+                 recipient: user,
+                 mailer_action: action.to_s,
+                 mailer_args: extra_args
+               )
+             else
+               message = MemberMailer.public_send(action, *build_mailer_args(action, user, to, extra_args))
+               msg = message.message
 
-      html_body = msg.multipart? ? msg.html_part&.body&.decoded : msg.body.decoded
-      text_body = msg.multipart? ? msg.text_part&.body&.decoded : ''
+               html_body = msg.multipart? ? msg.html_part&.body&.decoded : msg.body.decoded
+               text_body = msg.multipart? ? msg.text_part&.body&.decoded : ''
 
-      create!(
-        to: dest,
-        subject: msg.subject,
-        body_html: html_body || '',
-        body_text: text_body || '',
-        reason: reason || action.to_s.humanize,
-        recipient: user,
-        mailer_action: action.to_s,
-        mailer_args: extra_args
-      )
-    end
+               create!(
+                 to: dest,
+                 subject: msg.subject,
+                 body_html: html_body || '',
+                 body_text: text_body || '',
+                 reason: reason || action.to_s.humanize,
+                 recipient: user,
+                 mailer_action: action.to_s,
+                 mailer_args: extra_args
+               )
+             end
 
     MailLogEntry.log!(record, 'created', details: "Queued #{action.to_s.humanize} to #{dest}")
     record
@@ -83,11 +83,11 @@ class QueuedMail < ApplicationRecord
 
   def reject!(reviewer)
     update!(status: 'rejected', reviewed_by: reviewer, reviewed_at: Time.current)
-    MailLogEntry.log!(self, 'rejected', actor: reviewer, details: "Rejected, not sent")
+    MailLogEntry.log!(self, 'rejected', actor: reviewer, details: 'Rejected, not sent')
   end
 
   def log_edit!(actor)
-    MailLogEntry.log!(self, 'edited', actor: actor, details: "Message content edited")
+    MailLogEntry.log!(self, 'edited', actor: actor, details: 'Message content edited')
   end
 
   def regenerate!(actor: nil)
@@ -110,7 +110,7 @@ class QueuedMail < ApplicationRecord
       text_body = msg.multipart? ? msg.text_part&.body&.decoded : ''
       update!(subject: msg.subject, body_html: html_body || '', body_text: text_body || '')
     end
-    MailLogEntry.log!(self, 'regenerated', actor: actor, details: "Regenerated from template")
+    MailLogEntry.log!(self, 'regenerated', actor: actor, details: 'Regenerated from template')
   end
 
   def can_regenerate?
@@ -137,8 +137,6 @@ class QueuedMail < ApplicationRecord
     update!(last_error: error_message, last_error_at: Time.current)
     MailLogEntry.log_once!(self, 'send_failed', details: error_message)
   end
-
-  private
 
   def self.build_mailer_args(action, user, to_addr, extra_args)
     case action.to_s

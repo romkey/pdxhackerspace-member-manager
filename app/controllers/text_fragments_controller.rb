@@ -1,15 +1,13 @@
 class TextFragmentsController < AdminController
-  before_action :set_text_fragment, only: [:show, :edit, :update]
+  before_action :set_text_fragment, only: %i[show edit update]
 
   def index
     @text_fragments = TextFragment.ordered
   end
 
-  def show
-  end
+  def show; end
 
-  def edit
-  end
+  def edit; end
 
   def update
     if @text_fragment.update(text_fragment_params)
@@ -32,7 +30,7 @@ class TextFragmentsController < AdminController
   end
 
   def text_fragment_params
-    params.require(:text_fragment).permit(:title, :content)
+    params.expect(text_fragment: %i[title content])
   end
 
   def seed_fragments
@@ -42,7 +40,7 @@ class TextFragmentsController < AdminController
       content: <<~HTML
         <h4>Welcome to Your Member Profile!</h4>
         <p>This is your member dashboard where you can view and manage your membership information.</p>
-        
+
         <h5>What you'll find here:</h5>
         <ul>
           <li><strong>Profile Information</strong> - Your contact details and account settings</li>
@@ -50,7 +48,7 @@ class TextFragmentsController < AdminController
           <li><strong>Training</strong> - View your training certifications and available courses</li>
           <li><strong>Access</strong> - Your RFID key fobs and access history</li>
         </ul>
-        
+
         <h5>Need help?</h5>
         <p>If you have questions about your membership or need assistance, please contact us.</p>
       HTML
@@ -96,15 +94,15 @@ class TextFragmentsController < AdminController
         <h1 class="h3 mb-4">Hello!</h1>
 
         <p>
-          We hope you enjoyed your recent visit to PDX Hackerspace! It was a pleasure having you, 
+          We hope you enjoyed your recent visit to PDX Hackerspace! It was a pleasure having you,#{' '}
           and we're excited about the possibility of you joining our community.
         </p>
 
         <p>
-          As we mentioned during your visit, becoming a member of PDX Hackerspace gives you access 
-          to our tools, equipment, and resources, as well as the opportunity to learn from and 
-          collaborate with other talented individuals in the community. We believe in building a 
-          strong and trusting community, which is why we require an in-person visit and tour for 
+          As we mentioned during your visit, becoming a member of PDX Hackerspace gives you access#{' '}
+          to our tools, equipment, and resources, as well as the opportunity to learn from and#{' '}
+          collaborate with other talented individuals in the community. We believe in building a#{' '}
+          strong and trusting community, which is why we require an in-person visit and tour for#{' '}
           potential members before sharing our membership application link.
         </p>
 
@@ -120,8 +118,8 @@ class TextFragmentsController < AdminController
 
         <div class="alert alert-warning">
           <i class="bi bi-exclamation-triangle me-2"></i>
-          <strong>Please note:</strong> This application link is exclusively for those who have visited us in person, 
-          so please do not share it with others. We appreciate your understanding and cooperation in helping us 
+          <strong>Please note:</strong> This application link is exclusively for those who have visited us in person,#{' '}
+          so please do not share it with others. We appreciate your understanding and cooperation in helping us#{' '}
           maintain the integrity of our community.
         </div>
 
@@ -130,12 +128,12 @@ class TextFragmentsController < AdminController
         </p>
 
         <p>
-          If you have any questions or need further assistance, please don't hesitate to reach out to us at 
+          If you have any questions or need further assistance, please don't hesitate to reach out to us at#{' '}
           <a href="mailto:info@pdxhs.org">info@pdxhs.org</a> or call us at <strong>503-560-3551</strong>.
         </p>
 
         <p class="mb-0">
-          Thank you again for your interest in PDX Hackerspace, and we look forward to the possibility of having 
+          Thank you again for your interest in PDX Hackerspace, and we look forward to the possibility of having#{' '}
           you as a member of our vibrant community.
         </p>
       HTML

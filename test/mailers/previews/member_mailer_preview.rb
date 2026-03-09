@@ -21,13 +21,13 @@ class MemberMailerPreview < ActionMailer::Preview
   # Preview at http://localhost:3000/rails/mailers/member_mailer/membership_cancelled
   def membership_cancelled
     user = User.first || sample_user
-    MemberMailer.membership_cancelled(user, reason: "Non-payment of dues")
+    MemberMailer.membership_cancelled(user, reason: 'Non-payment of dues')
   end
 
   # Preview at http://localhost:3000/rails/mailers/member_mailer/membership_banned
   def membership_banned
     user = User.first || sample_user
-    MemberMailer.membership_banned(user, reason: "Violation of Code of Conduct")
+    MemberMailer.membership_banned(user, reason: 'Violation of Code of Conduct')
   end
 
   def membership_lapsed
@@ -42,27 +42,27 @@ class MemberMailerPreview < ActionMailer::Preview
 
   def training_completed
     user = User.first || sample_user
-    MemberMailer.training_completed(user, training_topic: "Laser Cutter")
+    MemberMailer.training_completed(user, training_topic: 'Laser Cutter')
   end
 
   def trainer_capability_granted
     user = User.first || sample_user
-    MemberMailer.trainer_capability_granted(user, training_topic: "Laser Cutter")
+    MemberMailer.trainer_capability_granted(user, training_topic: 'Laser Cutter')
   end
 
   # Preview at http://localhost:3000/rails/mailers/member_mailer/admin_new_application
   def admin_new_application
     user = User.first || sample_user
-    MemberMailer.admin_new_application(user, "admin@example.com")
+    MemberMailer.admin_new_application(user, 'admin@example.com')
   end
 
   private
 
   def sample_user
     User.new(
-      full_name: "John Doe",
-      email: "john.doe@example.com",
-      username: "johndoe"
+      full_name: 'John Doe',
+      email: 'john.doe@example.com',
+      username: 'johndoe'
     )
   end
 end

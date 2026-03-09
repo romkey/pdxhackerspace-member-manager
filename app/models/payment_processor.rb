@@ -35,15 +35,11 @@ class PaymentProcessor < ApplicationRecord
     total_amt = payment_class.sum(:amount) || 0
     thirty_days_ago = 30.days.ago
 
-    time_field = case key
-                 when 'cash' then :paid_on
-                 when 'paypal' then :transaction_time
-                 when 'recharge' then :processed_at
-                 when 'kofi' then :timestamp
-                 end
+    time_field = { 'cash' => :paid_on, 'paypal' => :transaction_time, 'recharge' => :processed_at,
+                   'kofi' => :timestamp }[key]
 
     recent_amt = payment_class.where("#{time_field} >= ?", thirty_days_ago).sum(:amount) || 0
-    avg_amt = total > 0 ? (total_amt / total) : 0
+    avg_amt = total.positive? ? (total_amt / total) : 0
 
     update!(
       total_payments_count: total,
@@ -56,7 +52,7 @@ class PaymentProcessor < ApplicationRecord
   end
 
   # Record a successful sync
-  def record_successful_sync!(count = nil)
+  def record_successful_sync!(_count = nil)
     update!(
       last_sync_at: Time.current,
       last_successful_sync_at: Time.current,
@@ -132,7 +128,6 @@ class PaymentProcessor < ApplicationRecord
     when 'healthy' then 'success'
     when 'degraded' then 'warning'
     when 'failing' then 'danger'
-    when 'disabled' then 'secondary'
     else 'secondary'
     end
   end

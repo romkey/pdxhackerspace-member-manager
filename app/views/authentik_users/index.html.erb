@@ -54,7 +54,7 @@
     
     <div class="d-flex gap-2">
       <input type="text" id="authentik_search" class="form-control" placeholder="Search by name, email, or username…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-      <button type="button" id="clear_authentik_search" class="btn btn-outline-secondary" style="display: none;">Clear</button>
+      <button type="button" id="clear_authentik_search" class="btn btn-outline-secondary d-none">Clear</button>
     </div>
   </div>
 </div>
@@ -155,11 +155,7 @@
       
       // Show/hide clear button
       if (clearButton) {
-        if (searchTerm !== '') {
-          clearButton.style.display = '';
-        } else {
-          clearButton.style.display = 'none';
-        }
+        clearButton.classList.toggle('d-none', searchTerm === '');
       }
     }
     

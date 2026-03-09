@@ -1,5 +1,6 @@
 class EmailTemplatesController < AdminController
-  before_action :set_email_template, only: [:show, :edit, :update, :preview, :toggle, :mark_reviewed, :mark_needs_review]
+  before_action :set_email_template,
+                only: %i[show edit update preview toggle mark_reviewed mark_needs_review]
 
   def index
     @email_templates = EmailTemplate.ordered
@@ -22,7 +23,7 @@ class EmailTemplatesController < AdminController
     if @email_template.update(email_template_params)
       redirect_to email_templates_path, notice: "Email template '#{@email_template.name}' was successfully updated."
     else
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
 
@@ -39,7 +40,7 @@ class EmailTemplatesController < AdminController
 
   def seed
     EmailTemplate.seed_defaults!
-    redirect_to email_templates_path, notice: "Default email templates have been seeded."
+    redirect_to email_templates_path, notice: 'Default email templates have been seeded.'
   end
 
   def mark_reviewed
@@ -54,15 +55,15 @@ class EmailTemplatesController < AdminController
 
   def test_send
     @email_template = EmailTemplate.find(params[:id])
-    
+
     # Find a user to send test to (prefer current user)
     test_user = current_user
-    
+
     if test_user&.email.present?
       # Render the template
       variables = build_variables_for_user(test_user)
       rendered = @email_template.render(variables)
-      
+
       # Send via ActionMailer
       TestMailer.send_template(
         to: test_user.email,
@@ -70,10 +71,10 @@ class EmailTemplatesController < AdminController
         body_html: rendered[:body_html],
         body_text: rendered[:body_text]
       ).deliver_later
-      
+
       redirect_to email_templates_path, notice: "Test email sent to #{test_user.email}."
     else
-      redirect_to email_templates_path, alert: "Could not send test email - no email address available."
+      redirect_to email_templates_path, alert: 'Could not send test email - no email address available.'
     end
   end
 
@@ -84,7 +85,7 @@ class EmailTemplatesController < AdminController
   end
 
   def email_template_params
-    params.require(:email_template).permit(:name, :description, :subject, :body_html, :body_text, :enabled)
+    params.expect(email_template: %i[name description subject body_html body_text enabled])
   end
 
   def build_variables_for_user(user, extra = {})

@@ -18,7 +18,7 @@ class ProfileSetupInterestsTest < ActionDispatch::IntegrationTest
   test 'shows the interests step' do
     get profile_setup_interests_path
     assert_response :success
-    assert_match /Interests/i, response.body
+    assert_match(/Interests/i, response.body)
   end
 
   test 'shows suggested interests' do
@@ -30,13 +30,13 @@ class ProfileSetupInterestsTest < ActionDispatch::IntegrationTest
 
   test 'shows completely optional notice' do
     get profile_setup_interests_path
-    assert_match /completely optional/i, response.body
+    assert_match(/completely optional/i, response.body)
   end
 
   test 'shows skip and continue buttons' do
     get profile_setup_interests_path
-    assert_match /Skip/i, response.body
-    assert_match /Continue/i, response.body
+    assert_match(/Skip/i, response.body)
+    assert_match(/Continue/i, response.body)
   end
 
   test 'skip and continue links go to visibility step' do
@@ -46,7 +46,11 @@ class ProfileSetupInterestsTest < ActionDispatch::IntegrationTest
 
   test 'requires authentication' do
     # Sign out by clearing session
-    delete logout_path rescue nil
+    begin
+      delete logout_path
+    rescue StandardError
+      nil
+    end
     get profile_setup_interests_path
     assert_redirected_to login_path
   end
@@ -111,7 +115,7 @@ class ProfileSetupInterestsTest < ActionDispatch::IntegrationTest
     assert_not new_interest.seeded?
     assert @current_user.reload.interests.include?(new_interest)
     assert_redirected_to profile_setup_interests_path
-    assert_match /added to your profile/i, flash[:notice]
+    assert_match(/added to your profile/i, flash[:notice])
   end
 
   test 'suggest with an existing interest reuses it and adds to the user' do
@@ -135,11 +139,15 @@ class ProfileSetupInterestsTest < ActionDispatch::IntegrationTest
       post profile_setup_suggest_interest_path, params: { interest_name: '   ' }
     end
     assert_redirected_to profile_setup_interests_path
-    assert_match /enter an interest name/i, flash[:alert]
+    assert_match(/enter an interest name/i, flash[:alert])
   end
 
   test 'suggest requires authentication' do
-    delete logout_path rescue nil
+    begin
+      delete logout_path
+    rescue StandardError
+      nil
+    end
     post profile_setup_suggest_interest_path, params: { interest_name: 'Test' }
     assert_redirected_to login_path
   end

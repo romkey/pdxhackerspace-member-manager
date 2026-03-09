@@ -22,9 +22,7 @@ class AccessControllerPingJob < ApplicationJob
     return if script_path.blank?
 
     cmd_args = [script_path, 'ping']
-    if controller.script_arguments.present?
-      cmd_args += controller.script_arguments.split(/\s+/)
-    end
+    cmd_args += controller.script_arguments.split(/\s+/) if controller.script_arguments.present?
     cmd_args << controller.hostname
 
     command_line = cmd_args.map { |a| a.include?(' ') ? "\"#{a}\"" : a }.join(' ')
@@ -38,7 +36,7 @@ class AccessControllerPingJob < ApplicationJob
     env = build_env(controller)
 
     stdout, stderr, status = Open3.capture3(env, *cmd_args, stdin_data: '')
-    output = [stdout, stderr].map(&:to_s).map(&:strip).reject(&:blank?).join("\n")
+    output = [stdout, stderr].map(&:to_s).map(&:strip).compact_blank.join("\n")
 
     log_status = status.success? ? 'success' : 'failed'
     log.update!(

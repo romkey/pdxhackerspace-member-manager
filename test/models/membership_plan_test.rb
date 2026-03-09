@@ -3,12 +3,12 @@ require 'test_helper'
 class MembershipPlanTest < ActiveSupport::TestCase
   test 'shared plan scope excludes personal plans' do
     shared = MembershipPlan.shared
-    assert shared.all? { |p| p.user_id.nil? }
+    assert(shared.all? { |p| p.user_id.nil? })
   end
 
   test 'personal plan scope excludes shared plans' do
     personal = MembershipPlan.personal
-    assert personal.all? { |p| p.user_id.present? }
+    assert(personal.all? { |p| p.user_id.present? })
   end
 
   test 'personal? returns true for plans with user_id' do

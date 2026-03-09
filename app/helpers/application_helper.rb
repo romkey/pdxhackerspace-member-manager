@@ -1,5 +1,6 @@
 module ApplicationHelper
   include Pagy::Frontend
+
   require 'digest'
 
   def bootstrap_class_for(flash_type)
@@ -9,6 +10,32 @@ module ApplicationHelper
       'error' => 'danger',
       'info' => 'info'
     }.fetch(flash_type.to_s, 'secondary')
+  end
+
+  MEMBERSHIP_STATUS_BADGE_CLASSES = {
+    'paying' => 'success',
+    'guest' => 'warning',
+    'banned' => 'danger',
+    'deceased' => 'dark',
+    'sponsored' => 'primary',
+    'applicant' => 'light text-dark',
+    'cancelled' => 'secondary',
+    'unknown' => 'secondary'
+  }.freeze
+
+  DUES_STATUS_BADGE_CLASSES = {
+    'current' => 'success',
+    'lapsed' => 'warning',
+    'inactive' => 'secondary',
+    'unknown' => 'secondary'
+  }.freeze
+
+  def membership_status_badge_class(status)
+    MEMBERSHIP_STATUS_BADGE_CLASSES.fetch(status.to_s, 'secondary')
+  end
+
+  def dues_status_badge_class(status)
+    DUES_STATUS_BADGE_CLASSES.fetch(status.to_s, 'secondary')
   end
 
   def gravatar_url(email, size: 32)

@@ -1,5 +1,5 @@
 class AccessControllerTypesController < AdminController
-  before_action :set_access_controller_type, only: [:edit, :update, :destroy, :toggle, :probe]
+  before_action :set_access_controller_type, only: %i[edit update destroy toggle probe]
 
   def index
     @access_controller_types = AccessControllerType.ordered.includes(:required_training_topics)
@@ -10,27 +10,29 @@ class AccessControllerTypesController < AdminController
     @training_topics = TrainingTopic.order(:name)
   end
 
-  def create
-    @access_controller_type = AccessControllerType.new(access_controller_type_params)
-
-    if @access_controller_type.save
-      redirect_to access_controller_types_path, notice: "Access controller type '#{@access_controller_type.name}' created."
-    else
-      @training_topics = TrainingTopic.order(:name)
-      render :new, status: :unprocessable_entity
-    end
-  end
-
   def edit
     @training_topics = TrainingTopic.order(:name)
   end
 
-  def update
-    if @access_controller_type.update(access_controller_type_params)
-      redirect_to access_controller_types_path, notice: "Access controller type '#{@access_controller_type.name}' updated."
+  def create
+    @access_controller_type = AccessControllerType.new(access_controller_type_params)
+
+    if @access_controller_type.save
+      redirect_to access_controller_types_path,
+                  notice: "Access controller type '#{@access_controller_type.name}' created."
     else
       @training_topics = TrainingTopic.order(:name)
-      render :edit, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
+    end
+  end
+
+  def update
+    if @access_controller_type.update(access_controller_type_params)
+      redirect_to access_controller_types_path,
+                  notice: "Access controller type '#{@access_controller_type.name}' updated."
+    else
+      @training_topics = TrainingTopic.order(:name)
+      render :edit, status: :unprocessable_content
     end
   end
 
@@ -46,7 +48,8 @@ class AccessControllerTypesController < AdminController
   def toggle
     @access_controller_type.update!(enabled: !@access_controller_type.enabled)
     status = @access_controller_type.enabled? ? 'enabled' : 'disabled'
-    redirect_to access_controller_types_path, notice: "Access controller type '#{@access_controller_type.name}' #{status}."
+    redirect_to access_controller_types_path,
+                notice: "Access controller type '#{@access_controller_type.name}' #{status}."
   end
 
   def export_users
@@ -70,6 +73,6 @@ class AccessControllerTypesController < AdminController
   end
 
   def access_controller_type_params
-    params.require(:access_controller_type).permit(:name, :script_path, :enabled, required_training_topic_ids: [])
+    params.expect(access_controller_type: [:name, :script_path, :enabled, { required_training_topic_ids: [] }])
   end
 end

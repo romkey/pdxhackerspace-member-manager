@@ -1,0 +1,137 @@
+<%# Renders a Bootstrap modal for linking a member to a resource.
+    Locals:
+      modal_title   - Modal header text (e.g. "Link Member to Payment")
+      form_url      - URL the form POSTs to
+      description   - HTML-safe description paragraph content
+      users         - Collection of User records to choose from
+      show_email    - (optional) Show email next to user name, default false
+%>
+<div class="modal fade" id="linkUserModal" tabindex="-1" aria-labelledby="linkUserModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="linkUserModalLabel"><%= modal_title %></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <%= form_with url: form_url, method: :post, local: true do |f| %>
+        <div class="modal-body">
+          <p class="mb-3"><%= description %></p>
+          <div class="mb-3">
+            <label for="user_search" class="form-label">Search Members</label>
+            <input type="text" id="user_search" class="form-control mb-2" placeholder="Type to search members..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Select Member</label>
+            <div id="user_list" class="border rounded" style="max-height: 300px; overflow-y: auto;">
+              <% users.each do |user| %>
+                <div class="user-item p-2 border-bottom" data-user-id="<%= user.id %>" data-user-name="<%= user.display_name.downcase %>" role="button">
+                  <input type="radio" name="user_id" id="user_<%= user.id %>" value="<%= user.id %>" class="form-check-input me-2" required>
+                  <label for="user_<%= user.id %>" class="form-check-label mb-0" role="button">
+                    <%= user.display_name %>
+                    <% if local_assigns.fetch(:show_email, false) && user.email.present? %>
+                      <span class="text-muted small">(<%= user.email %>)</span>
+                    <% end %>
+                  </label>
+                </div>
+              <% end %>
+            </div>
+            <div id="no_results" class="text-muted text-center p-3 d-none">
+              No users found matching your search.
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <%= f.submit "Link Member", class: "btn btn-primary" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const modal = document.getElementById('linkUserModal');
+    if (!modal) return;
+
+    let searchHandler = null;
+
+    function filterUsers() {
+      const searchInput = document.getElementById('user_search');
+      const userList = document.getElementById('user_list');
+      const noResults = document.getElementById('no_results');
+      if (!searchInput || !userList) return;
+
+      const searchTerm = searchInput.value.toLowerCase().trim();
+      const userItems = userList.querySelectorAll('.user-item');
+      let visibleCount = 0;
+
+      userItems.forEach(function(item) {
+        const userName = item.getAttribute('data-user-name');
+        if (userName && userName.includes(searchTerm)) {
+          item.style.display = '';
+          visibleCount++;
+        } else {
+          item.style.display = 'none';
+        }
+      });
+
+      if (visibleCount === 0 && searchTerm !== '') {
+        userList.classList.add('d-none');
+        if (noResults) noResults.classList.remove('d-none');
+      } else {
+        userList.classList.remove('d-none');
+        if (noResults) noResults.classList.add('d-none');
+      }
+    }
+
+    function resetSearch() {
+      const searchInput = document.getElementById('user_search');
+      const userList = document.getElementById('user_list');
+      const noResults = document.getElementById('no_results');
+
+      if (searchInput) searchInput.value = '';
+      if (userList) {
+        userList.querySelectorAll('.user-item').forEach(function(item) { item.style.display = ''; });
+        userList.classList.remove('d-none');
+      }
+      if (noResults) noResults.classList.add('d-none');
+    }
+
+    function setupClickHandlers() {
+      const userList = document.getElementById('user_list');
+      if (!userList) return;
+
+      userList.querySelectorAll('.user-item').forEach(function(item) {
+        item.addEventListener('click', function(e) {
+          if (e.target.type !== 'radio' && e.target.tagName !== 'LABEL') {
+            const radio = item.querySelector('input[type="radio"]');
+            if (radio) radio.checked = true;
+          }
+        });
+      });
+    }
+
+    modal.addEventListener('show.bs.modal', function() {
+      resetSearch();
+      const searchInput = document.getElementById('user_search');
+      if (searchInput) {
+        if (searchHandler) searchInput.removeEventListener('input', searchHandler);
+        searchHandler = function() { filterUsers(); };
+        searchInput.addEventListener('input', searchHandler);
+      }
+      setupClickHandlers();
+    });
+
+    modal.addEventListener('shown.bs.modal', function() {
+      const searchInput = document.getElementById('user_search');
+      if (searchInput) searchInput.focus();
+    });
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function() { setupClickHandlers(); });
+    } else {
+      setupClickHandlers();
+    }
+  })();
+</script>

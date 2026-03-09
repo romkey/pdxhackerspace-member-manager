@@ -149,7 +149,7 @@
   <div class="card-body">
     <div class="d-flex gap-2">
       <input type="text" id="slack_search" class="form-control" placeholder="Search by name, email, or linked user…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-      <button type="button" id="clear_slack_search" class="btn btn-outline-secondary" style="display: none;">Clear</button>
+      <button type="button" id="clear_slack_search" class="btn btn-outline-secondary d-none">Clear</button>
     </div>
   </div>
 </div>
@@ -324,7 +324,7 @@
         });
         
         if (clearButton) {
-          clearButton.style.display = searchTerm !== '' ? '' : 'none';
+          clearButton.classList.toggle('d-none', searchTerm === '');
         }
       }
       

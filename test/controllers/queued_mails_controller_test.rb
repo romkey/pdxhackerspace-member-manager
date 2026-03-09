@@ -8,7 +8,8 @@ class QueuedMailsControllerTest < ActionDispatch::IntegrationTest
     @pending = queued_mails(:pending_mail)
     @approved = queued_mails(:approved_mail)
     @original_smtp = Rails.configuration.action_mailer.smtp_settings&.dup
-    Rails.configuration.action_mailer.smtp_settings = { address: 'smtp.test.example.com', user_name: 'test', password: 'test' }
+    Rails.configuration.action_mailer.smtp_settings = { address: 'smtp.test.example.com', user_name: 'test',
+                                                        password: 'test' }
   end
 
   teardown do

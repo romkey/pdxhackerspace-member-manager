@@ -13,7 +13,7 @@ class AccessController < ApplicationRecord
   scope :ordered, -> { order(:display_order, :name) }
 
   # Record a successful sync
-  def record_sync_success!(message = nil)
+  def record_sync_success!(_message = nil)
     update!(
       last_sync_at: Time.current,
       sync_status: 'success'
@@ -21,7 +21,7 @@ class AccessController < ApplicationRecord
   end
 
   # Record a failed sync
-  def record_sync_failure!(message)
+  def record_sync_failure!(_message)
     update!(
       last_sync_at: Time.current,
       sync_status: 'failed'
@@ -109,7 +109,7 @@ class AccessController < ApplicationRecord
   def parsed_environment_variables
     return {} if environment_variables.blank?
 
-    environment_variables.each_line.each_with_object({}) do |line, hash|
+    environment_variables.each_line.with_object({}) do |line, hash|
       line = line.strip
       next if line.blank? || line.start_with?('#')
 

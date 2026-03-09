@@ -24,16 +24,14 @@
             <div class="mt-2 d-none" style="max-height: 400px; overflow-y: auto;"
                  data-live-filter-target="resultsContainer">
               <% @users_for_search.each do |user| %>
-                <a href="<%= train_member_path(user_id: user.id) %>"
-                   class="search-result-item d-none d-block p-3 text-decoration-none border-bottom <%= 'bg-primary-subtle border-primary' if params[:user_id].to_i == user.id %>"
-                   data-live-filter-target="item"
-                   data-search-text="<%= [user.display_name, user.email, user.username].compact.join(' ').downcase %>"
-                   data-user-id="<%= user.id %>">
+                <%= link_to train_member_path(user_id: user.id),
+                   class: "search-result-item d-none d-block p-3 text-decoration-none border-bottom #{params[:user_id].to_i == user.id ? 'bg-primary-subtle border-primary' : ''}",
+                   data: { live_filter_target: 'item', search_text: [user.display_name, user.email, user.username].compact.join(' ').downcase, user_id: user.id } do %>
                   <div class="fw-semibold"><%= user.display_name %></div>
                   <% if user.email.present? %>
                     <div class="text-muted small"><%= user.email %></div>
                   <% end %>
-                </a>
+                <% end %>
               <% end %>
             </div>
             <div class="mt-2 p-3 text-center text-muted border rounded d-none"

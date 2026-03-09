@@ -37,6 +37,6 @@ class IncomingWebhooksController < AdminController
   end
 
   def incoming_webhook_params
-    params.require(:incoming_webhook).permit(:slug, :description, :enabled)
+    params.expect(incoming_webhook: %i[slug description enabled])
   end
 end

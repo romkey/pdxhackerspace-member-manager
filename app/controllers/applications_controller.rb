@@ -51,6 +51,6 @@ class ApplicationsController < AdminController
   private
 
   def application_params
-    params.require(:application).permit(:name, :internal_url, :external_url, :authentik_prefix)
+    params.expect(application: %i[name internal_url external_url authentik_prefix])
   end
 end

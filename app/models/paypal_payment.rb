@@ -1,5 +1,6 @@
 class PaypalPayment < ApplicationRecord
   include NormalizesEmail
+
   normalizes_email_field :payer_email
 
   belongs_to :user, optional: true
