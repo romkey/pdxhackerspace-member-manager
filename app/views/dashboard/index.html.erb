@@ -61,6 +61,12 @@
             <%= link_to new_incident_report_path, class: "btn btn-warning btn-lg" do %>
               <i class="bi bi-exclamation-triangle me-2"></i>New Incident Report
             <% end %>
+            <%= link_to new_parking_notice_path(type: 'permit'), class: "btn btn-success btn-lg" do %>
+              <i class="bi bi-p-circle me-2"></i>New Parking Permit
+            <% end %>
+            <%= link_to new_parking_notice_path(type: 'ticket'), class: "btn btn-danger btn-lg" do %>
+              <i class="bi bi-ticket-perforated me-2"></i>New Parking Ticket
+            <% end %>
             <% if current_user_admin? || current_user&.trainer_capabilities&.any? %>
               <%= link_to train_member_path, class: "btn btn-info btn-lg" do %>
                 <i class="bi bi-mortarboard me-2"></i>Train a Member

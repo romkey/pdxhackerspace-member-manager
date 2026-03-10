@@ -80,9 +80,19 @@
 
       <%# Photos %>
       <div class="mb-3">
-        <%= f.label :photos, class: 'form-label' %>
-        <%= f.file_field :photos, multiple: true, accept: 'image/*', class: 'form-control' %>
-        <div class="form-text">You can select multiple photos.</div>
+        <%= f.label :photos, 'Photos', class: 'form-label' %>
+        <div class="d-flex gap-2 mb-2">
+          <label class="btn btn-outline-secondary mb-0" id="photo-upload-btn">
+            <i class="bi bi-image me-1"></i> Choose Files
+            <%= f.file_field :photos, multiple: true, accept: 'image/*', class: 'd-none', id: 'photo-file-input' %>
+          </label>
+          <label class="btn btn-outline-secondary mb-0 d-none" id="photo-camera-btn">
+            <i class="bi bi-camera me-1"></i> Take Photo
+            <input type="file" name="parking_notice[photos][]" accept="image/*" capture="environment" class="d-none" id="photo-camera-input">
+          </label>
+        </div>
+        <div id="photo-preview" class="d-flex flex-wrap gap-2 mb-2"></div>
+        <div class="form-text">You can select multiple photos or take them with your camera.</div>
       </div>
 
       <% if parking_notice.persisted? && parking_notice.photos.attached? %>
@@ -103,33 +113,73 @@
   </div>
 
   <div class="d-flex gap-2">
-    <%= f.submit class: "btn btn-#{parking_notice.permit? ? 'success' : 'danger'}" %>
+    <% label = parking_notice.persisted? ? "Update" : "Create" %>
+    <%= f.submit "#{label} Parking #{parking_notice.notice_type_display}",
+        class: "btn btn-#{parking_notice.permit? ? 'success' : 'danger'}" %>
     <%= link_to "Cancel", parking_notice.persisted? ? parking_notice_path(parking_notice) : parking_notices_path, class: "btn btn-outline-secondary" %>
   </div>
 <% end %>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.quick-expire').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        var days = parseInt(this.dataset.days);
-        var date = new Date();
-        date.setDate(date.getDate() + days);
-        date.setHours(17, 0, 0, 0);
-        var field = document.querySelector('input[name="parking_notice[expires_at]"]');
-        if (field) {
-          var pad = function(n) { return n < 10 ? '0' + n : n; };
-          field.value = date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' +
-                        pad(date.getDate()) + 'T' + pad(date.getHours()) + ':' + pad(date.getMinutes());
-        }
-      });
-    });
+  (function() {
+    function initParkingNoticeForm() {
+      var expiresField = document.querySelector('input[name="parking_notice[expires_at]"]');
+      var locationField = document.querySelector('input[name="parking_notice[location]"]');
 
-    document.querySelectorAll('.quick-room').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        var field = document.querySelector('input[name="parking_notice[location]"]');
-        if (field) field.value = this.dataset.room;
+      if (!expiresField) return;
+
+      document.querySelectorAll('.quick-expire').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var days = parseInt(this.dataset.days);
+          var date = new Date();
+          date.setDate(date.getDate() + days);
+          date.setHours(17, 0, 0, 0);
+          var pad = function(n) { return n < 10 ? '0' + n : n; };
+          expiresField.value = date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' +
+                               pad(date.getDate()) + 'T' + pad(date.getHours()) + ':' + pad(date.getMinutes());
+        });
       });
-    });
-  });
+
+      document.querySelectorAll('.quick-room').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          if (locationField) locationField.value = this.dataset.room;
+        });
+      });
+
+      var cameraBtn = document.getElementById('photo-camera-btn');
+      if (cameraBtn && 'mediaDevices' in navigator && 'getUserMedia' in navigator.mediaDevices) {
+        cameraBtn.classList.remove('d-none');
+      }
+
+      var preview = document.getElementById('photo-preview');
+
+      function addPreviews(files) {
+        Array.from(files).forEach(function(file) {
+          if (!file.type.startsWith('image/')) return;
+          var reader = new FileReader();
+          reader.onload = function(e) {
+            var img = document.createElement('img');
+            img.src = e.target.result;
+            img.className = 'rounded border';
+            img.style.cssText = 'width: 80px; height: 80px; object-fit: cover;';
+            preview.appendChild(img);
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+
+      var fileInput = document.getElementById('photo-file-input');
+      if (fileInput) {
+        fileInput.addEventListener('change', function() { addPreviews(this.files); });
+      }
+
+      var cameraInput = document.getElementById('photo-camera-input');
+      if (cameraInput) {
+        cameraInput.addEventListener('change', function() { addPreviews(this.files); });
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', initParkingNoticeForm);
+    document.addEventListener('turbo:load', initParkingNoticeForm);
+  })();
 </script>

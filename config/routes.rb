@@ -23,6 +23,11 @@ Rails.application.routes.draw do
   match "/auth/:provider/callback", to: "sessions#create", via: %i[get post]
   get "/auth/failure", to: "sessions#failure"
 
+  # Login links
+  get  "/login_link/:token", to: "login_links#authenticate", as: :login_link_authenticate
+  get  "/profile/login_link", to: "login_links#show", as: :login_link
+  post "/profile/login_link/regenerate", to: "login_links#regenerate", as: :login_link_regenerate
+
   post "/webhooks/:slug", to: "webhooks#receive", as: :webhook_receive
 
   # Impersonation

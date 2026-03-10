@@ -34,6 +34,12 @@
             <% end %>
             <div class="form-text">How long invitation links remain valid before they expire.</div>
           </dd>
+
+          <dt class="col-sm-6 mt-3">Login Link Expiry</dt>
+          <dd class="col-sm-6 mt-3">
+            <strong><%= @membership_setting.login_link_expiry_days %></strong> days
+            <div class="form-text">How long member login links remain valid before they expire.</div>
+          </dd>
         </dl>
       </div>
     </div>
@@ -53,9 +59,13 @@
           <strong>Reactivation Grace Period:</strong> After a membership lapses, members have this many months 
           to resume their membership without going through the full application process again.
         </p>
-        <p class="small text-muted mb-0">
+        <p class="small text-muted mb-2">
           <strong>Invitation Expiry:</strong> When an admin sends an invitation, the link is valid for this 
           many hours. After expiry, the recipient must be invited again.
+        </p>
+        <p class="small text-muted mb-0">
+          <strong>Login Link Expiry:</strong> Members can generate a personal login link from their profile. 
+          The link expires after this many days. When a link expires, the member receives an email notification.
         </p>
       </div>
     </div>

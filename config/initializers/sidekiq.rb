@@ -61,6 +61,14 @@ Sidekiq.configure_server do |config|
     class: 'ParkingNoticeExpirationJob',
     active_job: true
   )
+
+  # Login Link Expiration - Daily at 8am
+  Sidekiq::Cron::Job.create(
+    name: 'Login Link Expiration - Daily at 8am',
+    cron: '0 8 * * *',
+    class: 'LoginLinkExpirationJob',
+    active_job: true
+  )
 end
 
 Sidekiq.configure_client do |config|

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_09_030000) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_10_030000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -429,6 +429,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_09_030000) do
   create_table "membership_settings", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "invitation_expiry_hours", default: 72, null: false
+    t.integer "login_link_expiry_days", default: 30, null: false
     t.integer "payment_grace_period_days", default: 14, null: false
     t.integer "reactivation_grace_period_months", default: 3, null: false
     t.datetime "updated_at", null: false
@@ -779,6 +780,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_09_030000) do
     t.date "last_payment_date"
     t.datetime "last_synced_at"
     t.boolean "legacy", default: false, null: false
+    t.string "login_token"
+    t.datetime "login_token_expires_at"
     t.date "membership_ended_date"
     t.bigint "membership_plan_id"
     t.date "membership_start_date"
@@ -805,6 +808,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_09_030000) do
     t.index ["email"], name: "index_users_on_email", unique: true, where: "(email IS NOT NULL)"
     t.index ["is_sponsored"], name: "index_users_on_is_sponsored"
     t.index ["legacy"], name: "index_users_on_legacy"
+    t.index ["login_token"], name: "index_users_on_login_token", unique: true
     t.index ["membership_plan_id"], name: "index_users_on_membership_plan_id"
     t.index ["paypal_account_id"], name: "index_users_on_paypal_account_id"
     t.index ["recharge_customer_id"], name: "index_users_on_recharge_customer_id"

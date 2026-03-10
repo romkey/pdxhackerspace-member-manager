@@ -21,6 +21,6 @@ class MembershipSettingsController < AdminController
 
   def membership_setting_params
     params.expect(membership_setting: %i[payment_grace_period_days reactivation_grace_period_months
-                                         invitation_expiry_hours])
+                                         invitation_expiry_hours login_link_expiry_days])
   end
 end

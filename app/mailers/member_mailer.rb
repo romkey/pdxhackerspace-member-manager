@@ -165,6 +165,20 @@ class MemberMailer < ApplicationMailer
     send_parking_notice_mail('parking_ticket_expired', user, opts)
   end
 
+  def login_link_expired(user, _opts = {})
+    @user = user
+    @organization = organization_name
+
+    if send_from_template('login_link_expired', user)
+      # Email sent from database template
+    else
+      mail(
+        to: @user.email,
+        subject: "#{@organization}: Your Login Link Has Expired"
+      )
+    end
+  end
+
   # Notify admins of a new application
   def admin_new_application(user, admin_email)
     @user = user

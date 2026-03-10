@@ -145,7 +145,12 @@
   <div class="mb-4">
     <div class="d-flex justify-content-between align-items-center">
       <h1 class="h5 mb-0">Your Profile</h1>
-      <%= link_to "Edit Profile", edit_user_path(@user), class: "btn btn-outline-secondary btn-sm" %>
+      <div class="d-flex gap-2">
+        <%= link_to login_link_path, class: "btn btn-outline-primary btn-sm" do %>
+          <i class="bi bi-link-45deg me-1"></i> Login Link
+        <% end %>
+        <%= link_to "Edit Profile", edit_user_path(@user), class: "btn btn-outline-secondary btn-sm" %>
+      </div>
     </div>
   </div>
 <% elsif @view_level == :members %>

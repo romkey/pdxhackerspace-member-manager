@@ -1,0 +1,88 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0">Login Link</h1>
+  <%= link_to "Back to Profile", user_path(@user), class: "btn btn-outline-secondary" %>
+</div>
+
+<div class="row">
+  <div class="col-lg-8">
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <% if @user.login_token_active? %>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Your Login Link</label>
+            <div class="input-group">
+              <input type="text" class="form-control" id="login-link-url" readonly
+                     value="<%= login_link_authenticate_url(token: @user.login_token) %>">
+              <button class="btn btn-outline-primary" type="button" id="copy-link-btn"
+                      onclick="navigator.clipboard.writeText(document.getElementById('login-link-url').value).then(function() { document.getElementById('copy-link-btn').innerHTML = '<i class=\'bi bi-check-lg me-1\'></i> Copied!'; setTimeout(function() { document.getElementById('copy-link-btn').innerHTML = '<i class=\'bi bi-clipboard me-1\'></i> Copy'; }, 2000); })">
+                <i class="bi bi-clipboard me-1"></i> Copy
+              </button>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <span class="text-muted">Expires:</span>
+            <strong><%= @user.login_token_expires_at.strftime('%B %d, %Y at %l:%M %p') %></strong>
+            <% days_left = ((@user.login_token_expires_at - Time.current) / 1.day).ceil %>
+            <% if days_left <= 3 %>
+              <span class="badge bg-warning text-dark ms-1"><%= days_left %> <%= 'day'.pluralize(days_left) %> left</span>
+            <% else %>
+              <span class="text-muted ms-1">(<%= days_left %> <%= 'day'.pluralize(days_left) %> left)</span>
+            <% end %>
+          </div>
+
+          <div class="alert alert-info small mb-3">
+            <i class="bi bi-info-circle me-1"></i>
+            Anyone with this link can sign in as you. Keep it private and do not share it publicly.
+            Regenerating will invalidate your current link.
+          </div>
+
+          <%= link_to login_link_regenerate_path, data: { turbo_method: :post }, class: "btn btn-outline-primary" do %>
+            <i class="bi bi-arrow-repeat me-1"></i> Regenerate Link
+          <% end %>
+        <% elsif @user.login_token.present? && @user.login_token_expired? %>
+          <div class="alert alert-warning mb-3">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            Your login link has expired. Generate a new one below.
+          </div>
+
+          <%= link_to login_link_regenerate_path, data: { turbo_method: :post }, class: "btn btn-primary" do %>
+            <i class="bi bi-link-45deg me-1"></i> Generate New Login Link
+          <% end %>
+        <% else %>
+          <p class="text-muted mb-3">
+            You don't have a login link yet. Generate one to sign in without a password by visiting a special URL.
+          </p>
+
+          <%= link_to login_link_regenerate_path, data: { turbo_method: :post }, class: "btn btn-primary" do %>
+            <i class="bi bi-link-45deg me-1"></i> Generate Login Link
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-body-tertiary">
+        <h5 class="card-title mb-0">About Login Links</h5>
+      </div>
+      <div class="card-body">
+        <p class="small text-muted mb-2">
+          A login link lets you sign in by visiting a special URL instead of entering a password.
+        </p>
+        <p class="small text-muted mb-2">
+          You can bookmark the link or save it for quick access. It works on any device or browser.
+        </p>
+        <p class="small text-muted mb-2">
+          Links expire after <strong><%= MembershipSetting.login_link_expiry_days %> days</strong>.
+          You will receive an email when your link expires, and you can always generate a new one.
+        </p>
+        <p class="small text-muted mb-0">
+          <strong>Security:</strong> Treat your login link like a password. If you think it has been
+          compromised, regenerate it immediately.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

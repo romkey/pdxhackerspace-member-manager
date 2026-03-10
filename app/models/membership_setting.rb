@@ -2,13 +2,15 @@ class MembershipSetting < ApplicationRecord
   validates :payment_grace_period_days, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :reactivation_grace_period_months, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :invitation_expiry_hours, presence: true, numericality: { greater_than: 0 }
+  validates :login_link_expiry_days, presence: true, numericality: { greater_than: 0 }
 
   # Singleton pattern - only one row should exist
   def self.instance
     first_or_create!(
       payment_grace_period_days: 14,
       reactivation_grace_period_months: 3,
-      invitation_expiry_hours: 72
+      invitation_expiry_hours: 72,
+      login_link_expiry_days: 30
     )
   end
 
@@ -23,5 +25,9 @@ class MembershipSetting < ApplicationRecord
 
   def self.invitation_expiry_hours
     instance.invitation_expiry_hours
+  end
+
+  def self.login_link_expiry_days
+    instance.login_link_expiry_days
   end
 end

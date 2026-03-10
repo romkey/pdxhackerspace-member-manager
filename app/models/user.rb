@@ -246,6 +246,26 @@ class User < ApplicationRecord
     username.presence || id.to_s
   end
 
+  def generate_login_token!
+    expiry_days = MembershipSetting.login_link_expiry_days
+    update!(
+      login_token: SecureRandom.alphanumeric(64),
+      login_token_expires_at: expiry_days.days.from_now
+    )
+  end
+
+  def clear_login_token!
+    update!(login_token: nil, login_token_expires_at: nil)
+  end
+
+  def login_token_expired?
+    login_token_expires_at.present? && login_token_expires_at <= Time.current
+  end
+
+  def login_token_active?
+    login_token.present? && !login_token_expired?
+  end
+
   # Called when a PaypalPayment is linked to this User.
   # Handles payer ID, email syncing, payment type, membership status, and plan matching.
   # Also links all other PayPal payments with the same payer_id.
