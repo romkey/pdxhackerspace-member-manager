@@ -1,0 +1,82 @@
+<%= form_with model: printer, local: true do |f| %>
+  <% if printer.errors.any? %>
+    <div class="alert alert-danger">
+      <h6><%= pluralize(printer.errors.count, 'error') %> prevented this printer from being saved:</h6>
+      <ul class="mb-0">
+        <% printer.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="row">
+    <div class="col-md-6">
+      <div class="mb-3">
+        <%= f.label :name, 'Display Name', class: "form-label" %>
+        <%= f.text_field :name, class: "form-control", required: true,
+            placeholder: "e.g. Front Desk Printer" %>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :cups_printer_name, 'CUPS Printer Name', class: "form-label" %>
+        <% if cups_printers.any? %>
+          <div class="d-flex flex-wrap gap-2 mb-2">
+            <% cups_printers.each do |cp| %>
+              <button type="button" class="btn btn-sm btn-outline-secondary cups-printer-btn"
+                      data-cups-name="<%= cp[:name] %>"><%= cp[:name] %></button>
+            <% end %>
+          </div>
+        <% end %>
+        <%= f.text_field :cups_printer_name, class: "form-control", required: true,
+            placeholder: "e.g. HP_LaserJet_Pro", id: "printer_cups_printer_name" %>
+        <div class="form-text">The CUPS queue name. Click a detected printer above or type the name manually.</div>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :description, class: "form-label" %>
+        <%= f.text_field :description, class: "form-control",
+            placeholder: "Optional description of this printer" %>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="mb-3">
+        <%= f.label :position, class: "form-label" %>
+        <%= f.number_field :position, class: "form-control", value: printer.position || 0 %>
+        <div class="form-text">Lower numbers appear first in printer lists.</div>
+      </div>
+
+      <div class="mb-3">
+        <div class="form-check">
+          <%= f.check_box :default_printer, class: "form-check-input" %>
+          <%= f.label :default_printer, "Default printer", class: "form-check-label" %>
+        </div>
+        <div class="form-text">Only one printer can be the default. Setting this will unset any other default.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2">
+    <%= f.submit class: "btn btn-primary" %>
+    <%= link_to "Cancel", printers_path, class: "btn btn-outline-secondary" %>
+  </div>
+<% end %>
+
+<script>
+  (function() {
+    function initPrinterForm() {
+      var cupsField = document.getElementById('printer_cups_printer_name');
+      if (!cupsField) return;
+
+      document.querySelectorAll('.cups-printer-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          cupsField.value = this.dataset.cupsName;
+        });
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', initPrinterForm);
+    document.addEventListener('turbo:load', initPrinterForm);
+  })();
+</script>

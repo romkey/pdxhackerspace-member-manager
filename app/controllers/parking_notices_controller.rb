@@ -2,7 +2,7 @@ class ParkingNoticesController < AdminController
   include Pagy::Backend
 
   before_action :set_parking_notice,
-                only: %i[show edit update clear download_pdf remove_photo download_photo]
+                only: %i[show edit update clear download_pdf print_notice remove_photo download_photo]
 
   def index
     @parking_notices = ParkingNotice.includes(:user, :issued_by).newest_first
@@ -19,8 +19,6 @@ class ParkingNoticesController < AdminController
 
     @pagy, @parking_notices = pagy(@parking_notices, limit: 25)
   end
-
-  def show; end
 
   def new
     @parking_notice = ParkingNotice.new(
@@ -80,6 +78,28 @@ class ParkingNoticesController < AdminController
               filename: filename,
               type: 'application/pdf',
               disposition: 'attachment'
+  end
+
+  def show
+    @printers = Printer.ordered
+  end
+
+  def print_notice
+    printer = Printer.find(params[:printer_id])
+    cookies[:last_printer_id] = { value: printer.id.to_s, expires: 1.year.from_now }
+
+    pdf = ParkingNoticeReceiptPdf.new(@parking_notice)
+    job_id = CupsService.print_data(
+      pdf.render,
+      printer.cups_printer_name,
+      filename: "parking_notice_#{@parking_notice.id}.pdf"
+    )
+
+    redirect_to parking_notice_path(@parking_notice),
+                notice: "Printed to #{printer.name} (job #{job_id})."
+  rescue CupsService::PrintError => e
+    redirect_to parking_notice_path(@parking_notice),
+                alert: "Print failed: #{e.message}"
   end
 
   def remove_photo

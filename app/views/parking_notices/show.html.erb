@@ -18,6 +18,38 @@
     <%= link_to download_pdf_parking_notice_path(@parking_notice), class: "btn btn-outline-dark" do %>
       <i class="bi bi-file-earmark-pdf me-1"></i> Download PDF
     <% end %>
+    <% if @printers.any? %>
+      <% if @printers.size == 1 %>
+        <%= link_to print_notice_parking_notice_path(@parking_notice, printer_id: @printers.first.id),
+            data: { turbo_method: :post },
+            class: "btn btn-outline-info" do %>
+          <i class="bi bi-printer me-1"></i> Print
+        <% end %>
+      <% else %>
+        <div class="btn-group">
+          <button type="button" class="btn btn-outline-info dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-printer me-1"></i> Print
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end" id="printer-dropdown">
+            <% last_printer_id = cookies[:last_printer_id].to_i %>
+            <% @printers.each do |printer| %>
+              <li>
+                <%= link_to print_notice_parking_notice_path(@parking_notice, printer_id: printer.id),
+                    data: { turbo_method: :post },
+                    class: "dropdown-item #{'fw-bold' if printer.id == last_printer_id || (last_printer_id.zero? && printer.default_printer?)}" do %>
+                  <%= printer.name %>
+                  <% if printer.id == last_printer_id %>
+                    <span class="badge bg-secondary ms-1">Last used</span>
+                  <% elsif printer.default_printer? %>
+                    <span class="badge bg-primary ms-1">Default</span>
+                  <% end %>
+                <% end %>
+              </li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+    <% end %>
     <%= link_to parking_notices_path, class: "btn btn-outline-secondary" do %>
       <i class="bi bi-arrow-left me-1"></i> Back
     <% end %>
