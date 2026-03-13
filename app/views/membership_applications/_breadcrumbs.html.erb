@@ -1,0 +1,28 @@
+<%# Locals: pages (array of ApplicationFormPage), current_page_number (integer, 0 = email page) %>
+<div class="d-flex justify-content-center mb-4">
+  <div class="d-flex align-items-center gap-2 flex-wrap justify-content-center">
+    <%# Email/intro step (page 0) %>
+    <% if current_page_number > 0 %>
+      <span class="badge rounded-pill text-bg-success"><i class="bi bi-check"></i></span>
+      <span class="small text-muted">Email</span>
+    <% else %>
+      <span class="badge rounded-pill text-bg-primary">1</span>
+      <span class="fw-semibold small">Email</span>
+    <% end %>
+
+    <% pages.each_with_index do |page, idx| %>
+      <i class="bi bi-chevron-right text-muted mx-1"></i>
+      <% step_number = idx + 1 %>
+      <% if step_number < current_page_number %>
+        <span class="badge rounded-pill text-bg-success"><i class="bi bi-check"></i></span>
+        <span class="small text-muted"><%= page.title %></span>
+      <% elsif step_number == current_page_number %>
+        <span class="badge rounded-pill text-bg-primary"><%= step_number + 1 %></span>
+        <span class="fw-semibold small"><%= page.title %></span>
+      <% else %>
+        <span class="badge rounded-pill text-bg-secondary"><%= step_number + 1 %></span>
+        <span class="small text-muted"><%= page.title %></span>
+      <% end %>
+    <% end %>
+  </div>
+</div>

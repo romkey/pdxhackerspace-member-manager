@@ -1,0 +1,100 @@
+<div class="row justify-content-center py-5">
+  <div class="col-12 col-md-10 col-lg-8">
+    <%= render 'breadcrumbs', pages: @pages, current_page_number: @page_number %>
+
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-success text-white">
+        <h5 class="mb-0"><%= @current_page.title %></h5>
+      </div>
+      <% if @current_page.description.present? %>
+        <div class="card-body border-bottom bg-light">
+          <p class="mb-0 text-muted"><%= @current_page.description %></p>
+        </div>
+      <% end %>
+      <div class="card-body p-4">
+        <%= form_with url: apply_new_path, method: :post, local: true do %>
+          <input type="hidden" name="page_number" value="<%= @page_number %>">
+
+          <% @questions.each do |question| %>
+            <% answer = @application.answer_for(question) %>
+            <div class="mb-4">
+              <label class="form-label">
+                <%= question.label %>
+                <% if question.required? %>
+                  <span class="text-danger">*</span>
+                <% end %>
+              </label>
+
+              <% case question.field_type %>
+              <% when 'text', 'email' %>
+                <input type="<%= question.field_type %>"
+                       name="answers[<%= question.id %>]"
+                       class="form-control"
+                       value="<%= answer&.value %>"
+                       <%= 'required' if question.required? %>>
+              <% when 'textarea' %>
+                <textarea name="answers[<%= question.id %>]"
+                          class="form-control" rows="4"
+                          <%= 'required' if question.required? %>><%= answer&.value %></textarea>
+              <% when 'radio' %>
+                <% question.options.each do |option| %>
+                  <div class="form-check">
+                    <input type="radio"
+                           name="answers[<%= question.id %>]"
+                           value="<%= option %>"
+                           class="form-check-input"
+                           id="q<%= question.id %>_<%= option.parameterize %>"
+                           <%= 'checked' if answer&.value == option %>
+                           <%= 'required' if question.required? %>>
+                    <label class="form-check-label" for="q<%= question.id %>_<%= option.parameterize %>">
+                      <%= option %>
+                    </label>
+                  </div>
+                <% end %>
+                <% if question.options.include?('Other') %>
+                  <div class="mt-2">
+                    <input type="text" name="answers[<%= question.id %>]_other"
+                           class="form-control form-control-sm"
+                           placeholder="If Other, please specify..."
+                           value="<%= answer&.value unless question.options.include?(answer&.value) %>">
+                  </div>
+                <% end %>
+              <% end %>
+
+              <% if question.help_text.present? %>
+                <div class="form-text"><%= question.help_text %></div>
+              <% end %>
+            </div>
+          <% end %>
+
+          <div class="d-flex justify-content-between">
+            <% if @page_number > 1 %>
+              <%= link_to "← Back", apply_page_path(page_number: @page_number - 1),
+                  class: "btn btn-outline-secondary" %>
+            <% else %>
+              <%= link_to "← Back", apply_new_path, class: "btn btn-outline-secondary" %>
+            <% end %>
+
+            <% if @page_number < @pages.size %>
+              <button type="submit" class="btn btn-primary">Save & Continue →</button>
+            <% else %>
+              <button type="submit" class="btn btn-primary">Save Answers</button>
+            <% end %>
+          </div>
+        <% end %>
+
+        <% if @page_number == @pages.size %>
+          <hr class="my-4">
+          <div class="text-center">
+            <p class="text-muted mb-3">When you are satisfied with all your answers:</p>
+            <%= form_with url: apply_submit_path, method: :post, local: true do %>
+              <button type="submit" class="btn btn-success btn-lg">
+                <i class="bi bi-check-circle me-1"></i> Submit Application
+              </button>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

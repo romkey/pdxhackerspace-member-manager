@@ -140,6 +140,22 @@ class TextFragmentsController < AdminController
     )
 
     TextFragment.ensure_exists!(
+      key: 'application_form_intro',
+      title: 'Application Form Introduction',
+      content: <<~HTML
+        <h2 class="h4 mb-3">PDX Hackerspace Membership Application</h2>
+        <p>
+          PDX Hackerspace is a 501(c)(3) non-profit organization promoting and encouraging
+          technical, scientific, and artistic skills through individual projects, social
+          collaboration, and education. We are located at 7608 N Interstate Avenue in Portland,
+          Oregon, and serve as a local community hub as well as a thriving online community
+          with roots extending around the world.
+        </p>
+        <p>Please provide your email address to begin or resume your application.</p>
+      HTML
+    )
+
+    TextFragment.ensure_exists!(
       key: 'invite_already_accepted',
       title: 'Invitation: Already Accepted',
       content: <<~HTML

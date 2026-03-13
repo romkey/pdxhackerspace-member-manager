@@ -1,0 +1,43 @@
+<div class="row justify-content-center py-5">
+  <div class="col-12 col-md-10 col-lg-8">
+    <%= render 'breadcrumbs', pages: @pages, current_page_number: 0 %>
+
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-body p-4 p-md-5">
+        <% if @intro_content.present? %>
+          <%= sanitize(@intro_content) %>
+        <% else %>
+          <h2 class="h4 mb-3">Membership Application</h2>
+          <p>Please provide your email address to begin your application.</p>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-4">
+        <%= form_with url: apply_new_path, method: :post, local: true do |f| %>
+          <div class="mb-3">
+            <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+            <input type="email" name="email" id="email" class="form-control form-control-lg"
+                   placeholder="your.email@example.com" required
+                   value="<%= @application&.email %>"
+                   autocomplete="email">
+            <input type="hidden" name="page_number" value="0">
+          </div>
+
+          <% if @application %>
+            <div class="alert alert-info mb-3">
+              <i class="bi bi-info-circle me-1"></i>
+              You have an application in progress. Click Continue to resume.
+            </div>
+          <% end %>
+
+          <div class="d-flex justify-content-between">
+            <%= link_to "← Back to Sign In", login_path, class: "btn btn-outline-secondary" %>
+            <button type="submit" class="btn btn-primary btn-lg">Continue →</button>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_11_010000) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_13_050000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -116,6 +116,40 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_11_010000) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "application_answers", force: :cascade do |t|
+    t.bigint "application_form_question_id", null: false
+    t.datetime "created_at", null: false
+    t.bigint "membership_application_id", null: false
+    t.datetime "updated_at", null: false
+    t.text "value"
+    t.index ["application_form_question_id"], name: "index_application_answers_on_application_form_question_id"
+    t.index ["membership_application_id", "application_form_question_id"], name: "idx_answers_application_question", unique: true
+    t.index ["membership_application_id"], name: "index_application_answers_on_membership_application_id"
+  end
+
+  create_table "application_form_pages", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.integer "position", default: 0, null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.index ["position"], name: "index_application_form_pages_on_position"
+  end
+
+  create_table "application_form_questions", force: :cascade do |t|
+    t.bigint "application_form_page_id", null: false
+    t.datetime "created_at", null: false
+    t.string "field_type", default: "text", null: false
+    t.text "help_text"
+    t.text "label", null: false
+    t.text "options_json"
+    t.integer "position", default: 0, null: false
+    t.boolean "required", default: false, null: false
+    t.datetime "updated_at", null: false
+    t.index ["application_form_page_id", "position"], name: "idx_form_questions_page_position"
+    t.index ["application_form_page_id"], name: "index_application_form_questions_on_application_form_page_id"
   end
 
   create_table "application_groups", force: :cascade do |t|
@@ -402,6 +436,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_11_010000) do
     t.index ["display_order"], name: "index_member_sources_on_display_order"
     t.index ["enabled"], name: "index_member_sources_on_enabled"
     t.index ["key"], name: "index_member_sources_on_key", unique: true
+  end
+
+  create_table "membership_applications", force: :cascade do |t|
+    t.text "admin_notes"
+    t.datetime "created_at", null: false
+    t.string "email", null: false
+    t.datetime "reviewed_at"
+    t.bigint "reviewed_by_id"
+    t.string "status", default: "draft", null: false
+    t.datetime "submitted_at"
+    t.string "token", null: false
+    t.datetime "updated_at", null: false
+    t.index ["email"], name: "index_membership_applications_on_email"
+    t.index ["reviewed_by_id"], name: "index_membership_applications_on_reviewed_by_id"
+    t.index ["status"], name: "index_membership_applications_on_status"
+    t.index ["token"], name: "index_membership_applications_on_token", unique: true
   end
 
   create_table "membership_plans", force: :cascade do |t|
@@ -834,6 +884,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_11_010000) do
   add_foreign_key "access_logs", "users"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "application_answers", "application_form_questions"
+  add_foreign_key "application_answers", "membership_applications"
+  add_foreign_key "application_form_questions", "application_form_pages"
   add_foreign_key "application_groups", "application_groups", column: "sync_with_group_id"
   add_foreign_key "application_groups", "applications"
   add_foreign_key "application_groups", "training_topics"
@@ -857,6 +910,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_11_010000) do
   add_foreign_key "kofi_payments", "users"
   add_foreign_key "mail_log_entries", "queued_mails"
   add_foreign_key "mail_log_entries", "users", column: "actor_id"
+  add_foreign_key "membership_applications", "users", column: "reviewed_by_id"
   add_foreign_key "membership_plans", "users"
   add_foreign_key "parking_notices", "users"
   add_foreign_key "parking_notices", "users", column: "cleared_by_id"

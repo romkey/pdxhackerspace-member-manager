@@ -1,0 +1,34 @@
+<%= form_with model: page, url: page.persisted? ? application_form_page_path(page) : application_form_pages_path, local: true do |f| %>
+  <% if page.errors.any? %>
+    <div class="alert alert-danger">
+      <h6><%= pluralize(page.errors.count, 'error') %> prevented this page from being saved:</h6>
+      <ul class="mb-0">
+        <% page.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="mb-3">
+    <%= f.label :title, class: "form-label" %>
+    <%= f.text_field :title, class: "form-control", required: true %>
+  </div>
+
+  <div class="mb-3">
+    <%= f.label :description, class: "form-label" %>
+    <%= f.text_area :description, class: "form-control", rows: 3,
+        placeholder: "Optional description shown at the top of this page" %>
+  </div>
+
+  <div class="mb-3">
+    <%= f.label :position, class: "form-label" %>
+    <%= f.number_field :position, class: "form-control" %>
+    <div class="form-text">Lower numbers appear first.</div>
+  </div>
+
+  <div class="d-flex gap-2">
+    <%= f.submit class: "btn btn-primary" %>
+    <%= link_to "Cancel", application_form_pages_path, class: "btn btn-outline-secondary" %>
+  </div>
+<% end %>

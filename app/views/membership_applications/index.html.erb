@@ -1,0 +1,80 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0">Membership Applications</h1>
+</div>
+
+<ul class="nav nav-tabs mb-3">
+  <li class="nav-item">
+    <%= link_to membership_applications_path,
+        class: "nav-link #{params[:status].blank? ? 'active' : ''}" do %>
+      All <span class="badge bg-secondary"><%= @status_counts[:all] %></span>
+    <% end %>
+  </li>
+  <li class="nav-item">
+    <%= link_to membership_applications_path(status: 'submitted'),
+        class: "nav-link #{params[:status] == 'submitted' ? 'active' : ''}" do %>
+      Submitted <span class="badge bg-primary"><%= @status_counts[:submitted] %></span>
+    <% end %>
+  </li>
+  <li class="nav-item">
+    <%= link_to membership_applications_path(status: 'under_review'),
+        class: "nav-link #{params[:status] == 'under_review' ? 'active' : ''}" do %>
+      Under Review <span class="badge bg-warning text-dark"><%= @status_counts[:under_review] %></span>
+    <% end %>
+  </li>
+  <li class="nav-item">
+    <%= link_to membership_applications_path(status: 'approved'),
+        class: "nav-link #{params[:status] == 'approved' ? 'active' : ''}" do %>
+      Approved <span class="badge bg-success"><%= @status_counts[:approved] %></span>
+    <% end %>
+  </li>
+  <li class="nav-item">
+    <%= link_to membership_applications_path(status: 'rejected'),
+        class: "nav-link #{params[:status] == 'rejected' ? 'active' : ''}" do %>
+      Rejected <span class="badge bg-danger"><%= @status_counts[:rejected] %></span>
+    <% end %>
+  </li>
+</ul>
+
+<% if @applications.any? %>
+  <div class="card shadow-sm border-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Email</th>
+            <th>Status</th>
+            <th>Submitted</th>
+            <th>Reviewed by</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @applications.each do |app| %>
+            <tr>
+              <td><%= app.id %></td>
+              <td><%= app.email %></td>
+              <td>
+                <span class="badge bg-<%= app.status_badge_color %>"><%= app.status_display %></span>
+              </td>
+              <td><%= app.submitted_at&.strftime('%b %d, %Y') || '—' %></td>
+              <td><%= app.reviewed_by&.display_name || '—' %></td>
+              <td class="text-end">
+                <%= link_to "View", membership_application_path(app), class: "btn btn-sm btn-outline-primary" %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="mt-3">
+    <%== pagy_bootstrap_nav(@pagy) if @pagy.pages > 1 %>
+  </div>
+<% else %>
+  <div class="text-center text-muted py-5">
+    <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+    <p>No applications found.</p>
+  </div>
+<% end %>
