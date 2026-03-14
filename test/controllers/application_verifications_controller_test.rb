@@ -153,6 +153,28 @@ class ApplicationVerificationsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to apply_new_path
   end
 
+  # ─── Code of Conduct PDF ────────────────────────────────────
+
+  test 'code_of_conduct_pdf returns 404 when no document exists' do
+    get apply_code_of_conduct_pdf_path
+    assert_response :not_found
+  end
+
+  test 'code_of_conduct_pdf serves PDF when document exists' do
+    doc = Document.create!(title: 'Code of Conduct')
+    doc.file.attach(
+      io: StringIO.new('%PDF-1.4 test'),
+      filename: 'code-of-conduct.pdf',
+      content_type: 'application/pdf'
+    )
+
+    get apply_code_of_conduct_pdf_path
+    assert_response :success
+    assert_equal 'application/pdf', response.media_type
+  end
+
+  # ─── Expired Verification ──────────────────────────────────
+
   test 'expired verification blocks application access' do
     verification = ApplicationVerification.create!(
       email: 'test@example.com',

@@ -15,10 +15,11 @@ Rails.application.routes.draw do
   get "/help", to: "pages#help", as: :help
 
   # Application verification gate (must complete before starting application)
-  get  "/apply/new",                to: "application_verifications#gate", as: :apply_new
-  post "/apply/new",                to: "application_verifications#send_verification"
-  get  "/apply/new/verify/:token",  to: "application_verifications#verify_email", as: :apply_verify_email
-  get  "/apply/new/check_email",    to: "application_verifications#check_email", as: :apply_check_email
+  get  "/apply/new",                    to: "application_verifications#gate", as: :apply_new
+  post "/apply/new",                    to: "application_verifications#send_verification"
+  get  "/apply/new/verify/:token",      to: "application_verifications#verify_email", as: :apply_verify_email
+  get  "/apply/new/check_email",        to: "application_verifications#check_email", as: :apply_check_email
+  get  "/apply/new/code_of_conduct.pdf", to: "application_verifications#code_of_conduct_pdf", as: :apply_code_of_conduct_pdf
 
   # New membership application wizard (requires verified email)
   get  "/apply/new/start",             to: "membership_applications#start", as: :apply_start

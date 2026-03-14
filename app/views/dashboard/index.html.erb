@@ -49,8 +49,8 @@
             <%= link_to onboard_path, class: "btn btn-primary btn-lg" do %>
               <i class="bi bi-person-badge me-2"></i>Onboard New Member
             <% end %>
-            <%= link_to new_user_path, class: "btn btn-outline-primary btn-lg" do %>
-              <i class="bi bi-person-plus me-2"></i>Create New Member
+            <%= link_to new_invitation_path, class: "btn btn-info btn-lg" do %>
+              <i class="bi bi-envelope-plus me-2"></i>Send Invitation
             <% end %>
             <%= link_to new_rfid_path, class: "btn btn-success btn-lg" do %>
               <i class="bi bi-key me-2"></i>Add Key Fob
@@ -70,9 +70,6 @@
             <% end %>
           </div>
           <div class="d-flex flex-wrap justify-content-center gap-3">
-            <%= link_to new_invitation_path, class: "btn btn-info btn-lg" do %>
-              <i class="bi bi-envelope-plus me-2"></i>Send Invitation
-            <% end %>
             <%= link_to new_incident_report_path, class: "btn btn-warning btn-lg" do %>
               <i class="bi bi-exclamation-triangle me-2"></i>New Incident Report
             <% end %>

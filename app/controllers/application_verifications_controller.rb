@@ -1,6 +1,18 @@
 class ApplicationVerificationsController < ApplicationController
   def gate
-    @code_of_conduct_url = TextFragment.content_for('code_of_conduct_url').presence || '#'
+    @code_of_conduct_doc = Document.find_by('LOWER(title) = ?', 'code of conduct')
+  end
+
+  def code_of_conduct_pdf
+    doc = Document.find_by('LOWER(title) = ?', 'code of conduct')
+    if doc&.file&.attached?
+      send_data doc.file.download,
+                filename: doc.file.filename.to_s,
+                type: doc.file.content_type,
+                disposition: 'inline'
+    else
+      head :not_found
+    end
   end
 
   def send_verification

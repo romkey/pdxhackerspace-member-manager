@@ -12,55 +12,89 @@
 
     <div class="card shadow-sm border-0">
       <div class="card-body p-4">
-        <%= form_with url: apply_new_path, method: :post, local: true do |f| %>
+        <%= form_with url: apply_new_path, method: :post, local: true, html: { id: 'verification-form' } do |f| %>
 
           <div class="mb-4">
             <div class="form-check">
               <input type="checkbox" name="confirmed_open_house" value="1"
-                     class="form-check-input" id="confirmed_open_house" required>
+                     class="form-check-input gate-checkbox" id="confirmed_open_house" required>
               <label class="form-check-label" for="confirmed_open_house">
                 <strong>I have attended an open house at the space.</strong>
               </label>
             </div>
           </div>
 
+          <% if @code_of_conduct_doc&.file&.attached? %>
+            <div class="mb-3">
+              <h5>Code of Conduct</h5>
+              <div class="border rounded" style="height: 500px;">
+                <iframe src="<%= apply_code_of_conduct_pdf_path %>"
+                        width="100%" height="100%" style="border: none;">
+                  <p>Your browser does not support inline PDFs.
+                    <%= link_to 'Download the Code of Conduct', apply_code_of_conduct_pdf_path, target: '_blank' %>
+                  </p>
+                </iframe>
+              </div>
+              <div class="form-text mt-1">
+                Can't see the PDF above? <%= link_to 'Open it in a new tab', apply_code_of_conduct_pdf_path, target: '_blank', rel: 'noopener' %>.
+              </div>
+            </div>
+          <% end %>
+
           <div class="mb-4">
             <div class="form-check">
               <input type="checkbox" name="confirmed_code_of_conduct" value="1"
-                     class="form-check-input" id="confirmed_code_of_conduct" required>
+                     class="form-check-input gate-checkbox" id="confirmed_code_of_conduct" required>
               <label class="form-check-label" for="confirmed_code_of_conduct">
-                <strong>I have read and agree with the
-                <% if @code_of_conduct_url != '#' %>
-                  <%= link_to 'Code of Conduct', @code_of_conduct_url, target: '_blank', rel: 'noopener' %>.
-                <% else %>
-                  Code of Conduct.
-                <% end %>
-                </strong>
+                <strong>I have read and agree with the Code of Conduct.</strong>
               </label>
             </div>
           </div>
 
           <hr class="my-4">
 
-          <div class="mb-4">
-            <label for="email" class="form-label">
-              <strong>Email Address</strong> <span class="text-danger">*</span>
-            </label>
-            <input type="email" name="email" id="email" class="form-control form-control-lg"
-                   placeholder="your.email@example.com" required
-                   autocomplete="email">
-            <div class="form-text">
-              We'll send a verification link to this address. This email will also be used
-              for your application and membership.
+          <fieldset id="email-section" disabled>
+            <div class="mb-4">
+              <label for="email" class="form-label">
+                <strong>Email Address</strong> <span class="text-danger">*</span>
+              </label>
+              <input type="email" name="email" id="email" class="form-control form-control-lg"
+                     placeholder="your.email@example.com" required
+                     autocomplete="email">
+              <div class="form-text">
+                We'll send a verification link to this address. This email will also be used
+                for your application and membership.
+              </div>
             </div>
-          </div>
 
-          <div class="d-flex justify-content-between">
-            <%= link_to "← Back", login_path, class: "btn btn-outline-secondary" %>
-            <button type="submit" class="btn btn-primary btn-lg">Send Verification Email →</button>
-          </div>
+            <div class="d-flex justify-content-between">
+              <%= link_to "← Back", login_path, class: "btn btn-outline-secondary" %>
+              <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">Send Verification Email →</button>
+            </div>
+          </fieldset>
         <% end %>
       </div>
     </div>
   </div>
 </div>
+
+<script>
+  (function() {
+    function initGateForm() {
+      var checkboxes = document.querySelectorAll('.gate-checkbox');
+      var emailSection = document.getElementById('email-section');
+      if (!checkboxes.length || !emailSection) return;
+
+      function updateState() {
+        var allChecked = Array.prototype.every.call(checkboxes, function(cb) { return cb.checked; });
+        emailSection.disabled = !allChecked;
+      }
+
+      checkboxes.forEach(function(cb) { cb.addEventListener('change', updateState); });
+      updateState();
+    }
+
+    document.addEventListener('DOMContentLoaded', initGateForm);
+    document.addEventListener('turbo:load', initGateForm);
+  })();
+</script>
