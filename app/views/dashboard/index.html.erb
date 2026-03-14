@@ -136,11 +136,25 @@
             <% item_number += 1 %>
             <li class="list-group-item d-flex align-items-start gap-2 py-3">
               <span class="badge rounded-pill text-bg-secondary"><%= item_number %></span>
-              <div>
-                <i class="bi bi-check-circle-fill text-success me-1"></i>
-                <span class="text-muted">Member applications</span>
-                <span class="text-muted fst-italic small ms-1">(coming soon)</span>
-              </div>
+              <% if @pending_applications_count == 0 %>
+                <div>
+                  <i class="bi bi-check-circle-fill text-success me-1"></i>
+                  No pending membership applications
+                </div>
+              <% else %>
+                <div>
+                  <i class="bi bi-exclamation-circle-fill text-info me-1"></i>
+                  <%= link_to membership_applications_path(status: 'submitted'), class: 'text-decoration-none fw-semibold' do %>
+                    <strong><%= @pending_applications_count %></strong> pending membership <%= 'application'.pluralize(@pending_applications_count) %>
+                  <% end %>
+                  <div class="text-muted small mt-1">
+                    <% parts = [] %>
+                    <% parts << "#{@submitted_applications_count} submitted" if @submitted_applications_count > 0 %>
+                    <% parts << "#{@under_review_applications_count} under review" if @under_review_applications_count > 0 %>
+                    <%= parts.join(', ') %>
+                  </div>
+                </div>
+              <% end %>
             </li>
 
             <% item_number += 1 %>
@@ -235,30 +249,6 @@
                   <%= link_to interests_path(filter: 'needs_review'), class: "text-decoration-none fw-semibold" do %>
                     <strong><%= @interests_needing_review_count %></strong> member-suggested <%= 'interest'.pluralize(@interests_needing_review_count) %> need review
                   <% end %>
-                </div>
-              <% end %>
-            </li>
-
-            <% item_number += 1 %>
-            <li class="list-group-item d-flex align-items-start gap-2 py-3">
-              <span class="badge rounded-pill text-bg-secondary"><%= item_number %></span>
-              <% if @pending_applications_count == 0 %>
-                <div>
-                  <i class="bi bi-check-circle-fill text-success me-1"></i>
-                  No pending membership applications
-                </div>
-              <% else %>
-                <div>
-                  <i class="bi bi-exclamation-circle-fill text-info me-1"></i>
-                  <%= link_to membership_applications_path(status: 'submitted'), class: 'text-decoration-none fw-semibold' do %>
-                    <strong><%= @pending_applications_count %></strong> pending membership <%= 'application'.pluralize(@pending_applications_count) %>
-                  <% end %>
-                  <div class="text-muted small mt-1">
-                    <% parts = [] %>
-                    <% parts << "#{@submitted_applications_count} submitted" if @submitted_applications_count > 0 %>
-                    <% parts << "#{@under_review_applications_count} under review" if @under_review_applications_count > 0 %>
-                    <%= parts.join(', ') %>
-                  </div>
                 </div>
               <% end %>
             </li>
