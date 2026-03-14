@@ -37,13 +37,24 @@
               <% end %>
             </td>
             <td><%= l(j.changed_at, format: :long) %></td>
-            <td><%= link_to j.user.display_name, user_path(j.user) %></td>
+            <td>
+              <% if j.user.present? %>
+                <%= link_to j.user.display_name, user_path(j.user) %>
+              <% elsif j.changes_json.dig('application', 'email').present? %>
+                <span class="text-muted"><%= j.changes_json.dig('application', 'email') %></span>
+              <% else %>
+                <span class="text-muted fst-italic">N/A</span>
+              <% end %>
+            </td>
             <td>
               <% badge_class = case j.action
                                when 'created' then 'text-bg-success'
                                when 'incident_report_involvement' then 'text-bg-danger'
                                when 'membership_status_changed', 'activated', 'deactivated' then 'text-bg-warning'
                                when 'banned' then 'text-bg-dark'
+                               when 'application_submitted' then 'text-bg-info'
+                               when 'application_approved' then 'text-bg-success'
+                               when 'application_rejected' then 'text-bg-danger'
                                else 'text-bg-secondary'
                                end %>
               <span class="badge <%= badge_class %>"><%= j.action.humanize %></span>
@@ -56,7 +67,21 @@
               <% end %>
             </td>
             <td>
-              <% if j.action == 'incident_report_involvement' && j.changes_json['incident_report'].present? %>
+              <% if j.action.start_with?('application_') && j.changes_json['application'].present? %>
+                <% app = j.changes_json['application'] %>
+                <div class="small">
+                  <strong><%= app['email'] %></strong><br>
+                  <span class="text-muted">
+                    Status: <%= app['status']&.titleize %>
+                    <% if app['submitted_at'].present? %>
+                      &middot; Submitted: <%= DateTime.parse(app['submitted_at']).strftime('%B %-d, %Y') rescue app['submitted_at'] %>
+                    <% end %>
+                  </span>
+                  <% if app['id'].present? %>
+                    <br><%= link_to "View Application", membership_application_path(app['id']), class: "link-primary" %>
+                  <% end %>
+                </div>
+              <% elsif j.action == 'incident_report_involvement' && j.changes_json['incident_report'].present? %>
                 <% ir = j.changes_json['incident_report'] %>
                 <div class="small">
                   <strong><%= ir['subject'] %></strong><br>

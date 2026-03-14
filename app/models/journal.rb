@@ -1,5 +1,5 @@
 class Journal < ApplicationRecord
-  belongs_to :user
+  belongs_to :user, optional: true
   belongs_to :actor_user, class_name: 'User', optional: true
 
   validates :action, presence: true
@@ -27,6 +27,9 @@ class Journal < ApplicationRecord
     parking_ticket_issued
     parking_notice_expired
     parking_notice_cleared
+    application_submitted
+    application_approved
+    application_rejected
   ].freeze
 
   # Fields whose changes should trigger a highlight
@@ -62,6 +65,24 @@ class Journal < ApplicationRecord
           'subject' => incident_report.subject,
           'type' => incident_report.incident_type_display,
           'date' => incident_report.incident_date.to_s
+        }
+      },
+      changed_at: Time.current,
+      highlight: true
+    )
+  end
+
+  def self.record_application_event!(application:, action:, actor: nil)
+    create!(
+      user: nil,
+      actor_user: actor,
+      action: action,
+      changes_json: {
+        'application' => {
+          'id' => application.id,
+          'email' => application.email,
+          'status' => application.status,
+          'submitted_at' => application.submitted_at&.iso8601
         }
       },
       changed_at: Time.current,

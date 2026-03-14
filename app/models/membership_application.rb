@@ -40,6 +40,7 @@ class MembershipApplication < ApplicationRecord
 
   def submit!
     update!(status: 'submitted', submitted_at: Time.current)
+    Journal.record_application_event!(application: self, action: 'application_submitted')
   end
 
   def mark_under_review!(admin)
@@ -53,6 +54,7 @@ class MembershipApplication < ApplicationRecord
       reviewed_at: Time.current,
       admin_notes: notes
     )
+    Journal.record_application_event!(application: self, action: 'application_approved', actor: admin)
   end
 
   def reject!(admin, notes: nil)
@@ -62,6 +64,7 @@ class MembershipApplication < ApplicationRecord
       reviewed_at: Time.current,
       admin_notes: notes
     )
+    Journal.record_application_event!(application: self, action: 'application_rejected', actor: admin)
   end
 
   def status_display

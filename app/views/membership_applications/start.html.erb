@@ -27,20 +27,18 @@
             You already have an application that was submitted on
             <strong><%= @existing_application.submitted_at&.strftime('%B %-d, %Y') || 'a previous date' %></strong>.
             Its current status is <strong><%= @existing_application.status_display %></strong>.
-            <% if @existing_application.rejected? %>
-              <br>You may submit a new application below.
-            <% end %>
           </div>
-        <% end %>
-
-        <% if @application %>
-          <div class="alert alert-info mb-3">
-            <i class="bi bi-info-circle me-1"></i>
-            You have a draft application in progress. Click Continue to resume where you left off.
+          <div class="d-flex justify-content-between">
+            <%= link_to "← Back to Sign In", login_path, class: "btn btn-outline-secondary" %>
           </div>
-        <% end %>
+        <% else %>
+          <% if @application %>
+            <div class="alert alert-info mb-3">
+              <i class="bi bi-info-circle me-1"></i>
+              You have a draft application in progress. Click Continue to resume where you left off.
+            </div>
+          <% end %>
 
-        <% if @existing_application.nil? || @existing_application.rejected? || @application %>
           <%= form_with url: apply_start_path, method: :post, local: true do |f| %>
             <input type="hidden" name="page_number" value="0">
             <div class="d-flex justify-content-between">
@@ -48,10 +46,6 @@
               <button type="submit" class="btn btn-primary btn-lg">Continue →</button>
             </div>
           <% end %>
-        <% else %>
-          <div class="d-flex justify-content-between">
-            <%= link_to "← Back to Sign In", login_path, class: "btn btn-outline-secondary" %>
-          </div>
         <% end %>
       </div>
     </div>
