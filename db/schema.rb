@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_13_050000) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_14_010000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -477,9 +477,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_13_050000) do
   end
 
   create_table "membership_settings", force: :cascade do |t|
+    t.integer "admin_login_link_expiry_minutes", default: 15, null: false
     t.datetime "created_at", null: false
     t.integer "invitation_expiry_hours", default: 72, null: false
-    t.integer "login_link_expiry_days", default: 30, null: false
+    t.integer "login_link_expiry_hours", default: 180, null: false
     t.integer "payment_grace_period_days", default: 14, null: false
     t.integer "reactivation_grace_period_months", default: 3, null: false
     t.datetime "updated_at", null: false

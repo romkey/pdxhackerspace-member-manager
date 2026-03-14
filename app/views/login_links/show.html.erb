@@ -23,18 +23,23 @@
           <div class="mb-3">
             <span class="text-muted">Expires:</span>
             <strong><%= @user.login_token_expires_at.strftime('%B %d, %Y at %l:%M %p') %></strong>
-            <% days_left = ((@user.login_token_expires_at - Time.current) / 1.day).ceil %>
-            <% if days_left <= 3 %>
-              <span class="badge bg-warning text-dark ms-1"><%= days_left %> <%= 'day'.pluralize(days_left) %> left</span>
-            <% else %>
+            <% time_left = @user.login_token_expires_at - Time.current %>
+            <% if time_left > 1.day %>
+              <% days_left = (time_left / 1.day).ceil %>
               <span class="text-muted ms-1">(<%= days_left %> <%= 'day'.pluralize(days_left) %> left)</span>
+            <% elsif time_left > 1.hour %>
+              <% hours_left = (time_left / 1.hour).ceil %>
+              <span class="badge bg-warning text-dark ms-1"><%= hours_left %> <%= 'hour'.pluralize(hours_left) %> left</span>
+            <% else %>
+              <% minutes_left = [(time_left / 1.minute).ceil, 1].max %>
+              <span class="badge bg-danger ms-1"><%= minutes_left %> <%= 'minute'.pluralize(minutes_left) %> left</span>
             <% end %>
           </div>
 
-          <div class="alert alert-info small mb-3">
-            <i class="bi bi-info-circle me-1"></i>
-            Anyone with this link can sign in as you. Keep it private and do not share it publicly.
-            Regenerating will invalidate your current link.
+          <div class="alert alert-warning small mb-3">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            This link can only be used <strong>once</strong>. After use, you'll need to generate a new one.
+            Keep it private and do not share it publicly.
           </div>
 
           <%= link_to login_link_regenerate_path, data: { turbo_method: :post }, class: "btn btn-outline-primary" do %>
@@ -75,8 +80,13 @@
           You can bookmark the link or save it for quick access. It works on any device or browser.
         </p>
         <p class="small text-muted mb-2">
-          Links expire after <strong><%= MembershipSetting.login_link_expiry_days %> days</strong>.
-          You will receive an email when your link expires, and you can always generate a new one.
+          Links can only be used <strong>once</strong> and expire after
+          <% if current_user&.admin? %>
+            <strong><%= MembershipSetting.admin_login_link_expiry_minutes %> minutes</strong>.
+          <% else %>
+            <strong><%= MembershipSetting.login_link_expiry_hours %> hours</strong>.
+          <% end %>
+          You can always generate a new one from here or from the sign-in page.
         </p>
         <p class="small text-muted mb-0">
           <strong>Security:</strong> Treat your login link like a password. If you think it has been

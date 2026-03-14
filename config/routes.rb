@@ -31,6 +31,7 @@ Rails.application.routes.draw do
   get "/auth/failure", to: "sessions#failure"
 
   # Login links
+  post "/login_link/request", to: "login_links#request_link", as: :request_login_link
   get  "/login_link/:token", to: "login_links#authenticate", as: :login_link_authenticate
   get  "/profile/login_link", to: "login_links#show", as: :login_link
   post "/profile/login_link/regenerate", to: "login_links#regenerate", as: :login_link_regenerate

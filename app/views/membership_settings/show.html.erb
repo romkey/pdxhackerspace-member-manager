@@ -35,10 +35,19 @@
             <div class="form-text">How long invitation links remain valid before they expire.</div>
           </dd>
 
-          <dt class="col-sm-6 mt-3">Login Link Expiry</dt>
+          <dt class="col-sm-6 mt-3">Member Login Link Expiry</dt>
           <dd class="col-sm-6 mt-3">
-            <strong><%= @membership_setting.login_link_expiry_days %></strong> days
+            <strong><%= @membership_setting.login_link_expiry_hours %></strong> hours
+            <% if @membership_setting.login_link_expiry_hours >= 24 %>
+              (<%= @membership_setting.login_link_expiry_hours / 24 %> <%= 'day'.pluralize(@membership_setting.login_link_expiry_hours / 24) %>)
+            <% end %>
             <div class="form-text">How long member login links remain valid before they expire.</div>
+          </dd>
+
+          <dt class="col-sm-6 mt-3">Admin Login Link Expiry</dt>
+          <dd class="col-sm-6 mt-3">
+            <strong><%= @membership_setting.admin_login_link_expiry_minutes %></strong> minutes
+            <div class="form-text">How long admin login links remain valid (shorter for security).</div>
           </dd>
         </dl>
       </div>
@@ -63,9 +72,13 @@
           <strong>Invitation Expiry:</strong> When an admin sends an invitation, the link is valid for this 
           many hours. After expiry, the recipient must be invited again.
         </p>
+        <p class="small text-muted mb-2">
+          <strong>Member Login Link Expiry:</strong> Members can request a login link from the sign-in page.
+          Links can only be used once and expire after this many hours.
+        </p>
         <p class="small text-muted mb-0">
-          <strong>Login Link Expiry:</strong> Members can generate a personal login link from their profile. 
-          The link expires after this many days. When a link expires, the member receives an email notification.
+          <strong>Admin Login Link Expiry:</strong> Admin login links expire faster for security.
+          Links can only be used once and expire after this many minutes.
         </p>
       </div>
     </div>

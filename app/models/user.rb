@@ -247,10 +247,14 @@ class User < ApplicationRecord
   end
 
   def generate_login_token!
-    expiry_days = MembershipSetting.login_link_expiry_days
+    expiry = if admin?
+               MembershipSetting.admin_login_link_expiry_minutes.minutes.from_now
+             else
+               MembershipSetting.login_link_expiry_hours.hours.from_now
+             end
     update!(
       login_token: SecureRandom.alphanumeric(64),
-      login_token_expires_at: expiry_days.days.from_now
+      login_token_expires_at: expiry
     )
   end
 
