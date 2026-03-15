@@ -4,7 +4,7 @@ class ImpersonationsController < ApplicationController
 
   # POST /impersonate/:user_id
   def create
-    user = User.find_by(param: params[:user_id])
+    user = User.find_by(username: params[:user_id]) || User.find_by(id: params[:user_id])
 
     if user.nil?
       redirect_back_or_to(users_path, alert: 'Member not found.')
