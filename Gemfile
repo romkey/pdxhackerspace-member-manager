@@ -64,6 +64,7 @@ gem 'bcrypt', '~> 3.1'
 gem 'sentry-rails', '~> 5.0'
 gem 'sentry-ruby', '~> 5.0'
 gem 'sentry-sidekiq', '~> 5.0'
+gem 'stackprof'
 
 # SSH client for Ruby scripts
 gem 'net-ssh', '~> 7.0'
