@@ -24,6 +24,8 @@ class User < ApplicationRecord
   has_many :reported_incidents, class_name: 'IncidentReport', foreign_key: 'reporter_id', dependent: :nullify
   has_and_belongs_to_many :incident_reports, join_table: 'incident_report_members'
   has_many :parking_notices, dependent: :nullify
+  has_many :invitations, dependent: :nullify
+  has_many :sent_invitations, class_name: 'Invitation', foreign_key: 'invited_by_id', dependent: :nullify
   validates :authentik_id, uniqueness: true, allow_blank: true
   validates :username, uniqueness: true, allow_blank: true
   validates :email,
