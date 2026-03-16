@@ -46,10 +46,10 @@ Rails.application.routes.draw do
   post "/webhooks/:slug", to: "webhooks#receive", as: :webhook_receive
 
   # Impersonation
-  post "/impersonate/:user_id", to: "impersonations#create", as: :impersonate_user
+  post "/impersonate/:user_id", to: "impersonations#create", as: :impersonate_user, constraints: { user_id: /[^\/]+/ }
   delete "/impersonate", to: "impersonations#destroy", as: :stop_impersonation
 
-  resources :users, only: [:index, :show, :new, :create, :edit, :update, :destroy] do
+  resources :users, only: [:index, :show, :new, :create, :edit, :update, :destroy], constraints: { id: /[^\/]+/ } do
     member do
       post :activate
       post :deactivate
