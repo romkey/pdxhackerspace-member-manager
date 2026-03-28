@@ -3,7 +3,26 @@
 
 // Admin dashboard: soft frame for each section (search, stats, actions, lists, highlights)
 .card.dashboard-panel {
-  --bs-card-bg: color-mix(in srgb, var(--bs-body-bg) 97%, #fff 3%);
+  --dashboard-panel-bg: color-mix(in srgb, var(--bs-body-bg) 97%, #fff 3%);
+  --bs-card-bg: var(--dashboard-panel-bg);
+  --bs-card-cap-bg: var(--dashboard-panel-bg);
   border: 1px solid var(--bs-border-color-translucent);
   box-shadow: var(--bs-box-shadow-sm);
+  overflow: hidden;
+
+  .list-group {
+    --bs-list-group-bg: var(--dashboard-panel-bg);
+    --bs-list-group-action-hover-bg: color-mix(in srgb, var(--dashboard-panel-bg) 92%, var(--bs-emphasis-color) 8%);
+    --bs-list-group-action-active-bg: color-mix(in srgb, var(--dashboard-panel-bg) 86%, var(--bs-emphasis-color) 14%);
+  }
+
+  .card-body {
+    background-color: var(--dashboard-panel-bg);
+  }
+}
+
+.dashboard-attention-section + .dashboard-attention-section {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--bs-border-color-translucent);
 }

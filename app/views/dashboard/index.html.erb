@@ -83,13 +83,13 @@
       <!-- Needs Attention -->
       <% item_number = 0 %>
 
-      <!-- Urgent -->
       <div class="card dashboard-panel mb-4">
-        <div class="card-header bg-danger bg-opacity-10">
-          <h5 class="mb-0"><i class="bi bi-exclamation-octagon-fill text-danger me-2"></i>Urgent</h5>
-        </div>
         <div class="card-body p-0">
-          <ul class="list-group list-group-flush">
+          <section class="dashboard-attention-section">
+            <div class="card-header bg-danger bg-opacity-10 rounded-0">
+              <h5 class="mb-0"><i class="bi bi-exclamation-octagon-fill text-danger me-2"></i>Urgent</h5>
+            </div>
+            <ul class="list-group list-group-flush">
 
             <% item_number += 1 %>
             <li class="list-group-item d-flex align-items-start gap-2 py-3">
@@ -117,16 +117,13 @@
             </li>
 
           </ul>
-        </div>
-      </div>
+          </section>
 
-      <!-- Important -->
-      <div class="card dashboard-panel mb-4">
-        <div class="card-header bg-info bg-opacity-10">
-          <h5 class="mb-0"><i class="bi bi-info-circle-fill text-info me-2"></i>Important</h5>
-        </div>
-        <div class="card-body p-0">
-          <ul class="list-group list-group-flush">
+          <section class="dashboard-attention-section">
+            <div class="card-header bg-info bg-opacity-10 rounded-0">
+              <h5 class="mb-0"><i class="bi bi-info-circle-fill text-info me-2"></i>Important</h5>
+            </div>
+            <ul class="list-group list-group-flush">
 
             <% item_number += 1 %>
             <li class="list-group-item d-flex align-items-start gap-2 py-3">
@@ -307,16 +304,13 @@
             </li>
 
           </ul>
-        </div>
-      </div>
+          </section>
 
-      <!-- Housekeeping -->
-      <div class="card dashboard-panel mb-4">
-        <div class="card-header bg-warning bg-opacity-10">
-          <h5 class="mb-0"><i class="bi bi-clipboard-check text-warning me-2"></i>Housekeeping</h5>
-        </div>
-        <div class="card-body p-0">
-          <ul class="list-group list-group-flush">
+          <section class="dashboard-attention-section">
+            <div class="card-header bg-warning bg-opacity-10 rounded-0">
+              <h5 class="mb-0"><i class="bi bi-clipboard-check text-warning me-2"></i>Housekeeping</h5>
+            </div>
+            <ul class="list-group list-group-flush">
 
             <% item_number += 1 %>
             <li class="list-group-item d-flex align-items-start gap-2 py-3">
@@ -463,6 +457,7 @@
             </li>
 
           </ul>
+          </section>
         </div>
       </div>
     </div>
