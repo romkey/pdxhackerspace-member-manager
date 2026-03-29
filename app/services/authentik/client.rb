@@ -28,6 +28,7 @@ module Authentik
         total_count = nil
 
         while next_path.present?
+          next_path = enforce_safe_relative_path!(next_path)
           log_request(next_path)
           response = connection.get(next_path)
           handle_error!(response)
@@ -362,6 +363,7 @@ module Authentik
         next_path = "#{path}?#{query}"
 
         while next_path.present?
+          next_path = enforce_safe_relative_path!(next_path)
           log_request(next_path)
           response = connection.get(next_path)
           handle_error!(response)
@@ -438,6 +440,16 @@ module Authentik
       end
 
       nil
+    end
+
+    # Rejects protocol-relative URLs and absolute URLs so Faraday cannot be
+    # directed to a host other than @base_url (defense in depth for CodeQL SSRF).
+    def enforce_safe_relative_path!(path)
+      raise ArgumentError, 'Authentik request path is blank' if path.blank?
+      raise ArgumentError, 'Refusing protocol-relative Authentik path' if path.start_with?('//')
+      raise ArgumentError, 'Refusing absolute URL as Authentik request path' if path.match?(/\A[a-z][a-z0-9+.-]*:/i)
+
+      path
     end
 
     # Extracts the path+query from an absolute URL only if it belongs to the

@@ -129,11 +129,24 @@ module Authentik
       def discover_token_endpoint
         # Use explicit config if set
         explicit = settings.token_endpoint
-        return explicit if explicit.present?
+        if explicit.present?
+          validated = validate_token_endpoint_against_issuer(explicit)
+          return validated if validated.present?
+
+          Rails.logger.error(
+            '[Authentik::TokenManager] AUTHENTIK_TOKEN_ENDPOINT host/port does not match AUTHENTIK_ISSUER; refusing.'
+          )
+          return nil
+        end
 
         # Try OIDC discovery, with caching
         cached_endpoint = Rails.cache.read(DISCOVERY_CACHE_KEY)
-        return cached_endpoint if cached_endpoint.present?
+        if cached_endpoint.present?
+          validated = validate_token_endpoint_against_issuer(cached_endpoint)
+          return validated if validated.present?
+
+          Rails.cache.delete(DISCOVERY_CACHE_KEY)
+        end
 
         issuer = settings.issuer
         return nil if issuer.blank?
@@ -151,18 +164,15 @@ module Authentik
 
         endpoint = JSON.parse(response.body)['token_endpoint']
         if endpoint.present?
-          # Validate that the discovered endpoint is on the same host as the issuer
-          # to prevent SSRF via a tampered OIDC discovery response.
-          issuer_host = URI.parse(issuer).host
-          endpoint_host = URI.parse(endpoint).host
-          unless issuer_host == endpoint_host
+          validated = validate_token_endpoint_against_issuer(endpoint)
+          if validated.blank?
             Rails.logger.error(
-              "[Authentik::TokenManager] Discovered token_endpoint host (#{endpoint_host}) " \
-              "does not match issuer host (#{issuer_host}). Rejecting."
+              '[Authentik::TokenManager] Discovered token_endpoint host/port does not match issuer; rejecting.'
             )
             return nil
           end
 
+          endpoint = validated
           # Cache discovery result for 24 hours — it rarely changes
           Rails.cache.write(DISCOVERY_CACHE_KEY, endpoint, expires_in: 24.hours)
           Rails.logger.info("[Authentik::TokenManager] Discovered token endpoint: #{endpoint}")
@@ -179,6 +189,22 @@ module Authentik
 
       def static_token
         settings.api_token
+      end
+
+      def validate_token_endpoint_against_issuer(endpoint)
+        return nil if endpoint.blank?
+
+        issuer = settings.issuer.to_s.delete_suffix('/')
+        return endpoint if issuer.blank?
+
+        endpoint_uri = URI.parse(endpoint)
+        issuer_uri = URI.parse(issuer)
+        return endpoint if endpoint_uri.host == issuer_uri.host && endpoint_uri.port == issuer_uri.port
+
+        nil
+      rescue URI::InvalidURIError => e
+        Rails.logger.error("[Authentik::TokenManager] Invalid token endpoint URI: #{e.message}")
+        nil
       end
 
       def settings

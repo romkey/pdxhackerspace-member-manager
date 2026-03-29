@@ -2,6 +2,7 @@ class SessionsController < ApplicationController
   # OmniAuth callback: the browser POSTs to /auth/:provider/callback after the
   # OAuth redirect. Rails CSRF tokens do not apply here; OmniAuth validates its
   # own state parameter to prevent CSRF on the OAuth flow.
+  # codeql[rb/csrf-protection-disabled]: OmniAuth OIDC callback; CSRF covered by OmniAuth state.
   skip_before_action :verify_authenticity_token, only: :create
 
   def new

@@ -9,6 +9,7 @@ class WebhooksController < ApplicationController
   # machine-to-machine POST requests from external services (Ko-Fi, Authentik,
   # Recharge, RFID hardware) that cannot include Rails session tokens.
   # Each handler enforces its own authentication (HMAC, shared secret, or API key).
+  # codeql[rb/csrf-protection-disabled]: M2M endpoints; per-handler HMAC, shared secret, or API key.
   skip_before_action :verify_authenticity_token
 
   # Dynamic dispatch based on incoming webhook slug

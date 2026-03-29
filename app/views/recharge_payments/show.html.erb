@@ -79,7 +79,13 @@
   <%= render 'shared/link_user_modal',
     modal_title: 'Link Member to Recharge Payment',
     form_url: link_user_recharge_payment_path(@payment),
-    description: "Select a user to link to this Recharge payment. The user's <code>recharge_customer_id</code> will be set to match this payment's customer ID (<strong>#{@customer_id}</strong>).".html_safe,
+    description: safe_join([
+      'Select a user to link to this Recharge payment. The user\'s ',
+      tag.code('recharge_customer_id'),
+      ' will be set to match this payment\'s customer ID (',
+      tag.strong(h(@customer_id.to_s)),
+      ').'
+    ]),
     users: @all_users %>
 <% end %>
 

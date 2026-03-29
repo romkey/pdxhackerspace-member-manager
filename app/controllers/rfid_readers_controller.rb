@@ -3,10 +3,6 @@
 # SPDX-License-Identifier: CC0-1.0
 
 class RfidReadersController < AdminController
-  # regenerate_key is called by JS fetch() from the admin UI. Using null_session
-  # instead of a full skip ensures the session is safely cleared on CSRF mismatch
-  # rather than allowing the request through unchecked.
-  protect_from_forgery with: :null_session, only: [:regenerate_key]
   before_action :set_rfid_reader, only: %i[show edit update destroy regenerate_key]
 
   def index
