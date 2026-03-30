@@ -87,7 +87,7 @@ jobs:
 
     env:
       REGISTRY: ghcr.io
-      IMAGE_NAME: ${{ github.repository }}
+      IMAGE_NAME: ${{ github.repository_owner }}/member-manager
 
     steps:
       - name: Checkout
@@ -118,7 +118,7 @@ jobs:
           LATEST_VERSION=""
           
           VERSIONS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/users/${{ github.repository_owner }}/packages/container/${{ github.event.repository.name }}/versions" \
+            "https://api.github.com/users/${{ github.repository_owner }}/packages/container/member-manager/versions" \
             2>/dev/null || echo "[]")
           
           LATEST_VERSION=$(echo "$VERSIONS" | jq -r '.[] | select(.metadata.container.tags | index("latest")) | .metadata.container.tags[] | select(test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))' | head -1 || echo "")
