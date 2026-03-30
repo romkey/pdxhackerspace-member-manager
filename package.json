@@ -8,6 +8,7 @@
     "watch:css": "nodemon --watch ./app/assets/stylesheets/ --ext scss --exec \"yarn build:css\""
   },
   "resolutions": {
+    "brace-expansion": "1.1.13",
     "**/micromatch/picomatch": "2.3.2",
     "**/anymatch/picomatch": "2.3.2",
     "**/readdirp/picomatch": "2.3.2",
