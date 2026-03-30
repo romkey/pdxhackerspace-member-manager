@@ -1,10 +1,8 @@
-name: CI - Tests
+name: ci
 
 on:
   pull_request:
-    branches: [main]
-  push:
-    branches: [main]
+    branches: [main, staging]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -14,7 +12,7 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  ci:
     runs-on: ubuntu-latest
 
     services:
@@ -68,6 +66,14 @@ jobs:
 
       - name: Install JS dependencies
         run: yarn install --frozen-lockfile
+
+      - name: Lint (RuboCop)
+        run: bundle exec rubocop
+
+      - name: Type check
+        run: |
+          # No standalone type checker (e.g. tsc) in this repo; Rails + Ruby only.
+          echo "Type check skipped — not applicable."
 
       - name: Prepare database
         run: bin/rails db:test:prepare
