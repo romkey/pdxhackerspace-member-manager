@@ -2,14 +2,14 @@ require 'test_helper'
 
 module TextFragments
   class SyncFromUrlTest < ActiveSupport::TestCase
-    ResponseStub = Struct.new(:success, :status, :body, keyword_init: true) do
+    ResponseStub = Struct.new(:success, :status, :body) do
       def success?
         success
       end
     end
 
     def stub_response(success, status, body)
-      ResponseStub.new(success: success, status: status, body: body)
+      ResponseStub.new(success, status, body)
     end
 
     setup do

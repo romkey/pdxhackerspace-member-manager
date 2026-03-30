@@ -29,9 +29,7 @@ module TextFragments
           http_get(fetch_url)
         end
 
-      unless response.success?
-        raise Error, "Could not download (#{response.status}): #{fetch_url}"
-      end
+      raise Error, "Could not download (#{response.status}): #{fetch_url}" unless response.success?
 
       body = response.body.to_s
       body = body.force_encoding(Encoding::UTF_8)
@@ -51,9 +49,7 @@ module TextFragments
 
     def validate_fetch_uri!(url_string)
       uri = URI.parse(url_string)
-      unless uri.is_a?(URI::HTTP) || uri.is_a?(URI::HTTPS)
-        raise Error, 'Source URL must be http or https.'
-      end
+      raise Error, 'Source URL must be http or https.' unless uri.is_a?(URI::HTTP) || uri.is_a?(URI::HTTPS)
       raise Error, 'Source URL must include a host.' if uri.host.blank?
       raise Error, 'Only http and https schemes are allowed.' unless %w[http https].include?(uri.scheme)
     rescue URI::InvalidURIError => e

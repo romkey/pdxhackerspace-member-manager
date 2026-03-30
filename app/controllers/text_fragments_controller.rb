@@ -56,7 +56,7 @@ class TextFragmentsController < AdminController
   private
 
   def redirect_back_or_fragment(**flash_hash)
-    redirect_back(fallback_location: edit_text_fragment_path(@text_fragment), **flash_hash)
+    redirect_back_or_to(edit_text_fragment_path(@text_fragment), **flash_hash)
   end
 
   def set_text_fragment
