@@ -1,0 +1,41 @@
+<h4>Admin FAQ</h4>
+<p class="text-muted">Quick reference for stewards using Member Manager. Details live in Settings, runbooks, and your org’s own policies.</p>
+
+<h5>Where do I change member-facing wording?</h5>
+<p>Open <strong>Settings → Text Fragments</strong>. Each fragment has a stable <em>key</em> (for example <code>help_faq</code>, <code>navbar_help</code>, <code>member_help</code>). Edit HTML in the admin UI, or set a <strong>Source URL</strong> (including raw GitHub file URLs—the sync normalizes blob links) and use <strong>Sync from URL</strong> on one fragment or <strong>Sync all from URLs</strong> for everything configured.</p>
+
+<h5>How do the Help pages map to fragments?</h5>
+<p><strong>Help → General</strong> uses <code>help_general</code>, falling back to <code>navbar_help</code> if general is empty. <strong>Help → FAQ</strong> uses <code>help_faq</code>. <strong>Help → Admin FAQ</strong> uses <code>help_admin_faq</code> and is only shown to admins.</p>
+
+<h5>How do I invite or onboard a new member?</h5>
+<p>Use <strong>Invitations</strong> to send a link that creates their account, or align accounts with your identity provider (for example Authentik) using the sync actions on a user. Exact onboarding rules are up to your org.</p>
+
+<h5>What is impersonation, and when should I use it?</h5>
+<p>Admins can impersonate a member to reproduce what they see. Use sparingly, for support, and stop impersonation when finished. Follow your org’s privacy and access policy.</p>
+
+<h5>How are membership applications handled?</h5>
+<p>Configurable application forms, verification gates, and review live under Applications and related settings. Train reviewers on your pipeline: pending → approved/rejected, and any notifications you use.</p>
+
+<h5>How do payments show up?</h5>
+<p>Integrations such as PayPal, Recharge, and Ko-Fi can sync into the app; you can also import or link payments manually where supported. Reconcile regularly and correct member linkage when something lands on the wrong record.</p>
+
+<h5>What is the Access section for?</h5>
+<p>Access controllers and RFID readers tie physical credentials to members. Scripts or jobs push allowed keys to door hardware—coordinate with whoever maintains controllers and the network path to them.</p>
+
+<h5>How does training data work?</h5>
+<p>Define <strong>Training topics</strong> in Settings, then record who trained whom on member profiles. Use this to enforce equipment rules and audits.</p>
+
+<h5>What are incoming webhooks?</h5>
+<p>Incoming webhooks receive events from external systems at stable URLs. Configure slugs and secrets carefully; test in staging when available.</p>
+
+<h5>How do Authentik and Slack fit in?</h5>
+<p>Authentik (or another OIDC provider) handles login and often group membership sync. Slack integration is typically for notifications—see environment variables and service objects for your deployment.</p>
+
+<h5>Where do background jobs run?</h5>
+<p>Sidekiq processes queues; admins with the link can open the Sidekiq Web UI from the nav. Failed jobs and retries usually need Redis and worker logs.</p>
+
+<h5>What should I check before a big event or renewal push?</h5>
+<p>Confirm payment sync is healthy, fragments and emails read correctly, RFIDs enroll for new members, and someone knows how to deactivate accounts or badges for people who leave.</p>
+
+<hr>
+<p class="text-muted small">Admins can load this file into the <code>help_admin_faq</code> text fragment or set it as a <strong>Source URL</strong> and sync from Settings → Text Fragments.</p>
