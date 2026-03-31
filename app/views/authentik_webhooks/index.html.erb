@@ -143,17 +143,13 @@
       </div>
       <div class="card-body">
         <h6>API Token</h6>
-        <% if Authentik::TokenManager.oauth_configured? %>
+        <% if AuthentikConfig.settings.api_token.present? %>
           <div class="alert alert-success py-2 small mb-3">
-            <strong>Auto-refresh enabled</strong> &mdash; using OAuth2 client credentials to obtain API tokens automatically.
-          </div>
-        <% elsif AuthentikConfig.settings.api_token.present? %>
-          <div class="alert alert-warning py-2 small mb-3">
-            <strong>Static token</strong> &mdash; using <code>AUTHENTIK_API_TOKEN</code>. Set <code>AUTHENTIK_CLIENT_ID</code>, <code>AUTHENTIK_CLIENT_SECRET</code>, and <code>AUTHENTIK_ISSUER</code> to enable automatic token refresh.
+            <strong>Bearer token configured</strong> &mdash; Authentik API requests use <code>AUTHENTIK_TOKEN</code> (<code>Authorization: Bearer</code>).
           </div>
         <% else %>
           <div class="alert alert-danger py-2 small mb-3">
-            <strong>No API token configured.</strong> Set OAuth credentials or <code>AUTHENTIK_API_TOKEN</code>.
+            <strong>No API token configured.</strong> Set <code>AUTHENTIK_TOKEN</code> to a valid service account API token.
           </div>
         <% end %>
 
@@ -168,11 +164,9 @@
             <% end %>
           </li>
           <li>
-            <code>AUTHENTIK_API_TOKEN</code>
+            <code>AUTHENTIK_TOKEN</code>
             <% if AuthentikConfig.settings.api_token.present? %>
               <span class="badge text-bg-success">Set</span>
-            <% elsif Authentik::TokenManager.oauth_configured? %>
-              <span class="badge text-bg-info">Not needed (OAuth)</span>
             <% else %>
               <span class="badge text-bg-danger">Missing</span>
             <% end %>
@@ -190,7 +184,6 @@
         <h6 class="mt-4">Optional Environment Variables</h6>
         <ul class="small">
           <li><code>AUTHENTIK_WEBHOOK_SECRET</code> - Secret for webhook authentication</li>
-          <li><code>AUTHENTIK_TOKEN_ENDPOINT</code> - Override OIDC-discovered token endpoint</li>
         </ul>
 
         <h6 class="mt-4">Group Sync</h6>

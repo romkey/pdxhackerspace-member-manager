@@ -43,7 +43,7 @@ class MemberSource < ApplicationRecord
   def check_api_configuration!
     configured = case key
                  when 'authentik'
-                   ENV['AUTHENTIK_API_TOKEN'].present? && ENV['AUTHENTIK_API_BASE_URL'].present?
+                   ENV['AUTHENTIK_TOKEN'].present? && ENV['AUTHENTIK_API_BASE_URL'].present?
                  when 'member_manager'
                    true # Always configured (it's the local database)
                  when 'sheet'

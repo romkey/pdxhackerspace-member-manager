@@ -31,7 +31,7 @@ Set these variables in your shell, `.env`, or Docker Compose environment:
 | `AUTHENTIK_CLIENT_ID` / `AUTHENTIK_CLIENT_SECRET` | OAuth credentials from Authentik |
 | `AUTHENTIK_REDIRECT_URI` | Callback URL registered in Authentik (default `http://localhost:3000/auth/authentik/callback`) |
 | `AUTHENTIK_API_BASE_URL` | Base URL for Authentik's API (defaults to the issuer) |
-| `AUTHENTIK_API_TOKEN` | Token with permission to read group membership |
+| `AUTHENTIK_TOKEN` | Service account API token sent as `Authorization: Bearer` (required at boot in non-test environments) |
 | `AUTHENTIK_GROUP_ID` | UUID/slug of the Authentik group to sync |
 | `AUTHENTIK_GROUP_PAGE_SIZE` | Optional page size override when fetching group members (default 200) |
 | `SLACK_API_TOKEN` | Slack Bot/User OAuth token with at least `users:read` scope |
@@ -60,6 +60,7 @@ This starts a Postgres container (`db`) and a Rails container (`web`). The curre
 
 ## Authentik Integration
 
+- **API access** uses a static Bearer token from `AUTHENTIK_TOKEN` (service account token in Authentik). It is not read from the database and there is no OAuth2 refresh flow for API calls.
 - OpenID Connect login is configured via OmniAuth (`/auth/authentik`).
 - User sessions are persisted in the local database. The first successful login will create/refresh the corresponding `User` record.
 - To synchronize an Authentik group into the database, use:
