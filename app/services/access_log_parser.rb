@@ -81,12 +81,13 @@ class AccessLogParser
   # "Nov 15 14:41:35 unit2 accesscontrol[2113]: Valeriy Novytskyy has opened unit2 front door"
   # "2025-11-18T05:54:25-08:00 unit2 accesscontrol[2150]:  Sean Brown has opened unit2 front door"
   def parse_pattern1(line)
-    # Atomic groups (?>...) and length caps prevent catastrophic backtracking (ReDoS)
+    # Length-capped repetitions limit backtracking (ReDoS). Avoid (?>...) around lazy
+    # quantifiers — Onigmo/Ruby fails to match some valid lines with that combination.
     pattern = /
       \A(?:(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2})
       |(\w{3}\ +\d{1,2}\ +\d{2}:\d{2}:\d{2}))
       \ +(\S+)\ +accesscontrol(?:\[\d+\])?:
-      \ +((?>[^\n]{1,200}?))\ +has
+      \ +([^\n]{1,200}?)\ +has
       \ +(opened|locked|unlocked)\ +([^\n]{1,200})\z
     /x
 
@@ -111,11 +112,11 @@ class AccessLogParser
   # "Sep  8 21:20:14 laser-access accesscontrol: John Bates disabled laser-access"
   # "Sep 10 14:09:38 laser-access accesscontrol: Paul Maupoux enabled laser-access"
   def parse_pattern2(line)
-    # Atomic groups (?>...) and length caps prevent catastrophic backtracking (ReDoS)
+    # Length-capped repetitions limit backtracking (ReDoS); see parse_pattern1 re: atomic groups.
     pattern = /
       \A(\w{3}\ +\d{1,2}\ +\d{2}:\d{2}:\d{2})
       \ +laser-access\ +accesscontrol:
-      \ +((?>[^\n]{1,200}?))\ +(enabled|disabled)
+      \ +([^\n]{1,200}?)\ +(enabled|disabled)
       \ +(?:laser-access|unit\d+\ +laser)\z
     /x
 
@@ -138,12 +139,12 @@ class AccessLogParser
   # Pattern 3: "location action by name" format
   # "2025-10-25T17:26:03-07:00 unit2 accesscontrol[2214]: unit2 front door unlocked by Kenny McElroy"
   def parse_pattern3(line)
-    # Atomic groups (?>...) and length caps prevent catastrophic backtracking (ReDoS)
+    # Length-capped repetitions limit backtracking (ReDoS); see parse_pattern1 re: atomic groups.
     pattern = /
       \A(?:(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2})
       |(\w{3}\ +\d{1,2}\ +\d{2}:\d{2}:\d{2}))
       \ +(\S+)\ +accesscontrol(?:\[\d+\])?:
-      \ +((?>[^\n]{1,200}?))\ +(locked|unlocked)
+      \ +([^\n]{1,200}?)\ +(locked|unlocked)
       \ +by\ +([^\n]{1,200})\z
     /x
 
@@ -167,13 +168,13 @@ class AccessLogParser
   # Pattern 4: "name found location is already action" format
   # "2025-11-01T16:38:02-07:00 unit2 accesscontrol[2214]: Tom Hansen found unit2 front door is already unlocked"
   def parse_pattern4(line)
-    # Atomic groups (?>...) and length caps prevent catastrophic backtracking (ReDoS)
+    # Length-capped repetitions limit backtracking (ReDoS); see parse_pattern1 re: atomic groups.
     pattern = /
       \A(?:(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2})
       |(\w{3}\ +\d{1,2}\ +\d{2}:\d{2}:\d{2}))
       \ +(\S+)\ +accesscontrol(?:\[\d+\])?:
-      \ +((?>[^\n]{1,200}?))\ +found
-      \ +((?>[^\n]{1,200}?))\ +is\ +already
+      \ +([^\n]{1,200}?)\ +found
+      \ +([^\n]{1,200}?)\ +is\ +already
       \ +(locked|unlocked)\z
     /x
 
