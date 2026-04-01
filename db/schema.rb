@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_30_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_31_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -436,15 +436,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_30_120000) do
 
   create_table "member_sources", force: :cascade do |t|
     t.boolean "api_configured", default: false
+    t.integer "consecutive_error_count", default: 0, null: false
     t.datetime "created_at", null: false
     t.integer "display_order", default: 0
     t.boolean "enabled", default: true, null: false
     t.integer "entry_count", default: 0
     t.string "key", null: false
+    t.text "last_error_message"
+    t.datetime "last_successful_sync_at"
     t.datetime "last_sync_at"
     t.integer "linked_count", default: 0
     t.string "name", null: false
     t.text "notes"
+    t.string "sync_status", default: "unknown", null: false
     t.integer "unlinked_count", default: 0
     t.datetime "updated_at", null: false
     t.index ["display_order"], name: "index_member_sources_on_display_order"

@@ -1,7 +1,9 @@
 class MembershipApplicationsController < ApplicationController
+  require 'csv'
+
   include Pagy::Backend
 
-  before_action :require_admin!, only: %i[index show approve reject mark_under_review]
+  before_action :require_admin!, only: %i[index show import approve reject mark_under_review]
   before_action :set_application_admin, only: %i[show approve reject mark_under_review]
   before_action :require_verified_email!, only: %i[start save_page page submit_application]
   before_action :load_pages, only: %i[start page]
@@ -80,6 +82,24 @@ class MembershipApplicationsController < ApplicationController
   def confirmation; end
 
   # --- Admin actions ---
+
+  def import
+    if params[:file].blank?
+      redirect_to membership_applications_path, alert: 'Please choose a CSV file to import.'
+      return
+    end
+
+    result = MembershipApplications::CsvImporter.new(imported_by: current_user).call(params[:file])
+    notice_parts = ["Imported #{result[:imported]} application(s)."]
+    notice_parts << "#{result[:skipped]} row(s) skipped." if result[:skipped].positive?
+    if result[:errors].any?
+      msg = result[:errors].first(5).join(' ')
+      flash[:alert] = result[:errors].size > 5 ? "#{msg} …" : msg
+    end
+    redirect_to membership_applications_path, notice: notice_parts.join(' ')
+  rescue CSV::MalformedCSVError => e
+    redirect_to membership_applications_path, alert: "Invalid CSV: #{e.message}"
+  end
 
   def index
     @applications = MembershipApplication.where.not(status: 'draft').newest_first

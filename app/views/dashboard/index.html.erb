@@ -116,6 +116,66 @@
               <% end %>
             </li>
 
+            <% item_number += 1 %>
+            <li class="list-group-item d-flex align-items-start gap-2 py-3">
+              <span class="badge rounded-pill text-bg-secondary"><%= item_number %></span>
+              <% if @payment_processors_sync_unhealthy.empty? %>
+                <div>
+                  <i class="bi bi-check-circle-fill text-success me-1"></i>
+                  Payment processor API syncs are healthy
+                </div>
+              <% else %>
+                <div>
+                  <i class="bi bi-x-circle-fill text-danger me-1"></i>
+                  <%= link_to payment_processors_path, class: "text-decoration-none fw-semibold" do %>
+                    <strong><%= @payment_processors_sync_unhealthy.size %></strong>
+                    payment processor <%= 'integration'.pluralize(@payment_processors_sync_unhealthy.size) %> with sync problems
+                  <% end %>
+                  <div class="text-muted small mt-1">
+                    <%= @payment_processors_sync_unhealthy.map { |p| "#{p.name} (#{p.status_label})" }.join(', ') %>
+                  </div>
+                </div>
+              <% end %>
+            </li>
+
+            <% item_number += 1 %>
+            <li class="list-group-item d-flex align-items-start gap-2 py-3">
+              <span class="badge rounded-pill text-bg-secondary"><%= item_number %></span>
+              <% if @authentik_api_urgent %>
+                <div>
+                  <i class="bi bi-x-circle-fill text-danger me-1"></i>
+                  <%= link_to authentik_webhooks_path, class: "text-decoration-none fw-semibold" do %>
+                    Authentik API integration is not configured
+                  <% end %>
+                  <div class="text-muted small mt-1">
+                    Set <code>AUTHENTIK_TOKEN</code> (and a valid API base URL) so group sync, provisioning, and webhooks can call Authentik.
+                  </div>
+                </div>
+              <% elsif @authentik_member_source.nil? || !@authentik_member_source.enabled? %>
+                <div>
+                  <i class="bi bi-check-circle-fill text-success me-1"></i>
+                  Authentik member source disabled — no sync alerts
+                </div>
+              <% elsif @authentik_sync_issue %>
+                <div>
+                  <i class="bi bi-x-circle-fill text-danger me-1"></i>
+                  <%= link_to member_source_path(@authentik_sync_issue), class: "text-decoration-none fw-semibold" do %>
+                    Authentik sync is <%= @authentik_sync_issue.sync_status_label.downcase %>
+                  <% end %>
+                  <% if @authentik_sync_issue.last_error_message.present? %>
+                    <div class="text-muted small mt-1 text-break">
+                      <%= truncate(@authentik_sync_issue.last_error_message, length: 200) %>
+                    </div>
+                  <% end %>
+                </div>
+              <% else %>
+                <div>
+                  <i class="bi bi-check-circle-fill text-success me-1"></i>
+                  Authentik sync is healthy
+                </div>
+              <% end %>
+            </li>
+
           </ul>
           </section>
 

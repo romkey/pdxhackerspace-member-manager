@@ -10,7 +10,7 @@ module Authentik
 
       client = Authentik::Client.new
       results = { users_created: 0, users_synced: 0, users_skipped: 0, users_errored: 0, groups_synced: 0,
-                  groups_errored: 0 }
+                  groups_errored: 0, critical_authentik_errors: [] }
 
       # 1. Create Authentik accounts for members without an authentik_id
       Rails.logger.info('[Authentik::FullSyncToAuthentik] Creating missing Authentik users...')
@@ -45,7 +45,19 @@ module Authentik
       sync_active_members_group(client, results)
 
       Rails.logger.info("[Authentik::FullSyncToAuthentik] Complete: #{results.inspect}")
+
+      if results[:critical_authentik_errors].any?
+        MemberSource.for('authentik').record_failed_sync!(results[:critical_authentik_errors].join('; '))
+      elsif MemberSource.enabled?('authentik')
+        MemberSource.for('authentik').record_sync!
+      end
+
       results
+    rescue StandardError => e
+      if MemberSource.enabled?('member_manager')
+        MemberSource.for('authentik').record_failed_sync!("#{e.class}: #{e.message}")
+      end
+      raise
     end
 
     private
@@ -146,7 +158,7 @@ module Authentik
       Rails.logger.error("[Authentik::FullSyncToAuthentik] Failed to sync group '#{app_group.name}': #{e.message}")
     end
 
-    def sync_active_members_group(client, _results)
+    def sync_active_members_group(client, results)
       group_id = AuthentikConfig.settings.group_id
       return if group_id.blank?
 
@@ -162,6 +174,7 @@ module Authentik
       )
     rescue StandardError => e
       Rails.logger.error("[Authentik::FullSyncToAuthentik] Failed to sync active members group: #{e.message}")
+      results[:critical_authentik_errors] << "Active members group: #{e.message}"
     end
   end
 end

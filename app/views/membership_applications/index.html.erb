@@ -1,5 +1,38 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h1 class="h3 mb-0">Membership Applications</h1>
+  <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#importApplicationsCsvModal">Import CSV</button>
+</div>
+
+<div class="modal fade" id="importApplicationsCsvModal" tabindex="-1" aria-labelledby="importApplicationsCsvModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="importApplicationsCsvModalLabel">Import membership applications from CSV</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <%= form_with url: import_membership_applications_path, method: :post, multipart: true, local: true do |f| %>
+        <div class="modal-body">
+          <p class="text-muted small mb-2">
+            Columns <strong>Approved</strong>, <strong>Timestamp</strong>, and <strong>Email Address</strong> are required metadata.
+            All other columns must match form question labels exactly (as in your export). Rows without an email are skipped.
+          </p>
+          <p class="text-muted small mb-3">
+            Import does not send email and does not run the normal submit/approve workflow.
+          </p>
+          <div class="mb-3">
+            <%= f.file_field :file, accept: 'text/csv,.csv', class: "form-control", required: true %>
+          </div>
+          <div class="alert alert-warning mb-0 small">
+            <strong>Tip:</strong> Columns that do not match any question are appended to Admin notes on each application.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <%= f.submit "Import", class: "btn btn-primary" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
 </div>
 
 <ul class="nav nav-tabs mb-3">

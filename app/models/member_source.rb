@@ -1,8 +1,10 @@
 class MemberSource < ApplicationRecord
   SOURCE_KEYS = %w[authentik member_manager sheet slack].freeze
+  SYNC_STATUSES = %w[unknown healthy degraded failing disabled].freeze
 
   validates :key, presence: true, uniqueness: true, inclusion: { in: SOURCE_KEYS }
   validates :name, presence: true
+  validates :sync_status, inclusion: { in: SYNC_STATUSES }
 
   scope :enabled, -> { where(enabled: true) }
   scope :ordered, -> { order(:display_order, :name) }
@@ -33,17 +35,46 @@ class MemberSource < ApplicationRecord
     end
   end
 
-  # Record a successful sync
+  # Record a successful sync (pull or push); clears integration error state
   def record_sync!
-    update!(last_sync_at: Time.current)
+    update!(
+      last_sync_at: Time.current,
+      last_successful_sync_at: Time.current,
+      last_error_message: nil,
+      consecutive_error_count: 0,
+      sync_status: 'healthy'
+    )
     refresh_statistics!
+  end
+
+  # Record a failed Authentik-related sync (API or group operations)
+  def record_failed_sync!(error_message)
+    new_count = consecutive_error_count + 1
+    status = new_count >= 3 ? 'failing' : 'degraded'
+
+    update!(
+      last_sync_at: Time.current,
+      last_error_message: error_message.to_s.truncate(500),
+      consecutive_error_count: new_count,
+      sync_status: status
+    )
+  end
+
+  def sync_status_label
+    case sync_status
+    when 'healthy' then 'Healthy'
+    when 'degraded' then 'Degraded'
+    when 'failing' then 'Failing'
+    when 'disabled' then 'Disabled'
+    else 'Unknown'
+    end
   end
 
   # Check if API is configured based on environment variables
   def check_api_configuration!
     configured = case key
                  when 'authentik'
-                   ENV['AUTHENTIK_API_TOKEN'].present? && ENV['AUTHENTIK_API_BASE_URL'].present?
+                   ENV['AUTHENTIK_TOKEN'].present? && ENV['AUTHENTIK_API_BASE_URL'].present?
                  when 'member_manager'
                    true # Always configured (it's the local database)
                  when 'sheet'

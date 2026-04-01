@@ -1,0 +1,57 @@
+# Production / staging-style stack: app expects an external PostgreSQL instance.
+# Set DATABASE_URL (or DB_HOST + DB_* ) to reach your managed or host Postgres; there is no `db` service here.
+# Bundled Redis is included for Sidekiq; override REDIS_URL to use an external Redis if needed.
+# Usage: docker compose -f docker-compose.server.yml up -d
+#        docker compose -f docker-compose.server.yml --profile tools run --rm migrate
+name: membermanager-server
+
+x-web-common: &web-common
+  build:
+    context: .
+    args:
+      RUBY_VERSION: 3.3.10
+  image: member_manager_web:latest
+  env_file:
+    - .env
+  # No source bind mount — image is the artifact of Dockerfile `CMD`
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: membermanager-server-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - server_redis_data:/data
+
+  web:
+    <<: *web-common
+    command: ./bin/rails server -b 0.0.0.0 -p 3000
+    restart: unless-stopped
+    environment:
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+    depends_on:
+      - redis
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+
+  sidekiq:
+    <<: *web-common
+    command: bundle exec sidekiq
+    restart: unless-stopped
+    environment:
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+    depends_on:
+      - redis
+
+  migrate:
+    <<: *web-common
+    command: bin/rails db:migrate
+    profiles: [tools]
+    environment:
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+    depends_on:
+      - redis
+
+volumes:
+  server_redis_data:

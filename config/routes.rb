@@ -375,6 +375,9 @@ Rails.application.routes.draw do
   end
 
   resources :membership_applications, only: %i[index show] do
+    collection do
+      post :import
+    end
     member do
       post :approve
       post :reject

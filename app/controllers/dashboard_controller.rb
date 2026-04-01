@@ -44,6 +44,20 @@ class DashboardController < AdminController
     # Urgent: Unlinked Recharge payments
     @unlinked_recharge_count = RechargePayment.where(user_id: nil, dont_link: false).count
 
+    # Urgent: Payment processor API sync failures (PayPal / Recharge jobs)
+    @payment_processors_sync_unhealthy = PaymentProcessor.enabled
+                                                         .where(sync_status: %w[degraded failing])
+                                                         .order(:name)
+
+    # Urgent: Authentik API not configured (login and/or member sync enabled)
+    @authentik_member_source = MemberSource.find_by(key: 'authentik')
+    @authentik_api_urgent = !AuthentikConfig.api_ready? &&
+                            (AuthentikConfig.enabled_for_login? || @authentik_member_source&.enabled?)
+
+    # Urgent: Authentik pull/push sync failures
+    @authentik_sync_issue = @authentik_member_source if @authentik_member_source&.enabled? &&
+                                                        @authentik_member_source.sync_status.in?(%w[degraded failing])
+
     # Important: Open and draft incident reports
     @open_incident_count = IncidentReport.where(status: 'in_progress').count
     @draft_incident_count = IncidentReport.where(status: 'draft').count

@@ -9,7 +9,7 @@ alwaysApply: false
 - **Framework:** Minitest 5 with Rails test helpers
 - **Fixtures:** YAML fixtures in `test/fixtures/`; `fixtures :all` is set in `test_helper.rb`
 - **Parallelization:** Tests run in parallel by processor count
-- **Run tests:** `docker compose run --rm test` (creates DB, loads schema, runs suite)
+- **Run tests:** `docker compose -f docker-compose.test.yml run --rm test` (creates DB, loads schema, runs suite)
 
 ## Conventions
 

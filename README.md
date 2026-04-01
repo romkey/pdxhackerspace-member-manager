@@ -5,8 +5,9 @@ MemberManager is a Rails application that keeps a local roster synchronized with
 ## Requirements
 
 - Ruby 3.3.10 (see `.ruby-version`)
-- Rails 7.1.6
+- Rails 8.1
 - PostgreSQL 16+
+- Redis 7+ (Sidekiq, Action Cable)
 - Node.js (only for asset builds when running locally)
 - Yarn
 
@@ -31,7 +32,7 @@ Set these variables in your shell, `.env`, or Docker Compose environment:
 | `AUTHENTIK_CLIENT_ID` / `AUTHENTIK_CLIENT_SECRET` | OAuth credentials from Authentik |
 | `AUTHENTIK_REDIRECT_URI` | Callback URL registered in Authentik (default `http://localhost:3000/auth/authentik/callback`) |
 | `AUTHENTIK_API_BASE_URL` | Base URL for Authentik's API (defaults to the issuer) |
-| `AUTHENTIK_API_TOKEN` | Token with permission to read group membership |
+| `AUTHENTIK_TOKEN` | Service account API token sent as `Authorization: Bearer` (optional at boot; the admin dashboard shows Urgent if Authentik login or member sync is enabled but the token or API base URL is missing) |
 | `AUTHENTIK_GROUP_ID` | UUID/slug of the Authentik group to sync |
 | `AUTHENTIK_GROUP_PAGE_SIZE` | Optional page size override when fetching group members (default 200) |
 | `SLACK_API_TOKEN` | Slack Bot/User OAuth token with at least `users:read` scope |
@@ -50,16 +51,69 @@ Set these variables in your shell, `.env`, or Docker Compose environment:
 
 ## Docker & Compose
 
-Build and run the stack with:
+The repository ships **four** Compose files so local stacks stay predictable and Postgres instances do not clash with other projects on the same machine. Each stack sets a Compose **project name** (`name:`) so volumes are isolated. Postgres containers use fixed **container names** prefixed with `membermanager-`.
+
+| File | Use when | Postgres |
+| --- | --- | --- |
+| [`docker-compose.dev.yml`](docker-compose.dev.yml) | Day-to-day local development (`web`, Sidekiq, live-mounted source). | Included. Container: `membermanager-dev-postgres`, published on **localhost:5432**. |
+| [`docker-compose.test.yml`](docker-compose.test.yml) | Running the test suite from Docker. | Included. Container: `membermanager-test-postgres`, published on **localhost:5433** (so dev can use 5432 at the same time). Redis: `membermanager-test-redis`, **localhost:6380**. |
+| [`docker-compose.lint.yml`](docker-compose.lint.yml) | RuboCop only. | Included (isolated DB for naming parity). Container: `membermanager-lint-postgres`, **localhost:5434**. |
+| [`docker-compose.server.yml`](docker-compose.server.yml) | Production- or staging-style runs (image-based app, no source mount). | **Not included.** Point `DATABASE_URL` (or `DB_HOST` and related variables) at an existing PostgreSQL server. Redis defaults to the bundled `redis` service; set `REDIS_URL` to use an external instance. |
+
+### Local development
 
 ```bash
-docker compose up --build
+docker compose -f docker-compose.dev.yml up --build
 ```
 
-This starts a Postgres container (`db`) and a Rails container (`web`). The current workspace is mounted into the `web` container for live development.
+Apply migrations (one-off):
+
+```bash
+docker compose -f docker-compose.dev.yml --profile tools run --rm migrate
+```
+
+The app is at [http://localhost:3000](http://localhost:3000). Configure `.env` (see `.env.development.example`); Compose still injects `DB_HOST=db` and `REDIS_URL` for services in this file.
+
+### Tests (Docker)
+
+```bash
+docker compose -f docker-compose.test.yml run --rm test
+# Single file:
+docker compose -f docker-compose.test.yml run --rm test bin/rails test test/models/member_test.rb
+```
+
+### Lint (Docker)
+
+```bash
+docker compose -f docker-compose.lint.yml build rubocop
+docker compose -f docker-compose.lint.yml run --rm rubocop
+```
+
+### Server / staging-style
+
+Provide production secrets and database URL in `.env` (or the host environment), then:
+
+```bash
+docker compose -f docker-compose.server.yml up -d --build
+docker compose -f docker-compose.server.yml --profile tools run --rm migrate
+```
+
+Optional: set `WEB_PORT` to publish the app on a different host port (default `3000`).
+
+### Shell aliases (optional)
+
+To avoid repeating `-f`, add to your shell profile, for example:
+
+```bash
+alias dcdev='docker compose -f docker-compose.dev.yml'
+alias dctest='docker compose -f docker-compose.test.yml'
+alias dclint='docker compose -f docker-compose.lint.yml'
+alias dcserver='docker compose -f docker-compose.server.yml'
+```
 
 ## Authentik Integration
 
+- **API access** uses a static Bearer token from `AUTHENTIK_TOKEN` (service account token in Authentik). It is not read from the database and there is no OAuth2 refresh flow for API calls.
 - OpenID Connect login is configured via OmniAuth (`/auth/authentik`).
 - User sessions are persisted in the local database. The first successful login will create/refresh the corresponding `User` record.
 - To synchronize an Authentik group into the database, use:
@@ -157,6 +211,12 @@ Local accounts are intended for development or emergency access when Authentik i
 
 ```bash
 bin/rails test
+```
+
+With Docker (includes dedicated Postgres and Redis):
+
+```bash
+docker compose -f docker-compose.test.yml run --rm test
 ```
 
 ## Next Steps

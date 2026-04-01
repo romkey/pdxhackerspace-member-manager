@@ -47,4 +47,42 @@ class MemberSourceTest < ActiveSupport::TestCase
     assert_includes enabled_keys, 'authentik'
     assert_not_includes enabled_keys, 'slack'
   end
+
+  test 'record_sync! clears error state and marks healthy' do
+    source = member_sources(:authentik)
+    source.update!(
+      sync_status: 'failing',
+      consecutive_error_count: 3,
+      last_error_message: 'previous failure'
+    )
+
+    source.record_sync!
+
+    source.reload
+    assert_equal 'healthy', source.sync_status
+    assert_equal 0, source.consecutive_error_count
+    assert_nil source.last_error_message
+    assert source.last_successful_sync_at.present?
+  end
+
+  test 'record_failed_sync! increments errors and sets degraded then failing' do
+    source = member_sources(:sheet)
+    source.update!(sync_status: 'healthy', consecutive_error_count: 0, last_error_message: nil)
+
+    source.record_failed_sync!('first')
+    source.reload
+    assert_equal 'degraded', source.sync_status
+    assert_equal 1, source.consecutive_error_count
+
+    source.record_failed_sync!('second')
+    source.reload
+    assert_equal 'degraded', source.sync_status
+    assert_equal 2, source.consecutive_error_count
+
+    source.record_failed_sync!('third')
+    source.reload
+    assert_equal 'failing', source.sync_status
+    assert_equal 3, source.consecutive_error_count
+    assert_match(/third/, source.last_error_message)
+  end
 end

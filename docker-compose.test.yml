@@ -1,0 +1,67 @@
+# Test suite with dedicated Postgres + Redis (for humans and automation).
+# Postgres is published on host port 5433 so it can run alongside dev (5432).
+# Usage: docker compose -f docker-compose.test.yml run --rm test
+#        docker compose -f docker-compose.test.yml run --rm test bin/rails test test/models/member_test.rb
+name: membermanager-test
+
+x-web-common: &web-common
+  build:
+    context: .
+    args:
+      RUBY_VERSION: 3.3.10
+  image: member_manager_web:latest
+  env_file:
+    - .env
+  volumes:
+    - .:/rails
+    - ./tmp/access:/tmp/access
+
+services:
+  db:
+    image: postgres:18-alpine
+    container_name: membermanager-test-postgres
+    environment:
+      POSTGRES_DB: member_manager_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - test_postgres_data:/var/lib/postgresql/data
+#    ports:
+#      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d member_manager_test"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: membermanager-test-redis
+    command: redis-server --appendonly yes
+#    ports:
+#      - "6380:6379"
+    volumes:
+      - test_redis_data:/data
+
+  test:
+    <<: *web-common
+    command: sh -c "bin/rails db:create db:schema:load && bin/rails test"
+    environment:
+      RAILS_ENV: test
+      DB_HOST: db
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_PORT: 5432
+      DATABASE_URL: postgres://postgres:postgres@db:5432/member_manager_test
+      REDIS_URL: redis://redis:6379/0
+      SKIP_CSS_BUILD: "1"
+      AUTHENTIK_TOKEN: test-placeholder-token
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+volumes:
+  test_postgres_data:
+  test_redis_data:
