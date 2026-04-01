@@ -30,4 +30,36 @@ class UserTest < ActiveSupport::TestCase
     results = User.with_attribute(:department, 'Engineering')
     assert_equal ['user1@example.com'], results.pluck(:email)
   end
+
+  test 'by_name_or_alias matches single-word full_name exactly' do
+    user = User.create!(
+      authentik_id: 'single-word-test',
+      email: 'singleword@example.com',
+      full_name: 'Madonna',
+      active: true
+    )
+
+    assert_equal user, User.by_name_or_alias('Madonna').first
+    assert_equal user, User.by_name_or_alias('madonna').first
+  end
+
+  test 'by_name_or_alias matches single-word alias exactly' do
+    user = users(:one)
+    user.update_columns(aliases: ['Cher'], full_name: 'Example User One')
+
+    assert_equal user, User.by_name_or_alias('Cher').first
+  end
+
+  test 'by_name_or_alias does not match first word of multi-word full_name' do
+    user = users(:one)
+    assert_equal 'Example User One', user.full_name
+
+    assert_nil User.by_name_or_alias('Example').first
+    assert_nil User.by_name_or_alias('One').first
+  end
+
+  test 'by_name_or_alias still matches multi-word full_name exactly' do
+    user = users(:one)
+    assert_equal user, User.by_name_or_alias('Example User One').first
+  end
 end
