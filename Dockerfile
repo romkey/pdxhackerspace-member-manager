@@ -61,6 +61,15 @@ RUN bundle exec bootsnap precompile app/ lib/
 RUN --mount=type=cache,target=/rails/tmp/cache \
     SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
 
+# Lint image: full bundle including development gems (RuboCop + native deps).
+# `docker compose -f docker-compose.lint.yml run --rm rubocop`
+FROM build AS lint
+ENV BUNDLE_WITHOUT=""
+RUN bundle install && \
+    rm -rf "${BUNDLE_PATH}"/ruby/*/cache "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git
+# No USER rails here — that user is only created in the final app stage; lint runs as root.
+ENTRYPOINT ["bundle", "exec", "rubocop"]
+
 
 # Final stage for app image
 FROM base
