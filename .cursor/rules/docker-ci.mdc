@@ -1,6 +1,6 @@
 ---
 description: Docker and GitHub Actions CI/CD conventions
-globs: "{Dockerfile,docker-compose.yml,.github/workflows/**}"
+globs: "{Dockerfile,docker-compose.*.yml,.github/workflows/**}"
 alwaysApply: false
 ---
 
@@ -14,13 +14,23 @@ alwaysApply: false
 - **Assets:** Precompiled with `SECRET_KEY_BASE_DUMMY=1`
 - **Runtime:** Non-root `rails` user; entrypoint at `bin/docker-entrypoint`
 
-## docker-compose
+## docker-compose (split stacks)
 
-- `docker compose run --rm test` — runs `db:create db:schema:load` then `bin/rails test`
-- `docker compose run --rm test rubocop` — runs RuboCop lint
-- Services: `db` (postgres:16), `redis` (redis:7-alpine), `web`, `sidekiq`
-- The `migrate` service runs under the `tools` profile
-- App source is bind-mounted at `/rails`
+Use `-f docker-compose.<stack>.yml`; each stack sets a top-level `name:` so volumes and networks do not collide across stacks.
+
+| File | Purpose |
+|------|---------|
+| `docker-compose.dev.yml` | Local dev: Postgres + Redis + `web` + `sidekiq` (bind-mounted app). Postgres container `membermanager-dev-postgres`, host DB port `5432`. |
+| `docker-compose.test.yml` | Tests: Postgres `membermanager-test-postgres` (host `5433` → container 5432), Redis `membermanager-test-redis` (`6380` → 6379), `test` service. |
+| `docker-compose.lint.yml` | RuboCop: Postgres `membermanager-lint-postgres` (host `5434`), `rubocop` service (`lint` image target). |
+| `docker-compose.server.yml` | Prod/staging-style: **no** Postgres service; set `DATABASE_URL` (or DB\_\* ) for external DB. Includes Redis for Sidekiq unless `REDIS_URL` points elsewhere. |
+
+- **Dev migrate:** `docker compose -f docker-compose.dev.yml --profile tools run --rm migrate`
+- **Tests:** `docker compose -f docker-compose.test.yml run --rm test`
+- **Lint:** `docker compose -f docker-compose.lint.yml build rubocop` then `docker compose -f docker-compose.lint.yml run --rm rubocop`
+- **Server migrate:** `docker compose -f docker-compose.server.yml --profile tools run --rm migrate`
+
+Dev/test/lint bind-mount the repo at `/rails`; server uses the built image only.
 
 ## GitHub Actions
 
