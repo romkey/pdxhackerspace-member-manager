@@ -1,6 +1,7 @@
-<%# locals: items (array of tiered hashes), show_numbers: boolean %>
+<%# locals: items (array of tiered hashes), show_numbers: boolean, number_offset: integer (default 0) %>
 <% items = local_assigns.fetch(:items) %>
 <% show_numbers = local_assigns.fetch(:show_numbers, false) %>
+<% number_offset = local_assigns.fetch(:number_offset, 0) %>
 <% prev_tier = nil %>
 <% items.each_with_index do |item, i| %>
   <% if prev_tier && item[:tier] != prev_tier %>
@@ -8,7 +9,7 @@
   <% end %>
   <li class="list-group-item d-flex align-items-start gap-2 py-3">
     <% if show_numbers %>
-      <span class="badge rounded-pill text-bg-secondary"><%= i + 1 %></span>
+      <span class="badge rounded-pill text-bg-secondary"><%= number_offset + i + 1 %></span>
     <% end %>
     <%= render 'dashboard/attention_item_body', item_id: item[:id] %>
   </li>
