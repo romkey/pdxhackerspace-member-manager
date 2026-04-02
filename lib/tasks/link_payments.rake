@@ -322,6 +322,13 @@ namespace :payments do
           # Clear membership_ended_date if there's a recent payment
           updates[:membership_ended_date] = nil
         end
+
+        plan = user.membership_plan
+        if plan.present? && user.membership_status.present? &&
+           !user.membership_status.in?(%w[guest sponsored])
+          at = User.dues_due_at_from_payment_cycle(latest_payment.to_date, plan)
+          updates[:dues_due_at] = at if at
+        end
       end
 
       if updates.any?

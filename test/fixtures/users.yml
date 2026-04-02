@@ -81,6 +81,7 @@ cash_payer:
   membership_status: paying
   payment_type: cash
   dues_status: current
+  membership_plan: personal_equipment_donation
   last_synced_at: 2025-11-14 10:03:05
   authentik_attributes: {}
 

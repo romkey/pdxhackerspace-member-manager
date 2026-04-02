@@ -102,10 +102,12 @@ class MembershipPlansController < AdminController
   def mark_dues_received
     user = User.find(params[:user_id])
     old_dues_status = user.dues_status
+    dues_at = User.dues_due_at_from_payment_cycle(Date.current, user.membership_plan)
     user.update!(
       dues_status: 'current',
       last_payment_date: Date.current,
-      membership_status: 'paying'
+      membership_status: 'paying',
+      dues_due_at: dues_at
     )
     Journal.create!(
       user: user,

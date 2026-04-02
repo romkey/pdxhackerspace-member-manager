@@ -92,7 +92,7 @@
         <% end %>
 
         <% next_payment = user.next_payment_date %>
-        <% if next_payment.present? %>
+        <% if next_payment.present? && user.membership_status.in?(%w[paying cancelled unknown applicant]) %>
           <div class="mb-3">
             <small class="text-muted d-block">Next Payment</small>
             <% if next_payment > Date.current %>
@@ -104,6 +104,24 @@
               <span class="text-warning">
                 <i class="bi bi-exclamation-triangle me-1"></i>
                 Was due <%= next_payment.strftime('%B %d, %Y') %>
+              </span>
+            <% end %>
+          </div>
+        <% elsif user.dues_due_at.present? && user.membership_status.in?(%w[guest sponsored]) %>
+          <div class="mb-3">
+            <small class="text-muted d-block">Limited <%= user.membership_status.humanize %> Access</small>
+            <% if user.dues_due_at > Time.current %>
+              <span class="text-success">
+                <i class="bi bi-calendar-event me-1"></i>
+                Good through <%= user.dues_due_at.strftime('%B %d, %Y') %>
+                <span class="d-block small text-muted mt-1">
+                  (<%= distance_of_time_in_words_to_now(user.dues_due_at) %> from now)
+                </span>
+              </span>
+            <% else %>
+              <span class="text-warning">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                Ended <%= user.dues_due_at.strftime('%B %d, %Y') %>
               </span>
             <% end %>
           </div>

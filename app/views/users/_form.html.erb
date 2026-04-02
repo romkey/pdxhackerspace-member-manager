@@ -117,7 +117,24 @@
             ["Unknown", "unknown"]
           ], @user.membership_status),
           {},
-          { class: "form-select" } %>
+          { class: "form-select", id: "user_membership_status" } %>
+      <div class="form-text">For Guest or Sponsored, you can set when access ends below (optional).</div>
+    </div>
+
+    <div class="guest-sponsored-access-duration border rounded p-3 bg-body-secondary" id="guest-sponsored-access-fields">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <%= f.label :dues_due_at, "Access ends at (optional)", class: "form-label" %>
+          <%= f.datetime_field :dues_due_at, class: "form-control", include_seconds: false %>
+          <div class="form-text">Leave blank for unlimited guest or sponsored access.</div>
+        </div>
+        <div class="col-md-6">
+          <%= f.label :sponsored_guest_duration_months, "Or duration from now (months)", class: "form-label" %>
+          <%= f.number_field :sponsored_guest_duration_months, class: "form-control", min: 0, step: 1,
+              value: nil, placeholder: "e.g. 3" %>
+          <div class="form-text">If set, overrides “Access ends at” on save. Use 0 to clear an end date.</div>
+        </div>
+      </div>
     </div>
 
     <% if @user.service_account? %>
@@ -182,6 +199,20 @@
         <%= f.label :is_admin, "Administrator", class: "form-check-label" %>
       </div>
     <% end %>
+
+    <script>
+    (function() {
+      const sel = document.getElementById('user_membership_status');
+      const box = document.getElementById('guest-sponsored-access-fields');
+      if (!sel || !box) return;
+      function sync() {
+        const v = sel.value;
+        box.style.display = (v === 'guest' || v === 'sponsored') ? 'block' : 'none';
+      }
+      sel.addEventListener('change', sync);
+      sync();
+    })();
+    </script>
 
   <% end %>
 
