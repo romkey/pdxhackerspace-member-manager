@@ -65,6 +65,12 @@
                   <strong>Guest</strong> &mdash; no physical access, no dues
                 </label>
               </div>
+
+              <div id="sponsored-guest-duration-wrap" class="mt-2 ps-4 border-start border-3 border-secondary" style="display: none;">
+                <label class="form-label small mb-1">Optional: limit access (months from now)</label>
+                <input type="number" name="sponsored_guest_duration_months" id="sponsored_guest_duration_months"
+                       class="form-control form-control-sm" min="0" step="1" placeholder="Leave blank for unlimited">
+              </div>
             </div>
 
             <!-- Cash plan option (shown when "paying" is selected) -->
@@ -118,9 +124,18 @@
   const cashFields = document.getElementById('cash-plan-fields');
   if (!payingOptions || !cashFields) return;
 
+  const durationWrap = document.getElementById('sponsored-guest-duration-wrap');
+
   function updatePayingVisibility() {
     const selected = document.querySelector('input[name="membership_type"]:checked');
     payingOptions.style.display = (selected && selected.value === 'paying') ? 'block' : 'none';
+  }
+
+  function updateDurationVisibility() {
+    const selected = document.querySelector('input[name="membership_type"]:checked');
+    if (!durationWrap) return;
+    const show = selected && (selected.value === 'sponsored' || selected.value === 'guest');
+    durationWrap.style.display = show ? 'block' : 'none';
   }
 
   function updateCashVisibility() {
@@ -128,12 +143,16 @@
   }
 
   typeRadios.forEach(function(radio) {
-    radio.addEventListener('change', updatePayingVisibility);
+    radio.addEventListener('change', function() {
+      updatePayingVisibility();
+      updateDurationVisibility();
+    });
   });
 
   cashCheck.addEventListener('change', updateCashVisibility);
 
   updatePayingVisibility();
+  updateDurationVisibility();
   updateCashVisibility();
 })();
 </script>

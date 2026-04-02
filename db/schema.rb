@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_31_000000) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_02_040417) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -866,6 +866,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_31_000000) do
     t.text "bio"
     t.datetime "created_at", null: false
     t.boolean "do_not_greet", default: false, null: false
+    t.datetime "dues_due_at"
     t.string "dues_status", default: "unknown"
     t.string "email"
     t.string "extra_emails", default: [], array: true

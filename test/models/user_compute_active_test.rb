@@ -21,16 +21,39 @@ class UserComputeActiveTest < ActiveSupport::TestCase
     assert_not user.active?, 'paying + unknown should be inactive'
   end
 
-  test 'sponsored member is always active' do
+  test 'sponsored member without end date is active' do
     user = build_user(membership_status: 'sponsored', dues_status: 'inactive')
     user.save!
-    assert user.active?, 'sponsored should always be active'
+    assert user.active?, 'sponsored without dues_due_at should be active'
   end
 
-  test 'guest member is always active' do
+  test 'sponsored member with expired limited access is inactive' do
+    user = build_user(membership_status: 'sponsored', dues_status: 'current', dues_due_at: 1.day.ago)
+    user.save!
+    assert_not user.active?, 'sponsored with past dues_due_at should be inactive'
+  end
+
+  test 'guest member without end date is active' do
     user = build_user(membership_status: 'guest', dues_status: 'unknown')
     user.save!
-    assert user.active?, 'guest should always be active'
+    assert user.active?, 'guest without dues_due_at should be active'
+  end
+
+  test 'guest member with expired limited access is inactive' do
+    user = build_user(membership_status: 'guest', dues_status: 'unknown', dues_due_at: 2.days.ago)
+    user.save!
+    assert_not user.active?, 'guest with past dues_due_at should be inactive'
+  end
+
+  test 'is_sponsored flag respects limited duration expiry' do
+    user = build_user(
+      membership_status: 'paying',
+      dues_status: 'current',
+      is_sponsored: true,
+      dues_due_at: 1.hour.ago
+    )
+    user.save!
+    assert_not user.active?, 'sponsored flag with expired dues_due_at should be inactive'
   end
 
   test 'banned member is always inactive' do
@@ -127,7 +150,8 @@ class UserComputeActiveTest < ActiveSupport::TestCase
       membership_status: 'unknown',
       dues_status: 'unknown',
       service_account: false,
-      active: false
+      active: false,
+      profile_visibility: 'members'
     }
     User.new(defaults.merge(attrs))
   end

@@ -54,6 +54,8 @@ class CashPaymentsControllerTest < ActionDispatch::IntegrationTest
     @user.reload
     assert_equal 'current', @user.dues_status
     assert_equal 'cash', @user.payment_type
+    assert @user.dues_due_at.present?
+    assert_equal Date.current + 1.month, @user.dues_due_at.to_date
   end
 
   test 'create rejects invalid data' do

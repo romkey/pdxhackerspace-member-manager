@@ -93,16 +93,18 @@ class MembershipCleanup
     # 5. Check freshness against plan billing period
     cutoff = MembershipTaskHelpers.cutoff_for_plan(effective_plan)
 
+    dues_at = User.dues_due_at_from_payment_cycle(latest[:time].to_date, effective_plan)
+
     if latest[:time] >= cutoff
       # Current
       if user.membership_status != 'paying' || user.dues_status != 'current'
-        apply(user, membership_status: 'paying', dues_status: 'current')
+        apply(user, membership_status: 'paying', dues_status: 'current', dues_due_at: dues_at)
         actions << 'paying + current'
         @changes[:marked_paying] << user
       end
     elsif user.dues_status != 'lapsed'
       # Lapsed
-      apply(user, dues_status: 'lapsed')
+      apply(user, dues_status: 'lapsed', dues_due_at: dues_at)
       actions << "lapsed (last payment #{latest[:time].to_date})"
       @changes[:marked_lapsed] << user
     end

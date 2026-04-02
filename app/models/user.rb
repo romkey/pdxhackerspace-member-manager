@@ -54,6 +54,9 @@ class User < ApplicationRecord
   validates :dues_status, inclusion: { in: %w[current lapsed inactive unknown] }
   validate :extra_emails_format
 
+  # Submitted with admin user form: if set for guest/sponsored, sets dues_due_at to now + N months
+  attr_accessor :sponsored_guest_duration_months
+
   # Virtual attribute for comma-separated alias editing
   def aliases_text
     (aliases || []).join(', ')
@@ -176,20 +179,25 @@ class User < ApplicationRecord
     dates.compact.max
   end
 
-  # Calculate the next expected payment date based on most recent payment and billing frequency
+  # Next billing-cycle boundary (paying) or end of limited guest/sponsored access, persisted on `dues_due_at`.
   def next_payment_date
-    last_payment = most_recent_payment_date
-    return nil if last_payment.blank?
-    return nil if membership_plan.blank?
+    dues_due_at&.to_date
+  end
 
-    case membership_plan.billing_frequency
-    when 'monthly'
-      last_payment + 1.month
-    when 'yearly'
-      last_payment + 1.year
-    when 'one-time'
-      nil # One-time payments don't renew
-    end
+  # When the next payment is due after a payment on anchor_date, given the plan's billing frequency.
+  def self.dues_due_at_from_payment_cycle(anchor_date, plan)
+    return nil if anchor_date.blank? || plan.blank?
+
+    d = case plan.billing_frequency
+        when 'monthly' then anchor_date.to_date + 1.month
+        when 'yearly' then anchor_date.to_date + 1.year
+        when 'one-time' then nil
+        end
+    d&.in_time_zone&.beginning_of_day
+  end
+
+  def limited_guest_or_sponsored_access_expired?
+    dues_due_at.present? && dues_due_at < Time.current
   end
 
   PAYMENT_GRACE_DAYS = 2
@@ -402,13 +410,28 @@ class User < ApplicationRecord
       updates[:membership_ended_date] = nil if membership_ended_date.present?
     end
 
-    # Try to match a membership plan based on payment amount if user doesn't have one
-    if membership_plan_id.blank? && payment_amount.present? && payment_amount.positive?
-      matched_plan = find_matching_membership_plan(payment_amount)
-      updates[:membership_plan_id] = matched_plan.id if matched_plan
-    end
+    maybe_match_plan_from_payment_amount!(updates, payment_amount)
+
+    merge_dues_due_at_after_payment!(updates, payment_date)
 
     updates
+  end
+
+  def merge_dues_due_at_after_payment!(updates, payment_date)
+    status = updates[:membership_status] || membership_status
+    return if status.in?(%w[guest sponsored banned deceased])
+
+    anchor = [last_payment_date, payment_date, updates[:last_payment_date]].compact.max
+    plan_id = updates[:membership_plan_id] || membership_plan_id
+    plan = MembershipPlan.find_by(id: plan_id)
+    updates[:dues_due_at] = User.dues_due_at_from_payment_cycle(anchor, plan)
+  end
+
+  def maybe_match_plan_from_payment_amount!(updates, payment_amount)
+    return unless membership_plan_id.blank? && payment_amount.present? && payment_amount.positive?
+
+    matched_plan = find_matching_membership_plan(payment_amount)
+    updates[:membership_plan_id] = matched_plan.id if matched_plan
   end
 
   # Find a membership plan that matches the given payment amount
@@ -472,6 +495,7 @@ class User < ApplicationRecord
 
   before_validation :generate_username_if_blank
   before_validation :set_membership_start_date, on: :create
+  before_validation :apply_sponsored_guest_duration_months
   before_save :ensure_greeting_name_mutual_exclusivity
   before_save :clear_greeting_name_if_do_not_greet
   before_save :auto_fill_greeting_name
@@ -657,19 +681,18 @@ class User < ApplicationRecord
 
   # For non-service accounts, compute `active` from membership_status and dues_status.
   # Service accounts manage their own active flag manually.
-  # Sponsored accounts (via the sponsored flag) are always active.
+  # Limited guest/sponsored access expires when `dues_due_at` is in the past.
   def compute_active_status
     return if service_account?
 
-    # Sponsored flag overrides everything — always active
     if is_sponsored?
-      self.active = true
+      self.active = !limited_guest_or_sponsored_access_expired?
       return
     end
 
     self.active = case membership_status
                   when 'sponsored', 'guest'
-                    true
+                    !limited_guest_or_sponsored_access_expired?
                   when 'paying', 'cancelled', 'unknown'
                     dues_status == 'current'
                   else
@@ -677,6 +700,14 @@ class User < ApplicationRecord
                   end
 
     self.payment_type = 'inactive' if membership_status == 'deceased'
+  end
+
+  def apply_sponsored_guest_duration_months
+    return unless membership_status.in?(%w[guest sponsored])
+    return if sponsored_guest_duration_months.blank?
+
+    months = sponsored_guest_duration_months.to_i
+    self.dues_due_at = months.positive? ? Time.current + months.months : nil
   end
 
   # Auto-remove legacy flag when the account *gets* meaningful payment/membership data.
@@ -688,7 +719,7 @@ class User < ApplicationRecord
 
     # Only auto-clear if one of the meaningful data fields is changing in this save
     meaningful_fields = %w[membership_plan_id dues_status last_payment_date recharge_most_recent_payment_date
-                           membership_status is_sponsored]
+                           membership_status is_sponsored dues_due_at]
     return unless changes.keys.intersect?(meaningful_fields)
 
     has_plan = membership_plan_id.present?

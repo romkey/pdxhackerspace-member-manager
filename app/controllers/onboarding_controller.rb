@@ -56,17 +56,21 @@ class OnboardingController < AdminController
       end
     when 'sponsored'
       @user.update!(
-        membership_status: 'sponsored',
-        payment_type: 'sponsored',
-        active: true,
-        dues_status: 'current'
+        {
+          membership_status: 'sponsored',
+          payment_type: 'sponsored',
+          active: true,
+          dues_status: 'current'
+        }.merge(onboarding_sponsored_guest_duration)
       )
     when 'guest'
       @user.update!(
-        membership_status: 'guest',
-        payment_type: 'inactive',
-        active: false,
-        dues_status: 'unknown'
+        {
+          membership_status: 'guest',
+          payment_type: 'inactive',
+          active: false,
+          dues_status: 'unknown'
+        }.merge(onboarding_sponsored_guest_duration)
       )
     end
 
@@ -168,6 +172,13 @@ class OnboardingController < AdminController
   end
 
   private
+
+  def onboarding_sponsored_guest_duration
+    m = params[:sponsored_guest_duration_months].to_s.strip.presence&.to_i
+    return {} unless m.present? && m.positive?
+
+    { dues_due_at: Time.current + m.months }
+  end
 
   def set_user
     @user = User.find_by_param(params[:id])
