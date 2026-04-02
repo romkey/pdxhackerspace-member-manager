@@ -21,8 +21,13 @@
   }
 }
 
-.dashboard-attention-section + .dashboard-attention-section {
-  margin-top: 1.25rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--bs-border-color-translucent);
+// Needs attention vs. all-good: strong separator between the two lists on the admin dashboard
+.dashboard-attention-major-divider {
+  height: 0;
+  margin: 0;
+  border-top: 2px solid var(--bs-border-color);
+}
+
+.dashboard-attention-tier-boundary hr {
+  border-color: var(--bs-border-color-translucent);
 }

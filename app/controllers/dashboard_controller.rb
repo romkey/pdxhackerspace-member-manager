@@ -147,5 +147,40 @@ class DashboardController < AdminController
     @active_no_email_count = User.where(active: true)
                                  .where(email: [nil, ''])
                                  .count
+
+    @dashboard_attention_items = build_dashboard_attention_items
+  end
+
+  def build_dashboard_attention_items
+    [
+      { tier: :urgent, id: :ac_issues, ok: @ac_issue_count.zero? },
+      { tier: :urgent, id: :payment_processors, ok: @payment_processors_sync_unhealthy.empty? },
+      { tier: :urgent, id: :authentik, ok: authentik_dashboard_ok? },
+      { tier: :important, id: :membership_applications, ok: @pending_applications_count.zero? },
+      { tier: :important, id: :unlinked_recharge, ok: @unlinked_recharge_count.zero? },
+      { tier: :important, id: :mail_queue, ok: @queued_mail_count.zero? },
+      { tier: :important, id: :incidents, ok: @active_incident_count.zero? },
+      { tier: :important, id: :email_templates, ok: @templates_needing_review_count.zero? },
+      { tier: :important, id: :interests, ok: @interests_needing_review_count.zero? },
+      { tier: :important, id: :parking_active, ok: @active_parking_count.zero? },
+      { tier: :important, id: :parking_expired, ok: @expired_parking_count.zero? },
+      { tier: :important, id: :manual_payments_due, ok: true },
+      { tier: :housekeeping, id: :lapsed_with_access, ok: @lapsed_with_access_count.zero? },
+      { tier: :housekeeping, id: :legacy_recent_access, ok: @legacy_recent_access_count.zero? },
+      { tier: :housekeeping, id: :lapsed_with_slack, ok: @lapsed_with_slack_count.zero? },
+      { tier: :housekeeping, id: :legacy_with_slack, ok: @legacy_with_slack_count.zero? },
+      { tier: :housekeeping, id: :lapsed_active_slack, ok: @lapsed_active_slack_count.zero? },
+      { tier: :housekeeping, id: :legacy_active_slack, ok: @legacy_active_slack_count.zero? },
+      { tier: :housekeeping, id: :slack_inactive, ok: @slack_inactive_count.zero? },
+      { tier: :housekeeping, id: :active_no_email, ok: @active_no_email_count.zero? }
+    ].freeze
+  end
+
+  def authentik_dashboard_ok?
+    return false if @authentik_api_urgent
+    return true if @authentik_member_source.nil? || !@authentik_member_source.enabled?
+    return false if @authentik_sync_issue
+
+    true
   end
 end
