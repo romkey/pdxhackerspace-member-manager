@@ -37,6 +37,36 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 'Please choose a CSV file to import.', flash[:alert]
   end
 
+  test 'link_user associates member with application' do
+    app = MembershipApplication.create!(
+      email: 'link-app-test@example.com',
+      status: 'submitted',
+      submitted_at: Time.current
+    )
+    member = users(:member_with_local_account)
+
+    post link_user_membership_application_path(app), params: { user_id: member.id }
+
+    assert_redirected_to membership_application_path(app)
+    assert_match(/linked/i, flash[:notice])
+    assert_equal member.id, app.reload.user_id
+  end
+
+  test 'unlink_user clears member on application' do
+    app = MembershipApplication.create!(
+      email: 'unlink-app-test@example.com',
+      status: 'submitted',
+      submitted_at: Time.current
+    )
+    member = users(:member_with_local_account)
+    app.update!(user: member)
+
+    post unlink_user_membership_application_path(app)
+
+    assert_redirected_to membership_application_path(app)
+    assert_nil app.reload.user_id
+  end
+
   private
 
   def sign_in_as_admin

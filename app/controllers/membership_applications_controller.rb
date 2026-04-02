@@ -3,8 +3,8 @@ class MembershipApplicationsController < ApplicationController
 
   include Pagy::Backend
 
-  before_action :require_admin!, only: %i[index show import approve reject mark_under_review]
-  before_action :set_application_admin, only: %i[show approve reject mark_under_review]
+  before_action :require_admin!, only: %i[index show import approve reject mark_under_review link_user unlink_user]
+  before_action :set_application_admin, only: %i[show approve reject mark_under_review link_user unlink_user]
   before_action :require_verified_email!, only: %i[start save_page page submit_application]
   before_action :load_pages, only: %i[start page]
 
@@ -102,7 +102,7 @@ class MembershipApplicationsController < ApplicationController
   end
 
   def index
-    @applications = MembershipApplication.where.not(status: 'draft').newest_first
+    @applications = MembershipApplication.where.not(status: 'draft').newest_first.includes(:user, :reviewed_by)
     @applications = @applications.where(status: params[:status]) if params[:status].present?
 
     @status_counts = {
@@ -114,10 +114,26 @@ class MembershipApplicationsController < ApplicationController
     }
 
     @pagy, @applications = pagy(@applications, limit: 25)
+
+    @users_for_application_link = User.non_service_accounts.ordered_by_display_name.to_a
   end
 
   def show
     @pages_with_answers = @application.answers_by_page
+    @users_for_application_link = User.non_service_accounts.ordered_by_display_name.to_a
+  end
+
+  def link_user
+    user = User.non_service_accounts.find(params[:user_id])
+    @application.update!(user: user)
+    redirect_to membership_application_path(@application),
+                notice: "Application linked to #{user.display_name}."
+  end
+
+  def unlink_user
+    @application.update!(user: nil)
+    redirect_to membership_application_path(@application),
+                notice: 'Member link removed from this application.'
   end
 
   def approve

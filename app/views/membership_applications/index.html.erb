@@ -79,6 +79,7 @@
             <th>Status</th>
             <th>Submitted</th>
             <th>Reviewed by</th>
+            <th>Linked member</th>
             <th class="text-end">Actions</th>
           </tr>
         </thead>
@@ -92,7 +93,22 @@
               </td>
               <td><%= app.submitted_at&.strftime('%b %d, %Y') || '—' %></td>
               <td><%= app.reviewed_by&.display_name || '—' %></td>
-              <td class="text-end">
+              <td>
+                <% if app.user %>
+                  <%= link_to app.user.display_name, user_path(app.user), class: "text-decoration-none" %>
+                <% else %>
+                  <span class="text-muted">—</span>
+                <% end %>
+              </td>
+              <td class="text-end text-nowrap">
+                <% if app.user.nil? %>
+                  <button type="button" class="btn btn-sm btn-primary"
+                          data-bs-toggle="modal" data-bs-target="#maLinkMemberModal"
+                          data-ma-link-action="<%= link_user_membership_application_path(app) %>"
+                          data-application-email="<%= h(app.email) %>">
+                    Link member
+                  </button>
+                <% end %>
                 <%= link_to "View", membership_application_path(app), class: "btn btn-sm btn-outline-primary" %>
               </td>
             </tr>
@@ -110,4 +126,8 @@
     <i class="bi bi-inbox fs-1 d-block mb-2"></i>
     <p>No applications found.</p>
   </div>
+<% end %>
+
+<% if @users_for_application_link.any? %>
+  <%= render 'link_member_modal', users: @users_for_application_link, dynamic: true, application_email: '' %>
 <% end %>

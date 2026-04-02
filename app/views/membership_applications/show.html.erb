@@ -30,6 +30,25 @@
 
           <dt>Submitted</dt>
           <dd><%= @application.submitted_at&.strftime('%B %d, %Y at %l:%M %p') || 'Not yet submitted' %></dd>
+
+          <dt>Linked member</dt>
+          <dd class="d-flex flex-wrap align-items-center gap-2">
+            <% if @application.user %>
+              <%= link_to @application.user.display_name, user_path(@application.user), class: "text-decoration-none" %>
+              <%= button_to 'Unlink', unlink_user_membership_application_path(@application),
+                            method: :post,
+                            class: 'btn btn-sm btn-outline-warning',
+                            form: { data: { turbo_confirm: 'Remove the member link from this application?' } } %>
+            <% else %>
+              <span class="text-muted">Not linked</span>
+              <% if @users_for_application_link.any? %>
+                <button type="button" class="btn btn-sm btn-primary"
+                        data-bs-toggle="modal" data-bs-target="#maLinkMemberModal">
+                  Link member
+                </button>
+              <% end %>
+            <% end %>
+          </dd>
         </dl>
       </div>
       <div class="col-md-6">
@@ -53,6 +72,13 @@
     </div>
   </div>
 </div>
+
+<% if @application.user.nil? && @users_for_application_link.any? %>
+  <%= render 'link_member_modal',
+             users: @users_for_application_link,
+             form_url: link_user_membership_application_path(@application),
+             application_email: @application.email %>
+<% end %>
 
 <% @pages_with_answers.each do |entry| %>
   <% page = entry[:page] %>

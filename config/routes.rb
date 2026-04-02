@@ -382,6 +382,8 @@ Rails.application.routes.draw do
       post :approve
       post :reject
       post :mark_under_review
+      post :link_user
+      post :unlink_user
     end
   end
 
