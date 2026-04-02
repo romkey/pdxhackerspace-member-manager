@@ -52,32 +52,59 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect VERSION-only pull request
+        id: version_only
+        run: |
+          BASE="${{ github.event.pull_request.base.sha }}"
+          HEAD="${{ github.event.pull_request.head.sha }}"
+          LINE_COUNT=$(git diff --name-only "$BASE" "$HEAD" | wc -l | tr -d ' ')
+          ONLY_FILE=$(git diff --name-only "$BASE" "$HEAD")
+          if [ "$LINE_COUNT" -eq 1 ] && [ "$ONLY_FILE" = "VERSION" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Only VERSION changed — skipping lint and tests."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip CI notice
+        if: steps.version_only.outputs.skip == 'true'
+        run: echo "CI skipped for this pull request (only VERSION changed)."
 
       - name: Set up Ruby
+        if: steps.version_only.outputs.skip != 'true'
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.3.10'
           bundler-cache: true
 
       - name: Set up Node.js
+        if: steps.version_only.outputs.skip != 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: 'yarn'
 
       - name: Install JS dependencies
+        if: steps.version_only.outputs.skip != 'true'
         run: yarn install --frozen-lockfile
 
       - name: Lint (RuboCop)
+        if: steps.version_only.outputs.skip != 'true'
         run: bundle exec rubocop
 
       - name: Type check
+        if: steps.version_only.outputs.skip != 'true'
         run: |
           # No standalone type checker (e.g. tsc) in this repo; Rails + Ruby only.
           echo "Type check skipped — not applicable."
 
       - name: Prepare database
+        if: steps.version_only.outputs.skip != 'true'
         run: bin/rails db:test:prepare
 
       - name: Run tests
+        if: steps.version_only.outputs.skip != 'true'
         run: bin/rails test
