@@ -7,7 +7,7 @@ x-web-common: &web-common
   build:
     context: .
     args:
-      RUBY_VERSION: 3.3.10
+      RUBY_VERSION: 3.3.11
   image: member_manager_web:latest
   env_file:
     - .env

@@ -63,7 +63,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.3.10'
+          ruby-version: '3.3.11'
           bundler-cache: true
 
       - name: Set up Node.js

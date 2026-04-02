@@ -24,7 +24,7 @@ services:
       dockerfile: Dockerfile
       target: lint
       args:
-        RUBY_VERSION: 3.3.10
+        RUBY_VERSION: 3.3.11
     image: member_manager_lint:latest
     env_file:
       - .env

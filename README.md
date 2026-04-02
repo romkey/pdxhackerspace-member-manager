@@ -4,7 +4,7 @@ MemberManager is a Rails application that keeps a local roster synchronized with
 
 ## Requirements
 
-- Ruby 3.3.10 (see `.ruby-version`)
+- Ruby 3.3.11 (see `.ruby-version`)
 - Rails 8.1
 - PostgreSQL 16+
 - Redis 7+ (Sidekiq, Action Cable)
