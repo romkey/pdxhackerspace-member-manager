@@ -2,6 +2,7 @@ class MembershipApplication < ApplicationRecord
   STATUSES = %w[draft submitted under_review approved rejected].freeze
 
   belongs_to :reviewed_by, class_name: 'User', optional: true
+  belongs_to :user, optional: true
   has_many :application_answers, dependent: :destroy
 
   validates :email, presence: true
