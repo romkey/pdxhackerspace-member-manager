@@ -1,0 +1,31 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+default:
+  key: default
+  name: Default
+  base_url:
+  model:
+  prompt: ""
+  enabled: true
+  health_status: not_configured
+  display_order: 0
+
+application_status:
+  key: application_status
+  name: Application Status
+  base_url:
+  model:
+  prompt: ""
+  enabled: true
+  health_status: not_configured
+  display_order: 1
+
+recommendation_engine:
+  key: recommendation_engine
+  name: Recommendation Engine
+  base_url:
+  model:
+  prompt: ""
+  enabled: true
+  health_status: not_configured
+  display_order: 2

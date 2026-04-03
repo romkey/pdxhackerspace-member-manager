@@ -46,6 +46,14 @@ Sidekiq.configure_server do |config|
     active_job: true
   )
 
+  # AI / Ollama health - Every 10 minutes
+  Sidekiq::Cron::Job.create(
+    name: 'AI Ollama Health Check - Every 10 minutes',
+    cron: '*/10 * * * *',
+    class: 'AiOllamaHealthCheckJob',
+    active_job: true
+  )
+
   # Access Controller Backup - Daily at 1am
   Sidekiq::Cron::Job.create(
     name: 'Access Controller Backup - Daily at 1am',
