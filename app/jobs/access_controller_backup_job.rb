@@ -1,12 +1,12 @@
 require 'open3'
 
-# Runs the backup action on all enabled access controllers sequentially.
+# Runs the backup action on all enabled access controllers sequentially (batched by primary key).
 # Scheduled via sidekiq-cron to run daily at 1 AM.
 class AccessControllerBackupJob < ApplicationJob
   queue_as :default
 
   def perform
-    AccessController.enabled.ordered.includes(:access_controller_type).each do |controller|
+    AccessController.enabled.includes(:access_controller_type).find_each do |controller|
       type = controller.access_controller_type
       next unless type&.enabled?
       next unless Array(type.actions).map(&:to_s).include?('backup')
