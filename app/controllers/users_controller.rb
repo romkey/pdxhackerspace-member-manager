@@ -349,11 +349,11 @@ class UsersController < AuthenticatedController
       return
     end
     if @user.membership_status.in?(%w[banned deceased])
-      redirect_to user_path(@user), alert: 'Emergency active override is not available for banned or deceased members.'
+      redirect_to user_path(@user), alert: 'Active override is not available for banned or deceased members.'
       return
     end
     if @user.emergency_active_override?
-      redirect_to user_path(@user), notice: 'Emergency active override is already enabled.'
+      redirect_to user_path(@user), notice: 'Active override is already enabled.'
       return
     end
     if @user.active?
@@ -363,18 +363,18 @@ class UsersController < AuthenticatedController
 
     @user.update!(emergency_active_override: true)
     redirect_to user_path(@user),
-                notice: 'Emergency active override enabled. They stay active until you clear the override.'
+                notice: 'Active override enabled. They stay active until you clear the override.'
   end
 
   def clear_emergency_active_override
     unless @user.emergency_active_override?
-      redirect_to user_path(@user), alert: 'Emergency active override is not enabled.'
+      redirect_to user_path(@user), alert: 'Active override is not enabled.'
       return
     end
 
     @user.update!(emergency_active_override: false)
     redirect_to user_path(@user),
-                notice: 'Emergency active override cleared; active status was recalculated from membership.'
+                notice: 'Active override cleared; active status was recalculated from membership.'
   end
 
   def ban

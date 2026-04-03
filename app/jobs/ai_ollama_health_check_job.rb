@@ -2,7 +2,7 @@ class AiOllamaHealthCheckJob < ApplicationJob
   queue_as :default
 
   def perform
-    AiOllamaProfile.ordered.find_each do |profile|
+    AiOllamaProfile.ordered.each do |profile|
       check_profile(profile)
     end
   end

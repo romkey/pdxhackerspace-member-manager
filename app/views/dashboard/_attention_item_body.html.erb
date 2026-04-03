@@ -172,13 +172,13 @@ when :ac_issues %>
   <% if @emergency_active_override_count.zero? %>
     <div>
       <i class="bi bi-check-circle-fill text-success me-1"></i>
-      No members with emergency active override
+      No members with active override
     </div>
   <% else %>
     <div>
       <i class="bi bi-exclamation-circle-fill text-info me-1"></i>
       <%= link_to users_path(emergency_active_override: '1'), class: "text-decoration-none fw-semibold" do %>
-        <strong><%= @emergency_active_override_count %></strong> <%= 'member'.pluralize(@emergency_active_override_count) %> with emergency active override
+        <strong><%= @emergency_active_override_count %></strong> <%= 'member'.pluralize(@emergency_active_override_count) %> with active override
       <% end %>
     </div>
   <% end %>
@@ -355,31 +355,36 @@ when :ac_issues %>
       </div>
     </div>
   <% else %>
-    <div class="small">
-      <% @ai_ollama_profiles.each do |p| %>
-        <% if !p.enabled? %>
-          <div class="text-secondary mb-1">
-            <i class="bi bi-slash-circle me-1"></i>
-            <span class="fw-semibold"><%= p.name %></span> — disabled
-          </div>
-        <% elsif p.effective_base_url.blank? %>
+    <div>
+      <i class="bi bi-check-circle-fill text-success me-1"></i>
+      No unhealthy AI / Ollama endpoints
+      <div class="mt-1">
+        <%= link_to "Manage AI", ai_ollama_profiles_path, class: "link-secondary small" %>
+      </div>
+    </div>
+  <% end %>
+<% when :ai_ollama_unconfigured %>
+  <% if @ai_ollama_unconfigured %>
+    <% missing = @ai_ollama_profiles.select { |p| p.enabled? && p.effective_base_url.blank? } %>
+    <div>
+      <h6 class="mb-2">AI unconfigured</h6>
+      <div class="small text-muted">
+        <% missing.each do |p| %>
           <div class="text-warning mb-1">
             <i class="bi bi-exclamation-circle me-1"></i>
-            <span class="fw-semibold"><%= p.name %></span> — unconfigured (no Ollama endpoint)
-          </div>
-        <% elsif p.health_status == 'healthy' %>
-          <div class="text-success mb-1">
-            <i class="bi bi-check-circle-fill me-1"></i>
-            <span class="fw-semibold"><%= p.name %></span> — healthy
-          </div>
-        <% else %>
-          <div class="text-muted mb-1">
-            <i class="bi bi-hourglass-split me-1"></i>
-            <span class="fw-semibold"><%= p.name %></span> — awaiting health check
+            <span class="fw-semibold"><%= p.name %></span> — no Ollama endpoint
           </div>
         <% end %>
-      <% end %>
+      </div>
       <div class="mt-2">
+        <%= link_to "Manage AI", ai_ollama_profiles_path, class: "link-secondary small" %>
+      </div>
+    </div>
+  <% else %>
+    <div>
+      <i class="bi bi-check-circle-fill text-success me-1"></i>
+      All enabled AI profiles have an Ollama endpoint
+      <div class="mt-1">
         <%= link_to "Manage AI", ai_ollama_profiles_path, class: "link-secondary small" %>
       </div>
     </div>
