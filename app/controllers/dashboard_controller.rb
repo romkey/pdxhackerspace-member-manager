@@ -150,6 +150,7 @@ class DashboardController < AdminController
 
     @ai_ollama_profiles = AiOllamaProfile.ordered.to_a
     @ai_ollama_urgent = @ai_ollama_profiles.any?(&:urgent_health_issue?)
+    @ai_ollama_unconfigured = @ai_ollama_profiles.any? { |p| p.enabled? && p.effective_base_url.blank? }
 
     @emergency_active_override_count = User.non_service_accounts.where(emergency_active_override: true).count
 
@@ -165,6 +166,7 @@ class DashboardController < AdminController
       { tier: :important, id: :membership_applications, ok: @pending_applications_count.zero? },
       { tier: :important, id: :unlinked_recharge, ok: @unlinked_recharge_count.zero? },
       { tier: :important, id: :mail_queue, ok: @queued_mail_count.zero? },
+      { tier: :important, id: :ai_ollama_unconfigured, ok: !@ai_ollama_unconfigured },
       { tier: :important, id: :incidents, ok: @active_incident_count.zero? },
       { tier: :important, id: :email_templates, ok: @templates_needing_review_count.zero? },
       { tier: :important, id: :interests, ok: @interests_needing_review_count.zero? },
