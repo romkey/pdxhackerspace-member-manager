@@ -14,6 +14,9 @@ gem 'pg', '~> 1.1'
 # Use the Puma web server [https://github.com/puma/puma]
 gem 'puma', '>= 6.0'
 
+# Sidekiq constrains rack to < 3.3; stay on latest 3.2.x for security patches
+gem 'rack', '~> 3.2.6', '< 3.3'
+
 # Use JavaScript with ESM import maps [https://github.com/rails/importmap-rails]
 gem 'importmap-rails'
 

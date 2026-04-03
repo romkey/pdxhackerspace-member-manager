@@ -291,7 +291,7 @@ GEM
       nio4r (~> 2.0)
     raabro (1.4.0)
     racc (1.8.1)
-    rack (3.2.5)
+    rack (3.2.6)
     rack-oauth2 (1.21.3)
       activesupport
       attr_required
@@ -507,6 +507,7 @@ DEPENDENCIES
   prawn (~> 2.5)
   prawn-table (~> 0.2)
   puma (>= 6.0)
+  rack (~> 3.2.6, < 3.3)
   rails (~> 8.1.2)
   redis (>= 4.0.1)
   rqrcode (~> 2.2)
