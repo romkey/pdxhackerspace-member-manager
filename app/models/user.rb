@@ -686,6 +686,11 @@ class User < ApplicationRecord
   def compute_active_status
     return if service_account?
 
+    if emergency_active_override?
+      self.active = true
+      return
+    end
+
     if is_sponsored?
       self.active = !limited_guest_or_sponsored_access_expired?
       return

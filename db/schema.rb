@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_02_041203) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_03_140000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -116,6 +116,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_02_041203) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "ai_ollama_profiles", force: :cascade do |t|
+    t.text "base_url"
+    t.datetime "created_at", null: false
+    t.integer "display_order", default: 0, null: false
+    t.boolean "enabled", default: true, null: false
+    t.string "health_status", default: "unknown", null: false
+    t.string "key", null: false
+    t.datetime "last_health_check_at"
+    t.text "last_health_error"
+    t.string "model"
+    t.string "name", null: false
+    t.text "prompt"
+    t.datetime "updated_at", null: false
+    t.index ["key"], name: "index_ai_ollama_profiles_on_key", unique: true
   end
 
   create_table "application_answers", force: :cascade do |t|
@@ -871,6 +887,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_02_041203) do
     t.datetime "dues_due_at"
     t.string "dues_status", default: "unknown"
     t.string "email"
+    t.boolean "emergency_active_override", default: false, null: false
     t.string "extra_emails", default: [], array: true
     t.string "full_name"
     t.string "greeting_name"

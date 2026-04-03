@@ -40,6 +40,7 @@
       filter_labels << "Plan: #{plan_name}"
     end
     filter_labels << (params[:active] == 'true' ? 'Active only' : 'Inactive only') if params[:active].present?
+    filter_labels << 'Emergency active override' if params[:emergency_active_override] == '1'
     filter_labels << "Missing: #{params[:missing] == 'rfid' ? 'No RFID' : 'No Email'}" if params[:missing].present?
     if params[:account_type].present?
       filter_labels << (params[:account_type] == 'service' ? 'Service Accounts' : 'Members Only')
@@ -152,6 +153,9 @@
       <% end %>
       <%= link_to stacking_filter_path(:account_type, 'service'), class: "badge text-bg-info text-decoration-none #{'border border-dark border-2' if params[:account_type] == 'service'}" do %>
         <i class="bi bi-gear-fill me-1"></i>Service Accounts: <strong><%= @service_account_count %></strong>
+      <% end %>
+      <%= link_to stacking_filter_path(:emergency_active_override, '1'), class: "badge text-bg-warning text-decoration-none #{'border border-dark border-2' if params[:emergency_active_override] == '1'}" do %>
+        <i class="bi bi-lightning-charge me-1"></i>Emergency override: <strong><%= @emergency_active_override_count %></strong>
       <% end %>
     </div>
 

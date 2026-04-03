@@ -148,6 +148,11 @@ class DashboardController < AdminController
                                  .where(email: [nil, ''])
                                  .count
 
+    @ai_ollama_profiles = AiOllamaProfile.ordered.to_a
+    @ai_ollama_urgent = @ai_ollama_profiles.any?(&:urgent_health_issue?)
+
+    @emergency_active_override_count = User.non_service_accounts.where(emergency_active_override: true).count
+
     @dashboard_attention_items = build_dashboard_attention_items
   end
 
@@ -156,12 +161,14 @@ class DashboardController < AdminController
       { tier: :urgent, id: :ac_issues, ok: @ac_issue_count.zero? },
       { tier: :urgent, id: :payment_processors, ok: @payment_processors_sync_unhealthy.empty? },
       { tier: :urgent, id: :authentik, ok: authentik_dashboard_ok? },
+      { tier: :urgent, id: :ai_ollama, ok: !@ai_ollama_urgent },
       { tier: :important, id: :membership_applications, ok: @pending_applications_count.zero? },
       { tier: :important, id: :unlinked_recharge, ok: @unlinked_recharge_count.zero? },
       { tier: :important, id: :mail_queue, ok: @queued_mail_count.zero? },
       { tier: :important, id: :incidents, ok: @active_incident_count.zero? },
       { tier: :important, id: :email_templates, ok: @templates_needing_review_count.zero? },
       { tier: :important, id: :interests, ok: @interests_needing_review_count.zero? },
+      { tier: :important, id: :emergency_active_overrides, ok: @emergency_active_override_count.zero? },
       { tier: :important, id: :parking_active, ok: @active_parking_count.zero? },
       { tier: :important, id: :parking_expired, ok: @expired_parking_count.zero? },
       { tier: :important, id: :manual_payments_due, ok: true },

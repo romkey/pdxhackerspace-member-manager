@@ -1,0 +1,55 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">Manage AI</h1>
+    <p class="text-muted mb-0">Ollama endpoints, models, and prompts. Job-specific profiles fall back to Default when their endpoint is blank.</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <%= button_to "Run health check now", check_health_now_ai_ollama_profiles_path, method: :post, class: "btn btn-outline-primary" %>
+    <%= link_to "Back to Settings", settings_path, class: "btn btn-secondary" %>
+  </div>
+</div>
+
+<div class="row g-4">
+  <% @ai_ollama_profiles.each do |profile| %>
+    <div class="col-12">
+      <div class="card shadow-sm border-0 <%= 'bg-body-tertiary' unless profile.enabled? %>">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+              <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                <h5 class="card-title mb-0"><%= profile.name %></h5>
+                <span class="badge text-bg-<%= profile.health_status_badge_class %>"><%= profile.health_status_label %></span>
+                <% if profile.key != 'default' && profile.base_url.to_s.strip.blank? && profile.effective_base_url.present? %>
+                  <span class="badge text-bg-info">Uses default endpoint</span>
+                <% end %>
+              </div>
+              <div class="text-muted small">
+                <div><span class="text-secondary">Key:</span> <code><%= profile.key %></code></div>
+                <% if profile.effective_base_url.present? %>
+                  <div class="text-break mt-1"><span class="text-secondary">Endpoint:</span> <%= profile.effective_base_url %></div>
+                <% else %>
+                  <div class="mt-1"><span class="text-secondary">Endpoint:</span> —</div>
+                <% end %>
+                <% if profile.model.present? %>
+                  <div class="mt-1"><span class="text-secondary">Model:</span> <%= profile.model %></div>
+                <% end %>
+                <% if profile.last_health_check_at.present? %>
+                  <div class="mt-1"><span class="text-secondary">Last check:</span> <%= l(profile.last_health_check_at, format: :short) %></div>
+                <% end %>
+                <% if profile.enabled? && profile.last_health_error.present? %>
+                  <div class="mt-1 text-danger text-break"><%= profile.last_health_error %></div>
+                <% end %>
+              </div>
+            </div>
+            <%= link_to "Edit", edit_ai_ollama_profile_path(profile), class: "btn btn-outline-primary" %>
+          </div>
+          <% if profile.prompt.present? %>
+            <hr class="my-3">
+            <h6 class="text-muted small text-uppercase">Prompt</h6>
+            <pre class="small mb-0 bg-body-secondary p-2 rounded border" style="white-space: pre-wrap; max-height: 12rem; overflow: auto;"><%= profile.prompt %></pre>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>

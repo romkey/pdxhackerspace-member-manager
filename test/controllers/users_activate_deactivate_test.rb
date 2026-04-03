@@ -87,6 +87,45 @@ class UsersActivateDeactivateTest < ActionDispatch::IntegrationTest
     assert sa.active?, 'service account active should be settable via form'
   end
 
+  # ─── Emergency active override ─────────────────────────────────────
+
+  test 'enable_emergency_active_override forces inactive member active' do
+    @regular_user.update_columns(membership_status: 'paying', dues_status: 'lapsed', active: false,
+                                 emergency_active_override: false, service_account: false)
+    post enable_emergency_active_override_user_path(@regular_user)
+    assert_redirected_to user_path(@regular_user)
+    @regular_user.reload
+    assert @regular_user.emergency_active_override?
+    assert @regular_user.active?
+  end
+
+  test 'clear_emergency_active_override recomputes active' do
+    @regular_user.update_columns(membership_status: 'paying', dues_status: 'lapsed', active: true,
+                                 emergency_active_override: true, service_account: false)
+    post clear_emergency_active_override_user_path(@regular_user)
+    assert_redirected_to user_path(@regular_user)
+    @regular_user.reload
+    assert_not @regular_user.emergency_active_override?
+    assert_not @regular_user.active?
+  end
+
+  test 'enable_emergency_active_override rejects banned members' do
+    @regular_user.update_columns(membership_status: 'banned', active: false, emergency_active_override: false,
+                                 service_account: false)
+    post enable_emergency_active_override_user_path(@regular_user)
+    assert_redirected_to user_path(@regular_user)
+    follow_redirect!
+    assert_match(/not available/, response.body)
+  end
+
+  test 'enable_emergency_active_override rejects service accounts' do
+    sa = create_service_account(active: false)
+    post enable_emergency_active_override_user_path(sa)
+    assert_redirected_to user_path(sa)
+    follow_redirect!
+    assert_match(/Service accounts/, response.body)
+  end
+
   private
 
   def sign_in_as_local_admin

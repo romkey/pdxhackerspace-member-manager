@@ -43,6 +43,9 @@
         <% if @nav_params[:active].present? %>
           — <%= @nav_params[:active] == 'true' ? 'Active only' : 'Inactive only' %>
         <% end %>
+        <% if @nav_params[:emergency_active_override].present? %>
+          — Emergency active override
+        <% end %>
       </small>
       <%= link_to "Clear filter", user_path(@user), class: "btn btn-outline-secondary btn-sm" %>
     </div>
@@ -99,6 +102,17 @@
       <% end %>
       
       <% unless @user.service_account? %>
+        <% if @user.emergency_active_override? %>
+          <span class="badge text-bg-warning me-2 align-middle">Emergency active override</span>
+          <%= button_to "Clear emergency active override", clear_emergency_active_override_user_path(@user), method: :post, class: "btn btn-outline-warning",
+              data: { turbo: false, confirm_message: "Clear the override? Active status will be recalculated from membership and dues." },
+              onclick: "return confirm(this.dataset.confirmMessage);" %>
+        <% elsif !@user.active? && !@user.membership_status.in?(%w[banned deceased]) %>
+          <%= button_to "Emergency active override", enable_emergency_active_override_user_path(@user), method: :post, class: "btn btn-outline-warning",
+              data: { turbo: false, confirm_message: "Force this inactive member active for an edge-case emergency? They will stay active until you clear the override." },
+              onclick: "return confirm(this.dataset.confirmMessage);" %>
+        <% end %>
+
         <% if @user.is_sponsored? %>
           <%= button_to "Remove Sponsorship", unmark_sponsored_user_path(@user), method: :post, class: "btn btn-outline-warning",
               data: { turbo: false, confirm_message: "Are you sure you want to remove sponsorship from #{@user.display_name}?" },

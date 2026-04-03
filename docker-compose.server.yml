@@ -8,8 +8,9 @@ name: membermanager-server
 x-web-common: &web-common
   build:
     context: .
+    pull: true
     args:
-      RUBY_VERSION: 3.3.11
+      RUBY_VERSION: "3.3.11"
   image: member_manager_web:latest
   env_file:
     - .env

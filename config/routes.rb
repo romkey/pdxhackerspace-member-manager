@@ -57,6 +57,8 @@ Rails.application.routes.draw do
     member do
       post :activate
       post :deactivate
+      post :enable_emergency_active_override
+      post :clear_emergency_active_override
       post :ban
       post :mark_deceased
       post :mark_sponsored
@@ -252,6 +254,11 @@ Rails.application.routes.draw do
     post :provision_core_groups, on: :member
   end
   resource :membership_settings, only: [:show, :edit, :update], path: "settings/membership"
+  resources :ai_ollama_profiles, only: [:index, :edit, :update], path: "settings/ai" do
+    collection do
+      post :check_health_now
+    end
+  end
   resources :incoming_webhooks, only: [:index, :edit, :update], path: "settings/incoming_webhooks" do
     collection do
       get :random_slug

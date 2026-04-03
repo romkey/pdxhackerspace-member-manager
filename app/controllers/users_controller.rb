@@ -2,8 +2,9 @@ class UsersController < AuthenticatedController
   skip_before_action :require_authenticated_user!, only: [:show]
   before_action :set_user_for_show, only: [:show]
   before_action :set_user,
-                only: %i[edit update activate deactivate ban
-                         mark_deceased mark_sponsored
+                only: %i[edit update activate deactivate
+                         enable_emergency_active_override clear_emergency_active_override
+                         ban mark_deceased mark_sponsored
                          unmark_sponsored destroy
                          sync_to_authentik sync_from_authentik
                          mark_help_seen]
@@ -35,6 +36,9 @@ class UsersController < AuthenticatedController
     @filter_params[:membership_plan_id] = params[:membership_plan_id] if params[:membership_plan_id].present?
     @filter_params[:missing] = params[:missing] if params[:missing].present?
     @filter_params[:account_type] = params[:account_type] if params[:account_type].present?
+    if params[:emergency_active_override].present?
+      @filter_params[:emergency_active_override] = params[:emergency_active_override]
+    end
     @filter_params[:sort] = params[:sort] if params[:sort].present?
     @filter_params[:direction] = params[:direction] if params[:direction].present?
 
@@ -70,6 +74,10 @@ class UsersController < AuthenticatedController
       @users = @users.service_accounts
     elsif params[:account_type] == 'member'
       @users = @users.non_service_accounts
+    end
+
+    if params[:emergency_active_override] == '1'
+      @users = @users.non_service_accounts.where(emergency_active_override: true)
     end
 
     if params[:missing] == 'rfid'
@@ -118,6 +126,7 @@ class UsersController < AuthenticatedController
 
     @service_account_count = @users.service_accounts.count
     @member_account_count = @users.non_service_accounts.count
+    @emergency_active_override_count = all_users.non_service_accounts.where(emergency_active_override: true).count
 
     # Apply sorting — use Arel nodes to avoid string interpolation (CodeQL SQL injection rule)
     @sort_column = SORTABLE_COLUMNS.include?(params[:sort]) ? params[:sort] : 'full_name'
@@ -130,7 +139,8 @@ class UsersController < AuthenticatedController
     @filter_active = params[:membership_status].present? || params[:payment_type].present? ||
                      params[:dues_status].present? || params[:active].present? ||
                      params[:missing].present? || params[:account_type].present? ||
-                     params[:membership_plan_id].present?
+                     params[:membership_plan_id].present? ||
+                     params[:emergency_active_override].present?
     @filtered_count = @users.count if @filter_active || @include_legacy
 
     # Store filter/sort params for passing to user profile links
@@ -214,6 +224,9 @@ class UsersController < AuthenticatedController
       nav_query = nav_query.where(payment_type: params[:payment_type]) if params[:payment_type].present?
       nav_query = nav_query.where(dues_status: params[:dues_status]) if params[:dues_status].present?
       nav_query = nav_query.where(active: params[:active] == 'true') if params[:active].present?
+      if params[:emergency_active_override] == '1'
+        nav_query = nav_query.where(service_account: false, emergency_active_override: true)
+      end
 
       # Apply sorting — use Arel nodes to avoid string interpolation (CodeQL SQL injection rule)
       sort_column = SORTABLE_COLUMNS.include?(params[:sort]) ? params[:sort] : 'full_name'
@@ -239,6 +252,9 @@ class UsersController < AuthenticatedController
       @nav_params[:payment_type] = params[:payment_type] if params[:payment_type].present?
       @nav_params[:dues_status] = params[:dues_status] if params[:dues_status].present?
       @nav_params[:active] = params[:active] if params[:active].present?
+      if params[:emergency_active_override].present?
+        @nav_params[:emergency_active_override] = params[:emergency_active_override]
+      end
       @nav_params[:sort] = params[:sort] if params[:sort].present?
       @nav_params[:direction] = params[:direction] if params[:direction].present?
     end
@@ -325,6 +341,40 @@ class UsersController < AuthenticatedController
     end
     @user.update!(active: false)
     redirect_to user_path(@user), notice: 'Account deactivated.'
+  end
+
+  def enable_emergency_active_override
+    if @user.service_account?
+      redirect_to user_path(@user), alert: 'Service accounts use Activate / Deactivate instead.'
+      return
+    end
+    if @user.membership_status.in?(%w[banned deceased])
+      redirect_to user_path(@user), alert: 'Emergency active override is not available for banned or deceased members.'
+      return
+    end
+    if @user.emergency_active_override?
+      redirect_to user_path(@user), notice: 'Emergency active override is already enabled.'
+      return
+    end
+    if @user.active?
+      redirect_to user_path(@user), alert: 'Member is already active.'
+      return
+    end
+
+    @user.update!(emergency_active_override: true)
+    redirect_to user_path(@user),
+                notice: 'Emergency active override enabled. They stay active until you clear the override.'
+  end
+
+  def clear_emergency_active_override
+    unless @user.emergency_active_override?
+      redirect_to user_path(@user), alert: 'Emergency active override is not enabled.'
+      return
+    end
+
+    @user.update!(emergency_active_override: false)
+    redirect_to user_path(@user),
+                notice: 'Emergency active override cleared; active status was recalculated from membership.'
   end
 
   def ban
