@@ -56,8 +56,10 @@ The repository ships **four** Compose files so local stacks stay predictable and
 | File | Use when | Postgres |
 | --- | --- | --- |
 | [`docker-compose.dev.yml`](docker-compose.dev.yml) | Day-to-day local development (`web`, Sidekiq, live-mounted source). | Included. Container: `membermanager-dev-postgres`, published on **localhost:5432**. |
-| [`docker-compose.test.yml`](docker-compose.test.yml) | Running the test suite from Docker. | Included. Container: `membermanager-test-postgres`, published on **localhost:5433** (so dev can use 5432 at the same time). Redis: `membermanager-test-redis`, **localhost:6380**. |
-| [`docker-compose.lint.yml`](docker-compose.lint.yml) | RuboCop only. | Included (isolated DB for naming parity). Container: `membermanager-lint-postgres`, **localhost:5434**. |
+| [`docker-compose.test.yml`](docker-compose.test.yml) | Running the test suite from Docker (prebuilt `member_manager_web:latest`, fast reruns with bind-mounted code). | Included. Container: `membermanager-test-postgres`, published on **localhost:5433** (so dev can use 5432 at the same time). Redis: `membermanager-test-redis`, **localhost:6380**. |
+| [`docker-compose.test.build.yml`](docker-compose.test.build.yml) | Same as test stack but **builds** the app image first (use after Dockerfile changes or to create the image the first time). | Same Postgres/Redis as `docker-compose.test.yml`. |
+| [`docker-compose.lint.yml`](docker-compose.lint.yml) | RuboCop only (prebuilt `member_manager_lint:latest`). | Included (isolated DB for naming parity). Container: `membermanager-lint-postgres`, **localhost:5434**. |
+| [`docker-compose.lint.build.yml`](docker-compose.lint.build.yml) | Same as lint stack but **builds** the lint-stage image first. | Same as `docker-compose.lint.yml`. |
 | [`docker-compose.server.yml`](docker-compose.server.yml) | Production- or staging-style runs (image-based app, no source mount). | **Not included.** Point `DATABASE_URL` (or `DB_HOST` and related variables) at an existing PostgreSQL server. Redis defaults to the bundled `redis` service; set `REDIS_URL` to use an external instance. |
 
 ### Local development
@@ -76,17 +78,39 @@ The app is at [http://localhost:3000](http://localhost:3000). Configure `.env` (
 
 ### Tests (Docker)
 
+Default workflow uses an **existing** `member_manager_web:latest` and bind-mounts the repo (no image build on each run). Build or refresh the image when the Dockerfile or base stack changes, or the first time on a machine:
+
+```bash
+docker compose -f docker-compose.test.build.yml build test
+```
+
+Then run tests (repeat as often as you like):
+
 ```bash
 docker compose -f docker-compose.test.yml run --rm test
 # Single file:
 docker compose -f docker-compose.test.yml run --rm test bin/rails test test/models/member_test.rb
 ```
 
-### Lint (Docker)
+To run tests **after** a full image rebuild in one shot:
 
 ```bash
-docker compose -f docker-compose.lint.yml build rubocop
+docker compose -f docker-compose.test.build.yml run --rm test
+```
+
+### Lint (Docker)
+
+Same pattern: use a prebuilt `member_manager_lint:latest` for quick runs. Build or refresh when the Dockerfile or Ruby lint gems change:
+
+```bash
+docker compose -f docker-compose.lint.build.yml build rubocop
 docker compose -f docker-compose.lint.yml run --rm rubocop
+```
+
+One-shot lint with a fresh image build:
+
+```bash
+docker compose -f docker-compose.lint.build.yml run --rm rubocop
 ```
 
 ### Server / staging-style
@@ -107,7 +131,9 @@ To avoid repeating `-f`, add to your shell profile, for example:
 ```bash
 alias dcdev='docker compose -f docker-compose.dev.yml'
 alias dctest='docker compose -f docker-compose.test.yml'
+alias dctestbuild='docker compose -f docker-compose.test.build.yml'
 alias dclint='docker compose -f docker-compose.lint.yml'
+alias dclintbuild='docker compose -f docker-compose.lint.build.yml'
 alias dcserver='docker compose -f docker-compose.server.yml'
 ```
 

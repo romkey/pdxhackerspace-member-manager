@@ -1,0 +1,17 @@
+# Same stack as docker-compose.test.yml but builds the app image first (full Docker build).
+# Use when validating Dockerfile changes or creating member_manager_web:latest from scratch.
+# Usage: docker compose -f docker-compose.test.build.yml build test
+#        docker compose -f docker-compose.test.build.yml run --rm test
+#        docker compose -f docker-compose.test.build.yml run --rm test bin/rails test test/models/member_test.rb
+name: membermanager-test
+
+include:
+  - docker-compose.test.yml
+
+services:
+  test:
+    build:
+      context: .
+      pull: true
+      args:
+        RUBY_VERSION: "3.3.11"

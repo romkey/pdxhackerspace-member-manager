@@ -1,7 +1,9 @@
 # RuboCop only, with a dedicated Postgres container (name-isolated; optional future tooling).
+# Quick path: uses existing member_manager_lint:latest (bind-mounts repo at /rails).
+# Build or refresh the lint image when the Dockerfile or Gemfile changes:
+#   docker compose -f docker-compose.lint.build.yml build rubocop
 # Postgres is published on host port 5434 so it can run alongside dev/test stacks.
-# Usage: docker compose -f docker-compose.lint.yml build rubocop
-#        docker compose -f docker-compose.lint.yml run --rm rubocop
+# Usage: docker compose -f docker-compose.lint.yml run --rm rubocop
 #        docker compose -f docker-compose.lint.yml run --rm rubocop app/models
 name: membermanager-lint
 
@@ -19,13 +21,6 @@ services:
 #      - "5434:5432"
 
   rubocop:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: lint
-      pull: true
-      args:
-        RUBY_VERSION: "3.3.11"
     image: member_manager_lint:latest
     env_file:
       - .env

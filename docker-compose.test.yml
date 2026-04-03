@@ -1,15 +1,13 @@
 # Test suite with dedicated Postgres + Redis (for humans and automation).
+# Quick path: uses existing member_manager_web:latest (bind-mounts repo at /rails).
+# Build or refresh the image when the Dockerfile or base image changes:
+#   docker compose -f docker-compose.test.build.yml build test
 # Postgres is published on host port 5433 so it can run alongside dev (5432).
 # Usage: docker compose -f docker-compose.test.yml run --rm test
 #        docker compose -f docker-compose.test.yml run --rm test bin/rails test test/models/member_test.rb
 name: membermanager-test
 
 x-web-common: &web-common
-  build:
-    context: .
-    pull: true
-    args:
-      RUBY_VERSION: "3.3.11"
   image: member_manager_web:latest
   env_file:
     - .env
