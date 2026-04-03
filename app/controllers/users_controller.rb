@@ -36,7 +36,9 @@ class UsersController < AuthenticatedController
     @filter_params[:membership_plan_id] = params[:membership_plan_id] if params[:membership_plan_id].present?
     @filter_params[:missing] = params[:missing] if params[:missing].present?
     @filter_params[:account_type] = params[:account_type] if params[:account_type].present?
-    @filter_params[:emergency_active_override] = params[:emergency_active_override] if params[:emergency_active_override].present?
+    if params[:emergency_active_override].present?
+      @filter_params[:emergency_active_override] = params[:emergency_active_override]
+    end
     @filter_params[:sort] = params[:sort] if params[:sort].present?
     @filter_params[:direction] = params[:direction] if params[:direction].present?
 
