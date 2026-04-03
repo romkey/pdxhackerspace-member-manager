@@ -21,6 +21,11 @@
   }
 }
 
+// Member search uses a position-absolute dropdown; default overflow:hidden on .dashboard-panel would clip it.
+.card.dashboard-panel.dashboard-panel-search {
+  overflow: visible;
+}
+
 // Urgent / Important / Housekeeping blocks inside the needs-attention dashboard card
 .dashboard-attention-subsection + .dashboard-attention-subsection {
   margin-top: 1.25rem;
