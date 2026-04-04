@@ -73,6 +73,10 @@
   </div>
 </div>
 
+<% unless @application.draft? %>
+  <%= render 'ai_feedback_card', application: @application %>
+<% end %>
+
 <% if @application.user.nil? && @users_for_application_link.any? %>
   <%= render 'link_member_modal',
              users: @users_for_application_link,
