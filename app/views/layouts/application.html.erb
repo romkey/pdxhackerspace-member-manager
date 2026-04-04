@@ -29,7 +29,7 @@
             <% if current_user_admin? %>
                 <% admin_settings_nav_active = current_page?(settings_path) || current_page?(training_topics_path) || current_page?(applications_path) || controller_name == 'applications' || controller_name == 'application_groups' || controller_name == 'text_fragments' || controller_name == 'documents' || controller_name == 'incoming_webhooks' || controller_name == 'rooms' || controller_name == 'printers' || controller_name == 'application_form_pages' || controller_name == 'application_form_questions' || controller_name == 'ai_ollama_profiles' %>
                 <li class="nav-item dropdown">
-                  <a class="nav-link dropdown-toggle <%= (current_page?(users_path) || current_page?(sheet_entries_path) || current_page?(slack_users_path) || current_page?(authentik_users_path) || controller_name == 'membership_applications') ? 'active' : '' %>"
+                  <a class="nav-link dropdown-toggle <%= (current_page?(users_path) || current_page?(sheet_entries_path) || current_page?(slack_users_path) || current_page?(authentik_users_path) || controller_name == 'membership_applications' || controller_name == 'incident_reports') ? 'active' : '' %>"
                      href="#"
                      role="button"
                      data-bs-toggle="dropdown"
@@ -52,6 +52,9 @@
                     <li><hr class="dropdown-divider"></li>
                     <li>
                       <%= link_to "Applications", membership_applications_path, class: "dropdown-item #{controller_name == 'membership_applications' ? 'active' : ''}" %>
+                    </li>
+                    <li>
+                      <%= link_to "Incident Reports", incident_reports_path, class: "dropdown-item #{controller_name == 'incident_reports' ? 'active' : ''}" %>
                     </li>
                   </ul>
                 </li>
@@ -86,7 +89,7 @@
                   <%= link_to "Journal", journals_path, class: "nav-link #{current_page?(journals_path) ? 'active' : ''}" %>
                 </li>
                 <li class="nav-item dropdown">
-                  <a class="nav-link dropdown-toggle <%= (current_page?(access_logs_path) || controller_name == 'incident_reports' || controller_name == 'parking_notices') ? 'active' : '' %>"
+                  <a class="nav-link dropdown-toggle <%= (current_page?(access_logs_path) || controller_name == 'parking_notices') ? 'active' : '' %>"
                      href="#"
                      role="button"
                      data-bs-toggle="dropdown"
@@ -96,9 +99,6 @@
                   <ul class="dropdown-menu">
                     <li>
                       <%= link_to "Access", access_logs_path, class: "dropdown-item #{current_page?(access_logs_path) ? 'active' : ''}" %>
-                    </li>
-                    <li>
-                      <%= link_to "Incidents", incident_reports_path, class: "dropdown-item #{controller_name == 'incident_reports' ? 'active' : ''}" %>
                     </li>
                     <li>
                       <%= link_to "Parking", parking_notices_path, class: "dropdown-item #{controller_name == 'parking_notices' ? 'active' : ''}" %>
