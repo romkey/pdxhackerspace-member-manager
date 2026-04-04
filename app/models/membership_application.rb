@@ -12,6 +12,9 @@ class MembershipApplication < ApplicationRecord
   before_validation :generate_token, on: :create
 
   scope :drafts, -> { where(status: 'draft') }
+  scope :ai_feedback_unprocessed, lambda {
+    where.not(status: 'draft').where(ai_feedback_processed_at: nil)
+  }
   scope :submitted_apps, -> { where(status: 'submitted') }
   scope :under_review, -> { where(status: 'under_review') }
   scope :approved, -> { where(status: 'approved') }
@@ -42,6 +45,7 @@ class MembershipApplication < ApplicationRecord
   def submit!
     update!(status: 'submitted', submitted_at: Time.current)
     Journal.record_application_event!(application: self, action: 'application_submitted')
+    MembershipApplicationAiFeedbackJob.perform_later(id)
   end
 
   def mark_under_review!(admin)
@@ -94,6 +98,25 @@ class MembershipApplication < ApplicationRecord
       end
       { page: page, questions: questions_with_answers }
     end
+  end
+
+  # Plain-text bundle of the application for LLM prompts (email + Q&A by page).
+  def application_text_for_ai
+    lines = ["Email: #{email}"]
+    answers_by_page.each do |entry|
+      lines << "\n## #{entry[:page].title}"
+      entry[:questions].each do |h|
+        q = h[:question]
+        a = h[:answer]
+        lines << "Q: #{q.label}"
+        lines << "A: #{a&.value.presence || '(no answer)'}"
+      end
+    end
+    lines.join("\n")
+  end
+
+  def ai_feedback_processed?
+    ai_feedback_processed_at.present?
   end
 
   private

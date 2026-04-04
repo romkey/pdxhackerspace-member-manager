@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_03_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_03_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -474,6 +474,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_03_140000) do
 
   create_table "membership_applications", force: :cascade do |t|
     t.text "admin_notes"
+    t.integer "ai_feedback_score"
+    t.text "ai_feedback_score_rationale"
+    t.string "ai_feedback_recommendation"
+    t.jsonb "ai_feedback_questions", default: [], null: false
+    t.boolean "ai_feedback_garbage", default: false, null: false
+    t.text "ai_feedback_garbage_reason"
+    t.datetime "ai_feedback_processed_at"
+    t.text "ai_feedback_last_error"
     t.datetime "created_at", null: false
     t.string "email", null: false
     t.datetime "reviewed_at"
@@ -483,6 +491,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_03_140000) do
     t.string "token", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id"
+    t.index ["ai_feedback_processed_at"], name: "index_membership_applications_on_ai_feedback_processed_at"
     t.index ["email"], name: "index_membership_applications_on_email"
     t.index ["reviewed_by_id"], name: "index_membership_applications_on_reviewed_by_id"
     t.index ["status"], name: "index_membership_applications_on_status"

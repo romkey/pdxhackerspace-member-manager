@@ -37,6 +37,15 @@ class AiOllamaProfile < ApplicationRecord
     self.class.default_profile&.base_url.to_s.strip
   end
 
+  # Resolved model name: own model, or the Default profile's when blank (non-default rows only).
+  def effective_model
+    raw = model.to_s.strip
+    return raw if raw.present?
+    return '' if key == 'default'
+
+    self.class.default_profile&.model.to_s.strip
+  end
+
   def urgent_health_issue?
     enabled? && effective_base_url.present? && health_status == 'unhealthy'
   end
