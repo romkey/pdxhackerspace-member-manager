@@ -1,0 +1,88 @@
+<%# locals: (application:) %>
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-header bg-body-secondary d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <h5 class="mb-0">
+      <i class="bi bi-robot me-1"></i> AI feedback
+    </h5>
+    <% if application.ai_feedback_processed_at.present? %>
+      <small class="text-body-secondary">
+        Processed <%= application.ai_feedback_processed_at.strftime('%b %d, %Y at %l:%M %p') %>
+      </small>
+    <% end %>
+  </div>
+  <div class="card-body">
+    <% if application.ai_feedback_processed? %>
+      <% if application.ai_feedback_garbage %>
+        <div class="alert alert-warning d-flex align-items-start gap-2 mb-3">
+          <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
+          <div>
+            <strong>Flagged as low-quality or spam</strong>
+            <% if application.ai_feedback_garbage_reason.present? %>
+              <div class="small mt-1 mb-0"><%= simple_format application.ai_feedback_garbage_reason, class: 'mb-0' %></div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <div class="row g-3">
+        <div class="col-md-4">
+          <dt class="text-muted small text-uppercase fw-semibold">Score</dt>
+          <dd class="mb-0 fs-5">
+            <% if application.ai_feedback_score.nil? %>
+              <span class="text-muted">—</span>
+            <% else %>
+              <span class="badge bg-dark fs-6"><%= application.ai_feedback_score %></span>
+            <% end %>
+          </dd>
+        </div>
+        <div class="col-md-8">
+          <dt class="text-muted small text-uppercase fw-semibold">Recommendation</dt>
+          <dd class="mb-0">
+            <% if application.ai_feedback_recommendation.present? %>
+              <span class="badge bg-<%= application.ai_feedback_recommendation_badge_color %>">
+                <%= application.ai_feedback_recommendation.to_s.humanize %>
+              </span>
+            <% else %>
+              <span class="text-muted">—</span>
+            <% end %>
+          </dd>
+        </div>
+      </div>
+
+      <% if application.ai_feedback_score_rationale.present? %>
+        <div class="mt-3">
+          <dt class="text-muted small text-uppercase fw-semibold">Score rationale</dt>
+          <dd class="mb-0"><%= application.ai_feedback_score_rationale %></dd>
+        </div>
+      <% end %>
+
+      <% questions = application.ai_feedback_questions %>
+      <% if questions.is_a?(Array) && questions.any? %>
+        <div class="mt-3">
+          <dt class="text-muted small text-uppercase fw-semibold">Suggested follow-up questions</dt>
+          <dd class="mb-0">
+            <ul class="mb-0 ps-3">
+              <% questions.each do |q| %>
+                <li><%= q %></li>
+              <% end %>
+            </ul>
+          </dd>
+        </div>
+      <% end %>
+    <% elsif application.ai_feedback_last_error.present? %>
+      <div class="alert alert-danger mb-0">
+        <strong>AI feedback failed</strong>
+        <div class="small mt-2 font-monospace text-break"><%= application.ai_feedback_last_error %></div>
+        <p class="small mb-0 mt-2 text-body-secondary">
+          Fix the Application Status (or Default) Ollama profile and re-run
+          <code class="small">rails membership_applications:process_ai_feedback</code> if needed.
+        </p>
+      </div>
+    <% else %>
+      <p class="text-body-secondary mb-0">
+        <i class="bi bi-hourglass-split me-1"></i>
+        AI feedback is not available yet. It runs in the background after submit; refresh this page in a moment.
+      </p>
+    <% end %>
+  </div>
+</div>

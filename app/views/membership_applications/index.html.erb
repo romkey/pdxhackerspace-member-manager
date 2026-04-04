@@ -77,6 +77,7 @@
             <th>#</th>
             <th>Email</th>
             <th>Status</th>
+            <th>AI</th>
             <th>Submitted</th>
             <th>Reviewed by</th>
             <th>Linked member</th>
@@ -90,6 +91,18 @@
               <td><%= app.email %></td>
               <td>
                 <span class="badge bg-<%= app.status_badge_color %>"><%= app.status_display %></span>
+              </td>
+              <td class="text-nowrap">
+                <% if app.ai_feedback_processed? %>
+                  <span class="badge bg-dark"><%= app.ai_feedback_score.nil? ? '—' : app.ai_feedback_score %></span>
+                  <% if app.ai_feedback_recommendation.present? %>
+                    <span class="badge bg-<%= app.ai_feedback_recommendation_badge_color %>"><%= app.ai_feedback_recommendation.to_s.truncate(14) %></span>
+                  <% end %>
+                <% elsif app.ai_feedback_last_error.present? %>
+                  <span class="badge bg-danger" title="<%= h app.ai_feedback_last_error %>">AI error</span>
+                <% else %>
+                  <span class="text-muted small">Pending</span>
+                <% end %>
               </td>
               <td><%= app.submitted_at&.strftime('%b %d, %Y') || '—' %></td>
               <td><%= app.reviewed_by&.display_name || '—' %></td>

@@ -119,6 +119,18 @@ class MembershipApplication < ApplicationRecord
     ai_feedback_processed_at.present?
   end
 
+  AI_FEEDBACK_REC_BADGES = {
+    'accept' => 'success', 'accepted' => 'success', 'approve' => 'success', 'approved' => 'success',
+    'reject' => 'danger', 'rejected' => 'danger', 'deny' => 'danger', 'denied' => 'danger',
+    'needs_review' => 'warning', 'need_more_info' => 'warning', 'clarify' => 'warning', 'uncertain' => 'warning'
+  }.freeze
+
+  # Bootstrap badge color for +ai_feedback_recommendation+ (free-form model output).
+  def ai_feedback_recommendation_badge_color
+    key = ai_feedback_recommendation.to_s.downcase.strip.tr(' ', '_')
+    AI_FEEDBACK_REC_BADGES.fetch(key, 'secondary')
+  end
+
   private
 
   def generate_token

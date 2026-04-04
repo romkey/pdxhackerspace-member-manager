@@ -52,6 +52,19 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal member.id, app.reload.user_id
   end
 
+  test 'show includes AI feedback section for non-draft applications' do
+    app = MembershipApplication.create!(
+      email: 'show-ai-section@example.com',
+      status: 'submitted',
+      submitted_at: Time.current
+    )
+
+    get membership_application_path(app)
+
+    assert_response :success
+    assert_match(/AI feedback/i, response.body)
+  end
+
   test 'unlink_user clears member on application' do
     app = MembershipApplication.create!(
       email: 'unlink-app-test@example.com',
