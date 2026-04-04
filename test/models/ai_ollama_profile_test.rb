@@ -10,6 +10,15 @@ class AiOllamaProfileTest < ActiveSupport::TestCase
     assert_equal 'http://ollama.test:11434', app_status.effective_base_url
   end
 
+  test 'effective_model falls back to default for non-default keys' do
+    default = ai_ollama_profiles(:default)
+    default.update!(model: 'llama3.2')
+
+    app_status = ai_ollama_profiles(:application_status)
+    app_status.update!(model: '')
+    assert_equal 'llama3.2', app_status.effective_model
+  end
+
   test 'urgent_health_issue when enabled, has url, unhealthy' do
     p = ai_ollama_profiles(:default)
     p.update!(enabled: true, base_url: 'http://x.test', health_status: 'unhealthy')
