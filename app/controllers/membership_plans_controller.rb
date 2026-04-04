@@ -76,6 +76,8 @@ class MembershipPlansController < AdminController
     manual_plans = MembershipPlan.manual.ordered
     @members = []
 
+    due_soon_cutoff_date = Date.current + MembershipSetting.manual_payment_due_soon_days
+
     manual_plans.each do |plan|
       users = plan.primary? ? plan.users : plan.supplementary_users
       users.includes(:membership_plan).find_each do |user|
@@ -84,7 +86,7 @@ class MembershipPlansController < AdminController
           user: user,
           plan: plan,
           next_payment_date: next_date,
-          near_due: next_date.present? && next_date <= 7.days.from_now.to_date
+          near_due: next_date.present? && next_date <= due_soon_cutoff_date
         }
       end
     end

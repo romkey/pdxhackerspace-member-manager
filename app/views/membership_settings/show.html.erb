@@ -20,6 +20,14 @@
             <div class="form-text">Days after payment due date before membership is marked as lapsed.</div>
           </dd>
 
+          <dt class="col-sm-6 mt-3">Manual payment “due soon” window</dt>
+          <dd class="col-sm-6 mt-3">
+            <strong><%= @membership_setting.manual_payment_due_soon_days %></strong> <%= 'day'.pluralize(@membership_setting.manual_payment_due_soon_days) %>
+            <div class="form-text">
+              Admin dashboard and manual payments list treat dues as “due soon” when the next due date is today, overdue, or within this many calendar days.
+            </div>
+          </dd>
+
           <dt class="col-sm-6 mt-3">Reactivation Grace Period</dt>
           <dd class="col-sm-6 mt-3">
             <strong><%= @membership_setting.reactivation_grace_period_months %></strong> months
@@ -72,6 +80,9 @@
         <p class="small text-muted mb-2">
           <strong>Payment Grace Period:</strong> When a member's payment is overdue, they have this many days 
           before their membership status changes to lapsed.
+        </p>
+        <p class="small text-muted mb-2">
+          <strong>Manual payment “due soon”:</strong> How far ahead to highlight manual / cash payment plans on the dashboard and manual payments list.
         </p>
         <p class="small text-muted mb-2">
           <strong>Reactivation Grace Period:</strong> After a membership lapses, members have this many months 

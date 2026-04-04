@@ -82,6 +82,9 @@ class DashboardController < AdminController
     @expired_parking_ticket_count = ParkingNotice.tickets.expired_notices.count
     @expired_parking_count = @expired_parking_permit_count + @expired_parking_ticket_count
 
+    # Important: Manual / cash / personal payment plans — overdue, due today, or due within configured "soon" window
+    @manual_payments_due_count = manual_payments_due_member_count
+
     # Housekeeping: Lapsed members with access after lapse
     lapsed_users = User.where(dues_status: 'lapsed')
                        .where.not(membership_status: %w[banned deceased])
@@ -173,7 +176,7 @@ class DashboardController < AdminController
       { tier: :important, id: :emergency_active_overrides, ok: @emergency_active_override_count.zero? },
       { tier: :important, id: :parking_active, ok: @active_parking_count.zero? },
       { tier: :important, id: :parking_expired, ok: @expired_parking_count.zero? },
-      { tier: :important, id: :manual_payments_due, ok: true },
+      { tier: :important, id: :manual_payments_due, ok: @manual_payments_due_count.zero? },
       { tier: :housekeeping, id: :lapsed_with_access, ok: @lapsed_with_access_count.zero? },
       { tier: :housekeeping, id: :legacy_recent_access, ok: @legacy_recent_access_count.zero? },
       { tier: :housekeeping, id: :lapsed_with_slack, ok: @lapsed_with_slack_count.zero? },
@@ -183,6 +186,24 @@ class DashboardController < AdminController
       { tier: :housekeeping, id: :slack_inactive, ok: @slack_inactive_count.zero? },
       { tier: :housekeeping, id: :active_no_email, ok: @active_no_email_count.zero? }
     ].freeze
+  end
+
+  # Members on any manual plan (primary or supplementary) whose next dues date falls on or before
+  # the end of today + MembershipSetting.manual_payment_due_soon_days. Same window as "Due soon" on
+  # Manual Payment Plan Members.
+  def manual_payments_due_member_count
+    manual_plan_ids = MembershipPlan.manual.pluck(:id)
+    return 0 if manual_plan_ids.empty?
+
+    soon_days = MembershipSetting.manual_payment_due_soon_days
+    cutoff = (Date.current + soon_days).end_of_day
+    due = User.where.not(dues_due_at: nil).where(dues_due_at: ..cutoff)
+    primary_ids = due.where(membership_plan_id: manual_plan_ids).pluck(:id)
+    supplementary_ids = due.joins(:user_supplementary_plans)
+                           .where(user_supplementary_plans: { membership_plan_id: manual_plan_ids })
+                           .distinct
+                           .pluck(:id)
+    (primary_ids + supplementary_ids).uniq.size
   end
 
   def authentik_dashboard_ok?
