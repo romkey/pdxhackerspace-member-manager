@@ -189,7 +189,8 @@ class DashboardController < AdminController
   end
 
   # Members on any manual plan (primary or supplementary) whose next dues date falls on or before
-  # the end of today + MembershipSetting.manual_payment_due_soon_days (same window as "Due soon" on Manual Payment Plan Members).
+  # the end of today + MembershipSetting.manual_payment_due_soon_days. Same window as "Due soon" on
+  # Manual Payment Plan Members.
   def manual_payments_due_member_count
     manual_plan_ids = MembershipPlan.manual.pluck(:id)
     return 0 if manual_plan_ids.empty?
