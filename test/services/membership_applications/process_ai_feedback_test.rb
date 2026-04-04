@@ -6,7 +6,12 @@ module MembershipApplications
   class ProcessAiFeedbackTest < ActiveSupport::TestCase
     setup do
       @profile = ai_ollama_profiles(:application_status)
-      @profile.update!(enabled: true, base_url: 'http://ollama.test:11434', model: 'test-model', prompt: 'You review applications.')
+      @profile.update!(
+        enabled: true,
+        base_url: 'http://ollama.test:11434',
+        model: 'test-model',
+        prompt: 'You review applications.'
+      )
       ai_ollama_profiles(:default).update!(base_url: '', model: '')
 
       @application = MembershipApplication.create!(email: 'ai-feedback-test@example.com', status: 'draft')
@@ -23,10 +28,8 @@ module MembershipApplications
         'garbage_reason' => nil
       }
 
-      Ollama::ChatCompletion.stub(
-        :call,
-        Ollama::ChatCompletion::Result.new(ok: true, assistant_content: JSON.generate(payload), error: nil)
-      ) do
+      stub_result = Ollama::ChatCompletion::Result.new(true, JSON.generate(payload), nil)
+      Ollama::ChatCompletion.stub(:call, stub_result) do
         result = ProcessAiFeedback.call(application: @application)
         assert result.success?, result.message
       end
@@ -54,10 +57,8 @@ module MembershipApplications
     end
 
     test 'records error when Ollama fails' do
-      Ollama::ChatCompletion.stub(
-        :call,
-        Ollama::ChatCompletion::Result.new(ok: false, assistant_content: nil, error: 'timeout')
-      ) do
+      stub_result = Ollama::ChatCompletion::Result.new(false, nil, 'timeout')
+      Ollama::ChatCompletion.stub(:call, stub_result) do
         result = ProcessAiFeedback.call(application: @application)
         assert result.failure?
       end
@@ -71,10 +72,20 @@ module MembershipApplications
       @profile.update!(base_url: '', model: '')
       ai_ollama_profiles(:default).update!(base_url: 'http://default.test:11434', model: 'default-model')
 
+      minimal_json = {
+        'score' => 0,
+        'score_rationale' => 'x',
+        'recommendation' => 'needs_review',
+        'questions' => [],
+        'garbage' => false,
+        'garbage_reason' => nil
+      }
+      stub_body = JSON.generate(minimal_json)
+
       called = nil
       Ollama::ChatCompletion.stub :call, lambda { |**kwargs|
         called = kwargs
-        Ollama::ChatCompletion::Result.new(ok: true, assistant_content: '{"score":0,"score_rationale":"x","recommendation":"needs_review","questions":[],"garbage":false,"garbage_reason":null}', error: nil)
+        Ollama::ChatCompletion::Result.new(true, stub_body, nil)
       } do
         ProcessAiFeedback.call(application: @application)
       end

@@ -13,7 +13,7 @@ module MembershipApplications
       "garbage_reason" (string or null).
     TXT
 
-    Result = Struct.new(:status, :message, keyword_init: true) do
+    Result = Struct.new(:status, :message) do
       def skipped?
         status == :skipped
       end
@@ -36,21 +36,24 @@ module MembershipApplications
     end
 
     def call
-      return Result.new(status: :skipped, message: 'Draft applications are not processed') if @application.draft?
-      return Result.new(status: :skipped, message: 'Already processed') if @application.ai_feedback_processed?
+      return Result.new(:skipped, 'Draft applications are not processed') if @application.draft?
+      return Result.new(:skipped, 'Already processed') if @application.ai_feedback_processed?
 
       profile = AiOllamaProfile.find_by(key: 'application_status')
-      unless profile&.enabled?
-        return Result.new(status: :failure, message: 'Application Status profile disabled')
-      end
+      return Result.new(:failure, 'Application Status profile disabled') unless profile&.enabled?
 
       base_url = profile.effective_base_url
       model = profile.effective_model
-      if base_url.blank? || model.blank?
-        return Result.new(status: :failure, message: 'AI not configured')
-      end
+      return Result.new(:failure, 'AI not configured') if base_url.blank? || model.blank?
 
-      system_prompt = [profile.prompt.to_s.strip, JSON_INSTRUCTION].reject(&:blank?).join("\n\n")
+      run_ollama_and_persist(profile, base_url, model)
+    end
+
+    private
+
+    def run_ollama_and_persist(profile, base_url, model)
+      parts = [profile.prompt.to_s.strip, JSON_INSTRUCTION]
+      system_prompt = parts.compact_blank.join("\n\n")
       user_prompt = "Here is the membership application:\n\n#{@application.application_text_for_ai}"
 
       completion = Ollama::ChatCompletion.call(
@@ -61,22 +64,24 @@ module MembershipApplications
         format_json: true
       )
 
-      unless completion.ok
-        record_error!(completion.error)
-        return Result.new(status: :failure, message: completion.error)
-      end
+      return handle_completion_failure(completion) unless completion.ok
 
       data = parse_feedback_json(completion.assistant_content)
-      unless data
-        record_error!('Could not parse JSON from model response')
-        return Result.new(status: :failure, message: 'Invalid JSON from model')
-      end
+      return handle_parse_failure unless data
 
       persist_feedback!(data)
-      Result.new(status: :success, message: 'Stored AI feedback')
+      Result.new(:success, 'Stored AI feedback')
     end
 
-    private
+    def handle_completion_failure(completion)
+      record_error!(completion.error)
+      Result.new(:failure, completion.error)
+    end
+
+    def handle_parse_failure
+      record_error!('Could not parse JSON from model response')
+      Result.new(:failure, 'Invalid JSON from model')
+    end
 
     def record_error!(msg)
       @application.update_columns(
@@ -92,14 +97,14 @@ module MembershipApplications
       return nil unless h.is_a?(Hash)
 
       score = h['score']
-      score = Integer(score) if score != nil && score != ''
+      score = Integer(score) if score.present?
 
       questions = h['questions']
       questions = [] if questions.nil?
       questions = [questions] if questions.is_a?(String)
       return nil unless questions.is_a?(Array)
 
-      questions = questions.map { |q| q.to_s.strip }.reject(&:blank?)
+      questions = questions.map { |q| q.to_s.strip }.compact_blank
 
       garbage = ActiveModel::Type::Boolean.new.cast(h.fetch('garbage', false))
 
