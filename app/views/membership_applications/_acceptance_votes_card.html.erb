@@ -30,11 +30,15 @@
             <legend class="form-label mb-2">Your vote</legend>
             <div class="d-flex flex-wrap gap-3">
               <div class="form-check">
-                <%= av.radio_button :decision, 'accept', class: 'form-check-input' %>
+                <%= av.radio_button :decision, 'accept',
+                                    class: 'form-check-input',
+                                    checked: current_acceptance_vote.persisted? && current_acceptance_vote.decision == 'accept' %>
                 <%= av.label :decision, 'Accept', value: 'accept', class: 'form-check-label' %>
               </div>
               <div class="form-check">
-                <%= av.radio_button :decision, 'reject', class: 'form-check-input' %>
+                <%= av.radio_button :decision, 'reject',
+                                    class: 'form-check-input',
+                                    checked: current_acceptance_vote.persisted? && current_acceptance_vote.decision == 'reject' %>
                 <%= av.label :decision, 'Reject', value: 'reject', class: 'form-check-label' %>
               </div>
             </div>
@@ -46,17 +50,20 @@
       <p class="text-muted small mb-0">Voting closed — this application has been approved or rejected.</p>
     <% end %>
 
-    <% if application.acceptance_votes.any? %>
+    <% persisted_votes = application.acceptance_votes.select(&:persisted?) %>
+    <% if persisted_votes.any? %>
       <hr class="my-4">
       <h6 class="small text-uppercase text-muted fw-semibold mb-2">Votes</h6>
       <ul class="list-unstyled small mb-0">
-        <% application.acceptance_votes.sort_by { |v| [v.user.display_name, v.id] }.each do |v| %>
+        <% persisted_votes.sort_by { |v| [v.user.display_name, v.id] }.each do |v| %>
           <li class="mb-1">
             <%= link_to v.user.display_name, user_path(v.user), class: 'text-decoration-none' %>:
             <% if v.decision == 'accept' %>
               <span class="badge bg-success">Accept</span>
-            <% else %>
+            <% elsif v.decision == 'reject' %>
               <span class="badge bg-danger">Reject</span>
+            <% else %>
+              <span class="badge bg-secondary">—</span>
             <% end %>
           </li>
         <% end %>
