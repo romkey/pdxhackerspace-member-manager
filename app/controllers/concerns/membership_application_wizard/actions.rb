@@ -3,6 +3,13 @@
 module MembershipApplicationWizard
   # Public HTTP actions for the apply flow.
   module Actions
+    extend ActiveSupport::Concern
+
+    included do
+      before_action :require_verified_email!, only: %i[start save_page page submit_application]
+      before_action :load_pages, only: %i[start page]
+    end
+
     def start
       @intro_content = TextFragment.content_for('application_form_intro')
       @verification = current_verification

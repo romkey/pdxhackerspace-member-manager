@@ -3,6 +3,7 @@ class MembershipApplicationsController < ApplicationController
 
   include Pagy::Backend
   include MembershipApplicationWizard
+  include MembershipApplicationWizard::Actions
 
   ADMIN_ACTIONS = %i[
     index show import approve reject mark_under_review link_user unlink_user vote_ai_feedback
