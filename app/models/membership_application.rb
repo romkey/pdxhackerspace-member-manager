@@ -114,6 +114,7 @@ class MembershipApplication < ApplicationRecord
       admin_notes: notes
     )
     Journal.record_application_event!(application: self, action: 'application_rejected', actor: admin)
+    ApplicationRejectedMailJob.perform_later(id, notes)
   end
 
   def status_display

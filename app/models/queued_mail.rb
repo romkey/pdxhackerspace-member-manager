@@ -1,6 +1,9 @@
 class QueuedMail < ApplicationRecord
   STATUSES = %w[pending approved rejected].freeze
 
+  # Stand-in for +MemberMailer.build_template_variables+ when the applicant has no User yet
+  ApplicantMailRecipient = Data.define(:display_name, :email, :username)
+
   belongs_to :email_template, optional: true
   belongs_to :recipient, class_name: 'User', optional: true
   belongs_to :reviewed_by, class_name: 'User', optional: true
@@ -75,6 +78,64 @@ class QueuedMail < ApplicationRecord
     record
   end
 
+  # Queues the applicant-facing rejection email (pending review, then +QueuedMailDeliveryJob+).
+  def self.enqueue_application_rejected(membership_application, reason: nil)
+    dest = membership_application.user&.email.presence || membership_application.email
+    return nil if dest.blank?
+
+    recipient_user = membership_application.user
+    template_recipient = recipient_user || applicant_recipient_for(membership_application)
+    action = 'application_rejected'
+    template = EmailTemplate.find_enabled(action)
+    extra_args = { reason: reason.presence }.compact
+
+    variables = MemberMailer.build_template_variables(template_recipient, extra_args)
+
+    record = if template
+               rendered = template.render(variables)
+               create!(
+                 to: dest,
+                 subject: rendered[:subject],
+                 body_html: rendered[:body_html],
+                 body_text: rendered[:body_text] || '',
+                 reason: 'Application rejected',
+                 email_template: template,
+                 recipient: recipient_user,
+                 mailer_action: action,
+                 mailer_args: extra_args
+               )
+             else
+               message = MemberMailer.application_rejected(template_recipient, **extra_args)
+               msg = message.message
+               html_body = msg.multipart? ? msg.html_part&.body&.decoded : msg.body.decoded
+               text_body = msg.multipart? ? msg.text_part&.body&.decoded : ''
+
+               create!(
+                 to: dest,
+                 subject: msg.subject,
+                 body_html: html_body || '',
+                 body_text: text_body || '',
+                 reason: 'Application rejected',
+                 recipient: recipient_user,
+                 mailer_action: action,
+                 mailer_args: extra_args
+               )
+             end
+
+    MailLogEntry.log!(record, 'created', details: "Queued application rejected to #{dest}")
+    record
+  end
+
+  def self.applicant_recipient_for(application)
+    name = application.applicant_display_name
+    name = 'Applicant' if name.blank? || name == '—'
+    ApplicantMailRecipient.new(
+      display_name: name,
+      email: application.email,
+      username: 'Not set'
+    )
+  end
+
   def approve!(reviewer)
     update!(status: 'approved', reviewed_by: reviewer, reviewed_at: Time.current)
     MailLogEntry.log!(self, 'approved', actor: reviewer, details: "Approved for delivery to #{to}")
@@ -144,7 +205,7 @@ class QueuedMail < ApplicationRecord
       [user, to_addr || extra_args[:admin_email]]
     when 'payment_past_due'
       [user, { days_overdue: extra_args[:days_overdue] }.compact]
-    when 'membership_cancelled', 'membership_banned'
+    when 'membership_cancelled', 'membership_banned', 'application_rejected'
       [user, { reason: extra_args[:reason] }.compact]
     when 'training_completed', 'trainer_capability_granted'
       [user, { training_topic: extra_args[:training_topic] }.compact]

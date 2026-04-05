@@ -13,6 +13,17 @@ class MembershipApplicationTest < ActiveSupport::TestCase
     end
   end
 
+  test 'reject! enqueues application rejected mail job' do
+    app = MembershipApplication.create!(email: 'reject-mail-test@example.com', status: 'under_review')
+    admin = users(:one)
+
+    assert_enqueued_with(job: ApplicationRejectedMailJob, args: [app.id, 'Does not meet requirements']) do
+      app.reject!(admin, notes: 'Does not meet requirements')
+    end
+
+    assert_equal 'rejected', app.reload.status
+  end
+
   test 'admin_search matches email, answer text, and linked member fields' do
     page = ApplicationFormPage.create!(title: 'Search Page', position: 9988)
     q_bio = page.questions.create!(label: 'Bio', field_type: 'textarea', required: false, position: 1)

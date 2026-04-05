@@ -32,6 +32,26 @@ class MemberMailer < ApplicationMailer
     end
   end
 
+  # Sent when a membership application is rejected (+recipient+ may be a User or ApplicantMailRecipient)
+  def application_rejected(recipient, opts = {})
+    reason = opts.is_a?(Hash) ? opts[:reason] : opts
+    @user = recipient
+    @organization = organization_name
+    @reason = reason
+
+    extra_vars = {}
+    extra_vars[:reason] = reason if reason.present?
+
+    if send_from_template('application_rejected', recipient, extra_vars)
+      # Email sent from database template
+    else
+      mail(
+        to: recipient.email,
+        subject: "#{@organization}: Update on Your Membership Application"
+      )
+    end
+  end
+
   # Sent when a member's payment is past due
   def payment_past_due(user, days_overdue: nil)
     @user = user

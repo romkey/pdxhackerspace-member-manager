@@ -1,0 +1,14 @@
+Application Not Approved
+
+Hello <%= @user.display_name %>,
+
+Thank you for your interest in joining <%= @organization %>. After careful review, we are not able to approve your membership application at this time.
+
+<% if @reason.present? %>
+Additional information: <%= @reason %>
+
+<% end %>
+If you have questions or believe this decision was made in error, please contact us.
+
+Best regards,
+The <%= @organization %> Team

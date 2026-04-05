@@ -1,0 +1,14 @@
+<h1>Application Not Approved</h1>
+
+<p>Hello <%= @user.display_name %>,</p>
+
+<p>Thank you for your interest in joining <%= @organization %>. After careful review, we are not able to approve your membership application at this time.</p>
+
+<% if @reason.present? %>
+<p><strong>Additional information:</strong> <%= @reason %></p>
+<% end %>
+
+<p>If you have questions or believe this decision was made in error, please contact us.</p>
+
+<p>Best regards,<br>
+The <%= @organization %> Team</p>

@@ -12,6 +12,12 @@ class MemberMailerPreview < ActionMailer::Preview
     MemberMailer.application_approved(user)
   end
 
+  # Preview at http://localhost:3000/rails/mailers/member_mailer/application_rejected
+  def application_rejected
+    user = User.first || sample_user
+    MemberMailer.application_rejected(user, reason: 'We are not accepting new members in this category.')
+  end
+
   # Preview at http://localhost:3000/rails/mailers/member_mailer/payment_past_due
   def payment_past_due
     user = User.first || sample_user

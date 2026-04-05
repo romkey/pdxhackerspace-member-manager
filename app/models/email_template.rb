@@ -7,7 +7,7 @@ class EmailTemplate < ApplicationRecord
     '{{organization_name}}' => 'Name of the organization',
     '{{date}}' => 'Current date',
     '{{days_overdue}}' => 'Number of days payment is overdue (payment emails only)',
-    '{{reason}}' => 'Reason for action (cancellation/ban emails only)',
+    '{{reason}}' => 'Reason for action (cancellation, ban, or application rejection emails)',
     '{{app_url}}' => 'Base URL of the application',
     '{{training_topic}}' => 'Name of the training topic (training emails only)',
     '{{invitation_url}}' => 'URL for the invitation to create an account (invitation emails only)',
@@ -76,6 +76,33 @@ class EmailTemplate < ApplicationRecord
         - Review our community guidelines and safety policies
 
         We're excited to have you as part of our community!
+
+        Best regards,
+        The {{organization_name}} Team
+      TEXT
+    },
+    'application_rejected' => {
+      name: 'Application Rejected',
+      description: 'Sent when a membership application is rejected',
+      subject: '{{organization_name}}: Update on Your Membership Application',
+      body_html: <<~HTML,
+        <h1>Application Not Approved</h1>
+        <p>Hello {{member_name}},</p>
+        <p>Thank you for your interest in joining {{organization_name}}. After careful review, we are not able to approve your membership application at this time.</p>
+        {{reason}}
+        <p>If you have questions or believe this decision was made in error, please contact us.</p>
+        <p>Best regards,<br>The {{organization_name}} Team</p>
+      HTML
+      body_text: <<~TEXT
+        Application Not Approved
+
+        Hello {{member_name}},
+
+        Thank you for your interest in joining {{organization_name}}. After careful review, we are not able to approve your membership application at this time.
+
+        {{reason}}
+
+        If you have questions or believe this decision was made in error, please contact us.
 
         Best regards,
         The {{organization_name}} Team
