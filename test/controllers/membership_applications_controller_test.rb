@@ -104,6 +104,68 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match(/data-controller="sensitive-reveal"/, response.body)
   end
 
+  test 'vote_ai_feedback creates vote when AI feedback processed' do
+    sign_in_as_admin
+    app = MembershipApplication.create!(
+      email: 'vote-ai@example.com',
+      status: 'submitted',
+      submitted_at: Time.current,
+      ai_feedback_processed_at: Time.current,
+      ai_feedback_recommendation: 'accept'
+    )
+    assert_difference -> { app.reload.ai_feedback_votes.count }, 1 do
+      post vote_ai_feedback_membership_application_path(app), params: {
+        ai_feedback_vote: { stance: 'agree', reason: 'Matches my read' }
+      }
+    end
+    assert_redirected_to membership_application_path(app)
+    vote = app.ai_feedback_votes.last
+    assert_equal 'agree', vote.stance
+    assert_equal 'Matches my read', vote.reason
+  end
+
+  test 'vote_ai_feedback updates existing vote for same admin' do
+    sign_in_as_admin
+    admin = User.find(session[:user_id])
+    app = MembershipApplication.create!(
+      email: 'vote-update@example.com',
+      status: 'submitted',
+      submitted_at: Time.current,
+      ai_feedback_processed_at: Time.current,
+      ai_feedback_recommendation: 'reject'
+    )
+    MembershipApplicationAiFeedbackVote.create!(
+      membership_application: app,
+      user: admin,
+      stance: 'agree',
+      reason: 'First'
+    )
+    assert_no_difference -> { app.reload.ai_feedback_votes.count } do
+      post vote_ai_feedback_membership_application_path(app), params: {
+        ai_feedback_vote: { stance: 'disagree', reason: 'Changed mind' }
+      }
+    end
+    vote = app.reload.ai_feedback_votes.sole
+    assert_equal 'disagree', vote.stance
+    assert_equal 'Changed mind', vote.reason
+  end
+
+  test 'vote_ai_feedback rejected when AI not processed' do
+    sign_in_as_admin
+    app = MembershipApplication.create!(
+      email: 'vote-no-ai@example.com',
+      status: 'submitted',
+      submitted_at: Time.current
+    )
+    assert_no_difference -> { MembershipApplicationAiFeedbackVote.count } do
+      post vote_ai_feedback_membership_application_path(app), params: {
+        ai_feedback_vote: { stance: 'agree', reason: '' }
+      }
+    end
+    assert_redirected_to membership_application_path(app)
+    assert_equal 'Admin feedback is only available after AI feedback has been processed.', flash[:alert]
+  end
+
   test 'show includes AI feedback section for non-draft applications' do
     app = MembershipApplication.create!(
       email: 'show-ai-section@example.com',

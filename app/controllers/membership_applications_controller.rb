@@ -3,8 +3,15 @@ class MembershipApplicationsController < ApplicationController
 
   include Pagy::Backend
 
-  before_action :require_admin!, only: %i[index show import approve reject mark_under_review link_user unlink_user]
-  before_action :set_application_admin, only: %i[show approve reject mark_under_review link_user unlink_user]
+  ADMIN_ACTIONS = %i[
+    index show import approve reject mark_under_review link_user unlink_user vote_ai_feedback
+  ].freeze
+  APPLICATION_MEMBER_ACTIONS = %i[
+    show approve reject mark_under_review link_user unlink_user vote_ai_feedback
+  ].freeze
+
+  before_action :require_admin!, only: ADMIN_ACTIONS
+  before_action :set_application_admin, only: APPLICATION_MEMBER_ACTIONS
   before_action :require_verified_email!, only: %i[start save_page page submit_application]
   before_action :load_pages, only: %i[start page]
 
@@ -126,6 +133,8 @@ class MembershipApplicationsController < ApplicationController
   def show
     @pages_with_answers = @application.answers_by_page
     @users_for_application_link = User.non_service_accounts.ordered_by_display_name.to_a
+    vote = @application.ai_feedback_votes.detect { |v| v.user_id == current_user.id }
+    @current_ai_feedback_vote = vote || @application.ai_feedback_votes.build(user: current_user)
   end
 
   def link_user
@@ -161,7 +170,29 @@ class MembershipApplicationsController < ApplicationController
                 notice: 'Application marked as under review.'
   end
 
+  def vote_ai_feedback
+    unless @application.ai_feedback_processed?
+      redirect_to membership_application_path(@application),
+                  alert: 'Admin feedback is only available after AI feedback has been processed.'
+      return
+    end
+
+    vote = @application.ai_feedback_votes.find_or_initialize_by(user: current_user)
+    vote.assign_attributes(ai_feedback_vote_params)
+    if vote.save
+      redirect_to membership_application_path(@application),
+                  notice: 'Your feedback on the AI review was saved.'
+    else
+      redirect_to membership_application_path(@application),
+                  alert: vote.errors.full_messages.to_sentence
+    end
+  end
+
   private
+
+  def ai_feedback_vote_params
+    params.expect(ai_feedback_vote: %i[stance reason])
+  end
 
   def load_pages
     @pages = ApplicationFormPage.ordered.to_a
@@ -255,6 +286,8 @@ class MembershipApplicationsController < ApplicationController
   end
 
   def set_application_admin
-    @application = MembershipApplication.find(params[:id])
+    rel = MembershipApplication
+    rel = rel.includes(ai_feedback_votes: :user) if action_name == 'show'
+    @application = rel.find(params[:id])
   end
 end

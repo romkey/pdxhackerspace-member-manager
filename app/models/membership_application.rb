@@ -15,6 +15,8 @@ class MembershipApplication < ApplicationRecord
   belongs_to :reviewed_by, class_name: 'User', optional: true
   belongs_to :user, optional: true
   has_many :application_answers, dependent: :destroy
+  has_many :ai_feedback_votes, -> { order(created_at: :asc) },
+           class_name: 'MembershipApplicationAiFeedbackVote', dependent: :destroy
 
   validates :email, presence: true
   validates :status, presence: true, inclusion: { in: STATUSES }
@@ -171,6 +173,10 @@ class MembershipApplication < ApplicationRecord
 
   def ai_feedback_processed?
     ai_feedback_processed_at.present?
+  end
+
+  def ai_feedback_admin_vote_counts
+    ai_feedback_votes.group(:stance).count
   end
 
   AI_FEEDBACK_REC_BADGES = {

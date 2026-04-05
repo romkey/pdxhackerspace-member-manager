@@ -93,7 +93,7 @@
 </div>
 
 <% unless @application.draft? %>
-  <%= render 'ai_feedback_card', application: @application %>
+  <%= render 'ai_feedback_card', application: @application, current_ai_feedback_vote: @current_ai_feedback_vote %>
 <% end %>
 
 <% if @application.user.nil? && @users_for_application_link.any? %>
