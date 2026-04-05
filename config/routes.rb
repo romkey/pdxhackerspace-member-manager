@@ -392,6 +392,8 @@ Rails.application.routes.draw do
       post :link_user
       post :unlink_user
       post :vote_ai_feedback
+      post :save_tour_feedback
+      post :vote_acceptance
     end
   end
 

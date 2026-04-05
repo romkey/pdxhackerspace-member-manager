@@ -1,0 +1,66 @@
+<%# locals: (application:, current_acceptance_vote:) %>
+<% counts = application.acceptance_vote_counts %>
+<% accept_n = counts['accept'].to_i %>
+<% reject_n = counts['reject'].to_i %>
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-header bg-body-secondary">
+    <h5 class="mb-0">
+      <i class="bi bi-hand-thumbs-up me-1"></i> Admin acceptance votes
+    </h5>
+    <small class="text-body-secondary d-block mt-1">
+      Admins vote on whether to accept this applicant. The tally is advisory; final approval or rejection is recorded separately by an Executive Director.
+    </small>
+  </div>
+  <div class="card-body">
+    <div class="d-flex flex-wrap gap-3 mb-4">
+      <div>
+        <span class="badge bg-success fs-6"><%= accept_n %></span>
+        <span class="ms-1">Accept</span>
+      </div>
+      <div>
+        <span class="badge bg-danger fs-6"><%= reject_n %></span>
+        <span class="ms-1">Reject</span>
+      </div>
+    </div>
+
+    <% if application.acceptance_vote_open? %>
+      <%= form_with url: vote_acceptance_membership_application_path(application), method: :post, local: true do %>
+        <%= fields_for :acceptance_vote, current_acceptance_vote do |av| %>
+          <fieldset>
+            <legend class="form-label mb-2">Your vote</legend>
+            <div class="d-flex flex-wrap gap-3">
+              <div class="form-check">
+                <%= av.radio_button :decision, 'accept', class: 'form-check-input' %>
+                <%= av.label :decision, 'Accept', value: 'accept', class: 'form-check-label' %>
+              </div>
+              <div class="form-check">
+                <%= av.radio_button :decision, 'reject', class: 'form-check-input' %>
+                <%= av.label :decision, 'Reject', value: 'reject', class: 'form-check-label' %>
+              </div>
+            </div>
+          </fieldset>
+        <% end %>
+        <%= submit_tag 'Save vote', class: 'btn btn-outline-primary mt-3' %>
+      <% end %>
+    <% else %>
+      <p class="text-muted small mb-0">Voting closed — this application has been approved or rejected.</p>
+    <% end %>
+
+    <% if application.acceptance_votes.any? %>
+      <hr class="my-4">
+      <h6 class="small text-uppercase text-muted fw-semibold mb-2">Votes</h6>
+      <ul class="list-unstyled small mb-0">
+        <% application.acceptance_votes.sort_by { |v| [v.user.display_name, v.id] }.each do |v| %>
+          <li class="mb-1">
+            <%= link_to v.user.display_name, user_path(v.user), class: 'text-decoration-none' %>:
+            <% if v.decision == 'accept' %>
+              <span class="badge bg-success">Accept</span>
+            <% else %>
+              <span class="badge bg-danger">Reject</span>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+  </div>
+</div>

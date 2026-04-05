@@ -1,13 +1,15 @@
-# Blocks pull requests into main unless the head branch is staging or hotfix/*.
-# Add this workflow as a required status check on main (branch protection / rulesets)
-# so merges cannot proceed when it fails.
+# When the merge target is main, the head branch must be staging or hotfix/*.
+# For any other base branch (e.g. staging), this workflow succeeds without enforcing.
+#
+# Add as a required status check only for main, or list additional base branches below
+# so the job runs and reports success when enforcement is skipped.
 
 name: Enforce main PR source branch
 
 on:
   pull_request:
     types: [opened, synchronize, reopened, edited]
-    branches: [main]
+    branches: [main, staging]
 
 permissions:
   contents: read
@@ -16,10 +18,15 @@ jobs:
   allowed-source:
     runs-on: ubuntu-latest
     steps:
-      - name: Require staging or hotfix/* as merge source
+      - name: Require staging or hotfix/* when merging to main
         env:
+          BASE_REF: ${{ github.base_ref }}
           HEAD_REF: ${{ github.head_ref }}
         run: |
+          if [ "$BASE_REF" != "main" ]; then
+            echo "Skipping: PR targets \`$BASE_REF\` — staging/hotfix source is only enforced for PRs into \`main\`."
+            exit 0
+          fi
           if [ "$HEAD_REF" = "staging" ]; then
             echo "OK: merging \`staging\` into \`main\`."
             exit 0

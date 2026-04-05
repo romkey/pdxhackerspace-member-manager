@@ -62,4 +62,30 @@ class UserTest < ActiveSupport::TestCase
     user = users(:one)
     assert_equal user, User.by_name_or_alias('Example User One').first
   end
+
+  test 'can_finalize_membership_application requires executive director training when topic exists' do
+    topic = TrainingTopic.create!(name: 'Executive Director')
+    admin = User.create!(
+      authentik_id: 'finalize-test-admin',
+      email: 'finalize-test-admin@example.com',
+      is_admin: true,
+      active: true
+    )
+    assert_not admin.can_finalize_membership_application?
+
+    Training.create!(trainee: admin, training_topic: topic, trained_at: Time.current)
+    assert_predicate admin.reload, :can_finalize_membership_application?
+  end
+
+  test 'can_finalize_membership_application is false for non-admins even with ED training' do
+    topic = TrainingTopic.create!(name: 'Executive Director')
+    member = User.create!(
+      authentik_id: 'finalize-test-member',
+      email: 'finalize-test-member@example.com',
+      is_admin: false,
+      active: true
+    )
+    Training.create!(trainee: member, training_topic: topic, trained_at: Time.current)
+    assert_not member.can_finalize_membership_application?
+  end
 end

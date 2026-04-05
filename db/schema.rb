@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_05_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_05_183000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -472,16 +472,49 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_05_120000) do
     t.index ["key"], name: "index_member_sources_on_key", unique: true
   end
 
+  create_table "membership_application_acceptance_votes", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "decision", null: false
+    t.bigint "membership_application_id", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["membership_application_id", "user_id"], name: "idx_ma_acceptance_votes_app_user", unique: true
+    t.index ["user_id"], name: "index_membership_application_acceptance_votes_on_user_id"
+  end
+
+  create_table "membership_application_ai_feedback_votes", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "membership_application_id", null: false
+    t.text "reason"
+    t.string "stance", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["membership_application_id", "user_id"], name: "idx_ma_ai_fb_votes_app_user", unique: true
+  end
+
+  create_table "membership_application_tour_feedbacks", force: :cascade do |t|
+    t.text "attitude"
+    t.datetime "created_at", null: false
+    t.text "engagement"
+    t.text "fit_feeling"
+    t.text "impressions"
+    t.bigint "membership_application_id", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["membership_application_id", "user_id"], name: "idx_ma_tour_feedbacks_app_user", unique: true
+    t.index ["user_id"], name: "index_membership_application_tour_feedbacks_on_user_id"
+  end
+
   create_table "membership_applications", force: :cascade do |t|
     t.text "admin_notes"
-    t.integer "ai_feedback_score"
-    t.text "ai_feedback_score_rationale"
-    t.string "ai_feedback_recommendation"
-    t.jsonb "ai_feedback_questions", default: [], null: false
     t.boolean "ai_feedback_garbage", default: false, null: false
     t.text "ai_feedback_garbage_reason"
-    t.datetime "ai_feedback_processed_at"
     t.text "ai_feedback_last_error"
+    t.datetime "ai_feedback_processed_at"
+    t.jsonb "ai_feedback_questions", default: [], null: false
+    t.string "ai_feedback_recommendation"
+    t.integer "ai_feedback_score"
+    t.text "ai_feedback_score_rationale"
     t.datetime "created_at", null: false
     t.string "email", null: false
     t.datetime "reviewed_at"
@@ -497,16 +530,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_05_120000) do
     t.index ["status"], name: "index_membership_applications_on_status"
     t.index ["token"], name: "index_membership_applications_on_token", unique: true
     t.index ["user_id"], name: "index_membership_applications_on_user_id"
-  end
-
-  create_table "membership_application_ai_feedback_votes", force: :cascade do |t|
-    t.bigint "membership_application_id", null: false
-    t.bigint "user_id", null: false
-    t.string "stance", null: false
-    t.text "reason"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["membership_application_id", "user_id"], name: "idx_ma_ai_fb_votes_app_user", unique: true
   end
 
   create_table "membership_plans", force: :cascade do |t|
@@ -985,10 +1008,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_05_120000) do
   add_foreign_key "kofi_payments", "users"
   add_foreign_key "mail_log_entries", "queued_mails"
   add_foreign_key "mail_log_entries", "users", column: "actor_id"
-  add_foreign_key "membership_applications", "users"
-  add_foreign_key "membership_applications", "users", column: "reviewed_by_id"
+  add_foreign_key "membership_application_acceptance_votes", "membership_applications"
+  add_foreign_key "membership_application_acceptance_votes", "users"
   add_foreign_key "membership_application_ai_feedback_votes", "membership_applications"
   add_foreign_key "membership_application_ai_feedback_votes", "users"
+  add_foreign_key "membership_application_tour_feedbacks", "membership_applications"
+  add_foreign_key "membership_application_tour_feedbacks", "users"
+  add_foreign_key "membership_applications", "users"
+  add_foreign_key "membership_applications", "users", column: "reviewed_by_id"
   add_foreign_key "membership_plans", "users"
   add_foreign_key "messages", "users", column: "recipient_id"
   add_foreign_key "messages", "users", column: "sender_id"

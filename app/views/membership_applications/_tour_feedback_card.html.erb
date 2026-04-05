@@ -1,0 +1,60 @@
+<%# locals: (application:, current_tour_feedback:) %>
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-header bg-body-secondary">
+    <h5 class="mb-0">
+      <i class="bi bi-person-walking me-1"></i> Tour feedback
+    </h5>
+    <small class="text-body-secondary d-block mt-1">
+      If you gave this applicant a tour, share your observations. Other admins can see all tour notes.
+    </small>
+  </div>
+  <div class="card-body">
+    <% application.tour_feedbacks.reject { |f| f.new_record? }.each do |fb| %>
+      <div class="border-bottom pb-3 mb-3">
+        <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
+          <strong><%= link_to fb.user.display_name, user_path(fb.user), class: 'text-decoration-none' %></strong>
+          <small class="text-body-secondary">Updated <%= fb.updated_at.strftime('%b %d, %Y') %></small>
+        </div>
+        <% if fb.attitude.present? %>
+          <p class="small mb-2"><span class="text-muted text-uppercase fw-semibold">Attitude</span><br><%= simple_format fb.attitude, class: 'mb-0' %></p>
+        <% end %>
+        <% if fb.impressions.present? %>
+          <p class="small mb-2"><span class="text-muted text-uppercase fw-semibold">Impressions</span><br><%= simple_format fb.impressions, class: 'mb-0' %></p>
+        <% end %>
+        <% if fb.engagement.present? %>
+          <p class="small mb-2"><span class="text-muted text-uppercase fw-semibold">Engagement</span><br><%= simple_format fb.engagement, class: 'mb-0' %></p>
+        <% end %>
+        <% if fb.fit_feeling.present? %>
+          <p class="small mb-0"><span class="text-muted text-uppercase fw-semibold">Fit</span><br><%= simple_format fb.fit_feeling, class: 'mb-0' %></p>
+        <% end %>
+      </div>
+    <% end %>
+
+    <% if application.draft? %>
+      <p class="text-muted small mb-0">Tour feedback is available after the application is submitted.</p>
+    <% else %>
+      <h6 class="small text-uppercase text-muted fw-semibold mb-3">Your tour feedback</h6>
+      <%= form_with url: save_tour_feedback_membership_application_path(application), method: :post, local: true do %>
+        <%= fields_for :tour_feedback, current_tour_feedback do |tf| %>
+          <div class="mb-3">
+            <%= tf.label :attitude, 'Attitude', class: 'form-label' %>
+            <%= tf.text_area :attitude, class: 'form-control', rows: 2, placeholder: 'How did they come across?' %>
+          </div>
+          <div class="mb-3">
+            <%= tf.label :impressions, 'Impressions', class: 'form-label' %>
+            <%= tf.text_area :impressions, class: 'form-control', rows: 2, placeholder: 'First impressions, character, curiosity…' %>
+          </div>
+          <div class="mb-3">
+            <%= tf.label :engagement, 'Engagement', class: 'form-label' %>
+            <%= tf.text_area :engagement, class: 'form-control', rows: 2, placeholder: 'How engaged were they with the space and members?' %>
+          </div>
+          <div class="mb-3">
+            <%= tf.label :fit_feeling, 'Fit', class: 'form-label' %>
+            <%= tf.text_area :fit_feeling, class: 'form-control', rows: 2, placeholder: 'General feeling about whether they are a good fit' %>
+          </div>
+        <% end %>
+        <%= submit_tag (current_tour_feedback.persisted? ? 'Update your tour feedback' : 'Save tour feedback'), class: 'btn btn-primary' %>
+      <% end %>
+    <% end %>
+  </div>
+</div>

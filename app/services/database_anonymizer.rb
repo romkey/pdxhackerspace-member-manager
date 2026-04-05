@@ -406,6 +406,18 @@ module DatabaseAnonymizer
         SQL
       end
 
+      select_rows('SELECT id FROM membership_application_tour_feedbacks').each do |row|
+        id = row['id'].to_i
+        @conn.execute(<<~SQL.squish)
+          UPDATE membership_application_tour_feedbacks SET
+            attitude = #{redacted_text},
+            impressions = #{redacted_text},
+            engagement = #{redacted_text},
+            fit_feeling = #{redacted_text}
+          WHERE id = #{id}
+        SQL
+      end
+
       select_rows('SELECT id FROM application_verifications').each do |row|
         id = row['id'].to_i
         @conn.execute(<<~SQL.squish)

@@ -2,91 +2,22 @@ class MembershipApplicationsController < ApplicationController
   require 'csv'
 
   include Pagy::Backend
+  include MembershipApplicationWizard
+  include MembershipApplicationWizard::Actions
 
   ADMIN_ACTIONS = %i[
     index show import approve reject mark_under_review link_user unlink_user vote_ai_feedback
+    save_tour_feedback vote_acceptance
   ].freeze
   APPLICATION_MEMBER_ACTIONS = %i[
     show approve reject mark_under_review link_user unlink_user vote_ai_feedback
+    save_tour_feedback vote_acceptance
   ].freeze
 
   before_action :require_admin!, only: ADMIN_ACTIONS
   before_action :set_application_admin, only: APPLICATION_MEMBER_ACTIONS
-  before_action :require_verified_email!, only: %i[start save_page page submit_application]
-  before_action :load_pages, only: %i[start page]
-
-  # --- Public wizard actions ---
-
-  def start
-    @intro_content = TextFragment.content_for('application_form_intro')
-    @verification = current_verification
-    @email = @verification&.email
-
-    @application = find_in_progress_application
-    if @application.nil? && @email
-      draft = MembershipApplication.find_by(email: @email, status: 'draft')
-      if draft
-        session[:application_token] = draft.token
-        @application = draft
-      end
-    end
-
-    return unless @email
-
-    @existing_application = MembershipApplication.where(email: @email)
-                                                 .where.not(status: 'draft')
-                                                 .newest_first
-                                                 .first
-  end
-
-  def save_page
-    page_number = params[:page_number].to_i
-
-    if page_number.zero?
-      save_email_page
-    else
-      save_question_page(page_number)
-    end
-  end
-
-  def page
-    @application = find_in_progress_application
-    unless @application
-      redirect_to apply_start_path, alert: 'Please start your application to continue.'
-      return
-    end
-
-    page_number = params[:page_number].to_i
-    @current_page = @pages[page_number - 1]
-    unless @current_page
-      redirect_to apply_start_path
-      return
-    end
-
-    @page_number = page_number
-    @questions = @current_page.questions.ordered
-  end
-
-  def submit_application
-    @application = find_in_progress_application
-    unless @application&.draft?
-      redirect_to apply_start_path, alert: 'No application in progress.'
-      return
-    end
-
-    missing = check_required_fields
-    if missing.any?
-      redirect_to apply_page_path(page_number: missing.first[:page_number]),
-                  alert: 'Please complete required fields before submitting.'
-      return
-    end
-
-    @application.submit!
-    session.delete(:application_token)
-    redirect_to apply_confirmation_path
-  end
-
-  def confirmation; end
+  before_action :require_executive_director_for_final_decision!, only: %i[approve reject]
+  before_action :require_pending_application_for_acceptance_vote!, only: :vote_acceptance
 
   # --- Admin actions ---
 
@@ -135,6 +66,10 @@ class MembershipApplicationsController < ApplicationController
     @users_for_application_link = User.non_service_accounts.ordered_by_display_name.to_a
     vote = @application.ai_feedback_votes.detect { |v| v.user_id == current_user.id }
     @current_ai_feedback_vote = vote || @application.ai_feedback_votes.build(user: current_user)
+    tf = @application.tour_feedbacks.detect { |f| f.user_id == current_user.id }
+    @current_tour_feedback = tf || @application.tour_feedbacks.build(user: current_user)
+    av = @application.acceptance_votes.detect { |v| v.user_id == current_user.id }
+    @current_acceptance_vote = av || @application.acceptance_votes.build(user: current_user)
   end
 
   def link_user
@@ -148,6 +83,36 @@ class MembershipApplicationsController < ApplicationController
     @application.update!(user: nil)
     redirect_to membership_application_path(@application),
                 notice: 'Member link removed from this application.'
+  end
+
+  def save_tour_feedback
+    if @application.draft?
+      redirect_to membership_application_path(@application),
+                  alert: 'Tour feedback is available after the application is submitted.'
+      return
+    end
+
+    feedback = @application.tour_feedbacks.find_or_initialize_by(user: current_user)
+    feedback.assign_attributes(tour_feedback_params)
+    if feedback.save
+      redirect_to membership_application_path(@application),
+                  notice: 'Tour feedback saved.'
+    else
+      redirect_to membership_application_path(@application),
+                  alert: feedback.errors.full_messages.to_sentence
+    end
+  end
+
+  def vote_acceptance
+    vote = @application.acceptance_votes.find_or_initialize_by(user: current_user)
+    vote.assign_attributes(acceptance_vote_params)
+    if vote.save
+      redirect_to membership_application_path(@application),
+                  notice: 'Your acceptance vote was saved.'
+    else
+      redirect_to membership_application_path(@application),
+                  alert: vote.errors.full_messages.to_sentence
+    end
   end
 
   def approve
@@ -190,104 +155,37 @@ class MembershipApplicationsController < ApplicationController
 
   private
 
+  def require_executive_director_for_final_decision!
+    return if true_user&.can_finalize_membership_application?
+
+    redirect_to membership_application_path(@application),
+                alert: 'Only members trained as Executive Director may approve or reject applications.'
+  end
+
+  def require_pending_application_for_acceptance_vote!
+    return if @application.acceptance_vote_open?
+
+    redirect_to membership_application_path(@application),
+                alert: 'Acceptance votes can only be cast while the application is pending.'
+  end
+
+  def tour_feedback_params
+    params.expect(tour_feedback: %i[attitude impressions engagement fit_feeling])
+  end
+
+  def acceptance_vote_params
+    params.expect(acceptance_vote: [:decision])
+  end
+
   def ai_feedback_vote_params
     params.expect(ai_feedback_vote: %i[stance reason])
   end
 
-  def load_pages
-    @pages = ApplicationFormPage.ordered.to_a
-  end
-
-  def find_in_progress_application
-    token = session[:application_token]
-    return nil unless token
-
-    MembershipApplication.find_by(token: token, status: 'draft')
-  end
-
-  def persist_answers_for_questions!(current_page, answers, answers_other)
-    current_page.questions.each do |question|
-      value = answers[question.id.to_s].to_s.strip
-      if value == 'Other'
-        other_value = answers_other[question.id.to_s].to_s.strip
-        value = other_value.presence || 'Other'
-      end
-      answer = @application.application_answers.find_or_initialize_by(
-        application_form_question: question
-      )
-      answer.value = value
-      answer.save!
-    end
-  end
-
-  def redirect_after_saving_page(page_number, page_count)
-    next_page = page_number + 1
-    if next_page > page_count
-      redirect_to apply_page_path(page_number: page_number),
-                  notice: 'Answers saved. Review and submit when ready.'
-    else
-      redirect_to apply_page_path(page_number: next_page)
-    end
-  end
-
-  def save_email_page
-    verification = current_verification
-    email = verification.email
-
-    app = MembershipApplication.find_by(email: email, status: 'draft')
-    app ||= MembershipApplication.create!(email: email)
-
-    session[:application_token] = app.token
-    redirect_to apply_page_path(page_number: 1)
-  end
-
-  def save_question_page(page_number)
-    @application = find_in_progress_application
-    unless @application
-      redirect_to apply_start_path, alert: 'Please start your application to continue.'
-      return
-    end
-
-    pages = ApplicationFormPage.ordered.to_a
-    current_page = pages[page_number - 1]
-    unless current_page
-      redirect_to apply_start_path
-      return
-    end
-
-    persist_answers_for_questions!(current_page, params[:answers] || {}, params[:answers_other] || {})
-
-    redirect_after_saving_page(page_number, pages.size)
-  end
-
-  def check_required_fields
-    missing = []
-    ApplicationFormPage.ordered.each_with_index do |page, idx|
-      page.questions.where(required: true).find_each do |q|
-        answer = @application.answer_for(q)
-        missing << { page_number: idx + 1, question: q } if answer.nil? || answer.value.blank?
-      end
-    end
-    missing
-  end
-
-  def require_verified_email!
-    verification = current_verification
-    return if verification&.verified?
-
-    redirect_to apply_new_path, alert: 'Please verify your email address before starting an application.'
-  end
-
-  def current_verification
-    token = session[:verified_application_token]
-    return nil unless token
-
-    ApplicationVerification.find_by(token: token)
-  end
-
   def set_application_admin
     rel = MembershipApplication
-    rel = rel.includes(ai_feedback_votes: :user) if action_name == 'show'
+    if action_name == 'show'
+      rel = rel.includes(ai_feedback_votes: :user, tour_feedbacks: :user, acceptance_votes: :user)
+    end
     @application = rel.find(params[:id])
   end
 end

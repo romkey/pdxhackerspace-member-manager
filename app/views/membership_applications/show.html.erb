@@ -94,6 +94,8 @@
 
 <% unless @application.draft? %>
   <%= render 'ai_feedback_card', application: @application, current_ai_feedback_vote: @current_ai_feedback_vote %>
+  <%= render 'tour_feedback_card', application: @application, current_tour_feedback: @current_tour_feedback %>
+  <%= render 'acceptance_votes_card', application: @application, current_acceptance_vote: @current_acceptance_vote %>
 <% end %>
 
 <% if @application.user.nil? && @users_for_application_link.any? %>
@@ -140,50 +142,59 @@
 <% unless @application.approved? || @application.rejected? %>
   <div id="review-section" class="card shadow-sm border-0 mb-4">
     <div class="card-header bg-body-secondary">
-      <h5 class="mb-0">Review Application</h5>
+      <h5 class="mb-0">Final decision</h5>
     </div>
     <div class="card-body">
-      <div class="mb-3">
-        <label for="admin_notes" class="form-label">Admin Notes <span class="text-muted small">(optional)</span></label>
-        <textarea id="admin_notes" class="form-control" rows="3"
-                  placeholder="Reason for approval or rejection..."><%= @application.admin_notes %></textarea>
-      </div>
-      <div class="d-flex gap-2">
-        <%= form_with url: approve_membership_application_path(@application), method: :post, local: true do %>
-          <input type="hidden" name="admin_notes" id="approve_admin_notes" value="">
-          <button type="submit" class="btn btn-success review-btn"
-                  data-turbo-confirm="Approve this application?">
-            <i class="bi bi-check-circle me-1"></i> Approve
-          </button>
-        <% end %>
-        <%= form_with url: reject_membership_application_path(@application), method: :post, local: true do %>
-          <input type="hidden" name="admin_notes" id="reject_admin_notes" value="">
-          <button type="submit" class="btn btn-danger review-btn"
-                  data-turbo-confirm="Reject this application?">
-            <i class="bi bi-x-circle me-1"></i> Reject
-          </button>
-        <% end %>
-      </div>
+      <% if true_user.can_finalize_membership_application? %>
+        <div class="mb-3">
+          <label for="admin_notes" class="form-label">Notes for the record <span class="text-muted small">(optional)</span></label>
+          <textarea id="admin_notes" class="form-control" rows="3"
+                    placeholder="Reason for approval or rejection…"><%= @application.admin_notes %></textarea>
+        </div>
+        <div class="d-flex gap-2">
+          <%= form_with url: approve_membership_application_path(@application), method: :post, local: true do %>
+            <input type="hidden" name="admin_notes" id="approve_admin_notes" value="">
+            <button type="submit" class="btn btn-success review-btn"
+                    data-turbo-confirm="Approve this application?">
+              <i class="bi bi-check-circle me-1"></i> Approve
+            </button>
+          <% end %>
+          <%= form_with url: reject_membership_application_path(@application), method: :post, local: true do %>
+            <input type="hidden" name="admin_notes" id="reject_admin_notes" value="">
+            <button type="submit" class="btn btn-danger review-btn"
+                    data-turbo-confirm="Reject this application?">
+              <i class="bi bi-x-circle me-1"></i> Reject
+            </button>
+          <% end %>
+        </div>
+      <% else %>
+        <p class="text-muted mb-0">
+          Only members trained as <strong>Executive Director</strong> may approve or reject applications.
+          Use admin acceptance votes above to record your recommendation.
+        </p>
+      <% end %>
     </div>
   </div>
 
-  <script>
-    (function() {
-      function initReviewForm() {
-        var notes = document.getElementById('admin_notes');
-        if (!notes) return;
-        document.querySelectorAll('.review-btn').forEach(function(btn) {
-          btn.addEventListener('click', function() {
-            var form = btn.closest('form');
-            var hidden = form.querySelector('input[name="admin_notes"]');
-            if (hidden) hidden.value = notes.value;
+  <% if true_user.can_finalize_membership_application? %>
+    <script>
+      (function() {
+        function initReviewForm() {
+          var notes = document.getElementById('admin_notes');
+          if (!notes) return;
+          document.querySelectorAll('.review-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+              var form = btn.closest('form');
+              var hidden = form.querySelector('input[name="admin_notes"]');
+              if (hidden) hidden.value = notes.value;
+            });
           });
-        });
-      }
-      document.addEventListener('DOMContentLoaded', initReviewForm);
-      document.addEventListener('turbo:load', initReviewForm);
-    })();
-  </script>
+        }
+        document.addEventListener('DOMContentLoaded', initReviewForm);
+        document.addEventListener('turbo:load', initReviewForm);
+      })();
+    </script>
+  <% end %>
 <% end %>
 
 </div><%# .membership-application-show %>

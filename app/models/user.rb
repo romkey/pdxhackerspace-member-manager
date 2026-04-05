@@ -130,6 +130,23 @@ class User < ApplicationRecord
     is_admin?
   end
 
+  def trained_in_executive_director_topic?
+    topic = TrainingTopic.where('LOWER(name) = ?', MembershipApplication::EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME.downcase).first
+    return false if topic.nil?
+
+    Training.exists?(trainee: self, training_topic: topic)
+  end
+
+  # Approve/reject membership applications: admins with Executive Director training when that topic exists.
+  def can_finalize_membership_application?
+    return false unless is_admin?
+
+    topic = TrainingTopic.where('LOWER(name) = ?', MembershipApplication::EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME.downcase).first
+    return true if topic.nil?
+
+    trained_in_executive_director_topic?
+  end
+
   # Get training topics with links that the user is trained in
   # Returns topics ordered alphabetically by name, only those with at least one link
   def training_topics_with_links

@@ -179,6 +179,78 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/AI feedback/i, response.body)
   end
 
+  test 'approve blocked when executive director topic exists and admin lacks training' do
+    TrainingTopic.create!(name: 'Executive Director')
+    app = MembershipApplication.create!(
+      email: 'approve-gate@example.com',
+      status: 'under_review',
+      submitted_at: Time.current
+    )
+    assert_no_changes -> { app.reload.status } do
+      post approve_membership_application_path(app), params: { admin_notes: 'n' }
+    end
+    assert_redirected_to membership_application_path(app)
+    assert_match(/Executive Director/i, flash[:alert].to_s)
+  end
+
+  test 'approve allowed when admin has executive director training' do
+    topic = TrainingTopic.create!(name: 'Executive Director')
+    admin = User.find(session[:user_id])
+    Training.create!(trainee: admin, training_topic: topic, trained_at: Time.current)
+    app = MembershipApplication.create!(
+      email: 'approve-ok@example.com',
+      status: 'under_review',
+      submitted_at: Time.current
+    )
+    post approve_membership_application_path(app), params: { admin_notes: 'Welcome' }
+    assert_redirected_to membership_application_path(app)
+    assert_equal 'approved', app.reload.status
+  end
+
+  test 'save_tour_feedback creates feedback for current admin' do
+    app = MembershipApplication.create!(
+      email: 'tour-save@example.com',
+      status: 'submitted',
+      submitted_at: Time.current
+    )
+    assert_difference -> { app.reload.tour_feedbacks.count }, 1 do
+      post save_tour_feedback_membership_application_path(app), params: {
+        tour_feedback: { attitude: 'Positive', impressions: '', engagement: '', fit_feeling: '' }
+      }
+    end
+    assert_redirected_to membership_application_path(app)
+    assert_equal 'Positive', app.tour_feedbacks.sole.attitude
+  end
+
+  test 'vote_acceptance records tally' do
+    app = MembershipApplication.create!(
+      email: 'vote-accept@example.com',
+      status: 'submitted',
+      submitted_at: Time.current
+    )
+    post vote_acceptance_membership_application_path(app), params: {
+      acceptance_vote: { decision: 'accept' }
+    }
+    assert_redirected_to membership_application_path(app)
+    assert_equal({ 'accept' => 1 }, app.reload.acceptance_vote_counts)
+  end
+
+  test 'vote_acceptance rejected when application finalized' do
+    app = MembershipApplication.create!(
+      email: 'vote-closed@example.com',
+      status: 'approved',
+      submitted_at: Time.current,
+      reviewed_at: Time.current
+    )
+    assert_no_difference -> { MembershipApplicationAcceptanceVote.count } do
+      post vote_acceptance_membership_application_path(app), params: {
+        acceptance_vote: { decision: 'reject' }
+      }
+    end
+    assert_redirected_to membership_application_path(app)
+    assert_match(/pending/i, flash[:alert].to_s)
+  end
+
   test 'unlink_user clears member on application' do
     app = MembershipApplication.create!(
       email: 'unlink-app-test@example.com',
