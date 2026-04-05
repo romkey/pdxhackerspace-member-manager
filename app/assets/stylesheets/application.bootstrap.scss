@@ -36,3 +36,12 @@
 .dashboard-attention-tier-boundary hr {
   border-color: var(--bs-border-color-translucent);
 }
+
+// Membership application show: mask applicant / referrer contact until "Show contact details"
+[data-controller='sensitive-reveal']:not(.sensitive-reveal--shown) [data-sensitive-reveal-target='blurred'] {
+  filter: blur(6px);
+  user-select: none;
+  background-color: rgba(13, 110, 253, 0.12);
+  border-radius: 0.25rem;
+  transition: filter 0.15s ease, background-color 0.15s ease;
+}

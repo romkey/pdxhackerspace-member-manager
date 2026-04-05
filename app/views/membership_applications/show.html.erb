@@ -1,3 +1,18 @@
+<% mask_contact = membership_application_mask_contact_pii? %>
+<div class="membership-application-show"
+     <% if mask_contact %>
+       data-controller="sensitive-reveal"
+     <% end %>>
+<% if mask_contact %>
+  <div class="alert alert-secondary d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 mb-3">
+    <p class="mb-0 small">Applicant email, mailing address, phone, and referring member contact fields are blurred until you show them.</p>
+    <button type="button" class="btn btn-sm btn-primary text-nowrap flex-shrink-0"
+            data-action="click->sensitive-reveal#toggle">
+      <span data-sensitive-reveal-target="label">Show contact details</span>
+    </button>
+  </div>
+<% end %>
+
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h1 class="h3 mb-0">
     Application #<%= @application.id %>
@@ -23,7 +38,11 @@
       <div class="col-md-6">
         <dl>
           <dt>Email</dt>
-          <dd><%= @application.email %></dd>
+          <dd>
+            <%= membership_application_masked_contact_capture do %>
+              <%= @application.email %>
+            <% end %>
+          </dd>
 
           <dt>Status</dt>
           <dd><span class="badge bg-<%= @application.status_badge_color %>"><%= @application.status_display %></span></dd>
@@ -81,7 +100,8 @@
   <%= render 'link_member_modal',
              users: @users_for_application_link,
              form_url: link_user_membership_application_path(@application),
-             application_email: @application.email %>
+             application_email: @application.email,
+             mask_contact: mask_contact %>
 <% end %>
 
 <% @pages_with_answers.each do |entry| %>
@@ -100,7 +120,13 @@
           <dt class="text-muted small"><%= qa[:question].label %></dt>
           <dd class="mb-2">
             <% if qa[:answer]&.value.present? %>
-              <%= simple_format(qa[:answer].value) %>
+              <% if membership_application_sensitive_answer_label?(qa[:question].label) %>
+                <%= membership_application_masked_contact_capture do %>
+                  <%= simple_format(qa[:answer].value) %>
+                <% end %>
+              <% else %>
+                <%= simple_format(qa[:answer].value) %>
+              <% end %>
             <% else %>
               <span class="text-muted fst-italic">No answer</span>
             <% end %>
@@ -159,3 +185,5 @@
     })();
   </script>
 <% end %>
+
+</div><%# .membership-application-show %>

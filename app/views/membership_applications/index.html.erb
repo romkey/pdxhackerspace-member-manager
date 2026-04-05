@@ -1,3 +1,5 @@
+<% ma_nav = { q: params[:q].presence }.compact %>
+
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h1 class="h3 mb-0">Membership Applications</h1>
   <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#importApplicationsCsvModal">Import CSV</button>
@@ -35,38 +37,63 @@
   </div>
 </div>
 
-<ul class="nav nav-tabs mb-3">
-  <li class="nav-item">
-    <%= link_to membership_applications_path,
-        class: "nav-link #{params[:status].blank? ? 'active' : ''}" do %>
-      All <span class="badge bg-secondary"><%= @status_counts[:all] %></span>
-    <% end %>
-  </li>
-  <li class="nav-item">
-    <%= link_to membership_applications_path(status: 'submitted'),
-        class: "nav-link #{params[:status] == 'submitted' ? 'active' : ''}" do %>
-      Submitted <span class="badge bg-primary"><%= @status_counts[:submitted] %></span>
-    <% end %>
-  </li>
-  <li class="nav-item">
-    <%= link_to membership_applications_path(status: 'under_review'),
-        class: "nav-link #{params[:status] == 'under_review' ? 'active' : ''}" do %>
-      Under Review <span class="badge bg-warning text-dark"><%= @status_counts[:under_review] %></span>
-    <% end %>
-  </li>
-  <li class="nav-item">
-    <%= link_to membership_applications_path(status: 'approved'),
-        class: "nav-link #{params[:status] == 'approved' ? 'active' : ''}" do %>
-      Approved <span class="badge bg-success"><%= @status_counts[:approved] %></span>
-    <% end %>
-  </li>
-  <li class="nav-item">
-    <%= link_to membership_applications_path(status: 'rejected'),
-        class: "nav-link #{params[:status] == 'rejected' ? 'active' : ''}" do %>
-      Rejected <span class="badge bg-danger"><%= @status_counts[:rejected] %></span>
-    <% end %>
-  </li>
-</ul>
+<%= turbo_frame_tag 'membership_applications_table', data: { turbo_action: 'advance' } do %>
+  <ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+      <%= link_to membership_applications_path(ma_nav),
+          class: "nav-link #{params[:status].blank? ? 'active' : ''}" do %>
+        All <span class="badge bg-secondary"><%= @status_counts[:all] %></span>
+      <% end %>
+    </li>
+    <li class="nav-item">
+      <%= link_to membership_applications_path(ma_nav.merge(status: 'submitted')),
+          class: "nav-link #{params[:status] == 'submitted' ? 'active' : ''}" do %>
+        Submitted <span class="badge bg-primary"><%= @status_counts[:submitted] %></span>
+      <% end %>
+    </li>
+    <li class="nav-item">
+      <%= link_to membership_applications_path(ma_nav.merge(status: 'under_review')),
+          class: "nav-link #{params[:status] == 'under_review' ? 'active' : ''}" do %>
+        Under Review <span class="badge bg-warning text-dark"><%= @status_counts[:under_review] %></span>
+      <% end %>
+    </li>
+    <li class="nav-item">
+      <%= link_to membership_applications_path(ma_nav.merge(status: 'approved')),
+          class: "nav-link #{params[:status] == 'approved' ? 'active' : ''}" do %>
+        Approved <span class="badge bg-success"><%= @status_counts[:approved] %></span>
+      <% end %>
+    </li>
+    <li class="nav-item">
+      <%= link_to membership_applications_path(ma_nav.merge(status: 'rejected')),
+          class: "nav-link #{params[:status] == 'rejected' ? 'active' : ''}" do %>
+        Rejected <span class="badge bg-danger"><%= @status_counts[:rejected] %></span>
+      <% end %>
+    </li>
+  </ul>
+
+  <div class="card shadow-sm border-0 mb-3">
+    <div class="card-body py-2">
+      <%= form_with url: membership_applications_path, method: :get, data: { controller: 'debounced-submit' } do %>
+        <%= hidden_field_tag :status, params[:status] if params[:status].present? %>
+        <div class="d-flex gap-2 align-items-center">
+          <%= search_field_tag :q, params[:q],
+              class: 'form-control',
+              placeholder: 'Search by name, email, or any answer…',
+              autocomplete: 'off', autocorrect: 'off', autocapitalize: 'off', spellcheck: 'false',
+              aria: { label: 'Search applications' },
+              data: {
+                debounced_submit_target: 'input',
+                action: 'input->debounced-submit#schedule'
+              } %>
+          <button type="button" class="btn btn-outline-secondary <%= 'd-none' if params[:q].blank? %>"
+                  data-debounced-submit-target="clearButton"
+                  data-action="click->debounced-submit#clear">
+            Clear
+          </button>
+        </div>
+      <% end %>
+    </div>
+  </div>
 
 <% if @applications.any? %>
   <div class="card shadow-sm border-0">
@@ -74,8 +101,7 @@
       <table class="table table-hover mb-0">
         <thead class="table-light">
           <tr>
-            <th>#</th>
-            <th>Email</th>
+            <th>Name</th>
             <th>Status</th>
             <th>AI</th>
             <th>Submitted</th>
@@ -87,8 +113,12 @@
         <tbody>
           <% @applications.each do |app| %>
             <tr>
-              <td><%= app.id %></td>
-              <td><%= app.email %></td>
+              <td>
+                <%= link_to app.applicant_display_name(name_question_id: @applicant_name_question_id),
+                            membership_application_path(app),
+                            class: 'text-decoration-none fw-semibold',
+                            data: { turbo_frame: '_top' } %>
+              </td>
               <td>
                 <span class="badge bg-<%= app.status_badge_color %>"><%= app.status_display %></span>
               </td>
@@ -108,7 +138,9 @@
               <td><%= app.reviewed_by&.display_name || '—' %></td>
               <td>
                 <% if app.user %>
-                  <%= link_to app.user.display_name, user_path(app.user), class: "text-decoration-none" %>
+                  <%= link_to app.user.display_name, user_path(app.user),
+                      class: "text-decoration-none",
+                      data: { turbo_frame: '_top' } %>
                 <% else %>
                   <span class="text-muted">—</span>
                 <% end %>
@@ -122,7 +154,6 @@
                     Link member
                   </button>
                 <% end %>
-                <%= link_to "View", membership_application_path(app), class: "btn btn-sm btn-outline-primary" %>
               </td>
             </tr>
           <% end %>
@@ -137,9 +168,10 @@
 <% else %>
   <div class="text-center text-muted py-5">
     <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-    <p>No applications found.</p>
+    <p><%= params[:q].present? ? 'No applications match your search.' : 'No applications found.' %></p>
   </div>
 <% end %>
+<% end %><%# turbo_frame_tag membership_applications_table %>
 
 <% if @users_for_application_link.any? %>
   <%= render 'link_member_modal', users: @users_for_application_link, dynamic: true, application_email: '' %>

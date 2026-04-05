@@ -90,4 +90,34 @@ module ApplicationHelper
       safe_join([title, ' ', content_tag(:i, '', class: "bi #{icon} small")])
     end
   end
+
+  # Membership application show: full applicant/referrer contact visibility (Executive Director training).
+  def membership_application_contact_pii_visible?(user = current_user)
+    return true if user.blank?
+
+    topic = TrainingTopic.where('LOWER(name) = ?', MembershipApplication::EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME.downcase).first
+    return true if topic.nil?
+
+    Training.exists?(trainee: user, training_topic: topic)
+  end
+
+  def membership_application_mask_contact_pii?
+    !membership_application_contact_pii_visible?
+  end
+
+  def membership_application_sensitive_answer_label?(label)
+    MembershipApplication::FORM_ANSWER_LABELS_CONTACT_SENSITIVE.include?(label.to_s.strip)
+  end
+
+  # Wrap block output when contact PII should be masked (blur + reveal toggle on ancestor).
+  def membership_application_masked_contact_capture(&)
+    html = capture(&)
+    if membership_application_mask_contact_pii?
+      content_tag(:span, html,
+                  class: 'd-inline-block w-100',
+                  data: { sensitive_reveal_target: 'blurred' })
+    else
+      html
+    end
+  end
 end
