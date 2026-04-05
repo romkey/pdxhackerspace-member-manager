@@ -52,6 +52,23 @@ class MembershipApplicationTest < ActiveSupport::TestCase
     assert_equal member.display_name, app.reload.applicant_display_name(name_question_id: q.id)
   end
 
+  test 'ai_feedback_admin_vote_counts groups by stance with ordered association' do
+    app = MembershipApplication.create!(email: 'vote-counts@example.com', status: 'submitted')
+    MembershipApplicationAiFeedbackVote.create!(
+      membership_application: app,
+      user: users(:one),
+      stance: 'agree'
+    )
+    MembershipApplicationAiFeedbackVote.create!(
+      membership_application: app,
+      user: users(:two),
+      stance: 'disagree'
+    )
+    counts = app.reload.ai_feedback_admin_vote_counts
+    assert_equal 1, counts['agree']
+    assert_equal 1, counts['disagree']
+  end
+
   test 'ai_feedback_recommendation_badge_color maps known recommendations' do
     app = MembershipApplication.new
     app.ai_feedback_recommendation = 'accept'

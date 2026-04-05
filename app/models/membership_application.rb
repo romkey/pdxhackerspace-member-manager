@@ -176,7 +176,8 @@ class MembershipApplication < ApplicationRecord
   end
 
   def ai_feedback_admin_vote_counts
-    ai_feedback_votes.group(:stance).count
+    # Default association order(:created_at) breaks GROUP BY under PostgreSQL.
+    ai_feedback_votes.unscope(:order).group(:stance).count
   end
 
   AI_FEEDBACK_REC_BADGES = {
