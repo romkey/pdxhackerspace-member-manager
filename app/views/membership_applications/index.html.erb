@@ -40,12 +40,6 @@
 <%= turbo_frame_tag 'membership_applications_table', data: { turbo_action: 'advance' } do %>
   <ul class="nav nav-tabs mb-3">
     <li class="nav-item">
-      <%= link_to membership_applications_path(ma_nav),
-          class: "nav-link #{params[:status].blank? ? 'active' : ''}" do %>
-        All <span class="badge bg-secondary"><%= @status_counts[:all] %></span>
-      <% end %>
-    </li>
-    <li class="nav-item">
       <%= link_to membership_applications_path(ma_nav.merge(status: 'submitted')),
           class: "nav-link #{params[:status] == 'submitted' ? 'active' : ''}" do %>
         Submitted <span class="badge bg-primary"><%= @status_counts[:submitted] %></span>
@@ -67,6 +61,12 @@
       <%= link_to membership_applications_path(ma_nav.merge(status: 'rejected')),
           class: "nav-link #{params[:status] == 'rejected' ? 'active' : ''}" do %>
         Rejected <span class="badge bg-danger"><%= @status_counts[:rejected] %></span>
+      <% end %>
+    </li>
+    <li class="nav-item">
+      <%= link_to membership_applications_path(ma_nav),
+          class: "nav-link #{params[:status].blank? ? 'active' : ''}" do %>
+        All <span class="badge bg-secondary"><%= @status_counts[:all] %></span>
       <% end %>
     </li>
   </ul>
@@ -103,8 +103,9 @@
           <tr>
             <th>Name</th>
             <th>Status</th>
-            <th>AI</th>
             <th>Submitted</th>
+            <th>AI</th>
+            <th>Admin votes</th>
             <th>Reviewed by</th>
             <th>Linked member</th>
             <th class="text-end">Actions</th>
@@ -122,6 +123,7 @@
               <td>
                 <span class="badge bg-<%= app.status_badge_color %>"><%= app.status_display %></span>
               </td>
+              <td><%= app.submitted_at&.strftime('%b %d, %Y') || '—' %></td>
               <td class="text-nowrap">
                 <% if app.ai_feedback_processed? %>
                   <span class="badge bg-dark"><%= app.ai_feedback_score.nil? ? '—' : app.ai_feedback_score %></span>
@@ -134,7 +136,17 @@
                   <span class="text-muted small">Pending</span>
                 <% end %>
               </td>
-              <td><%= app.submitted_at&.strftime('%b %d, %Y') || '—' %></td>
+              <td class="text-nowrap small">
+                <% av_accept = app.acceptance_votes.count { |v| v.decision == 'accept' } %>
+                <% av_reject = app.acceptance_votes.count { |v| v.decision == 'reject' } %>
+                <% if av_accept.zero? && av_reject.zero? %>
+                  <span class="text-muted">—</span>
+                <% else %>
+                  <span class="badge bg-success"><%= av_accept %></span>
+                  <span class="text-muted">/</span>
+                  <span class="badge bg-danger"><%= av_reject %></span>
+                <% end %>
+              </td>
               <td><%= app.reviewed_by&.display_name || '—' %></td>
               <td>
                 <% if app.user %>

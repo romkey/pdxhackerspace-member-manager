@@ -41,7 +41,7 @@ class MembershipApplicationsController < ApplicationController
 
   def index
     base_scope = MembershipApplication.where.not(status: 'draft').newest_first
-    @applications = base_scope.includes(:user, :reviewed_by, :application_answers)
+    @applications = base_scope.includes(:user, :reviewed_by, :application_answers, :acceptance_votes)
     @applications = @applications.where(status: params[:status]) if params[:status].present?
     @applications = @applications.admin_search(params[:q])
 
@@ -69,7 +69,12 @@ class MembershipApplicationsController < ApplicationController
     tf = @application.tour_feedbacks.detect { |f| f.user_id == current_user.id }
     @current_tour_feedback = tf || @application.tour_feedbacks.build(user: current_user)
     av = @application.acceptance_votes.detect { |v| v.user_id == current_user.id }
-    @current_acceptance_vote = av || @application.acceptance_votes.build(user: current_user)
+    # Use `new` not `build` so we do not add a blank vote to the association (nil decision
+    # was shown as "Reject" in the tally list and could confuse the form).
+    @current_acceptance_vote = av || MembershipApplicationAcceptanceVote.new(
+      membership_application: @application,
+      user: current_user
+    )
   end
 
   def link_user

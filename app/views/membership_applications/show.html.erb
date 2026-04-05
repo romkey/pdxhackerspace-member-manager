@@ -95,7 +95,6 @@
 <% unless @application.draft? %>
   <%= render 'ai_feedback_card', application: @application, current_ai_feedback_vote: @current_ai_feedback_vote %>
   <%= render 'tour_feedback_card', application: @application, current_tour_feedback: @current_tour_feedback %>
-  <%= render 'acceptance_votes_card', application: @application, current_acceptance_vote: @current_acceptance_vote %>
 <% end %>
 
 <% if @application.user.nil? && @users_for_application_link.any? %>
@@ -170,7 +169,7 @@
       <% else %>
         <p class="text-muted mb-0">
           Only members trained as <strong>Executive Director</strong> may approve or reject applications.
-          Use admin acceptance votes above to record your recommendation.
+          Use admin acceptance votes below to record your recommendation.
         </p>
       <% end %>
     </div>
@@ -195,6 +194,10 @@
       })();
     </script>
   <% end %>
+<% end %>
+
+<% unless @application.draft? %>
+  <%= render 'acceptance_votes_card', application: @application, current_acceptance_vote: @current_acceptance_vote %>
 <% end %>
 
 </div><%# .membership-application-show %>
