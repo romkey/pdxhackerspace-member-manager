@@ -1,9 +1,22 @@
 class MembershipApplication < ApplicationRecord
   STATUSES = %w[draft submitted under_review approved rejected].freeze
 
+  # Training topic name (TrainingTopic.name) — viewers with this training see applicant PII without masking.
+  EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME = 'Executive Director'.freeze
+
+  # Form question labels whose answers are masked (with reveal control) for viewers without the training above.
+  FORM_ANSWER_LABELS_CONTACT_SENSITIVE = [
+    'Mailing Address',
+    'Phone number',
+    'Member Email',
+    'Member Phone'
+  ].freeze
+
   belongs_to :reviewed_by, class_name: 'User', optional: true
   belongs_to :user, optional: true
   has_many :application_answers, dependent: :destroy
+  has_many :ai_feedback_votes, -> { order(created_at: :asc) },
+           class_name: 'MembershipApplicationAiFeedbackVote', dependent: :destroy
 
   validates :email, presence: true
   validates :status, presence: true, inclusion: { in: STATUSES }
@@ -21,6 +34,34 @@ class MembershipApplication < ApplicationRecord
   scope :rejected, -> { where(status: 'rejected') }
   scope :pending, -> { where(status: %w[submitted under_review]) }
   scope :newest_first, -> { order(created_at: :desc) }
+  scope :admin_search, lambda { |query|
+    raw = query.to_s.strip
+    if raw.blank?
+      all
+    else
+      pattern = "%#{ActiveRecord::Base.sanitize_sql_like(raw.downcase)}%"
+      where(
+        <<~SQL.squish,
+          LOWER(membership_applications.email) LIKE :p
+          OR EXISTS (
+            SELECT 1 FROM application_answers aa
+            WHERE aa.membership_application_id = membership_applications.id
+            AND LOWER(aa.value) LIKE :p
+          )
+          OR EXISTS (
+            SELECT 1 FROM users u
+            WHERE u.id = membership_applications.user_id
+            AND (
+              LOWER(COALESCE(u.full_name, '')) LIKE :p
+              OR LOWER(COALESCE(u.email, '')) LIKE :p
+              OR LOWER(COALESCE(u.username, '')) LIKE :p
+            )
+          )
+        SQL
+        p: pattern
+      )
+    end
+  }
 
   def draft?
     status == 'draft'
@@ -90,6 +131,21 @@ class MembershipApplication < ApplicationRecord
     application_answers.find_by(application_form_question: question)
   end
 
+  # Display name for admin lists: "Name" on the first form page, then linked member, else em dash.
+  def applicant_display_name(name_question_id: nil)
+    qid = name_question_id
+    if qid.nil?
+      name_q_scope = ApplicationFormQuestion.joins(:application_form_page)
+      qid = name_q_scope.where(application_form_pages: { position: 1 }, label: 'Name').pick(:id)
+    end
+    if qid
+      ans = application_answers.detect { |a| a.application_form_question_id == qid }
+      name = ans&.value&.strip
+      return name if name.present?
+    end
+    user&.display_name.presence || '—'
+  end
+
   # Returns answers grouped by page for display
   def answers_by_page
     ApplicationFormPage.ordered.includes(:questions).map do |page|
@@ -117,6 +173,10 @@ class MembershipApplication < ApplicationRecord
 
   def ai_feedback_processed?
     ai_feedback_processed_at.present?
+  end
+
+  def ai_feedback_admin_vote_counts
+    ai_feedback_votes.group(:stance).count
   end
 
   AI_FEEDBACK_REC_BADGES = {

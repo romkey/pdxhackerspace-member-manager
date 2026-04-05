@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_04_000000) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_05_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -499,6 +499,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_04_000000) do
     t.index ["user_id"], name: "index_membership_applications_on_user_id"
   end
 
+  create_table "membership_application_ai_feedback_votes", force: :cascade do |t|
+    t.bigint "membership_application_id", null: false
+    t.bigint "user_id", null: false
+    t.string "stance", null: false
+    t.text "reason"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["membership_application_id", "user_id"], name: "idx_ma_ai_fb_votes_app_user", unique: true
+  end
+
   create_table "membership_plans", force: :cascade do |t|
     t.string "billing_frequency", null: false
     t.decimal "cost", precision: 10, scale: 2, null: false
@@ -977,6 +987,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_04_000000) do
   add_foreign_key "mail_log_entries", "users", column: "actor_id"
   add_foreign_key "membership_applications", "users"
   add_foreign_key "membership_applications", "users", column: "reviewed_by_id"
+  add_foreign_key "membership_application_ai_feedback_votes", "membership_applications"
+  add_foreign_key "membership_application_ai_feedback_votes", "users"
   add_foreign_key "membership_plans", "users"
   add_foreign_key "messages", "users", column: "recipient_id"
   add_foreign_key "messages", "users", column: "sender_id"

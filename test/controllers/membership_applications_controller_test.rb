@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# Also see MembershipApplicationTest for admin_search scope tests and index?q tests below.
 require 'test_helper'
 
 class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
@@ -52,6 +53,119 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal member.id, app.reload.user_id
   end
 
+  test 'index search filters by query param' do
+    q_page = ApplicationFormPage.create!(title: 'Idx Search Page', position: 9989)
+    qq = q_page.questions.create!(label: 'Note', field_type: 'text', required: false, position: 1)
+    hit = MembershipApplication.create!(
+      email: 'idx-search-hit@example.com', status: 'submitted', submitted_at: Time.current
+    )
+    hit.application_answers.create!(application_form_question: qq, value: 'idx-unique-needle')
+    miss = MembershipApplication.create!(
+      email: 'idx-search-miss@example.com', status: 'submitted', submitted_at: Time.current
+    )
+
+    get membership_applications_path(q: 'idx-unique-needle')
+
+    assert_response :success
+    assert_select 'a[href=?]', membership_application_path(hit)
+    assert_select 'a[href=?]', membership_application_path(miss), count: 0
+  end
+
+  test 'show masks applicant contact when Executive Director topic exists and viewer is not trained' do
+    TrainingTopic.create!(name: 'Executive Director')
+    sign_in_as_admin
+    app = membership_application_with_sensitive_answers
+    get membership_application_path(app)
+
+    assert_response :success
+    assert_includes response.body, 'data-controller="sensitive-reveal"'
+    assert_includes response.body, 'data-sensitive-reveal-target="blurred"'
+    assert_includes response.body, 'Show contact details'
+  end
+
+  test 'show does not mask when Executive Director training topic is not in database' do
+    sign_in_as_admin
+    app = membership_application_with_sensitive_answers
+    get membership_application_path(app)
+
+    assert_response :success
+    assert_no_match(/data-controller="sensitive-reveal"/, response.body)
+  end
+
+  test 'show does not mask when viewer has Executive Director training' do
+    topic = TrainingTopic.create!(name: 'Executive Director')
+    sign_in_as_admin
+    admin = User.find(session[:user_id])
+    Training.create!(trainee: admin, training_topic: topic, trained_at: Time.current)
+    app = membership_application_with_sensitive_answers
+    get membership_application_path(app)
+
+    assert_response :success
+    assert_no_match(/data-controller="sensitive-reveal"/, response.body)
+  end
+
+  test 'vote_ai_feedback creates vote when AI feedback processed' do
+    sign_in_as_admin
+    app = MembershipApplication.create!(
+      email: 'vote-ai@example.com',
+      status: 'submitted',
+      submitted_at: Time.current,
+      ai_feedback_processed_at: Time.current,
+      ai_feedback_recommendation: 'accept'
+    )
+    assert_difference -> { app.reload.ai_feedback_votes.count }, 1 do
+      post vote_ai_feedback_membership_application_path(app), params: {
+        ai_feedback_vote: { stance: 'agree', reason: 'Matches my read' }
+      }
+    end
+    assert_redirected_to membership_application_path(app)
+    vote = app.ai_feedback_votes.last
+    assert_equal 'agree', vote.stance
+    assert_equal 'Matches my read', vote.reason
+  end
+
+  test 'vote_ai_feedback updates existing vote for same admin' do
+    sign_in_as_admin
+    admin = User.find(session[:user_id])
+    app = MembershipApplication.create!(
+      email: 'vote-update@example.com',
+      status: 'submitted',
+      submitted_at: Time.current,
+      ai_feedback_processed_at: Time.current,
+      ai_feedback_recommendation: 'reject'
+    )
+    MembershipApplicationAiFeedbackVote.create!(
+      membership_application: app,
+      user: admin,
+      stance: 'agree',
+      reason: 'First'
+    )
+    assert_no_difference -> { app.reload.ai_feedback_votes.count } do
+      post vote_ai_feedback_membership_application_path(app), params: {
+        ai_feedback_vote: { stance: 'disagree', reason: 'Changed mind' }
+      }
+    end
+    vote = app.reload.ai_feedback_votes.sole
+    assert_equal 'disagree', vote.stance
+    assert_equal 'Changed mind', vote.reason
+  end
+
+  test 'vote_ai_feedback rejected when AI not processed' do
+    sign_in_as_admin
+    app = MembershipApplication.create!(
+      email: 'vote-no-ai@example.com',
+      status: 'submitted',
+      submitted_at: Time.current
+    )
+    assert_no_difference -> { MembershipApplicationAiFeedbackVote.count } do
+      post vote_ai_feedback_membership_application_path(app), params: {
+        ai_feedback_vote: { stance: 'agree', reason: '' }
+      }
+    end
+    assert_redirected_to membership_application_path(app)
+    assert_equal 'Admin feedback is only available after AI feedback has been processed.', flash[:alert]
+  end
+
   test 'show includes AI feedback section for non-draft applications' do
     app = MembershipApplication.create!(
       email: 'show-ai-section@example.com',
@@ -81,6 +195,25 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def membership_application_with_sensitive_answers
+    p1 = ApplicationFormPage.create!(title: 'Contact PII Page', position: 11_101)
+    q_mail = p1.questions.create!(label: 'Mailing Address', field_type: 'text', required: false, position: 1)
+    q_phone = p1.questions.create!(label: 'Phone number', field_type: 'text', required: false, position: 2)
+    p2 = ApplicationFormPage.create!(title: 'Referral PII Page', position: 11_102)
+    q_mem_email = p2.questions.create!(label: 'Member Email', field_type: 'text', required: false, position: 1)
+    q_mem_phone = p2.questions.create!(label: 'Member Phone', field_type: 'text', required: false, position: 2)
+    app = MembershipApplication.create!(
+      email: 'pii-test@example.com',
+      status: 'submitted',
+      submitted_at: Time.current
+    )
+    app.application_answers.create!(application_form_question: q_mail, value: '123 Secret Street')
+    app.application_answers.create!(application_form_question: q_phone, value: '555-000-1111')
+    app.application_answers.create!(application_form_question: q_mem_email, value: 'referrer@example.com')
+    app.application_answers.create!(application_form_question: q_mem_phone, value: '555-222-3333')
+    app
+  end
 
   def sign_in_as_admin
     account = local_accounts(:active_admin)
