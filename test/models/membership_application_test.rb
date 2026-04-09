@@ -13,6 +13,22 @@ class MembershipApplicationTest < ActiveSupport::TestCase
     end
   end
 
+  test 'submit! emails staff trained as Executive Director' do
+    topic = TrainingTopic.create!(name: MembershipApplication::EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME)
+    admin = users(:one)
+    Training.create!(trainee: admin, training_topic: topic, trained_at: Time.current)
+    app = MembershipApplication.create!(email: 'submit-ed-notify@example.com', status: 'draft')
+
+    assert_difference 'ActionMailer::Base.deliveries.size', 1 do
+      perform_enqueued_jobs only: ActionMailer::MailDeliveryJob do
+        app.submit!
+      end
+    end
+
+    assert_equal 'submitted', app.reload.status
+    assert_enqueued_jobs 1, only: MembershipApplicationAiFeedbackJob
+  end
+
   test 'reject! enqueues application rejected mail job' do
     app = MembershipApplication.create!(email: 'reject-mail-test@example.com', status: 'under_review')
     admin = users(:one)

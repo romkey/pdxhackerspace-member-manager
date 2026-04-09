@@ -62,6 +62,15 @@ class MemberMailerPreview < ActionMailer::Preview
     MemberMailer.admin_new_application(user, 'admin@example.com')
   end
 
+  # Preview at http://localhost:3000/rails/mailers/member_mailer/staff_new_application
+  def staff_new_application
+    app = MembershipApplication.order(id: :desc).first || MembershipApplication.create!(
+      email: 'mailer-preview-staff-app@example.com',
+      status: 'submitted'
+    )
+    MemberMailer.staff_new_application(app, 'director@example.com')
+  end
+
   private
 
   def sample_user

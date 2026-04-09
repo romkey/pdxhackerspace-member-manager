@@ -2,6 +2,8 @@
 # Uses database templates when available, falls back to view templates
 # rubocop:disable Metrics/ClassLength -- many small mailer actions; extraction would fragment templates
 class MemberMailer < ApplicationMailer
+  include Rails.application.routes.url_helpers
+
   # Sent when a new member application is submitted
   def application_received(user)
     @user = user
@@ -243,6 +245,26 @@ class MemberMailer < ApplicationMailer
     end
   end
 
+  # Notify ED / Assistant ED trained staff (+deliver_later+, not QueuedMail).
+  # +applicant+ comes from +QueuedMail.applicant_recipient_for(application)+.
+  def staff_new_application(application, staff_email)
+    applicant = QueuedMail.applicant_recipient_for(application)
+    @user = applicant
+    @organization = organization_name
+    @application_url = membership_application_url(application)
+
+    extra_vars = { application_url: @application_url }
+
+    if send_from_template('staff_new_application', applicant, extra_vars, to: staff_email)
+      # Email sent from database template
+    else
+      mail(
+        to: staff_email,
+        subject: "#{@organization}: New application needs review — #{applicant.display_name}"
+      )
+    end
+  end
+
   def message_received(message)
     @message = message
     @sender = message.sender
@@ -283,6 +305,7 @@ class MemberMailer < ApplicationMailer
                       ''
                     end
     vars[:training_topic] = extra_args[:training_topic] if extra_args[:training_topic].present?
+    vars[:application_url] = extra_args[:application_url].to_s if extra_args.key?(:application_url)
 
     merge_parking_notice_template_keys!(vars, extra_args)
   end

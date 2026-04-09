@@ -1,0 +1,21 @@
+<h1>New membership application</h1>
+
+<p>A new membership application has been submitted and needs to be processed.</p>
+
+<h2>Applicant</h2>
+<table style="border-collapse: collapse; width: 100%;">
+  <tr>
+    <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Name:</strong></td>
+    <td style="padding: 8px; border-bottom: 1px solid #ddd;"><%= @user.display_name %></td>
+  </tr>
+  <tr>
+    <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Email:</strong></td>
+    <td style="padding: 8px; border-bottom: 1px solid #ddd;"><%= @user.email %></td>
+  </tr>
+  <tr>
+    <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Username:</strong></td>
+    <td style="padding: 8px; border-bottom: 1px solid #ddd;"><%= @user.username %></td>
+  </tr>
+</table>
+
+<p style="margin-top: 20px;"><a href="<%= @application_url %>">Open this application in Member Manager</a></p>
