@@ -13,7 +13,8 @@ class EmailTemplate < ApplicationRecord
     '{{invitation_url}}' => 'URL for the invitation to create an account (invitation emails only)',
     '{{invitation_expiry}}' => 'When the invitation expires (invitation emails only)',
     '{{invitation_type}}' => 'Type of membership being offered, e.g. Sponsored Member (invitation emails only)',
-    '{{invitation_type_details}}' => 'Description of what the membership type includes (invitation emails only)'
+    '{{invitation_type_details}}' => 'Description of what the membership type includes (invitation emails only)',
+    '{{application_url}}' => 'Direct link to the membership application in admin (staff new application alert only)'
   }.freeze
 
   # Default templates that can be seeded
@@ -296,6 +297,44 @@ class EmailTemplate < ApplicationRecord
         Please review this application and take appropriate action.
       TEXT
     },
+    'staff_new_application' => {
+      name: 'Staff: New Application (immediate)',
+      description: 'Immediate alert to ED / Assistant ED trained staff when an application is submitted',
+      subject: '{{organization_name}}: New application needs review — {{member_name}}',
+      body_html: <<~HTML,
+        <h1>New membership application</h1>
+        <p>A new membership application has been submitted and needs to be processed.</p>
+        <h2>Applicant</h2>
+        <table style="border-collapse: collapse; width: 100%;">
+          <tr>
+            <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Name:</strong></td>
+            <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{member_name}}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Email:</strong></td>
+            <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{member_email}}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Username:</strong></td>
+            <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{member_username}}</td>
+          </tr>
+        </table>
+        <p style="margin-top: 20px;"><a href="{{application_url}}">Open this application in Member Manager</a></p>
+      HTML
+      body_text: <<~TEXT
+        New membership application
+
+        A new membership application has been submitted and needs to be processed.
+
+        Applicant
+        ---------
+        Name: {{member_name}}
+        Email: {{member_email}}
+        Username: {{member_username}}
+
+        Open in Member Manager: {{application_url}}
+      TEXT
+    },
     'training_completed' => {
       name: 'Training Completed',
       description: 'Sent when a member completes training on a topic',
@@ -441,7 +480,8 @@ class EmailTemplate < ApplicationRecord
       invitation_url: "#{ENV.fetch('APP_BASE_URL', 'http://localhost:3000')}/invite/sample-token-abc123",
       invitation_expiry: 'in 3 days',
       invitation_type: 'Sponsored Member',
-      invitation_type_details: 'Sponsored membership — full access including building access, no dues required.'
+      invitation_type_details: 'Sponsored membership — full access including building access, no dues required.',
+      application_url: "#{ENV.fetch('APP_BASE_URL', 'http://localhost:3000')}/membership_applications/1"
     }
     render(sample_variables)
   end

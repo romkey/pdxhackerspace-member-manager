@@ -3,6 +3,13 @@ class MembershipApplication < ApplicationRecord
 
   # Training topic name (TrainingTopic.name) — viewers with this training see applicant PII without masking.
   EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME = 'Executive Director'.freeze
+  ASSISTANT_EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME = 'Assistant Executive Director'.freeze
+
+  # Names must match +TrainingTopic.name+ exactly. Used to notify staff when an application is submitted.
+  STAFF_APPLICATION_ALERT_TRAINING_TOPIC_NAMES = [
+    EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME,
+    ASSISTANT_EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME
+  ].freeze
 
   # Form question labels whose answers are masked (with reveal control) for viewers without the training above.
   FORM_ANSWER_LABELS_CONTACT_SENSITIVE = [
@@ -90,6 +97,7 @@ class MembershipApplication < ApplicationRecord
     update!(status: 'submitted', submitted_at: Time.current)
     Journal.record_application_event!(application: self, action: 'application_submitted')
     MembershipApplicationAiFeedbackJob.perform_later(id)
+    MembershipApplications::NotifyDirectorsOfSubmission.call(self)
   end
 
   def mark_under_review!(admin)
