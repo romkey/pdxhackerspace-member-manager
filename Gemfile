@@ -31,7 +31,7 @@ gem 'cssbundling-rails'
 
 # Authentication & integrations
 gem 'faraday', '~> 2.10'
-gem 'google-apis-sheets_v4', '~> 0.45.0'
+gem 'google-apis-sheets_v4', '~> 0.47.0'
 gem 'googleauth', '~> 1.9'
 gem 'omniauth', '~> 2.1'
 gem 'omniauth_openid_connect', '~> 0.6.1'
@@ -47,7 +47,7 @@ gem 'redis', '>= 4.0.1'
 # gem "kredis"
 
 # Background job processing
-gem 'connection_pool', '< 3.0' # Pin below 3.0 — sidekiq 7.x incompatible with connection_pool 3.0+
+gem 'connection_pool', '< 4.0' # Pin below 3.0 — sidekiq 7.x incompatible with connection_pool 3.0+
 gem 'sidekiq', '~> 7.0'
 gem 'sidekiq-cron', '~> 1.12'
 
@@ -70,7 +70,7 @@ gem 'sentry-sidekiq', '~> 5.0'
 gem 'stackprof'
 
 # SSH client for Ruby scripts
-gem 'net-ssh', '~> 7.0'
+gem 'net-ssh', '~> 7.3'
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem 'tzinfo-data', platforms: %i[mswin mswin64 mingw x64_mingw jruby]
