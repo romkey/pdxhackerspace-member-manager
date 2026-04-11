@@ -1,5 +1,13 @@
 class ApplicationVerificationsController < ApplicationController
+  before_action :redirect_builtin_only_requests_when_external, only: %i[send_verification verify_email check_email]
+
   def gate
+    unless MembershipSetting.use_builtin_membership_application?
+      @apply_content = TextFragment.content_for('apply_for_membership')
+      render :gate_external
+      return
+    end
+
     @code_of_conduct_doc = Document.find_by('LOWER(title) = ?', 'code of conduct')
   end
 
@@ -50,6 +58,13 @@ class ApplicationVerificationsController < ApplicationController
   def check_email; end
 
   private
+
+  def redirect_builtin_only_requests_when_external
+    return if MembershipSetting.use_builtin_membership_application?
+
+    redirect_to apply_path,
+                alert: 'Applications use the instructions on the apply page. Follow the link from sign-in to apply.'
+  end
 
   def open_house_confirmation_ok?
     return true if params[:confirmed_open_house] == '1'

@@ -4,6 +4,10 @@ require 'active_job/test_helper'
 class ApplicationVerificationsControllerTest < ActionDispatch::IntegrationTest
   include ActiveJob::TestHelper
 
+  teardown do
+    MembershipSetting.instance.update!(use_builtin_membership_application: true)
+  end
+
   # ─── Gate Page ───────────────────────────────────────────────────
 
   test 'gate page renders successfully' do
@@ -172,6 +176,35 @@ class ApplicationVerificationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   # ─── Expired Verification ──────────────────────────────────
+
+  test 'gate renders apply fragment when external application flow' do
+    MembershipSetting.instance.update!(use_builtin_membership_application: false)
+    TextFragment.ensure_exists!(
+      key: 'apply_for_membership',
+      title: 'Apply for membership',
+      content: '<p>External apply content</p>'
+    )
+
+    get apply_new_path
+
+    assert_response :success
+    assert_match 'External apply content', response.body
+    assert_no_match 'Send Verification Email', response.body
+  end
+
+  test 'external flow redirects verification post to apply page' do
+    MembershipSetting.instance.update!(use_builtin_membership_application: false)
+
+    assert_no_difference 'ApplicationVerification.count' do
+      post apply_new_path, params: {
+        confirmed_open_house: '1',
+        confirmed_code_of_conduct: '1',
+        email: 'applicant@example.com'
+      }
+    end
+
+    assert_redirected_to apply_path
+  end
 
   test 'expired verification blocks application access' do
     verification = ApplicationVerification.create!(

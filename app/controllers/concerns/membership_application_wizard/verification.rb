@@ -19,5 +19,12 @@ module MembershipApplicationWizard
 
       ApplicationVerification.find_by(token: token)
     end
+
+    def require_builtin_membership_application!
+      return if MembershipSetting.use_builtin_membership_application?
+
+      redirect_to apply_path,
+                  alert: 'Applications use the instructions on the apply page. Follow the link from sign-in to apply.'
+    end
   end
 end

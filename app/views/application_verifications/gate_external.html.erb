@@ -1,0 +1,13 @@
+<div class="row justify-content-center py-5">
+  <div class="col-12 col-md-10 col-lg-8">
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-4 p-md-5">
+        <%= sanitize(@apply_content) %>
+      </div>
+    </div>
+
+    <div class="text-center mt-4">
+      <%= link_to "&larr; Back to Sign In".html_safe, login_path, class: "text-decoration-none" %>
+    </div>
+  </div>
+</div>

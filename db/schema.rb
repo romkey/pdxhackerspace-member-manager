@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_06_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_07_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -441,8 +441,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_06_140000) do
     t.bigint "actor_id"
     t.datetime "created_at", null: false
     t.string "details"
+    t.string "delivery_action"
+    t.string "delivery_mailer"
+    t.string "delivery_subject"
+    t.string "delivery_to"
     t.string "event", null: false
-    t.bigint "queued_mail_id", null: false
+    t.bigint "queued_mail_id"
     t.datetime "updated_at", null: false
     t.index ["actor_id"], name: "index_mail_log_entries_on_actor_id"
     t.index ["created_at"], name: "index_mail_log_entries_on_created_at"
@@ -564,6 +568,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_06_140000) do
     t.integer "payment_grace_period_days", default: 14, null: false
     t.integer "reactivation_grace_period_months", default: 3, null: false
     t.datetime "updated_at", null: false
+    t.boolean "use_builtin_membership_application", default: true, null: false
   end
 
   create_table "messages", force: :cascade do |t|

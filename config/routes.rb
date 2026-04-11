@@ -11,7 +11,7 @@ Rails.application.routes.draw do
   get  "/invite/:token/accepted", to: "invite#accepted", as: :invite_accepted
 
   get "/login", to: "sessions#new"
-  get "/apply", to: "pages#apply"
+  get "/apply", to: "pages#apply", as: :apply
   get "/help", to: "pages#help", as: :help
   get "/help/faq", to: "pages#help_faq", as: :help_faq
   get "/help/admin_faq", to: "pages#help_admin_faq", as: :help_admin_faq
@@ -378,6 +378,9 @@ Rails.application.routes.draw do
   resources :rooms, path: 'settings/rooms'
 
   resources :application_form_pages, path: 'settings/application_form' do
+    collection do
+      patch :update_application_flow
+    end
     resources :application_form_questions, only: %i[new create edit update destroy]
   end
 

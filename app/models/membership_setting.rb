@@ -48,4 +48,8 @@ class MembershipSetting < ApplicationRecord
   def self.manual_payment_due_soon_days
     instance.manual_payment_due_soon_days
   end
+
+  def self.use_builtin_membership_application?
+    instance.use_builtin_membership_application?
+  end
 end

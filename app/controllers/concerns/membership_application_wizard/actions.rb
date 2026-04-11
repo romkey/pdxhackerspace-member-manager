@@ -6,6 +6,8 @@ module MembershipApplicationWizard
     extend ActiveSupport::Concern
 
     included do
+      before_action :require_builtin_membership_application!,
+                    only: %i[start save_page page submit_application confirmation]
       before_action :require_verified_email!, only: %i[start save_page page submit_application]
       before_action :load_pages, only: %i[start page]
     end

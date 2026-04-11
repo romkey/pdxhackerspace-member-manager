@@ -3,6 +3,41 @@
   <%= link_to "Add Page", new_application_form_page_path, class: "btn btn-primary" %>
 </div>
 
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-header">
+    <strong>How applicants apply</strong>
+  </div>
+  <div class="card-body">
+    <%= form_with url: update_application_flow_application_form_pages_path, method: :patch, local: true do %>
+      <div class="form-check mb-2">
+        <%= radio_button_tag :use_builtin_membership_application, '1',
+            @membership_setting.use_builtin_membership_application?,
+            class: 'form-check-input', id: 'flow_builtin' %>
+        <label class="form-check-label" for="flow_builtin">
+          Built-in flow at <code>/apply/new</code> (email verification and the wizard below).
+        </label>
+      </div>
+      <div class="form-check mb-3">
+        <%= radio_button_tag :use_builtin_membership_application, '0',
+            !@membership_setting.use_builtin_membership_application?,
+            class: 'form-check-input', id: 'flow_external' %>
+        <label class="form-check-label" for="flow_external">
+          External: show the Apply for membership text (for example a Google Form link) instead of the built-in wizard.
+        </label>
+      </div>
+      <% frag = TextFragment.find_by(key: 'apply_for_membership') %>
+      <% if frag %>
+        <p class="text-muted small mb-3">
+          <%= link_to 'Edit apply text', edit_text_fragment_path(frag), class: 'text-decoration-none' %>:
+          same copy as the public <%= link_to 'apply page', apply_path, class: 'text-decoration-none' %>.
+          With the external option, <code>/apply/new</code> shows only that content (no wizard).
+        </p>
+      <% end %>
+      <%= submit_tag 'Save application flow', class: 'btn btn-primary' %>
+    <% end %>
+  </div>
+</div>
+
 <% if @pages.any? %>
   <% @pages.each do |page| %>
     <div class="card shadow-sm border-0 mb-3">
