@@ -40,8 +40,7 @@ class QueuedMail < ApplicationRecord
     return nil if dest.blank?
 
     template = EmailTemplate.find_enabled(action.to_s)
-    variables = MemberMailer.build_template_variables(user, extra_args)
-    ensure_admin_new_application_application_url!(variables, action, extra_args) if template
+    variables = enqueue_render_variables(action, user, extra_args, template)
 
     record = if template
                rendered = template.render(variables)
@@ -162,24 +161,9 @@ class QueuedMail < ApplicationRecord
 
   def regenerate!(actor: nil)
     if email_template && recipient
-      args = (mailer_args || {}).symbolize_keys
-      variables = MemberMailer.build_template_variables(recipient, args)
-      self.class.ensure_admin_new_application_application_url!(variables, mailer_action, args)
-      rendered = email_template.render(variables)
-      update!(
-        subject: rendered[:subject],
-        body_html: rendered[:body_html],
-        body_text: rendered[:body_text] || ''
-      )
+      regenerate_from_email_template!
     elsif recipient
-      message = MemberMailer.public_send(
-        mailer_action,
-        *self.class.build_mailer_args(mailer_action, recipient, to, (mailer_args || {}).symbolize_keys)
-      )
-      msg = message.message
-      html_body = msg.multipart? ? msg.html_part&.body&.decoded : msg.body.decoded
-      text_body = msg.multipart? ? msg.text_part&.body&.decoded : ''
-      update!(subject: msg.subject, body_html: html_body || '', body_text: text_body || '')
+      regenerate_from_mailer!
     end
     MailLogEntry.log!(self, 'regenerated', actor: actor, details: 'Regenerated from template')
   end
@@ -207,6 +191,37 @@ class QueuedMail < ApplicationRecord
     error_message = "#{error.class}: #{error.message}"
     update!(last_error: error_message, last_error_at: Time.current)
     MailLogEntry.log_once!(self, 'send_failed', details: error_message)
+  end
+
+  def regenerate_from_email_template!
+    args = (mailer_args || {}).symbolize_keys
+    variables = MemberMailer.build_template_variables(recipient, args)
+    self.class.ensure_admin_new_application_application_url!(variables, mailer_action, args)
+    rendered = email_template.render(variables)
+    update!(
+      subject: rendered[:subject],
+      body_html: rendered[:body_html],
+      body_text: rendered[:body_text] || ''
+    )
+  end
+
+  def regenerate_from_mailer!
+    message = MemberMailer.public_send(
+      mailer_action,
+      *self.class.build_mailer_args(mailer_action, recipient, to, (mailer_args || {}).symbolize_keys)
+    )
+    msg = message.message
+    html_body = msg.multipart? ? msg.html_part&.body&.decoded : msg.body.decoded
+    text_body = msg.multipart? ? msg.text_part&.body&.decoded : ''
+    update!(subject: msg.subject, body_html: html_body || '', body_text: text_body || '')
+  end
+
+  private :regenerate_from_email_template!, :regenerate_from_mailer!
+
+  def self.enqueue_render_variables(action, user, extra_args, template)
+    variables = MemberMailer.build_template_variables(user, extra_args)
+    ensure_admin_new_application_application_url!(variables, action, extra_args) if template
+    variables
   end
 
   def self.build_mailer_args(action, user, to_addr, extra_args)

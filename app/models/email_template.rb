@@ -261,7 +261,7 @@ class EmailTemplate < ApplicationRecord
     },
     'admin_new_application' => {
       name: 'Admin: New Application',
-      description: 'Sent to admins when a new application is submitted ({{application_url}} — specific app or list fallback)',
+      description: 'Admin notice for new applications; includes {{application_url}} (detail page or list fallback).',
       subject: '{{organization_name}}: New Member Application - {{member_name}}',
       body_html: <<~HTML,
         <h1>New Member Application</h1>
