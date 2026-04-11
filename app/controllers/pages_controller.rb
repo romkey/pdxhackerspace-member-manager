@@ -4,10 +4,9 @@ class PagesController < ApplicationController
 
   def apply
     # Public page - no authentication required
-    if MembershipSetting.use_builtin_membership_application?
-      redirect_to apply_new_path
-      return
-    end
+    return unless MembershipSetting.use_builtin_membership_application?
+
+    redirect_to apply_new_path
   end
 
   def help

@@ -135,7 +135,8 @@ class MembershipApplicationsController < ApplicationController
 
     if result.queued_mail
       redirect_to edit_queued_mail_path(result.queued_mail),
-                  notice: 'Application approved. Review and edit the queued welcome email, then approve it in the mail queue to send.'
+                  notice: 'Application approved. Review and edit the queued welcome email, ' \
+                          'then approve it in the mail queue to send.'
     else
       redirect_to membership_application_path(@application),
                   notice: 'Application approved. No welcome email was queued (recipient has no email address).'
@@ -148,7 +149,8 @@ class MembershipApplicationsController < ApplicationController
 
     if qm
       redirect_to edit_queued_mail_path(qm),
-                  notice: 'Application rejected. Review and edit the queued message, then approve it in the mail queue to send.'
+                  notice: 'Application rejected. Review and edit the queued message, ' \
+                          'then approve it in the mail queue to send.'
     else
       redirect_to membership_application_path(@application),
                   notice: 'Application rejected. No email was queued (recipient has no email address).'

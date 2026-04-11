@@ -4,7 +4,7 @@ module MembershipApplications
   # When an Executive Director approves an application: ensure a +User+ exists (create or link),
   # mark the application approved, journal the event, and queue +application_approved+ mail.
   class FinalizeApproval
-    Result = Struct.new(:status, :queued_mail, :user, :message, keyword_init: true) do
+    Result = Struct.new(:status, :queued_mail, :user, :message) do
       def success?
         status == :success
       end
@@ -32,66 +32,81 @@ module MembershipApplications
     end
 
     def call
-      if @application.email.to_s.strip.blank?
-        return Result.new(status: :failure, queued_mail: nil, user: nil,
-                          message: 'Application has no email address.')
-      end
-      if @application.draft?
-        return Result.new(status: :failure, queued_mail: nil, user: nil,
-                          message: 'Draft applications cannot be approved.')
-      end
-      if @application.approved? || @application.rejected?
-        return Result.new(status: :failure, queued_mail: nil, user: nil,
-                          message: 'This application has already been finalized.')
-      end
+      precheck_error = precheck_error_message
+      return failure_result(precheck_error) if precheck_error
 
+      process_approval
+    rescue ActiveRecord::RecordInvalid => e
+      failure_result(e.record.errors.full_messages.to_sentence)
+    rescue StandardError => e
+      Rails.logger.error("[FinalizeApproval] #{e.class}: #{e.message}\n#{e.backtrace&.first(5)&.join("\n")}")
+      failure_result(e.message)
+    end
+
+    private
+
+    def precheck_error_message
+      return 'Application has no email address.' if @application.email.to_s.strip.blank?
+      return 'Draft applications cannot be approved.' if @application.draft?
+      return 'This application has already been finalized.' if already_finalized?
+
+      nil
+    end
+
+    def process_approval
       user = nil
       queued_mail = nil
 
       MembershipApplication.transaction do
         @application.lock!
-
-        if @application.approved? || @application.rejected?
-          return Result.new(status: :failure, queued_mail: nil, user: nil,
-                            message: 'This application has already been finalized.')
-        end
+        return failure_result('This application has already been finalized.') if already_finalized?
 
         user = resolve_recipient_user!
-        @application.update!(
-          status: 'approved',
-          reviewed_by: @admin,
-          reviewed_at: Time.current,
-          admin_notes: @notes,
-          user_id: user.id
-        )
-        Journal.record_application_event!(
-          application: @application,
-          action: 'application_approved',
-          actor: @admin
-        )
-        queued_mail = QueuedMail.enqueue(
-          :application_approved,
-          user,
-          reason: 'Application approved',
-          to: user.email
-        )
+        approve_application!(user)
+        queued_mail = queue_approval_mail_for(user)
       end
 
-      Result.new(status: :success, queued_mail: queued_mail, user: user, message: nil)
-    rescue ActiveRecord::RecordInvalid => e
-      Result.new(status: :failure, queued_mail: nil, user: nil,
-                 message: e.record.errors.full_messages.to_sentence)
-    rescue StandardError => e
-      Rails.logger.error("[FinalizeApproval] #{e.class}: #{e.message}\n#{e.backtrace&.first(5)&.join("\n")}")
-      Result.new(status: :failure, queued_mail: nil, user: nil, message: e.message)
+      success_result(user: user, queued_mail: queued_mail)
     end
 
-    private
+    def already_finalized?
+      @application.approved? || @application.rejected?
+    end
+
+    def approve_application!(user)
+      @application.update!(
+        status: 'approved',
+        reviewed_by: @admin,
+        reviewed_at: Time.current,
+        admin_notes: @notes,
+        user_id: user.id
+      )
+      Journal.record_application_event!(
+        application: @application,
+        action: 'application_approved',
+        actor: @admin
+      )
+    end
+
+    def queue_approval_mail_for(user)
+      QueuedMail.enqueue(
+        :application_approved,
+        user,
+        reason: 'Application approved',
+        to: user.email
+      )
+    end
+
+    def success_result(user:, queued_mail:)
+      Result.new(:success, queued_mail, user, nil)
+    end
+
+    def failure_result(message)
+      Result.new(:failure, nil, nil, message)
+    end
 
     def resolve_recipient_user!
-      if @application.user.present?
-        return merge_application_into_user!(@application.user)
-      end
+      return merge_application_into_user!(@application.user) if @application.user.present?
 
       email = @application.email.to_s.strip.downcase
 
