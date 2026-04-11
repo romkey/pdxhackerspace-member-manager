@@ -5,6 +5,8 @@
 # Postgres is published on host port 5434 so it can run alongside dev/test stacks.
 # Usage: docker compose -f docker-compose.lint.yml run --rm rubocop
 #        docker compose -f docker-compose.lint.yml run --rm rubocop app/models
+# If you see GemNotFound against Gemfile.lock, refresh gems then RuboCop (same file):
+#   docker compose -f docker-compose.lint.yml run --rm --entrypoint sh rubocop -c "bundle install && bundle exec rubocop"
 name: membermanager-lint
 
 services:

@@ -80,31 +80,6 @@ services:
     depends_on:
       - db
 
-<<<<<<< HEAD:docker-compose.yml
-  # Run the full test suite.
-  # Creates and loads the test database schema before running tests.
-  # Usage: docker compose run --rm test
-  #        docker compose run --rm test bin/rails test test/models/interest_test.rb
-  test:
-    <<: *web-common
-    command: sh -c "bin/rails db:create db:schema:load && bin/rails test"
-    profiles: ["test"]
-    environment:
-      RAILS_ENV: test
-      DB_HOST: db
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
-      DB_PORT: 5432
-      DATABASE_URL: postgres://postgres:postgres@db:5432/member_manager_test
-      REDIS_URL: redis://redis:6379/0
-      SKIP_CSS_BUILD: "1"
-      AUTHENTIK_API_TOKEN: test-placeholder-token
-    depends_on:
-      - db
-      - redis
-
-=======
->>>>>>> fafe18db9c2d6346d22c6083b1ddc25d5cb9b1bb:docker-compose.dev.yml
 volumes:
   dev_postgres_data:
   dev_redis_data:

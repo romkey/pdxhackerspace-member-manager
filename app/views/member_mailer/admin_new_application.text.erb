@@ -8,4 +8,8 @@ Name: <%= @user.display_name %>
 Email: <%= @user.email || 'Not provided' %>
 Username: <%= @user.username || 'Not set' %>
 
+<% if @application_url.present? %>
+Open in Member Manager: <%= @application_url %>
+
+<% end %>
 Please review this application and take appropriate action.

@@ -229,13 +229,17 @@ class MemberMailer < ApplicationMailer
     end
   end
 
-  # Notify admins of a new application
-  def admin_new_application(user, admin_email)
-    @user = user
+  # Notify admins of a new application (+opts+ may include +:application_url+ for that application’s admin page).
+  def admin_new_application(applicant, admin_email, opts = {})
+    opts = opts.symbolize_keys
+    @user = applicant
     @organization = organization_name
     @admin_email = admin_email
+    explicit_url = opts[:application_url].presence
+    @application_url = explicit_url || membership_applications_fallback_url
+    extra_vars = { application_url: @application_url }
 
-    if send_from_template('admin_new_application', user, {}, to: admin_email)
+    if send_from_template('admin_new_application', applicant, extra_vars, to: admin_email)
       # Email sent from database template
     else
       mail(
@@ -351,6 +355,13 @@ class MemberMailer < ApplicationMailer
       date: Date.current.strftime('%B %d, %Y'),
       app_url: ENV.fetch('APP_BASE_URL', 'http://localhost:3000')
     }
+  end
+
+  def membership_applications_fallback_url
+    membership_applications_url
+  rescue ArgumentError, ActionController::UrlGenerationError
+    base = ENV.fetch('APP_BASE_URL', 'http://localhost:3000').chomp('/')
+    "#{base}/membership_applications"
   end
 
   def send_parking_notice_mail(template_key, user, opts = {})

@@ -14,7 +14,7 @@ class EmailTemplate < ApplicationRecord
     '{{invitation_expiry}}' => 'When the invitation expires (invitation emails only)',
     '{{invitation_type}}' => 'Type of membership being offered, e.g. Sponsored Member (invitation emails only)',
     '{{invitation_type_details}}' => 'Description of what the membership type includes (invitation emails only)',
-    '{{application_url}}' => 'Direct link to the membership application in admin (staff new application alert only)'
+    '{{application_url}}' => 'Direct link to the membership application (admin new application & staff alert templates)'
   }.freeze
 
   # Default templates that can be seeded
@@ -261,7 +261,7 @@ class EmailTemplate < ApplicationRecord
     },
     'admin_new_application' => {
       name: 'Admin: New Application',
-      description: 'Sent to admins when a new application is submitted',
+      description: 'Admin notice for new applications; includes {{application_url}} (detail page or list fallback).',
       subject: '{{organization_name}}: New Member Application - {{member_name}}',
       body_html: <<~HTML,
         <h1>New Member Application</h1>
@@ -281,7 +281,8 @@ class EmailTemplate < ApplicationRecord
             <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{member_username}}</td>
           </tr>
         </table>
-        <p style="margin-top: 20px;">Please review this application and take appropriate action.</p>
+        <p style="margin-top: 20px;"><a href="{{application_url}}">Open this application in Member Manager</a></p>
+        <p>Please review this application and take appropriate action.</p>
       HTML
       body_text: <<~TEXT
         New Member Application
@@ -293,6 +294,8 @@ class EmailTemplate < ApplicationRecord
         Name: {{member_name}}
         Email: {{member_email}}
         Username: {{member_username}}
+
+        Open in Member Manager: {{application_url}}
 
         Please review this application and take appropriate action.
       TEXT
