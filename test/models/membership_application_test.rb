@@ -29,15 +29,35 @@ class MembershipApplicationTest < ActiveSupport::TestCase
     assert_enqueued_jobs 1, only: MembershipApplicationAiFeedbackJob
   end
 
-  test 'reject! enqueues application rejected mail job' do
+  test 'reject! creates pending queued rejection mail' do
     app = MembershipApplication.create!(email: 'reject-mail-test@example.com', status: 'under_review')
     admin = users(:one)
 
-    assert_enqueued_with(job: ApplicationRejectedMailJob, args: [app.id, 'Does not meet requirements']) do
-      app.reject!(admin, notes: 'Does not meet requirements')
+    qm = nil
+    assert_difference 'QueuedMail.count', 1 do
+      qm = app.reject!(admin, notes: 'Does not meet requirements')
     end
 
     assert_equal 'rejected', app.reload.status
+    assert_equal 'pending', qm.status
+    assert_equal 'application_rejected', qm.mailer_action
+    assert_equal app.email, qm.to
+    assert_includes qm.body_html, 'Does not meet requirements'
+  end
+
+  test 'reject! queues mail to linked user email' do
+    member = users(:member_with_local_account)
+    app = MembershipApplication.create!(
+      email: 'other@example.com',
+      status: 'under_review',
+      user: member
+    )
+    admin = users(:one)
+
+    qm = app.reject!(admin, notes: nil)
+
+    assert_equal member.email, qm.to
+    assert_equal member, qm.recipient
   end
 
   test 'admin_search matches email, answer text, and linked member fields' do

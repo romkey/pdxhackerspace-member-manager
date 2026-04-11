@@ -197,14 +197,67 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     topic = TrainingTopic.create!(name: 'Executive Director')
     admin = User.find(session[:user_id])
     Training.create!(trainee: admin, training_topic: topic, trained_at: Time.current)
+    page1 = ApplicationFormPage.create!(title: 'First page', position: 1)
+    q_name = page1.questions.create!(label: 'Name', field_type: 'text', required: false, position: 1)
     app = MembershipApplication.create!(
       email: 'approve-ok@example.com',
       status: 'under_review',
       submitted_at: Time.current
     )
-    post approve_membership_application_path(app), params: { admin_notes: 'Welcome' }
-    assert_redirected_to membership_application_path(app)
-    assert_equal 'approved', app.reload.status
+    app.application_answers.create!(application_form_question: q_name, value: 'Pat Applicant')
+    qm = nil
+    assert_difference 'User.count', 1 do
+      assert_difference 'QueuedMail.count', 1 do
+        post approve_membership_application_path(app), params: { admin_notes: 'Welcome' }
+        qm = QueuedMail.order(:created_at).last
+      end
+    end
+    assert_redirected_to edit_queued_mail_path(qm)
+    app.reload
+    assert_equal 'approved', app.status
+    assert_equal 'Pat Applicant', app.user.full_name
+    assert_equal 'approve-ok@example.com', app.user.email
+    assert_equal 'application_approved', qm.mailer_action
+    assert_equal app.user, qm.recipient
+  end
+
+  test 'reject redirects to edit queued mail when executive director' do
+    topic = TrainingTopic.create!(name: 'Executive Director')
+    admin = User.find(session[:user_id])
+    Training.create!(trainee: admin, training_topic: topic, trained_at: Time.current)
+    app = MembershipApplication.create!(
+      email: 'reject-redirect@example.com',
+      status: 'under_review',
+      submitted_at: Time.current
+    )
+
+    assert_difference 'QueuedMail.count', 1 do
+      post reject_membership_application_path(app), params: { admin_notes: 'Not a fit.' }
+    end
+
+    qm = QueuedMail.order(:created_at).last
+    assert_redirected_to edit_queued_mail_path(qm)
+    assert_equal 'rejected', app.reload.status
+    assert_equal 'application_rejected', qm.mailer_action
+  end
+
+  test 'approve links existing user by email and still queues mail' do
+    topic = TrainingTopic.create!(name: 'Executive Director')
+    admin = User.find(session[:user_id])
+    Training.create!(trainee: admin, training_topic: topic, trained_at: Time.current)
+    existing = users(:two)
+    app = MembershipApplication.create!(
+      email: existing.email,
+      status: 'under_review',
+      submitted_at: Time.current
+    )
+    assert_no_difference 'User.count' do
+      assert_difference 'QueuedMail.count', 1 do
+        post approve_membership_application_path(app), params: {}
+      end
+    end
+    assert_equal existing.id, app.reload.user_id
+    assert_redirected_to edit_queued_mail_path(QueuedMail.order(:created_at).last)
   end
 
   test 'save_tour_feedback creates feedback for current admin' do

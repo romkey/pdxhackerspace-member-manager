@@ -104,6 +104,8 @@ class MembershipApplication < ApplicationRecord
     update!(status: 'under_review', reviewed_by: admin)
   end
 
+  # Updates status and journal only. The web UI uses +MembershipApplications::FinalizeApproval+ instead
+  # (creates or links a +User+, queues +application_approved+ mail).
   def approve!(admin, notes: nil)
     update!(
       status: 'approved',
@@ -114,15 +116,21 @@ class MembershipApplication < ApplicationRecord
     Journal.record_application_event!(application: self, action: 'application_approved', actor: admin)
   end
 
+  # Marks the application rejected, journals, and queues the applicant rejection email (pending mail queue).
+  # Returns the new +QueuedMail+ or +nil+ if no message was queued (e.g. no destination email).
   def reject!(admin, notes: nil)
-    update!(
-      status: 'rejected',
-      reviewed_by: admin,
-      reviewed_at: Time.current,
-      admin_notes: notes
-    )
-    Journal.record_application_event!(application: self, action: 'application_rejected', actor: admin)
-    ApplicationRejectedMailJob.perform_later(id, notes)
+    queued_mail = nil
+    MembershipApplication.transaction do
+      update!(
+        status: 'rejected',
+        reviewed_by: admin,
+        reviewed_at: Time.current,
+        admin_notes: notes
+      )
+      Journal.record_application_event!(application: self, action: 'application_rejected', actor: admin)
+      queued_mail = QueuedMail.enqueue_application_rejected(self, reason: notes.presence)
+    end
+    queued_mail
   end
 
   def status_display

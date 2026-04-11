@@ -77,8 +77,22 @@ class AccessControllersController < AdminController
 
   def sync_all
     enabled = AccessController.enabled
+    count = enabled.count
     enabled.find_each { |controller| AccessControllerVerbJob.perform_later(controller.id, 'sync', current_user.id) }
-    redirect_to access_controllers_path, notice: "Sync started for #{enabled.count} access controller(s)."
+
+    notice = if count.positive?
+               "Sync started for #{count} access controller#{'s' if count != 1}."
+             else
+               'No enabled access controllers to sync. Configure them under Settings → Access Controllers.'
+             end
+
+    redirect_user_id = params[:redirect_user_id].presence
+    if redirect_user_id.present? && User.exists?(redirect_user_id)
+      suffix = count.positive? ? ' The new key fob will work after each controller finishes syncing.' : ''
+      redirect_to user_path(redirect_user_id), notice: "#{notice}#{suffix}"
+    else
+      redirect_to access_controllers_path, notice: notice
+    end
   end
 
   def toggle_sync_inactive

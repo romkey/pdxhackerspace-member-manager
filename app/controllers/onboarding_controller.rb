@@ -97,10 +97,11 @@ class OnboardingController < AdminController
     if rfid_code.present?
       rfid = @user.rfids.build(rfid: rfid_code, notes: 'Added during onboarding')
       if rfid.save
-        flash[:notice] = 'RFID key fob added.'
-      else
-        flash[:alert] = "Could not add RFID: #{rfid.errors.full_messages.join(', ')}"
+        redirect_to sync_prompt_rfid_path(rfid), notice: 'RFID key fob added.', status: :see_other
+        return
       end
+
+      flash[:alert] = "Could not add RFID: #{rfid.errors.full_messages.join(', ')}"
     else
       flash[:alert] = 'Please enter an RFID code.'
     end

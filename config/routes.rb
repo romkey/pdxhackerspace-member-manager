@@ -74,7 +74,11 @@ Rails.application.routes.draw do
     resources :user_links, only: [:create, :update, :destroy]
   end
 
-  resources :rfids, only: [:new, :create, :destroy]
+  resources :rfids, only: [:new, :create, :destroy] do
+    member do
+      get :sync_prompt
+    end
+  end
   resources :invitations, only: [:index, :new, :create] do
     post :cancel, on: :member
   end

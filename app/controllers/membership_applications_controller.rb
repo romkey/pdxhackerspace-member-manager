@@ -122,16 +122,39 @@ class MembershipApplicationsController < ApplicationController
 
   def approve
     notes = params[:admin_notes]
-    @application.approve!(current_user, notes: notes)
-    redirect_to membership_application_path(@application),
-                notice: 'Application approved.'
+    result = MembershipApplications::FinalizeApproval.call(
+      application: @application,
+      admin: current_user,
+      notes: notes
+    )
+
+    if result.failure?
+      redirect_to membership_application_path(@application), alert: result.message
+      return
+    end
+
+    if result.queued_mail
+      redirect_to edit_queued_mail_path(result.queued_mail),
+                  notice: 'Application approved. Review and edit the queued welcome email, ' \
+                          'then approve it in the mail queue to send.'
+    else
+      redirect_to membership_application_path(@application),
+                  notice: 'Application approved. No welcome email was queued (recipient has no email address).'
+    end
   end
 
   def reject
     notes = params[:admin_notes]
-    @application.reject!(current_user, notes: notes)
-    redirect_to membership_application_path(@application),
-                notice: 'Application rejected.'
+    qm = @application.reject!(current_user, notes: notes)
+
+    if qm
+      redirect_to edit_queued_mail_path(qm),
+                  notice: 'Application rejected. Review and edit the queued message, ' \
+                          'then approve it in the mail queue to send.'
+    else
+      redirect_to membership_application_path(@application),
+                  notice: 'Application rejected. No email was queued (recipient has no email address).'
+    end
   end
 
   def mark_under_review

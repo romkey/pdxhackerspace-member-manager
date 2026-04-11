@@ -1,4 +1,6 @@
 class RfidsController < AdminController
+  before_action :set_rfid, only: %i[destroy sync_prompt]
+
   def new
     @rfid = Rfid.new
     prepare_form_data
@@ -29,7 +31,7 @@ class RfidsController < AdminController
         notice = "Key fob added successfully for #{@rfid.user.display_name}."
         notice += " Reassigned from #{@reassigned_from.display_name}." if @reassigned_from
         notice += ' Building Access training also recorded.' if training_added
-        redirect_to user_path(@rfid.user), notice: notice
+        redirect_to sync_prompt_rfid_path(@rfid), notice: notice
       else
         prepare_form_data
         flash.now[:alert] = 'Unable to add key fob.'
@@ -39,13 +41,22 @@ class RfidsController < AdminController
   end
 
   def destroy
-    @rfid = Rfid.find(params[:id])
     user = @rfid.user
     @rfid.destroy!
     redirect_to user_path(user), notice: 'Key fob removed.'
   end
 
+  # After adding a fob: warn that doors need a controller sync before the key works.
+  def sync_prompt
+    @user = @rfid.user
+    @enabled_controllers_count = AccessController.enabled.count
+  end
+
   private
+
+  def set_rfid
+    @rfid = Rfid.find(params[:id])
+  end
 
   def rfid_params
     params.expect(rfid: %i[user_id rfid notes])

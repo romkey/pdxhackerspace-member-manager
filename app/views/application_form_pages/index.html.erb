@@ -14,7 +14,7 @@
             @membership_setting.use_builtin_membership_application?,
             class: 'form-check-input', id: 'flow_builtin' %>
         <label class="form-check-label" for="flow_builtin">
-          Built-in flow at <code>/apply/new</code> (email verification and the wizard below).
+          Built-in flow at <code>/apply</code> and <code>/apply/new</code> (email verification and the wizard below).
         </label>
       </div>
       <div class="form-check mb-3">
@@ -29,8 +29,7 @@
       <% if frag %>
         <p class="text-muted small mb-3">
           <%= link_to 'Edit apply text', edit_text_fragment_path(frag), class: 'text-decoration-none' %>:
-          same copy as the public <%= link_to 'apply page', apply_path, class: 'text-decoration-none' %>.
-          With the external option, <code>/apply/new</code> shows only that content (no wizard).
+          shown on the public <%= link_to 'apply page', apply_path, class: 'text-decoration-none' %> when the external option is selected (built-in redirects <code>/apply</code> to the wizard).
         </p>
       <% end %>
       <%= submit_tag 'Save application flow', class: 'btn btn-primary' %>
