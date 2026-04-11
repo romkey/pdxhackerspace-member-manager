@@ -19,6 +19,10 @@
   </tr>
 </table>
 
+<% if @application_url.present? %>
+<p style="margin-top: 20px;"><a href="<%= @application_url %>">Open this application in Member Manager</a></p>
+<% end %>
+
 <p style="margin-top: 20px;">
   Please review this application and take appropriate action.
 </p>

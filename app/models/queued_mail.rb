@@ -41,6 +41,7 @@ class QueuedMail < ApplicationRecord
 
     template = EmailTemplate.find_enabled(action.to_s)
     variables = MemberMailer.build_template_variables(user, extra_args)
+    ensure_admin_new_application_application_url!(variables, action, extra_args) if template
 
     record = if template
                rendered = template.render(variables)
@@ -126,6 +127,14 @@ class QueuedMail < ApplicationRecord
     record
   end
 
+  def self.ensure_admin_new_application_application_url!(variables, action, extra_args)
+    return unless action.to_s == 'admin_new_application'
+
+    raw = extra_args[:application_url].presence || extra_args['application_url'].presence
+    variables[:application_url] = raw.presence ||
+                                  "#{ENV.fetch('APP_BASE_URL', 'http://localhost:3000').chomp('/')}/membership_applications"
+  end
+
   def self.applicant_recipient_for(application)
     name = application.applicant_display_name
     name = 'Applicant' if name.blank? || name == '—'
@@ -155,6 +164,7 @@ class QueuedMail < ApplicationRecord
     if email_template && recipient
       args = (mailer_args || {}).symbolize_keys
       variables = MemberMailer.build_template_variables(recipient, args)
+      self.class.ensure_admin_new_application_application_url!(variables, mailer_action, args)
       rendered = email_template.render(variables)
       update!(
         subject: rendered[:subject],
@@ -202,7 +212,7 @@ class QueuedMail < ApplicationRecord
   def self.build_mailer_args(action, user, to_addr, extra_args)
     case action.to_s
     when 'admin_new_application'
-      [user, to_addr || extra_args[:admin_email]]
+      [user, to_addr || extra_args[:admin_email], extra_args.slice(:application_url)]
     when 'payment_past_due'
       [user, { days_overdue: extra_args[:days_overdue] }.compact]
     when 'membership_cancelled', 'membership_banned', 'application_rejected'

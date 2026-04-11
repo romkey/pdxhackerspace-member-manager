@@ -59,7 +59,10 @@ class MemberMailerPreview < ActionMailer::Preview
   # Preview at http://localhost:3000/rails/mailers/member_mailer/admin_new_application
   def admin_new_application
     user = User.first || sample_user
-    MemberMailer.admin_new_application(user, 'admin@example.com')
+    app = MembershipApplication.order(id: :desc).first
+    base = ENV.fetch('APP_BASE_URL', 'http://localhost:3000').chomp('/')
+    url = app ? "#{base}/membership_applications/#{app.id}" : "#{base}/membership_applications/1"
+    MemberMailer.admin_new_application(user, 'admin@example.com', application_url: url)
   end
 
   # Preview at http://localhost:3000/rails/mailers/member_mailer/staff_new_application
