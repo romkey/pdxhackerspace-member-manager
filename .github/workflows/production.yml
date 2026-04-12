@@ -1,12 +1,11 @@
 name: Production - Build and Push Image
 
-# Runs on every push to main except the follow-up commit created by this workflow
-# (automated VERSION bump). Only builds and pushes a Docker image when the push is
-# a merged pull request whose head branch is release/*.
-#
-# Empty merges from release/major, release/minor, or release/patch bump VERSION
-# automatically before the image build. Other release/* merges require a VERSION bump
-# in the merged branch. Merges from staging, hotfix/*, etc. skip the Docker job.
+# Runs on pushes to main and performs an early preflight classification:
+# - staging -> main merges: no-op (fast success)
+# - release/* and hotfix/* merges:
+#   - if VERSION not changed yet, compute managed VERSION and open an automation PR
+#   - if VERSION already changed by automation branch merge, build and publish image
+# VERSION is workflow-managed and is never pushed directly to main.
 
 on:
   push:
@@ -18,124 +17,206 @@ concurrency:
 
 permissions:
   contents: write
+  pull-requests: write
   packages: write
 
 jobs:
-  build-and-push:
-    if: >-
-      ${{ github.event.head_commit == null ||
-      !contains(github.event.head_commit.message, '[automated version bump]') }}
-
+  preflight:
     runs-on: ubuntu-latest
-
-    env:
-      REGISTRY: ghcr.io
-      IMAGE_NAME: ${{ github.repository_owner }}/member-manager
-
+    outputs:
+      action: ${{ steps.resolve.outputs.action }}
+      merge_branch: ${{ steps.resolve.outputs.merge_branch }}
+      app_version: ${{ steps.resolve.outputs.app_version }}
+      major: ${{ steps.resolve.outputs.major }}
+      target_version: ${{ steps.resolve.outputs.target_version }}
+      target_reason: ${{ steps.resolve.outputs.target_reason }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Resolve release merge and VERSION
-        id: release
+      - name: Resolve workflow action early
+        id: resolve
         run: |
           set -euo pipefail
-          MSG_FIRST=$(printf '%s\n' "${{ github.event.head_commit.message }}" | head -1)
 
-          # Extract head branch name from GitHub merge commit subject (same-repo or fork).
+          parse_semver() {
+            local value="$1"
+            if [[ "$value" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)(-hf([0-9]+))?$ ]]; then
+              BASE_MAJOR="${BASH_REMATCH[1]}"
+              BASE_MINOR="${BASH_REMATCH[2]}"
+              BASE_PATCH="${BASH_REMATCH[3]}"
+              BASE_HF="${BASH_REMATCH[5]:-0}"
+              BASE_VERSION="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
+              return 0
+            fi
+            return 1
+          }
+
+          HEAD_MSG="${{ github.event.head_commit.message }}"
+          MSG_FIRST=$(printf '%s\n' "$HEAD_MSG" | head -1)
           MERGE_BRANCH=""
           REST=""
+
           if [[ "$MSG_FIRST" =~ ^Merge\ pull\ request\ #[0-9]+\ from\ (.+)$ ]]; then
             REST="${BASH_REMATCH[1]}"
           fi
+
           if [[ -n "$REST" ]] && [[ "$REST" =~ ^([^/:]+)[:/](.+)$ ]]; then
             MERGE_BRANCH="${BASH_REMATCH[2]}"
           fi
 
-          if [[ -z "$MERGE_BRANCH" ]] || [[ "$MERGE_BRANCH" != release/* ]]; then
-            echo "Not a merge from a release/* branch — skipping Docker build."
-            echo "skip=true" >> "$GITHUB_OUTPUT"
+          if [ -z "$MERGE_BRANCH" ]; then
+            echo "No merge source branch in commit subject; skipping."
+            echo "action=skip" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+
+          case "$MERGE_BRANCH" in
+            staging)
+              echo "staging->main merge: no production image build."
+              echo "action=skip" >> "$GITHUB_OUTPUT"
+              echo "merge_branch=$MERGE_BRANCH" >> "$GITHUB_OUTPUT"
+              exit 0
+              ;;
+            release/*|hotfix/*)
+              ;;
+            *)
+              echo "Merge source '$MERGE_BRANCH' is not release/* or hotfix/*; skipping."
+              echo "action=skip" >> "$GITHUB_OUTPUT"
+              echo "merge_branch=$MERGE_BRANCH" >> "$GITHUB_OUTPUT"
+              exit 0
+              ;;
+          esac
 
           PARENT_COUNT=$(git rev-list --parents -n 1 HEAD | wc -w | tr -d ' ')
           PARENT_COUNT=$((PARENT_COUNT - 1))
           if [ "$PARENT_COUNT" -lt 2 ]; then
-            echo "::error::Expected a merge commit for release merges; refusing to build."
+            echo "::error::Expected a merge commit when pushing to main from PR merge."
             exit 1
           fi
 
-          if git diff --quiet HEAD^1 HEAD; then
-            echo "empty_merge=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "empty_merge=false" >> "$GITHUB_OUTPUT"
+          PREV=$(git show HEAD^1:VERSION | tr -d '[:space:]')
+          CURR=$(cat VERSION | tr -d '[:space:]')
+          echo "merge_branch=$MERGE_BRANCH" >> "$GITHUB_OUTPUT"
+
+          if ! parse_semver "$PREV"; then
+            echo "::error::Invalid VERSION before merge: '$PREV'. Expected MAJOR.MINOR.PATCH[-hfN]."
+            exit 1
+          fi
+          PREV_MAJOR="$BASE_MAJOR"
+          PREV_MINOR="$BASE_MINOR"
+          PREV_PATCH="$BASE_PATCH"
+          PREV_HF="$BASE_HF"
+          PREV_BASE="$BASE_VERSION"
+
+          if [ "$CURR" != "$PREV" ]; then
+            if [[ "$MERGE_BRANCH" == release/auto-version-* ]]; then
+              if ! parse_semver "$CURR"; then
+                echo "::error::Automation branch merged invalid VERSION '$CURR'."
+                exit 1
+              fi
+              echo "action=build" >> "$GITHUB_OUTPUT"
+              echo "app_version=$CURR" >> "$GITHUB_OUTPUT"
+              echo "major=${BASE_MAJOR}" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            echo "::error::VERSION changed on '$MERGE_BRANCH'. VERSION is workflow-managed only."
+            exit 1
           fi
 
-          echo "merge_branch=$MERGE_BRANCH" >> "$GITHUB_OUTPUT"
-          echo "skip=false" >> "$GITHUB_OUTPUT"
+          TARGET=""
+          REASON=""
 
-      - name: Skip remaining steps
-        if: steps.release.outputs.skip == 'true'
-        run: echo "Production image build skipped."
-
-      - name: Bump VERSION for empty release/major|minor|patch merges
-        if: steps.release.outputs.skip != 'true' && steps.release.outputs.empty_merge == 'true'
-        run: |
-          set -euo pipefail
-          BRANCH="${{ steps.release.outputs.merge_branch }}"
-          PREV=$(git show HEAD^1:VERSION | tr -d '[:space:]')
-
-          case "$BRANCH" in
-            release/major|release/minor|release/patch) ;;
-            *)
-              echo "::error::Empty merge from \`$BRANCH\` has no auto-bump rule. Use release/major, release/minor, release/patch, or include a VERSION change."
-              exit 1
+          case "$MERGE_BRANCH" in
+            release/major)
+              TARGET="$((PREV_MAJOR + 1)).0.0"
+              REASON="release_major"
+              ;;
+            release/minor)
+              TARGET="${PREV_MAJOR}.$((PREV_MINOR + 1)).0"
+              REASON="release_minor"
+              ;;
+            release/patch)
+              TARGET="${PREV_MAJOR}.${PREV_MINOR}.$((PREV_PATCH + 1))"
+              REASON="release_patch"
+              ;;
+            release/*)
+              EXACT="${MERGE_BRANCH#release/}"
+              if [[ ! "$EXACT" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                echo "::error::Unsupported release branch '$MERGE_BRANCH'. Use release/x.y.z, release/major, release/minor, or release/patch."
+                exit 1
+              fi
+              TARGET="$EXACT"
+              REASON="release_exact"
+              ;;
+            hotfix/*)
+              TARGET="${PREV_BASE}-hf$((PREV_HF + 1))"
+              REASON="hotfix"
               ;;
           esac
 
-          IFS=. read -r MAJ MIN PAT <<< "$PREV"
-          if ! [[ "$MAJ" =~ ^[0-9]+$ && "$MIN" =~ ^[0-9]+$ && "$PAT" =~ ^[0-9]+$ ]]; then
-            echo "::error::VERSION must be semver MAJOR.MINOR.PATCH; got: $PREV"
+          if [ -z "$TARGET" ]; then
+            echo "::error::Unable to derive target VERSION from '$MERGE_BRANCH'."
             exit 1
           fi
 
-          case "$BRANCH" in
-            release/major) NEW="$((MAJ + 1)).0.0" ;;
-            release/minor) NEW="$MAJ.$((MIN + 1)).0" ;;
-            release/patch) NEW="$MAJ.$MIN.$((PAT + 1))" ;;
-          esac
+          echo "action=open_version_pr" >> "$GITHUB_OUTPUT"
+          echo "target_version=$TARGET" >> "$GITHUB_OUTPUT"
+          echo "target_reason=$REASON" >> "$GITHUB_OUTPUT"
+          echo "Derived managed VERSION '$TARGET' for '$MERGE_BRANCH'; opening PR."
 
-          printf '%s\n' "$NEW" > VERSION
-          echo "Bumped VERSION from $PREV to $NEW ($BRANCH empty merge)."
-          echo "APP_VERSION=$NEW" >> "$GITHUB_ENV"
+  open-version-pr:
+    needs: preflight
+    if: needs.preflight.outputs.action == 'open_version_pr'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
-      - name: Validate VERSION (non-empty merge or after bump)
-        if: steps.release.outputs.skip != 'true'
+      - name: Write managed VERSION
         run: |
           set -euo pipefail
-          PREV=$(git show HEAD^1:VERSION | tr -d '[:space:]')
-          CURR=$(cat VERSION | tr -d '[:space:]')
+          printf '%s\n' "${{ needs.preflight.outputs.target_version }}" > VERSION
 
-          if [ "${{ steps.release.outputs.empty_merge }}" = "true" ]; then
-            if [ "$PREV" = "$CURR" ]; then
-              echo "::error::VERSION was not bumped after empty release merge."
-              exit 1
-            fi
-          else
-            if [ "$PREV" = "$CURR" ]; then
-              echo "::error::VERSION file was not bumped. Update VERSION on your release branch before merging to main."
-              exit 1
-            fi
-          fi
+      - name: Create VERSION bump pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: main
+          branch: release/auto-version-${{ github.run_id }}
+          delete-branch: true
+          add-paths: |
+            VERSION
+          commit-message: "chore(release): bump VERSION to ${{ needs.preflight.outputs.target_version }} [automated version bump]"
+          title: "chore(release): bump VERSION to ${{ needs.preflight.outputs.target_version }}"
+          body: |
+            Automated VERSION update after merging `${{ needs.preflight.outputs.merge_branch }}` into `main`.
 
-          echo "APP_VERSION=$CURR" >> "$GITHUB_ENV"
-          MAJOR="${CURR%%.*}"
-          echo "MAJOR=$MAJOR" >> "$GITHUB_ENV"
+            - Reason: `${{ needs.preflight.outputs.target_reason }}`
+            - Target version: `${{ needs.preflight.outputs.target_version }}`
+            - Generated by: `${{ github.workflow }} #${{ github.run_number }}`
+
+  build-and-push:
+    needs: preflight
+    if: needs.preflight.outputs.action == 'build'
+    runs-on: ubuntu-latest
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_NAME: ${{ github.repository_owner }}/member-manager
+      APP_VERSION: ${{ needs.preflight.outputs.app_version }}
+      MAJOR: ${{ needs.preflight.outputs.major }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Log in to GHCR
-        if: steps.release.outputs.skip != 'true'
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
@@ -162,18 +243,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Commit automated VERSION bump (if any)
-        if: steps.release.outputs.skip != 'true' && steps.release.outputs.empty_merge == 'true'
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add VERSION
-          git commit -m "chore(release): bump VERSION to ${APP_VERSION} [automated version bump]"
-          git push origin HEAD:main
-
       - name: Create and push git tag
-        if: steps.release.outputs.skip != 'true'
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
@@ -184,3 +254,11 @@ jobs:
             git tag "v${APP_VERSION}"
             git push origin "v${APP_VERSION}"
           fi
+
+  skipped:
+    needs: preflight
+    if: needs.preflight.outputs.action == 'skip'
+    runs-on: ubuntu-latest
+    steps:
+      - name: No-op
+        run: echo "Production workflow skipped for this merge type."

@@ -1,203 +1,85 @@
-name: Release - Build and Push Image
+name: Release - Manual Tag Rebuild
 
-# Docker images for production are built by production.yml when a release/* branch is merged
-# into main (with VERSION bump on the branch or automated bump for empty release/major|minor|patch).
-# Manual image builds only; avoids duplicate builds when production.yml pushes v* tags.
+# Manual utility only.
+# Production release/version authority lives in production.yml.
+# This workflow rebuilds an existing tag image and never mutates VERSION.
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to build (e.g., v0.7.31)'
-        required: false
+        description: "Existing tag to rebuild (e.g. v1.2.3)"
+        required: true
         type: string
 
-# Prevent duplicate runs for the same ref
 concurrency:
-  group: release-${{ github.ref }}
-  cancel-in-progress: false
+  group: release-manual-${{ github.event.inputs.tag }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
   packages: write
 
 jobs:
-  test:
+  preflight:
     runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: member_manager_test
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    env:
-      RAILS_ENV: test
-      DB_HOST: localhost
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
-      DB_PORT: 5432
-      REDIS_URL: redis://localhost:6379/0
-
+    outputs:
+      version: ${{ steps.validate.outputs.version }}
+      ref: ${{ steps.validate.outputs.ref }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
+      - name: Validate requested tag
+        id: validate
+        run: |
+          set -euo pipefail
+          TAG="${{ github.event.inputs.tag }}"
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-hf[0-9]+)?$ ]]; then
+            echo "::error::Tag must match vMAJOR.MINOR.PATCH or vMAJOR.MINOR.PATCH-hfN."
+            exit 1
+          fi
+          echo "ref=refs/tags/$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
 
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.3.11'
-          bundler-cache: true
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-          cache: 'yarn'
-
-      - name: Install JS dependencies
-        run: yarn install --frozen-lockfile
-
-      - name: Prepare database
-        run: bin/rails db:test:prepare
-
-      - name: Run tests
-        run: bin/rails test
+      - name: Ensure tag exists on origin
+        run: |
+          set -euo pipefail
+          TAG="${{ github.event.inputs.tag }}"
+          if ! git ls-remote --exit-code --tags "https://github.com/${{ github.repository }}.git" "refs/tags/$TAG" >/dev/null; then
+            echo "::error::Tag '$TAG' does not exist on origin."
+            exit 1
+          fi
 
   build-and-push:
-    needs: test
+    needs: preflight
     runs-on: ubuntu-latest
-
     env:
       REGISTRY: ghcr.io
       IMAGE_NAME: ${{ github.repository_owner }}/member-manager
-
+      APP_VERSION: ${{ needs.preflight.outputs.version }}
     steps:
-      - name: Checkout
+      - name: Checkout requested tag
         uses: actions/checkout@v6
         with:
+          ref: ${{ needs.preflight.outputs.ref }}
           fetch-depth: 0
 
-      - name: Determine version
-        id: version
-        run: |
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            # Triggered by a tag push - use the tag
-            VERSION="${GITHUB_REF_NAME#v}"
-          else
-            # Triggered by a push to main - use the latest tag
-            VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "")
-            if [ -z "$VERSION" ]; then
-              VERSION="0.0.0"
-            fi
-          fi
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
-          echo "Building version: $VERSION"
-
-      - name: Get latest version from registry
-        id: latest_version
-        run: |
-          LATEST_VERSION=""
-          
-          VERSIONS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/users/${{ github.repository_owner }}/packages/container/member-manager/versions" \
-            2>/dev/null || echo "[]")
-          
-          LATEST_VERSION=$(echo "$VERSIONS" | jq -r '.[] | select(.metadata.container.tags | index("latest")) | .metadata.container.tags[] | select(test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))' | head -1 || echo "")
-          
-          if [ -z "$LATEST_VERSION" ]; then
-            echo "No existing latest version found, will tag as latest"
-            LATEST_VERSION="0.0.0"
-          fi
-          
-          echo "latest=$LATEST_VERSION" >> $GITHUB_OUTPUT
-          echo "Current latest version: $LATEST_VERSION"
-
-      - name: Compare versions
-        id: compare
-        run: |
-          CURRENT="${{ steps.version.outputs.version }}"
-          LATEST="${{ steps.latest_version.outputs.latest }}"
-          
-          version_gt() {
-            [ "$(printf '%s\n' "$1" "$2" | sort -V | tail -n1)" = "$1" ] && [ "$1" != "$2" ]
-          }
-          
-          if version_gt "$CURRENT" "$LATEST"; then
-            echo "should_tag_latest=true" >> $GITHUB_OUTPUT
-            echo "$CURRENT is greater than $LATEST - will tag as latest"
-          else
-            echo "should_tag_latest=false" >> $GITHUB_OUTPUT
-            echo "$CURRENT is NOT greater than $LATEST - will NOT tag as latest"
-          fi
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
-
-      - name: Set up Docker Buildx
-        id: buildx
-        uses: docker/setup-buildx-action@v4
-        with:
-          driver-opts: |
-            image=moby/buildkit:latest
-            network=host
-
-      - name: Log in to the Container registry
+      - name: Log in to GHCR
         uses: docker/login-action@v4
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract Docker metadata
-        id: meta
-        uses: docker/metadata-action@v6
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=ref,event=tag
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=raw,value=${{ steps.version.outputs.version }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
 
-      - name: Build and push
+      - name: Build and push image
         uses: docker/build-push-action@v7
         with:
           context: .
           push: true
           file: Dockerfile
-          build-args: |
-            APP_VERSION=${{ steps.version.outputs.tag }}
           platforms: linux/amd64
           provenance: false
+          build-args: |
+            APP_VERSION=${{ env.APP_VERSION }}
           tags: |
-            ${{ steps.meta.outputs.tags }}
-            ${{ steps.compare.outputs.should_tag_latest == 'true' && format('{0}/{1}:latest', env.REGISTRY, env.IMAGE_NAME) || '' }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: |
-            type=gha
-            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
-          cache-to: |
-            type=gha,mode=max
-            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
-          builder: ${{ steps.buildx.outputs.name }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.APP_VERSION }}

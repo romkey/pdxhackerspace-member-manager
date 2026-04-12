@@ -21,26 +21,44 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
       - name: Require staging, hotfix/*, or release/* when merging to main
         env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           HEAD_REF: ${{ github.head_ref }}
         run: |
-          if [ "$HEAD_REF" = "staging" ]; then
-            echo "OK: merging \`staging\` into \`main\`."
-            exit 0
-          fi
           case "$HEAD_REF" in
-            hotfix/*)
-              echo "OK: merging hotfix branch \`$HEAD_REF\` into \`main\`."
-              exit 0
+            staging|hotfix/*|release/*)
               ;;
-            release/*)
-              echo "OK: merging release branch \`$HEAD_REF\` into \`main\`."
-              exit 0
+            *)
+              echo "::error::Pull requests into \`main\` must come from \`staging\`, \`hotfix/*\`, or \`release/*\`. This PR is from \`$HEAD_REF\`."
+              exit 1
               ;;
           esac
-          echo "::error::Pull requests into \`main\` must come from \`staging\`, \`hotfix/*\`, or \`release/*\`. This PR is from \`$HEAD_REF\`."
-          exit 1
+
+          CHANGED_FILES=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+          if printf '%s\n' "$CHANGED_FILES" | grep -qx 'VERSION'; then
+            case "$HEAD_REF" in
+              release/auto-version-*)
+                if [ "$CHANGED_FILES" != "VERSION" ]; then
+                  echo "::error::Automation VERSION PRs must only modify VERSION."
+                  exit 1
+                fi
+                echo "OK: workflow-managed VERSION update from '$HEAD_REF'."
+                ;;
+              *)
+                echo "::error::PRs into \`main\` must not modify VERSION manually. VERSION updates are workflow-managed only."
+                exit 1
+                ;;
+            esac
+          fi
+
+          echo "OK: source branch and VERSION policy checks passed."
 
   allowed-staging-source:
     if: github.base_ref == 'staging'
