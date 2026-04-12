@@ -6,11 +6,11 @@ class MembershipApplicationsController < ApplicationController
   include MembershipApplicationWizard::Actions
 
   ADMIN_ACTIONS = %i[
-    index show import approve reject mark_under_review link_user unlink_user vote_ai_feedback
+    index show import approve reject link_user unlink_user vote_ai_feedback
     save_tour_feedback vote_acceptance
   ].freeze
   APPLICATION_MEMBER_ACTIONS = %i[
-    show approve reject mark_under_review link_user unlink_user vote_ai_feedback
+    show approve reject link_user unlink_user vote_ai_feedback
     save_tour_feedback vote_acceptance
   ].freeze
 
@@ -42,15 +42,23 @@ class MembershipApplicationsController < ApplicationController
   def index
     base_scope = MembershipApplication.where.not(status: 'draft').newest_first
     @applications = base_scope.includes(:user, :reviewed_by, :application_answers, :acceptance_votes)
-    @applications = @applications.where(status: params[:status]) if params[:status].present?
+    @current_status = params[:status].presence || 'submitted'
+    @applications = case @current_status
+                    when 'all'
+                      @applications
+                    when 'unlinked'
+                      @applications.where(user_id: nil).where.not(status: 'rejected')
+                    else
+                      @applications.where(status: @current_status)
+                    end
     @applications = @applications.admin_search(params[:q])
 
     @status_counts = {
       all: MembershipApplication.where.not(status: 'draft').count,
       submitted: MembershipApplication.submitted_apps.count,
-      under_review: MembershipApplication.under_review.count,
       approved: MembershipApplication.approved.count,
-      rejected: MembershipApplication.rejected.count
+      rejected: MembershipApplication.rejected.count,
+      unlinked: MembershipApplication.where.not(status: %w[draft rejected]).where(user_id: nil).count
     }
 
     @pagy, @applications = pagy(@applications, limit: 25)
@@ -155,12 +163,6 @@ class MembershipApplicationsController < ApplicationController
       redirect_to membership_application_path(@application),
                   notice: 'Application rejected. No email was queued (recipient has no email address).'
     end
-  end
-
-  def mark_under_review
-    @application.mark_under_review!(current_user)
-    redirect_to membership_application_path(@application),
-                notice: 'Application marked as under review.'
   end
 
   def vote_ai_feedback

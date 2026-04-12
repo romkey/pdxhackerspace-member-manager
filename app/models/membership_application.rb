@@ -1,5 +1,5 @@
 class MembershipApplication < ApplicationRecord
-  STATUSES = %w[draft submitted under_review approved rejected].freeze
+  STATUSES = %w[draft submitted approved rejected].freeze
 
   # Training topic name (TrainingTopic.name) — viewers with this training see applicant PII without masking.
   EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME = 'Executive Director'.freeze
@@ -39,10 +39,9 @@ class MembershipApplication < ApplicationRecord
     where.not(status: 'draft').where(ai_feedback_processed_at: nil)
   }
   scope :submitted_apps, -> { where(status: 'submitted') }
-  scope :under_review, -> { where(status: 'under_review') }
   scope :approved, -> { where(status: 'approved') }
   scope :rejected, -> { where(status: 'rejected') }
-  scope :pending, -> { where(status: %w[submitted under_review]) }
+  scope :pending, -> { submitted_apps }
   scope :newest_first, -> { order(created_at: :desc) }
   scope :admin_search, lambda { |query|
     raw = query.to_s.strip
@@ -81,10 +80,6 @@ class MembershipApplication < ApplicationRecord
     status == 'submitted'
   end
 
-  def under_review?
-    status == 'under_review'
-  end
-
   def approved?
     status == 'approved'
   end
@@ -98,10 +93,6 @@ class MembershipApplication < ApplicationRecord
     Journal.record_application_event!(application: self, action: 'application_submitted')
     MembershipApplicationAiFeedbackJob.perform_later(id)
     MembershipApplications::NotifyDirectorsOfSubmission.call(self)
-  end
-
-  def mark_under_review!(admin)
-    update!(status: 'under_review', reviewed_by: admin)
   end
 
   # Updates status and journal only. The web UI uses +MembershipApplications::FinalizeApproval+ instead
@@ -134,13 +125,14 @@ class MembershipApplication < ApplicationRecord
   end
 
   def status_display
+    return 'Open' if submitted?
+
     status&.titleize
   end
 
   def status_badge_color
     case status
     when 'submitted' then 'primary'
-    when 'under_review' then 'warning'
     when 'approved' then 'success'
     when 'rejected' then 'danger'
     else 'secondary'

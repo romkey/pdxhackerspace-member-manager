@@ -71,6 +71,83 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_select 'a[href=?]', membership_application_path(miss), count: 0
   end
 
+  test 'index defaults to open submitted tab' do
+    open_app = MembershipApplication.create!(
+      email: 'default-open@example.com',
+      status: 'submitted',
+      submitted_at: Time.current
+    )
+    closed_app = MembershipApplication.create!(
+      email: 'default-approved@example.com',
+      status: 'approved',
+      submitted_at: Time.current,
+      reviewed_at: Time.current
+    )
+
+    get membership_applications_path
+
+    assert_response :success
+    assert_select 'a.nav-link.active', text: /Open/
+    assert_select 'a[href=?]', membership_application_path(open_app)
+    assert_select 'a[href=?]', membership_application_path(closed_app), count: 0
+  end
+
+  test 'index unlinked tab lists only unlinked non-rejected applications' do
+    linked_member = users(:member_with_local_account)
+    keep = MembershipApplication.create!(
+      email: 'unlinked-open@example.com',
+      status: 'submitted',
+      submitted_at: Time.current
+    )
+    filtered_rejected = MembershipApplication.create!(
+      email: 'unlinked-rejected@example.com',
+      status: 'rejected',
+      submitted_at: Time.current,
+      reviewed_at: Time.current
+    )
+    filtered_linked = MembershipApplication.create!(
+      email: 'linked-open@example.com',
+      status: 'submitted',
+      submitted_at: Time.current,
+      user: linked_member
+    )
+
+    get membership_applications_path(status: 'unlinked')
+
+    assert_response :success
+    assert_select 'a.nav-link.active', text: /Unlinked/
+    assert_select 'a[href=?]', membership_application_path(keep)
+    assert_select 'a[href=?]', membership_application_path(filtered_rejected), count: 0
+    assert_select 'a[href=?]', membership_application_path(filtered_linked), count: 0
+  end
+
+  test 'index unlinked count excludes rejected applications' do
+    MembershipApplication.create!(
+      email: 'badge-open-unlinked@example.com',
+      status: 'submitted',
+      submitted_at: Time.current
+    )
+    MembershipApplication.create!(
+      email: 'badge-approved-unlinked@example.com',
+      status: 'approved',
+      submitted_at: Time.current,
+      reviewed_at: Time.current
+    )
+    MembershipApplication.create!(
+      email: 'badge-rejected-unlinked@example.com',
+      status: 'rejected',
+      submitted_at: Time.current,
+      reviewed_at: Time.current
+    )
+
+    get membership_applications_path(status: 'all')
+
+    assert_response :success
+    expected_count = MembershipApplication.where.not(status: %w[draft rejected]).where(user_id: nil).count
+    assert_select "a[href='#{membership_applications_path(status: 'unlinked')}'] span.badge",
+                  text: expected_count.to_s
+  end
+
   test 'show masks applicant contact when Executive Director topic exists and viewer is not trained' do
     TrainingTopic.create!(name: 'Executive Director')
     sign_in_as_admin
@@ -183,7 +260,7 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     TrainingTopic.create!(name: 'Executive Director')
     app = MembershipApplication.create!(
       email: 'approve-gate@example.com',
-      status: 'under_review',
+      status: 'submitted',
       submitted_at: Time.current
     )
     assert_no_changes -> { app.reload.status } do
@@ -201,7 +278,7 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     q_name = page1.questions.create!(label: 'Name', field_type: 'text', required: false, position: 1)
     app = MembershipApplication.create!(
       email: 'approve-ok@example.com',
-      status: 'under_review',
+      status: 'submitted',
       submitted_at: Time.current
     )
     app.application_answers.create!(application_form_question: q_name, value: 'Pat Applicant')
@@ -227,7 +304,7 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     Training.create!(trainee: admin, training_topic: topic, trained_at: Time.current)
     app = MembershipApplication.create!(
       email: 'reject-redirect@example.com',
-      status: 'under_review',
+      status: 'submitted',
       submitted_at: Time.current
     )
 
@@ -248,7 +325,7 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     existing = users(:two)
     app = MembershipApplication.create!(
       email: existing.email,
-      status: 'under_review',
+      status: 'submitted',
       submitted_at: Time.current
     )
     assert_no_difference 'User.count' do

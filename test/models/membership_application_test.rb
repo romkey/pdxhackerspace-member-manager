@@ -30,7 +30,7 @@ class MembershipApplicationTest < ActiveSupport::TestCase
   end
 
   test 'reject! creates pending queued rejection mail' do
-    app = MembershipApplication.create!(email: 'reject-mail-test@example.com', status: 'under_review')
+    app = MembershipApplication.create!(email: 'reject-mail-test@example.com', status: 'submitted')
     admin = users(:one)
 
     qm = nil
@@ -49,7 +49,7 @@ class MembershipApplicationTest < ActiveSupport::TestCase
     member = users(:member_with_local_account)
     app = MembershipApplication.create!(
       email: 'other@example.com',
-      status: 'under_review',
+      status: 'submitted',
       user: member
     )
     admin = users(:one)
