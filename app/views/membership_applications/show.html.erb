@@ -50,7 +50,7 @@
           </div>
 
           <div class="rounded border border-secondary-subtle bg-body-tertiary p-3 mb-0">
-            <dt>Linked member</dt>
+            <dt>Linked Member</dt>
             <dd class="mb-0 d-flex flex-wrap align-items-center gap-2">
               <% if @application.user %>
                 <%= link_to @application.user.display_name, user_path(@application.user), class: "text-decoration-none" %>
@@ -75,14 +75,14 @@
         <dl>
           <% if @application.reviewed_by.present? %>
             <div class="rounded border border-secondary-subtle bg-body-tertiary p-3 mb-2">
-              <dt>Reviewed by</dt>
+              <dt>Reviewed By</dt>
               <dd class="mb-0"><%= link_to @application.reviewed_by.display_name, user_path(@application.reviewed_by) %></dd>
             </div>
           <% end %>
 
           <% if @application.reviewed_at.present? %>
             <div class="rounded border border-secondary-subtle bg-body-tertiary p-3 mb-2">
-              <dt>Reviewed on</dt>
+              <dt>Reviewed On</dt>
               <dd class="mb-0"><%= @application.reviewed_at.strftime('%B %d, %Y at %l:%M %p') %></dd>
             </div>
           <% end %>
@@ -117,30 +117,32 @@
   <% questions = entry[:questions] %>
   <div class="card shadow-sm border-0 mb-3">
     <div class="card-header bg-body-secondary">
-      <h5 class="mb-0"><%= page.title %></h5>
+      <h5 class="mb-0"><%= page.title.to_s.titleize %></h5>
       <% if page.description.present? %>
         <small class="text-body-secondary"><%= page.description %></small>
       <% end %>
     </div>
     <div class="card-body">
-      <% questions.each do |qa| %>
-        <div class="rounded border border-secondary-subtle bg-body-tertiary p-3 mb-2">
-          <div class="text-muted small fw-semibold mb-1"><%= qa[:question].label %></div>
-          <div class="mb-0">
-            <% if qa[:answer]&.value.present? %>
-              <% if membership_application_sensitive_answer_label?(qa[:question].label) %>
-                <%= membership_application_masked_contact_capture do %>
+      <div class="rounded border border-secondary-subtle bg-body-tertiary p-3">
+        <% questions.each_with_index do |qa, idx| %>
+          <div class="<%= 'border-bottom border-secondary-subtle pb-3 mb-3' if idx < questions.length - 1 %>">
+            <div class="text-muted small fw-semibold mb-1"><%= qa[:question].label.to_s.titleize %></div>
+            <div class="mb-0">
+              <% if qa[:answer]&.value.present? %>
+                <% if membership_application_sensitive_answer_label?(qa[:question].label) %>
+                  <%= membership_application_masked_contact_capture do %>
+                    <%= simple_format(qa[:answer].value) %>
+                  <% end %>
+                <% else %>
                   <%= simple_format(qa[:answer].value) %>
                 <% end %>
               <% else %>
-                <%= simple_format(qa[:answer].value) %>
+                <span class="text-muted fst-italic">No answer</span>
               <% end %>
-            <% else %>
-              <span class="text-muted fst-italic">No answer</span>
-            <% end %>
+            </div>
           </div>
-        </div>
-      <% end %>
+        <% end %>
+      </div>
     </div>
   </div>
 <% end %>
@@ -152,7 +154,7 @@
 <% unless @application.approved? || @application.rejected? %>
   <div id="review-section" class="card shadow-sm border-0 mb-4">
     <div class="card-header bg-body-secondary">
-      <h5 class="mb-0">Final decision</h5>
+      <h5 class="mb-0">Final Decision</h5>
     </div>
     <div class="card-body">
       <% if true_user.can_finalize_membership_application? %>

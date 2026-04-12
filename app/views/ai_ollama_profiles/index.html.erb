@@ -1,7 +1,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
     <h1 class="h3 mb-1">Manage AI</h1>
-    <p class="text-muted mb-0">Ollama endpoints, models, and prompts. Job-specific profiles fall back to Default when their endpoint is blank.</p>
+    <p class="text-muted mb-0">Ollama endpoints, models, and prompts. Job-specific profiles fall back to Default when their endpoint or model is blank.</p>
   </div>
   <div class="d-flex gap-2 flex-wrap">
     <%= button_to "Run health check now", check_health_now_ai_ollama_profiles_path, method: :post, class: "btn btn-outline-primary" %>
@@ -22,6 +22,9 @@
                 <% if profile.key != 'default' && profile.base_url.to_s.strip.blank? && profile.effective_base_url.present? %>
                   <span class="badge text-bg-info">Uses default endpoint</span>
                 <% end %>
+                <% if profile.key != 'default' && profile.model.to_s.strip.blank? && profile.effective_model.present? %>
+                  <span class="badge text-bg-info">Uses default model</span>
+                <% end %>
               </div>
               <div class="text-muted small">
                 <div><span class="text-secondary">Key:</span> <code><%= profile.key %></code></div>
@@ -30,9 +33,7 @@
                 <% else %>
                   <div class="mt-1"><span class="text-secondary">Endpoint:</span> —</div>
                 <% end %>
-                <% if profile.model.present? %>
-                  <div class="mt-1"><span class="text-secondary">Model:</span> <%= profile.model %></div>
-                <% end %>
+                <div class="mt-1"><span class="text-secondary">Model:</span> <%= profile.effective_model.presence || '—' %></div>
                 <% if profile.last_health_check_at.present? %>
                   <div class="mt-1"><span class="text-secondary">Last check:</span> <%= l(profile.last_health_check_at, format: :short) %></div>
                 <% end %>

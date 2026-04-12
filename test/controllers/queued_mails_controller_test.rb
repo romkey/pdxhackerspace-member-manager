@@ -131,6 +131,50 @@ class QueuedMailsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to queued_mail_path(@approved)
   end
 
+  test 'rewrite_with_ai rewrites body in place for pending mail' do
+    ai_ollama_profiles(:default).update!(base_url: 'http://ollama.test:11434', model: 'llama3.2')
+    ai_ollama_profiles(:email_rewriting).update!(enabled: true, base_url: '', model: '', prompt: 'Rewrite this email.')
+
+    response_json = {
+      body_html: '<p>Rewritten HTML</p>',
+      body_text: 'Rewritten text'
+    }
+    stub_result = Ollama::ChatCompletion::Result.new(true, JSON.generate(response_json), nil)
+
+    original_call = Ollama::ChatCompletion.method(:call)
+    Ollama::ChatCompletion.define_singleton_method(:call) { |**_kwargs| stub_result }
+    begin
+      post rewrite_with_ai_queued_mail_path(@pending), params: {
+        rewrite: {
+          subject: @pending.subject,
+          body_html: @pending.body_html,
+          body_text: @pending.body_text
+        }
+      }, as: :json
+    ensure
+      Ollama::ChatCompletion.define_singleton_method(:call, original_call)
+    end
+
+    assert_response :success
+    parsed = response.parsed_body
+    assert_equal '<p>Rewritten HTML</p>', parsed['body_html']
+    assert_equal 'Rewritten text', parsed['body_text']
+  end
+
+  test 'rewrite_with_ai rejects non-pending mail' do
+    post rewrite_with_ai_queued_mail_path(@approved), params: {
+      rewrite: {
+        subject: @approved.subject,
+        body_html: @approved.body_html,
+        body_text: @approved.body_text
+      }
+    }, as: :json
+
+    assert_response :unprocessable_content
+    parsed = response.parsed_body
+    assert_match(/Only pending messages/, parsed['error'])
+  end
+
   # ─── Admin access required ────────────────────────────────────────
 
   test 'non-admin cannot access queue' do

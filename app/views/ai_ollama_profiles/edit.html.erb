@@ -34,6 +34,9 @@
       <div class="mb-3">
         <%= f.label :model, class: "form-label" %>
         <%= f.text_field :model, class: "form-control", placeholder: "e.g. llama3.2" %>
+        <% if @ai_ollama_profile.key != 'default' %>
+          <div class="form-text">Leave blank to use the Default profile's model.</div>
+        <% end %>
       </div>
 
       <div class="mb-3">

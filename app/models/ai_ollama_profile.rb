@@ -1,5 +1,12 @@
 class AiOllamaProfile < ApplicationRecord
-  KEYS = %w[default application_status recommendation_engine].freeze
+  EMAIL_REWRITING_DEFAULT_PROMPT = <<~PROMPT.freeze
+    You rewrite outbound emails for clarity, warmth, and professionalism.
+    Keep the original intent, factual details, and calls to action.
+    Preserve all links, placeholders, and template variables exactly as provided.
+    Return polished copy that is concise and easy to read.
+  PROMPT
+
+  KEYS = %w[default application_status recommendation_engine email_rewriting].freeze
   HEALTH_STATUSES = %w[unknown healthy unhealthy not_configured].freeze
 
   validates :key, presence: true, uniqueness: true, inclusion: { in: KEYS }
@@ -16,11 +23,18 @@ class AiOllamaProfile < ApplicationRecord
     [
       { key: 'default', name: 'Default', display_order: 0 },
       { key: 'application_status', name: 'Application Status', display_order: 1 },
-      { key: 'recommendation_engine', name: 'Recommendation Engine', display_order: 2 }
+      { key: 'recommendation_engine', name: 'Recommendation Engine', display_order: 2 },
+      {
+        key: 'email_rewriting',
+        name: 'Email Rewriting',
+        display_order: 3,
+        prompt: EMAIL_REWRITING_DEFAULT_PROMPT
+      }
     ].each do |attrs|
       find_or_initialize_by(key: attrs[:key]).tap do |row|
         row.name = attrs[:name]
         row.display_order = attrs[:display_order]
+        row.prompt = attrs[:prompt] if row.prompt.to_s.strip.blank? && attrs[:prompt].present?
         row.enabled = true if row.enabled.nil?
         row.health_status = 'not_configured' if row.new_record?
         row.save!

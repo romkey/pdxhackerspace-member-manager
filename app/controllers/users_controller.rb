@@ -287,7 +287,22 @@ class UsersController < AuthenticatedController
     if @user.save
       redirect_to user_path(@user), notice: 'Member created successfully.'
     else
-      flash.now[:alert] = 'Unable to create member.'
+      if @user.errors.of_kind?(:email, :taken)
+        existing_user = find_existing_user_by_email(@user.email)
+        flash.now[:alert] = if existing_user
+                              helpers.safe_join(
+                                [
+                                  'Unable to create member: email is already in use by ',
+                                  helpers.link_to(existing_user.display_name, user_path(existing_user)),
+                                  '.'
+                                ]
+                              )
+                            else
+                              'Unable to create member: email is already in use.'
+                            end
+      else
+        flash.now[:alert] = 'Unable to create member.'
+      end
       render :new, status: :unprocessable_content
     end
   end
@@ -611,5 +626,12 @@ class UsersController < AuthenticatedController
       attrs[:do_not_greet]               = true
       attrs[:greeting_name]              = ''
     end
+  end
+
+  def find_existing_user_by_email(email)
+    normalized_email = email.to_s.strip.downcase
+    return nil if normalized_email.blank?
+
+    User.where('LOWER(email) = ?', normalized_email).first
   end
 end

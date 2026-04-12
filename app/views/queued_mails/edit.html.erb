@@ -12,7 +12,14 @@
 
 <div class="card shadow-sm border-0 mb-4">
   <div class="card-body">
-    <%= form_with(model: @queued_mail, class: "needs-validation") do |f| %>
+    <%= form_with(
+          model: @queued_mail,
+          class: "needs-validation",
+          data: {
+            controller: "queued-mail-rewrite",
+            queued_mail_rewrite_url_value: rewrite_with_ai_queued_mail_path(@queued_mail)
+          }
+        ) do |f| %>
       <div class="mb-3">
         <%= f.label :to, "Recipient Email", class: "form-label" %>
         <%= f.text_field :to, class: "form-control #{'is-invalid' if @queued_mail.errors.key?(:to)}", required: true %>
@@ -23,7 +30,10 @@
 
       <div class="mb-3">
         <%= f.label :subject, class: "form-label" %>
-        <%= f.text_field :subject, class: "form-control #{'is-invalid' if @queued_mail.errors.key?(:subject)}", required: true %>
+        <%= f.text_field :subject,
+            class: "form-control #{'is-invalid' if @queued_mail.errors.key?(:subject)}",
+            required: true,
+            data: { queued_mail_rewrite_target: "subject" } %>
         <% if @queued_mail.errors.key?(:subject) %>
           <div class="invalid-feedback"><%= @queued_mail.errors[:subject].join(', ') %></div>
         <% end %>
@@ -34,7 +44,11 @@
         <div class="mb-2">
           <small class="text-muted">Use the toolbar to format, or click "Source Code" (&lt;&gt;) to edit raw HTML.</small>
         </div>
-        <%= f.text_area :body_html, class: "form-control #{'is-invalid' if @queued_mail.errors.key?(:body_html)}", rows: 16, required: true, data: { rich_editor_target: "editor" } %>
+        <%= f.text_area :body_html,
+            class: "form-control #{'is-invalid' if @queued_mail.errors.key?(:body_html)}",
+            rows: 16,
+            required: true,
+            data: { rich_editor_target: "editor", queued_mail_rewrite_target: "bodyHtml" } %>
         <% if @queued_mail.errors.key?(:body_html) %>
           <div class="invalid-feedback"><%= @queued_mail.errors[:body_html].join(', ') %></div>
         <% end %>
@@ -43,8 +57,32 @@
 
       <div class="mb-3">
         <%= f.label :body_text, "Plain Text Body", class: "form-label" %>
-        <%= f.text_area :body_text, class: "form-control font-monospace", rows: 10 %>
+        <%= f.text_area :body_text,
+            class: "form-control font-monospace",
+            rows: 10,
+            data: { queued_mail_rewrite_target: "bodyText" } %>
         <div class="form-text">Optional plain text alternative for email clients that don't support HTML.</div>
+      </div>
+
+      <div class="mb-3 border rounded bg-body-tertiary p-3">
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+          <button type="button"
+                  class="btn btn-outline-primary"
+                  data-action="queued-mail-rewrite#rewrite"
+                  data-queued-mail-rewrite-target="rewriteButton">
+            Rewrite With AI
+            <span class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"
+                  data-queued-mail-rewrite-target="spinner"></span>
+          </button>
+          <button type="button"
+                  class="btn btn-outline-secondary d-none"
+                  data-action="queued-mail-rewrite#undo"
+                  data-queued-mail-rewrite-target="undoButton">
+            Undo AI Rewrite
+          </button>
+          <span class="small text-muted"
+                data-queued-mail-rewrite-target="status">Rewrites both HTML and plain text body in place.</span>
+        </div>
       </div>
 
       <div class="d-flex gap-2">

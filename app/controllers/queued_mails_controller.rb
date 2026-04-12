@@ -1,5 +1,5 @@
 class QueuedMailsController < AdminController
-  before_action :set_queued_mail, only: %i[show edit update approve reject regenerate retry_delivery]
+  before_action :set_queued_mail, only: %i[show edit update approve reject regenerate retry_delivery rewrite_with_ai]
 
   def index
     @filter = params[:filter].presence || 'pending'
@@ -111,6 +111,31 @@ class QueuedMailsController < AdminController
     redirect_to queued_mail_path(@queued_mail), notice: 'Message regenerated from template.'
   end
 
+  def rewrite_with_ai
+    unless @queued_mail.pending?
+      render json: { error: 'Only pending messages can be rewritten.' }, status: :unprocessable_content
+      return
+    end
+
+    attrs = rewrite_params
+    result = QueuedMails::RewriteWithAi.call(
+      queued_mail: @queued_mail,
+      subject: attrs[:subject],
+      body_html: attrs[:body_html],
+      body_text: attrs[:body_text]
+    )
+
+    if result.success?
+      render json: {
+        body_html: result.body_html,
+        body_text: result.body_text,
+        message: result.message
+      }
+    else
+      render json: { error: result.message }, status: :unprocessable_content
+    end
+  end
+
   private
 
   def set_queued_mail
@@ -119,5 +144,9 @@ class QueuedMailsController < AdminController
 
   def queued_mail_params
     params.expect(queued_mail: %i[to subject body_html body_text])
+  end
+
+  def rewrite_params
+    params.expect(rewrite: %i[subject body_html body_text])
   end
 end

@@ -59,6 +59,19 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_equal 'Authentik source is disabled.', flash[:alert]
   end
 
+  test 'create with duplicate email shows link to existing member profile' do
+    post users_path, params: {
+      user: {
+        full_name: 'Duplicate Email Test',
+        email: @user.email
+      }
+    }
+
+    assert_response :unprocessable_content
+    assert_select '.alert', text: /Unable to create member: email is already in use by/
+    assert_select ".alert a[href='#{user_path(@user)}']", text: @user.display_name
+  end
+
   private
 
   def sign_in_as_local_admin

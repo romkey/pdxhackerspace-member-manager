@@ -29,3 +29,13 @@ recommendation_engine:
   enabled: true
   health_status: not_configured
   display_order: 2
+
+email_rewriting:
+  key: email_rewriting
+  name: Email Rewriting
+  base_url:
+  model:
+  prompt: ""
+  enabled: true
+  health_status: not_configured
+  display_order: 3

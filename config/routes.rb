@@ -290,6 +290,7 @@ Rails.application.routes.draw do
       post :approve
       post :reject
       post :regenerate
+      post :rewrite_with_ai
       post :retry_delivery, as: :retry
     end
     collection do
