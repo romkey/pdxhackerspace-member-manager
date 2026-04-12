@@ -18,14 +18,7 @@
     Application #<%= @application.id %>
     <span class="badge bg-<%= @application.status_badge_color %>"><%= @application.status_display %></span>
   </h1>
-  <div class="d-flex gap-2">
-    <% if @application.submitted? %>
-      <%= link_to mark_under_review_membership_application_path(@application),
-          data: { turbo_method: :post },
-          class: "btn btn-outline-warning" do %>
-        <i class="bi bi-eye me-1"></i> Mark Under Review
-      <% end %>
-    <% end %>
+  <div>
     <%= link_to membership_applications_path, class: "btn btn-outline-secondary" do %>
       <i class="bi bi-arrow-left me-1"></i> Back
     <% end %>
@@ -37,54 +30,68 @@
     <div class="row">
       <div class="col-md-6">
         <dl>
-          <dt>Email</dt>
-          <dd>
-            <%= membership_application_masked_contact_capture do %>
-              <%= @application.email %>
-            <% end %>
-          </dd>
-
-          <dt>Status</dt>
-          <dd><span class="badge bg-<%= @application.status_badge_color %>"><%= @application.status_display %></span></dd>
-
-          <dt>Submitted</dt>
-          <dd><%= @application.submitted_at&.strftime('%B %d, %Y at %l:%M %p') || 'Not yet submitted' %></dd>
-
-          <dt>Linked member</dt>
-          <dd class="d-flex flex-wrap align-items-center gap-2">
-            <% if @application.user %>
-              <%= link_to @application.user.display_name, user_path(@application.user), class: "text-decoration-none" %>
-              <%= button_to 'Unlink', unlink_user_membership_application_path(@application),
-                            method: :post,
-                            class: 'btn btn-sm btn-outline-warning',
-                            form: { data: { turbo_confirm: 'Remove the member link from this application?' } } %>
-            <% else %>
-              <span class="text-muted">Not linked</span>
-              <% if @users_for_application_link.any? %>
-                <button type="button" class="btn btn-sm btn-primary"
-                        data-bs-toggle="modal" data-bs-target="#maLinkMemberModal">
-                  Link member
-                </button>
+          <div class="rounded border border-secondary-subtle bg-body-tertiary p-3 mb-2">
+            <dt>Email</dt>
+            <dd class="mb-0">
+              <%= membership_application_masked_contact_capture do %>
+                <%= @application.email %>
               <% end %>
-            <% end %>
-          </dd>
+            </dd>
+          </div>
+
+          <div class="rounded border border-secondary-subtle bg-body-tertiary p-3 mb-2">
+            <dt>Status</dt>
+            <dd class="mb-0"><span class="badge bg-<%= @application.status_badge_color %>"><%= @application.status_display %></span></dd>
+          </div>
+
+          <div class="rounded border border-secondary-subtle bg-body-tertiary p-3 mb-2">
+            <dt>Submitted</dt>
+            <dd class="mb-0"><%= @application.submitted_at&.strftime('%B %d, %Y at %l:%M %p') || 'Not yet submitted' %></dd>
+          </div>
+
+          <div class="rounded border border-secondary-subtle bg-body-tertiary p-3 mb-0">
+            <dt>Linked member</dt>
+            <dd class="mb-0 d-flex flex-wrap align-items-center gap-2">
+              <% if @application.user %>
+                <%= link_to @application.user.display_name, user_path(@application.user), class: "text-decoration-none" %>
+                <%= button_to 'Unlink', unlink_user_membership_application_path(@application),
+                              method: :post,
+                              class: 'btn btn-sm btn-outline-warning',
+                              form: { data: { turbo_confirm: 'Remove the member link from this application?' } } %>
+              <% else %>
+                <span class="text-muted">Not linked</span>
+                <% if @users_for_application_link.any? %>
+                  <button type="button" class="btn btn-sm btn-primary"
+                          data-bs-toggle="modal" data-bs-target="#maLinkMemberModal">
+                    Link member
+                  </button>
+                <% end %>
+              <% end %>
+            </dd>
+          </div>
         </dl>
       </div>
       <div class="col-md-6">
         <dl>
           <% if @application.reviewed_by.present? %>
-            <dt>Reviewed by</dt>
-            <dd><%= link_to @application.reviewed_by.display_name, user_path(@application.reviewed_by) %></dd>
+            <div class="rounded border border-secondary-subtle bg-body-tertiary p-3 mb-2">
+              <dt>Reviewed by</dt>
+              <dd class="mb-0"><%= link_to @application.reviewed_by.display_name, user_path(@application.reviewed_by) %></dd>
+            </div>
           <% end %>
 
           <% if @application.reviewed_at.present? %>
-            <dt>Reviewed on</dt>
-            <dd><%= @application.reviewed_at.strftime('%B %d, %Y at %l:%M %p') %></dd>
+            <div class="rounded border border-secondary-subtle bg-body-tertiary p-3 mb-2">
+              <dt>Reviewed on</dt>
+              <dd class="mb-0"><%= @application.reviewed_at.strftime('%B %d, %Y at %l:%M %p') %></dd>
+            </div>
           <% end %>
 
           <% if @application.admin_notes.present? %>
-            <dt>Admin Notes</dt>
-            <dd><%= simple_format(@application.admin_notes) %></dd>
+            <div class="rounded border border-secondary-subtle bg-body-tertiary p-3 mb-0">
+              <dt>Admin Notes</dt>
+              <dd class="mb-0"><%= simple_format(@application.admin_notes) %></dd>
+            </div>
           <% end %>
         </dl>
       </div>
@@ -117,9 +124,9 @@
     </div>
     <div class="card-body">
       <% questions.each do |qa| %>
-        <div class="mb-3">
-          <dt class="text-muted small"><%= qa[:question].label %></dt>
-          <dd class="mb-2">
+        <div class="rounded border border-secondary-subtle bg-body-tertiary p-3 mb-2">
+          <div class="text-muted small fw-semibold mb-1"><%= qa[:question].label %></div>
+          <div class="mb-0">
             <% if qa[:answer]&.value.present? %>
               <% if membership_application_sensitive_answer_label?(qa[:question].label) %>
                 <%= membership_application_masked_contact_capture do %>
@@ -131,11 +138,15 @@
             <% else %>
               <span class="text-muted fst-italic">No answer</span>
             <% end %>
-          </dd>
+          </div>
         </div>
       <% end %>
     </div>
   </div>
+<% end %>
+
+<% unless @application.draft? %>
+  <%= render 'acceptance_votes_card', application: @application, current_acceptance_vote: @current_acceptance_vote %>
 <% end %>
 
 <% unless @application.approved? || @application.rejected? %>
@@ -169,7 +180,7 @@
       <% else %>
         <p class="text-muted mb-0">
           Only members trained as <strong>Executive Director</strong> may approve or reject applications.
-          Use admin acceptance votes below to record your recommendation.
+          Use admin acceptance votes above to record your recommendation.
         </p>
       <% end %>
     </div>
@@ -194,10 +205,6 @@
       })();
     </script>
   <% end %>
-<% end %>
-
-<% unless @application.draft? %>
-  <%= render 'acceptance_votes_card', application: @application, current_acceptance_vote: @current_acceptance_vote %>
 <% end %>
 
 </div><%# .membership-application-show %>

@@ -41,31 +41,31 @@
   <ul class="nav nav-tabs mb-3">
     <li class="nav-item">
       <%= link_to membership_applications_path(ma_nav.merge(status: 'submitted')),
-          class: "nav-link #{params[:status] == 'submitted' ? 'active' : ''}" do %>
-        Submitted <span class="badge bg-primary"><%= @status_counts[:submitted] %></span>
-      <% end %>
-    </li>
-    <li class="nav-item">
-      <%= link_to membership_applications_path(ma_nav.merge(status: 'under_review')),
-          class: "nav-link #{params[:status] == 'under_review' ? 'active' : ''}" do %>
-        Under Review <span class="badge bg-warning text-dark"><%= @status_counts[:under_review] %></span>
+          class: "nav-link #{@current_status == 'submitted' ? 'active' : ''}" do %>
+        Open <span class="badge bg-primary"><%= @status_counts[:submitted] %></span>
       <% end %>
     </li>
     <li class="nav-item">
       <%= link_to membership_applications_path(ma_nav.merge(status: 'approved')),
-          class: "nav-link #{params[:status] == 'approved' ? 'active' : ''}" do %>
+          class: "nav-link #{@current_status == 'approved' ? 'active' : ''}" do %>
         Approved <span class="badge bg-success"><%= @status_counts[:approved] %></span>
       <% end %>
     </li>
     <li class="nav-item">
       <%= link_to membership_applications_path(ma_nav.merge(status: 'rejected')),
-          class: "nav-link #{params[:status] == 'rejected' ? 'active' : ''}" do %>
+          class: "nav-link #{@current_status == 'rejected' ? 'active' : ''}" do %>
         Rejected <span class="badge bg-danger"><%= @status_counts[:rejected] %></span>
       <% end %>
     </li>
     <li class="nav-item">
-      <%= link_to membership_applications_path(ma_nav),
-          class: "nav-link #{params[:status].blank? ? 'active' : ''}" do %>
+      <%= link_to membership_applications_path(ma_nav.merge(status: 'unlinked')),
+          class: "nav-link #{@current_status == 'unlinked' ? 'active' : ''}" do %>
+        Unlinked <span class="badge bg-warning text-dark"><%= @status_counts[:unlinked] %></span>
+      <% end %>
+    </li>
+    <li class="nav-item">
+      <%= link_to membership_applications_path(ma_nav.merge(status: 'all')),
+          class: "nav-link #{@current_status == 'all' ? 'active' : ''}" do %>
         All <span class="badge bg-secondary"><%= @status_counts[:all] %></span>
       <% end %>
     </li>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_07_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_11_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -440,11 +440,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_07_120000) do
   create_table "mail_log_entries", force: :cascade do |t|
     t.bigint "actor_id"
     t.datetime "created_at", null: false
-    t.string "details"
     t.string "delivery_action"
     t.string "delivery_mailer"
     t.string "delivery_subject"
     t.string "delivery_to"
+    t.string "details"
     t.string "event", null: false
     t.bigint "queued_mail_id"
     t.datetime "updated_at", null: false

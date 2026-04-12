@@ -72,7 +72,6 @@ class DashboardController < AdminController
     # Important: Pending membership applications
     @pending_applications_count = MembershipApplication.pending.count
     @submitted_applications_count = MembershipApplication.submitted_apps.count
-    @under_review_applications_count = MembershipApplication.under_review.count
 
     # Important: Parking notices
     @active_parking_permit_count = ParkingNotice.permits.active_notices.count
