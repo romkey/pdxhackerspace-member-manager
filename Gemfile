@@ -34,7 +34,7 @@ gem 'faraday', '~> 2.10'
 gem 'google-apis-sheets_v4', '~> 0.47.0'
 gem 'googleauth', '~> 1.9'
 gem 'omniauth', '~> 2.1'
-gem 'omniauth_openid_connect', '~> 0.6.1'
+gem 'omniauth_openid_connect', '~> 0.8.0'
 gem 'omniauth-rails_csrf_protection'
 
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
