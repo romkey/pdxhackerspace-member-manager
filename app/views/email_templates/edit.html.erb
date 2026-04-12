@@ -13,7 +13,12 @@
   <div class="col-lg-8">
     <div class="card shadow-sm border-0">
       <div class="card-body">
-        <%= form_with model: @email_template, local: true do |f| %>
+        <%= form_with model: @email_template,
+                      local: true,
+                      data: {
+                        controller: "email-template-rewrite",
+                        email_template_rewrite_url_value: rewrite_with_ai_email_template_path(@email_template)
+                      } do |f| %>
           <% if @email_template.errors.any? %>
             <div class="alert alert-danger">
               <h5 class="alert-heading">Please fix the following errors:</h5>
@@ -38,7 +43,7 @@
 
           <div class="mb-3">
             <%= f.label :subject, class: "form-label" %>
-            <%= f.text_field :subject, class: "form-control" %>
+            <%= f.text_field :subject, class: "form-control", data: { email_template_rewrite_target: "subject" } %>
             <div class="form-text">You can use template variables like <code>{{member_name}}</code> and <code>{{organization_name}}</code>.</div>
           </div>
 
@@ -48,14 +53,39 @@
             <div class="d-flex justify-content-between align-items-center mb-2">
               <small class="text-muted">Use the toolbar to format, or click "Source Code" (&lt;&gt;) to edit raw HTML.</small>
             </div>
-            <%= f.text_area :body_html, class: "form-control", rows: 15, data: { rich_editor_target: "editor" } %>
+            <%= f.text_area :body_html,
+                            class: "form-control",
+                            rows: 15,
+                            data: { rich_editor_target: "editor", email_template_rewrite_target: "bodyHtml" } %>
             <div class="form-text">HTML content for email clients that support it. Use "Insert Variable" to add template variables.</div>
           </div>
 
           <div class="mb-3">
             <%= f.label :body_text, "Plain Text Body", class: "form-label" %>
-            <%= f.text_area :body_text, class: "form-control font-monospace", rows: 10 %>
+            <%= f.text_area :body_text, class: "form-control font-monospace", rows: 10,
+                                           data: { email_template_rewrite_target: "bodyText" } %>
             <div class="form-text">Plain text version for email clients that don't support HTML.</div>
+          </div>
+
+          <div class="mb-3 border rounded bg-body-tertiary p-3">
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+              <button type="button"
+                      class="btn btn-outline-primary"
+                      data-action="email-template-rewrite#rewrite"
+                      data-email-template-rewrite-target="rewriteButton">
+                Rewrite With AI
+                <span class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"
+                      data-email-template-rewrite-target="spinner"></span>
+              </button>
+              <button type="button"
+                      class="btn btn-outline-secondary d-none"
+                      data-action="email-template-rewrite#undo"
+                      data-email-template-rewrite-target="undoButton">
+                Undo AI Rewrite
+              </button>
+              <span class="small text-muted"
+                    data-email-template-rewrite-target="status">Rewrites subject, HTML body, and plain text in place.</span>
+            </div>
           </div>
 
           <div class="mb-4">

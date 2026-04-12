@@ -1,6 +1,6 @@
 class EmailTemplatesController < AdminController
   before_action :set_email_template,
-                only: %i[show edit update preview toggle mark_reviewed mark_needs_review]
+                only: %i[show edit update preview toggle mark_reviewed mark_needs_review rewrite_with_ai]
 
   def index
     @email_templates = EmailTemplate.ordered
@@ -78,6 +78,26 @@ class EmailTemplatesController < AdminController
     end
   end
 
+  def rewrite_with_ai
+    attrs = rewrite_params
+    result = EmailTemplates::RewriteWithAi.call(
+      subject: attrs[:subject],
+      body_html: attrs[:body_html],
+      body_text: attrs[:body_text]
+    )
+
+    if result.success?
+      render json: {
+        subject: result.subject,
+        body_html: result.body_html,
+        body_text: result.body_text,
+        message: result.message
+      }
+    else
+      render json: { error: result.message }, status: :unprocessable_content
+    end
+  end
+
   private
 
   def set_email_template
@@ -86,6 +106,10 @@ class EmailTemplatesController < AdminController
 
   def email_template_params
     params.expect(email_template: %i[name description subject body_html body_text enabled])
+  end
+
+  def rewrite_params
+    params.expect(rewrite: %i[subject body_html body_text])
   end
 
   def build_variables_for_user(user, extra = {})
