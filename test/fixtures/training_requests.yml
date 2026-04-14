@@ -1,0 +1,13 @@
+pending_laser_request:
+  user: member_with_local_account
+  training_topic: laser_cutting
+  share_contact_info: true
+  status: pending
+
+responded_woodworking_request:
+  user: one
+  training_topic: woodworking
+  share_contact_info: false
+  status: responded
+  responded_at: 2026-04-01 12:00:00
+  responded_by: two

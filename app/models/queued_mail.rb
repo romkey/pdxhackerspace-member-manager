@@ -234,6 +234,9 @@ class QueuedMail < ApplicationRecord
       [user, { reason: extra_args[:reason] }.compact]
     when 'training_completed', 'trainer_capability_granted'
       [user, { training_topic: extra_args[:training_topic] }.compact]
+    when 'training_requested'
+      [user, extra_args.slice(:training_topic, :requester_name, :requester_email, :requester_slack,
+                              :share_contact_info, :recipient_role, :trainer_names, :to)]
     when 'parking_permit_issued', 'parking_ticket_issued',
          'parking_permit_expired', 'parking_ticket_expired'
       [user, extra_args.slice(:location, :location_detail, :description, :expires_at, :notice_type)]

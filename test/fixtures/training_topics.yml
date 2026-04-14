@@ -1,8 +1,11 @@
 laser_cutting:
   name: Laser Cutting
+  offered_to_members: true
 
 woodworking:
   name: Woodworking
+  offered_to_members: true
 
 electronics:
   name: Electronics
+  offered_to_members: false

@@ -155,6 +155,47 @@ class MemberMailer < ApplicationMailer
     end
   end
 
+  def training_requested(user, opts = {})
+    @user = user
+    @organization = organization_name
+    @training_topic = opts[:training_topic] || opts['training_topic']
+    @requester_name = opts[:requester_name] || opts['requester_name'] || @user.display_name
+    @requester_email = opts[:requester_email] || opts['requester_email'] || @user.email.to_s
+    @requester_slack = opts[:requester_slack] || opts['requester_slack'] || @user.slack_handle.to_s
+    @share_contact_info = ActiveModel::Type::Boolean.new.cast(opts[:share_contact_info] || opts['share_contact_info'])
+    @recipient_role = opts[:recipient_role] || opts['recipient_role'] || 'trainer'
+    @trainer_names = opts[:trainer_names] || opts['trainer_names'] || ''
+
+    contact_block = if @share_contact_info
+                      [
+                        ('Email: ' + @requester_email if @requester_email.present?),
+                        ('Slack: ' + @requester_slack if @requester_slack.present?)
+                      ].compact.join('<br>')
+                    else
+                      'The member did not consent to sharing contact details.'
+                    end
+
+    extra_vars = {
+      training_topic: @training_topic,
+      requester_name: @requester_name,
+      requester_email: @requester_email,
+      requester_slack: @requester_slack,
+      recipient_role: @recipient_role,
+      trainer_names: @trainer_names,
+      contact_details: contact_block
+    }
+    to_address = opts[:to] || opts['to'] || @user.email
+
+    if send_from_template('training_requested', user, extra_vars, to: to_address)
+      # Email sent from database template
+    else
+      mail(
+        to: to_address,
+        subject: "#{@organization}: Training request for #{@training_topic}"
+      )
+    end
+  end
+
   def trainer_capability_granted(user, training_topic:)
     @user = user
     @organization = organization_name
@@ -310,6 +351,12 @@ class MemberMailer < ApplicationMailer
                     end
     vars[:training_topic] = extra_args[:training_topic] if extra_args[:training_topic].present?
     vars[:application_url] = extra_args[:application_url].to_s if extra_args.key?(:application_url)
+    vars[:requester_name] = extra_args[:requester_name].to_s if extra_args.key?(:requester_name)
+    vars[:requester_email] = extra_args[:requester_email].to_s if extra_args.key?(:requester_email)
+    vars[:requester_slack] = extra_args[:requester_slack].to_s if extra_args.key?(:requester_slack)
+    vars[:recipient_role] = extra_args[:recipient_role].to_s if extra_args.key?(:recipient_role)
+    vars[:trainer_names] = extra_args[:trainer_names].to_s if extra_args.key?(:trainer_names)
+    vars[:contact_details] = extra_args[:contact_details].to_s if extra_args.key?(:contact_details)
 
     merge_parking_notice_template_keys!(vars, extra_args)
   end
