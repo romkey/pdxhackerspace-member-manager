@@ -182,6 +182,8 @@ class UsersController < AuthenticatedController
       end
     end
 
+    set_self_service_training_data if @view_level == :self
+
     # Load payment history for admin and self views (paginated)
     if @view_level == :admin || @view_level == :self
       @payment_event_filter = params[:event_type].presence
@@ -574,6 +576,19 @@ class UsersController < AuthenticatedController
       admin: 'Admin'
     }.freeze
     @available_views = allowed_preview_views.map { |level| [view_labels[level], level] }
+  end
+
+  def set_self_service_training_data
+    @member_requestable_topics = TrainingTopic.available_for_member_requests
+
+    trainer_topic_ids = current_user.training_topics.select(:id)
+    ordering = 'training_topics.name ASC, training_requests.created_at DESC'
+    @trainer_training_requests_by_topic = TrainingRequest.pending
+                                                         .where(training_topic_id: trainer_topic_ids)
+                                                         .joins(:training_topic)
+                                                         .includes(:training_topic, :user)
+                                                         .order(ordering)
+                                                         .group_by(&:training_topic)
   end
 
   def user_params

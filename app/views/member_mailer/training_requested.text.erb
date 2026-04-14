@@ -1,0 +1,23 @@
+Training Request: <%= @training_topic %>
+
+Hello <%= @user.display_name %>,
+
+<% if @recipient_role == 'member' %>
+Your request for training in <%= @training_topic %> has been sent to trainers.
+Trainers notified: <%= @trainer_names.presence || 'No trainers with email addresses were found.' %>
+<% else %>
+A member requested training in <%= @training_topic %>.
+<% end %>
+
+Requester details:
+- Name: <%= @requester_name %>
+<% if @share_contact_info %>
+<% if @requester_email.present? %>- Email: <%= @requester_email %>
+<% end %>
+<% if @requester_slack.present? %>- Slack: <%= @requester_slack %>
+<% end %>
+<% else %>
+- The member did not consent to sharing contact details.
+<% end %>
+
+You can respond in Member Manager from your profile dashboard.

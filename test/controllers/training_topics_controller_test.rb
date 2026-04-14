@@ -71,20 +71,22 @@ class TrainingTopicsControllerTest < ActionDispatch::IntegrationTest
     sign_in_as_admin
     assert_difference 'TrainingTopic.count', 1 do
       post training_topics_path, params: {
-        training_topic: { name: 'New Topic' }
+        training_topic: { name: 'New Topic', offered_to_members: '1' }
       }
     end
     assert_redirected_to training_topics_path
+    assert TrainingTopic.find_by(name: 'New Topic').offered_to_members?
   end
 
   test 'admin can update (rename) a topic' do
     sign_in_as_admin
     patch training_topic_path(@laser_topic), params: {
-      training_topic: { name: 'Advanced Laser Cutting' }
+      training_topic: { name: 'Advanced Laser Cutting', offered_to_members: '0' }
     }
     assert_redirected_to edit_training_topic_path(@laser_topic)
     @laser_topic.reload
     assert_equal 'Advanced Laser Cutting', @laser_topic.name
+    assert_not @laser_topic.offered_to_members?
   end
 
   test 'admin can destroy a topic with no trainings or capabilities' do

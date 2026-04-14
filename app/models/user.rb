@@ -14,6 +14,9 @@ class User < ApplicationRecord
   has_many :rfids, dependent: :destroy
   has_many :trainer_capabilities, dependent: :destroy
   has_many :training_topics, through: :trainer_capabilities
+  has_many :training_requests, dependent: :destroy
+  has_many :training_requests_responded, class_name: 'TrainingRequest', foreign_key: :responded_by_id,
+                                         dependent: :nullify, inverse_of: :responded_by
   has_many :user_links,     dependent: :destroy
   has_many :user_interests, dependent: :destroy
   has_many :interests,      through: :user_interests

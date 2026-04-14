@@ -1,4 +1,83 @@
 <%# Self Profile Tab - what the user sees on their own profile %>
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <h2 class="h5 mb-3"><i class="bi bi-mortarboard me-2"></i>Request Training</h2>
+    <% if @member_requestable_topics.any? %>
+      <%= form_with url: training_requests_path, local: true do |f| %>
+        <div class="row g-3 align-items-end">
+          <div class="col-md-6">
+            <%= f.label :training_topic_id, 'Training topic', class: 'form-label' %>
+            <%= f.select :training_topic_id,
+                         options_from_collection_for_select(@member_requestable_topics, :id, :name),
+                         { include_blank: 'Choose a topic' },
+                         { class: 'form-select', required: true } %>
+          </div>
+          <div class="col-md-6">
+            <div class="form-check mt-4">
+              <%= f.check_box :share_contact_info, class: 'form-check-input', required: true %>
+              <%= f.label :share_contact_info,
+                          'I consent to sharing my email and Slack handle (if available) with trainers for this topic.',
+                          class: 'form-check-label' %>
+            </div>
+          </div>
+        </div>
+        <div class="alert alert-secondary mt-3 mb-3">
+          If you do not see the training topic you need, please post in <strong>#help</strong> on Slack
+          or email <a href="mailto:info@pdxhackerspace.org">info@pdxhackerspace.org</a>.
+        </div>
+        <%= f.submit 'Request Training', class: 'btn btn-primary' %>
+      <% end %>
+    <% else %>
+      <div class="alert alert-secondary mb-0">
+        No training topics are currently available for member requests.
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<% if @trainer_training_requests_by_topic.present? %>
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <h2 class="h5 mb-3"><i class="bi bi-inbox me-2"></i>Training Requests for You</h2>
+      <% @trainer_training_requests_by_topic.each do |topic, requests| %>
+        <div class="border rounded p-3 mb-3">
+          <h3 class="h6 mb-2"><%= topic.name %></h3>
+          <% requests.each do |request| %>
+            <div class="d-flex justify-content-between align-items-start border-top pt-2 mt-2">
+              <div>
+                <div>
+                  <strong><%= link_to request.user.display_name, user_path(request.user), class: "text-decoration-none" %></strong>
+                  <span class="text-muted small">requested <%= time_ago_in_words(request.created_at) %> ago</span>
+                </div>
+                <% if request.share_contact_info? %>
+                  <div class="small text-muted mt-1">
+                    <% if request.user.email.present? %>
+                      Email: <%= mail_to request.user.email %><br>
+                    <% end %>
+                    <% if request.user.slack_handle.present? %>
+                      Slack: <code><%= request.user.slack_handle %></code>
+                    <% end %>
+                  </div>
+                <% else %>
+                  <div class="small text-muted mt-1">
+                    Contact details were not shared.
+                  </div>
+                <% end %>
+              </div>
+              <div class="d-flex gap-2">
+                <%= link_to 'Respond in Member Manager', edit_training_request_path(request), class: 'btn btn-sm btn-outline-primary' %>
+                <% if request.share_contact_info? && request.user.email.present? %>
+                  <%= link_to 'Email', "mailto:#{request.user.email}", class: 'btn btn-sm btn-outline-secondary' %>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+<% end %>
+
 <div class="card shadow-sm border-0">
   <div class="card-body">
     <div class="row">

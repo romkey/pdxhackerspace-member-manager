@@ -1,0 +1,38 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0">Respond to Training Request</h1>
+  <%= link_to "&larr; Back to profile".html_safe, user_path(current_user), class: "text-decoration-none" %>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <p class="mb-1"><strong>Member:</strong> <%= link_to @requester.display_name, user_path(@requester), class: "text-decoration-none" %></p>
+    <p class="mb-3"><strong>Topic:</strong> <%= @training_request.training_topic.name %></p>
+
+    <% if @training_request.share_contact_info? %>
+      <div class="alert alert-info py-2">
+        <% if @requester.email.present? %>
+          <div><strong>Email:</strong> <%= mail_to @requester.email %></div>
+        <% end %>
+        <% if @requester.slack_handle.present? %>
+          <div><strong>Slack:</strong> <code><%= @requester.slack_handle %></code></div>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="alert alert-secondary py-2">
+        This member did not share email or Slack contact details. Please respond here in Member Manager.
+      </div>
+    <% end %>
+
+    <%= form_with model: @training_request, url: training_request_path(@training_request), method: :patch, local: true do |f| %>
+      <div class="mb-3">
+        <%= f.label :response_body, 'Response message', class: 'form-label' %>
+        <%= f.text_area :response_body,
+                        class: 'form-control',
+                        rows: 6,
+                        required: true,
+                        placeholder: 'Share how the member can schedule training, prerequisites, or next steps.' %>
+      </div>
+      <%= f.submit 'Send Response', class: 'btn btn-primary' %>
+    <% end %>
+  </div>
+</div>

@@ -875,6 +875,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_14_120100) do
     t.index ["user_id"], name: "index_trainer_capabilities_on_user_id"
   end
 
+  create_table "training_requests", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "responded_at"
+    t.bigint "responded_by_id"
+    t.boolean "share_contact_info", default: false, null: false
+    t.string "status", default: "pending", null: false
+    t.bigint "training_topic_id", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["responded_by_id"], name: "index_training_requests_on_responded_by_id"
+    t.index ["status"], name: "index_training_requests_on_status"
+    t.index ["training_topic_id"], name: "index_training_requests_on_training_topic_id"
+    t.index ["user_id", "training_topic_id", "status"], name: "idx_training_requests_user_topic_status"
+    t.index ["user_id"], name: "index_training_requests_on_user_id"
+  end
+
   create_table "training_topic_links", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "title", null: false
@@ -888,8 +904,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_14_120100) do
     t.datetime "created_at", null: false
     t.text "description"
     t.string "name", null: false
+    t.boolean "offered_to_members", default: false, null: false
     t.datetime "updated_at", null: false
     t.index ["name"], name: "index_training_topics_on_name", unique: true
+    t.index ["offered_to_members"], name: "index_training_topics_on_offered_to_members"
   end
 
   create_table "trainings", force: :cascade do |t|
@@ -1058,6 +1076,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_14_120100) do
   add_foreign_key "slack_users", "users"
   add_foreign_key "trainer_capabilities", "training_topics"
   add_foreign_key "trainer_capabilities", "users"
+  add_foreign_key "training_requests", "training_topics"
+  add_foreign_key "training_requests", "users"
+  add_foreign_key "training_requests", "users", column: "responded_by_id"
   add_foreign_key "training_topic_links", "training_topics"
   add_foreign_key "trainings", "training_topics"
   add_foreign_key "trainings", "users", column: "trainee_id"
