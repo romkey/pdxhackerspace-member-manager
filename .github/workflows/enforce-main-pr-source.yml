@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   allowed-main-source:
-    if: github.base_ref == 'main'
+    if: ${{ github.event.pull_request.base.ref == 'main' }}
 
     runs-on: ubuntu-latest
 
@@ -41,7 +41,7 @@ jobs:
               ;;
           esac
 
-          CHANGED_FILES=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+          CHANGED_FILES=$(git diff --name-only "$BASE_SHA...$HEAD_SHA")
           if printf '%s\n' "$CHANGED_FILES" | grep -qx 'VERSION'; then
             case "$HEAD_REF" in
               release/auto-version-*)
@@ -61,7 +61,7 @@ jobs:
           echo "OK: source branch and VERSION policy checks passed."
 
   allowed-staging-source:
-    if: github.base_ref == 'staging'
+    if: ${{ github.event.pull_request.base.ref == 'staging' }}
 
     runs-on: ubuntu-latest
 
@@ -83,7 +83,7 @@ jobs:
               exit 1
               ;;
           esac
-          if git diff --name-only "$BASE_SHA" "$HEAD_SHA" | grep -qx 'VERSION'; then
+          if git diff --name-only "$BASE_SHA...$HEAD_SHA" | grep -qx 'VERSION'; then
             echo "::error::Pull requests into \`staging\` must not modify the VERSION file."
             exit 1
           fi
