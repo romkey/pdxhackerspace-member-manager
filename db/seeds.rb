@@ -63,3 +63,7 @@ Rails.logger.debug { "Seeded #{MemberSource.count} member sources." }
 # Seed incoming webhooks
 IncomingWebhook.seed_defaults!
 Rails.logger.debug { "Seeded #{IncomingWebhook.count} incoming webhooks." }
+
+# Seed AI providers
+AiProvider.seed_defaults!
+Rails.logger.debug { "Seeded #{AiProvider.count} AI providers." }

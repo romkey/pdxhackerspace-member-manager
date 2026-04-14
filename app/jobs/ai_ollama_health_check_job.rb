@@ -24,7 +24,7 @@ class AiOllamaHealthCheckJob < ApplicationJob
       return
     end
 
-    result = Ollama::HealthCheck.call(base_url: url)
+    result = Ollama::HealthCheck.call(base_url: url, api_key: profile.effective_api_key)
     if result.ok
       profile.record_health_success!
     else

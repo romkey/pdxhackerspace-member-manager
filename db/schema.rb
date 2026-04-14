@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_13_101000) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_14_120100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -119,6 +119,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_13_101000) do
   end
 
   create_table "ai_ollama_profiles", force: :cascade do |t|
+    t.bigint "ai_provider_id"
+    t.string "api_key"
     t.text "base_url"
     t.datetime "created_at", null: false
     t.integer "display_order", default: 0, null: false
@@ -130,8 +132,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_13_101000) do
     t.string "model"
     t.string "name", null: false
     t.text "prompt"
+    t.string "provider_api_key_override"
+    t.string "provider_name_override"
+    t.string "provider_url_override"
     t.datetime "updated_at", null: false
+    t.index ["ai_provider_id"], name: "index_ai_ollama_profiles_on_ai_provider_id"
     t.index ["key"], name: "index_ai_ollama_profiles_on_key", unique: true
+  end
+
+  create_table "ai_providers", force: :cascade do |t|
+    t.string "api_key"
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+    t.string "url", null: false
+    t.index ["name"], name: "index_ai_providers_on_name", unique: true
   end
 
   create_table "application_answers", force: :cascade do |t|
@@ -1005,6 +1020,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_13_101000) do
   add_foreign_key "access_logs", "users"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "ai_ollama_profiles", "ai_providers", on_delete: :nullify
   add_foreign_key "application_answers", "application_form_questions"
   add_foreign_key "application_answers", "membership_applications"
   add_foreign_key "application_form_questions", "application_form_pages"

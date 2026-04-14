@@ -61,7 +61,10 @@ module MembershipApplications
         model: model,
         system: system_prompt.presence || JSON_INSTRUCTION,
         user: user_prompt,
-        format_json: true
+        options: {
+          api_key: profile.effective_api_key,
+          format_json: true
+        }
       )
 
       return handle_completion_failure(completion) unless completion.ok

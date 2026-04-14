@@ -259,7 +259,8 @@ Rails.application.routes.draw do
     post :provision_core_groups, on: :member
   end
   resource :membership_settings, only: [:show, :edit, :update], path: "settings/membership"
-  resources :ai_ollama_profiles, only: [:index, :edit, :update], path: "settings/ai" do
+  resources :ai_providers, except: [:show], path: "settings/ai-providers"
+  resources :ai_ollama_profiles, only: [:index, :edit, :update], path: "settings/ai-services" do
     collection do
       post :check_health_now
     end

@@ -40,7 +40,10 @@ module EmailTemplates
         model: model,
         system: system_prompt,
         user: build_user_prompt,
-        format_json: true
+        options: {
+          api_key: profile.effective_api_key,
+          format_json: true
+        }
       )
       return Result.new(:failure, completion.error.presence || 'Rewrite failed.') unless completion.ok
 

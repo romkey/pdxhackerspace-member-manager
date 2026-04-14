@@ -7,16 +7,23 @@ module Ollama
 
     Result = Struct.new(:ok, :assistant_content, :error)
 
-    def self.call(base_url:, model:, system:, user:, format_json: false)
-      new(base_url: base_url, model: model, system: system, user: user, format_json: format_json).call
+    def self.call(base_url:, model:, system:, user:, options: {})
+      new(
+        base_url: base_url,
+        model: model,
+        system: system,
+        user: user,
+        options: options
+      ).call
     end
 
-    def initialize(base_url:, model:, system:, user:, format_json: false)
+    def initialize(base_url:, model:, system:, user:, options: {})
       @root = base_url.to_s.strip.chomp('/')
       @model = model.to_s.strip
       @system = system.to_s
       @user = user.to_s
-      @format_json = format_json
+      @format_json = options.fetch(:format_json, false)
+      @api_key = options.fetch(:api_key, nil).to_s.strip
     end
 
     def call
@@ -68,6 +75,7 @@ module Ollama
       faraday_connection.post('/api/chat') do |req|
         req.headers['Content-Type'] = 'application/json'
         req.headers['Accept'] = 'application/json'
+        req.headers['Authorization'] = "Bearer #{@api_key}" if @api_key.present?
         req.body = JSON.generate(build_body)
       end
     end

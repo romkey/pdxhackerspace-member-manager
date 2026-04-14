@@ -1,5 +1,6 @@
 class AiOllamaProfilesController < AdminController
   before_action :set_ai_ollama_profile, only: %i[edit update]
+  before_action :set_ai_providers, only: %i[edit update]
 
   def index
     @ai_ollama_profiles = AiOllamaProfile.ordered
@@ -27,6 +28,23 @@ class AiOllamaProfilesController < AdminController
   end
 
   def ai_ollama_profile_params
-    params.expect(ai_ollama_profile: %i[name base_url model prompt enabled])
+    params.expect(
+      ai_ollama_profile: %i[
+        name
+        ai_provider_id
+        base_url
+        api_key
+        provider_name_override
+        provider_url_override
+        provider_api_key_override
+        model
+        prompt
+        enabled
+      ]
+    )
+  end
+
+  def set_ai_providers
+    @ai_provider_options = AiProvider.ordered.pluck(:name, :id)
   end
 end

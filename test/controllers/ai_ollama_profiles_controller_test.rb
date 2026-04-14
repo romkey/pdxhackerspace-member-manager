@@ -14,6 +14,7 @@ class AiOllamaProfilesControllerTest < ActionDispatch::IntegrationTest
   test 'should get index' do
     get ai_ollama_profiles_url
     assert_response :success
+    assert_equal '/settings/ai-services', ai_ollama_profiles_path
   end
 
   test 'should get edit' do
@@ -27,7 +28,12 @@ class AiOllamaProfilesControllerTest < ActionDispatch::IntegrationTest
     patch ai_ollama_profile_url(profile), params: {
       ai_ollama_profile: {
         name: 'Default Ollama',
+        ai_provider_id: ai_providers(:chatgpt).id,
         base_url: 'http://127.0.0.1:11434',
+        api_key: 'service-key',
+        provider_name_override: 'Custom Provider',
+        provider_url_override: 'https://api.custom.example',
+        provider_api_key_override: 'override-key',
         model: 'llama3.2',
         prompt: 'You are helpful.',
         enabled: '1'
@@ -37,13 +43,22 @@ class AiOllamaProfilesControllerTest < ActionDispatch::IntegrationTest
     profile.reload
     assert_equal 'Default Ollama', profile.name
     assert_equal 'http://127.0.0.1:11434', profile.base_url
+    assert_equal 'service-key', profile.api_key
+    assert_equal 'Custom Provider', profile.provider_name_override
+    assert_equal 'https://api.custom.example', profile.provider_url_override
     assert_equal 'llama3.2', profile.model
   end
 
   test 'check_health_now runs job and redirects' do
     ok_result = Ollama::HealthCheck::Result.new(ok: true, error: nil)
-    Ollama::HealthCheck.stub(:call, ok_result) do
+    original_call = Ollama::HealthCheck.method(:call)
+    Ollama::HealthCheck.define_singleton_method(:call) do |**|
+      ok_result
+    end
+    begin
       post check_health_now_ai_ollama_profiles_url
+    ensure
+      Ollama::HealthCheck.define_singleton_method(:call, original_call)
     end
     assert_redirected_to ai_ollama_profiles_url
   end

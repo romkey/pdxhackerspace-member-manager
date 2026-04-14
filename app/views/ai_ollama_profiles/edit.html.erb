@@ -1,6 +1,6 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h1 class="h3 mb-0">Edit <%= @ai_ollama_profile.name %></h1>
-  <%= link_to "Back to Manage AI", ai_ollama_profiles_path, class: "btn btn-outline-secondary" %>
+  <%= link_to "Back to AI Services", ai_ollama_profiles_path, class: "btn btn-outline-secondary" %>
 </div>
 
 <div class="card shadow-sm border-0">
@@ -22,13 +22,44 @@
       </div>
 
       <div class="mb-3">
-        <%= f.label :base_url, "Ollama base URL", class: "form-label" %>
-        <%= f.text_field :base_url, class: "form-control", placeholder: "http://host:11434" %>
+        <%= f.label :ai_provider_id, "AI provider", class: "form-label" %>
+        <%= f.select :ai_provider_id,
+                     options_for_select([['Custom / Override', nil]] + @ai_provider_options, @ai_ollama_profile.ai_provider_id),
+                     {},
+                     class: "form-select" %>
+        <div class="form-text">Choose a saved provider or leave on Custom / Override.</div>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :base_url, "Service URL (legacy/custom)", class: "form-label" %>
+        <%= f.text_field :base_url, class: "form-control", placeholder: "https://api.example.com" %>
         <% if @ai_ollama_profile.key != 'default' %>
-          <div class="form-text">Leave blank to use the Default profile’s endpoint.</div>
+          <div class="form-text">Leave blank to use override URL, selected provider URL, or Default service URL.</div>
         <% else %>
-          <div class="form-text">Optional. Other profiles inherit this when their own URL is blank.</div>
+          <div class="form-text">Optional. Other services inherit this when their own URL/provider is blank.</div>
         <% end %>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :api_key, "Service API key (optional)", class: "form-label" %>
+        <%= f.password_field :api_key, class: "form-control", autocomplete: "new-password" %>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :provider_name_override, "Provider override name (optional)", class: "form-label" %>
+        <%= f.text_field :provider_name_override, class: "form-control", placeholder: "My Custom Provider" %>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :provider_url_override, "Provider override URL (optional)", class: "form-label" %>
+        <%= f.text_field :provider_url_override, class: "form-control", placeholder: "https://override.example.com" %>
+        <div class="form-text">When set, this takes precedence over selected provider and service URL.</div>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :provider_api_key_override, "Provider override API key (optional)", class: "form-label" %>
+        <%= f.password_field :provider_api_key_override, class: "form-control", autocomplete: "new-password" %>
+        <div class="form-text">When set, this takes precedence over selected provider and service API key.</div>
       </div>
 
       <div class="mb-3">

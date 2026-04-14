@@ -2,12 +2,13 @@ module Ollama
   class HealthCheck
     TIMEOUT = 5
 
-    def self.call(base_url:)
-      new(base_url: base_url).call
+    def self.call(base_url:, api_key: nil)
+      new(base_url: base_url, api_key: api_key).call
     end
 
-    def initialize(base_url:)
+    def initialize(base_url:, api_key: nil)
       @root = base_url.to_s.strip.chomp('/')
+      @api_key = api_key.to_s.strip
     end
 
     def call
@@ -18,7 +19,9 @@ module Ollama
         f.options.open_timeout = TIMEOUT
         f.adapter Faraday.default_adapter
       end
-      response = connection.get('/api/tags')
+      response = connection.get('/api/tags') do |req|
+        req.headers['Authorization'] = "Bearer #{@api_key}" if @api_key.present?
+      end
       return Result.new(ok: false, error: "HTTP #{response.status}") unless response.success?
 
       JSON.parse(response.body)

@@ -9,6 +9,8 @@ class AiOllamaProfile < ApplicationRecord
   KEYS = %w[default application_status recommendation_engine email_rewriting].freeze
   HEALTH_STATUSES = %w[unknown healthy unhealthy not_configured].freeze
 
+  belongs_to :ai_provider, optional: true
+
   validates :key, presence: true, uniqueness: true, inclusion: { in: KEYS }
   validates :name, presence: true
   validates :health_status, inclusion: { in: HEALTH_STATUSES }
@@ -42,13 +44,47 @@ class AiOllamaProfile < ApplicationRecord
     end
   end
 
-  # Resolved Ollama base URL: own base_url, or the Default profile's when blank (non-default rows only).
+  # Resolved endpoint: override URL, selected provider URL, own URL, then Default (non-default rows only).
   def effective_base_url
+    override_url = provider_url_override.to_s.strip
+    return override_url if override_url.present?
+
+    provider_url = ai_provider&.url.to_s.strip
+    return provider_url if provider_url.present?
+
     raw = base_url.to_s.strip
     return raw if raw.present?
     return '' if key == 'default'
 
-    self.class.default_profile&.base_url.to_s.strip
+    self.class.default_profile&.effective_base_url.to_s.strip
+  end
+
+  # Resolved API key: override key, selected provider key, own key, then Default (non-default rows only).
+  def effective_api_key
+    override_key = provider_api_key_override.to_s.strip
+    return override_key if override_key.present?
+
+    provider_key = ai_provider&.api_key.to_s.strip
+    return provider_key if provider_key.present?
+
+    raw = api_key.to_s.strip
+    return raw if raw.present?
+    return '' if key == 'default'
+
+    self.class.default_profile&.effective_api_key.to_s.strip
+  end
+
+  def effective_provider_name
+    override_name = provider_name_override.to_s.strip
+    return override_name if override_name.present?
+
+    provider_name = ai_provider&.name.to_s.strip
+    return provider_name if provider_name.present?
+
+    return 'Direct endpoint' if base_url.to_s.strip.present?
+    return '' if key == 'default'
+
+    self.class.default_profile&.effective_provider_name.to_s.strip
   end
 
   # Resolved model name: own model, or the Default profile's when blank (non-default rows only).

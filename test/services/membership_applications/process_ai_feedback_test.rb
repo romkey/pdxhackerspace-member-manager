@@ -29,7 +29,7 @@ module MembershipApplications
       }
 
       stub_result = Ollama::ChatCompletion::Result.new(true, JSON.generate(payload), nil)
-      Ollama::ChatCompletion.stub(:call, stub_result) do
+      with_chat_completion_stub(stub_result) do
         result = ProcessAiFeedback.call(application: @application)
         assert result.success?, result.message
       end
@@ -58,7 +58,7 @@ module MembershipApplications
 
     test 'records error when Ollama fails' do
       stub_result = Ollama::ChatCompletion::Result.new(false, nil, 'timeout')
-      Ollama::ChatCompletion.stub(:call, stub_result) do
+      with_chat_completion_stub(stub_result) do
         result = ProcessAiFeedback.call(application: @application)
         assert result.failure?
       end
@@ -83,15 +83,28 @@ module MembershipApplications
       stub_body = JSON.generate(minimal_json)
 
       called = nil
-      Ollama::ChatCompletion.stub :call, lambda { |**kwargs|
+      with_chat_completion_stub(lambda { |**kwargs|
         called = kwargs
         Ollama::ChatCompletion::Result.new(true, stub_body, nil)
-      } do
+      }) do
         ProcessAiFeedback.call(application: @application)
       end
 
       assert_equal 'http://default.test:11434', called[:base_url]
       assert_equal 'default-model', called[:model]
+    end
+
+    private
+
+    def with_chat_completion_stub(result_or_callable)
+      original_call = Ollama::ChatCompletion.method(:call)
+      replacement = result_or_callable.respond_to?(:call) ? result_or_callable : ->(**) { result_or_callable }
+      Ollama::ChatCompletion.define_singleton_method(:call) do |**kwargs|
+        replacement.call(**kwargs)
+      end
+      yield
+    ensure
+      Ollama::ChatCompletion.define_singleton_method(:call, original_call)
     end
   end
 end
