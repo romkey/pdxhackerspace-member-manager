@@ -155,6 +155,21 @@ class MemberMailer < ApplicationMailer
     end
   end
 
+  def training_requested(user, opts = {})
+    assign_training_requested_instance_vars(user, opts)
+    extra_vars = training_requested_template_vars
+    to_address = training_requested_to_address(user, opts)
+
+    if send_from_template('training_requested', user, extra_vars, to: to_address)
+      # Email sent from database template
+    else
+      mail(
+        to: to_address,
+        subject: "#{@organization}: Training request for #{@training_topic}"
+      )
+    end
+  end
+
   def trainer_capability_granted(user, training_topic:)
     @user = user
     @organization = organization_name
@@ -310,8 +325,17 @@ class MemberMailer < ApplicationMailer
                     end
     vars[:training_topic] = extra_args[:training_topic] if extra_args[:training_topic].present?
     vars[:application_url] = extra_args[:application_url].to_s if extra_args.key?(:application_url)
-
+    merge_training_request_template_keys!(vars, extra_args)
     merge_parking_notice_template_keys!(vars, extra_args)
+  end
+
+  def self.merge_training_request_template_keys!(vars, extra_args)
+    vars[:requester_name] = extra_args[:requester_name].to_s if extra_args.key?(:requester_name)
+    vars[:requester_email] = extra_args[:requester_email].to_s if extra_args.key?(:requester_email)
+    vars[:requester_slack] = extra_args[:requester_slack].to_s if extra_args.key?(:requester_slack)
+    vars[:recipient_role] = extra_args[:recipient_role].to_s if extra_args.key?(:recipient_role)
+    vars[:trainer_names] = extra_args[:trainer_names].to_s if extra_args.key?(:trainer_names)
+    vars[:contact_details] = extra_args[:contact_details].to_s if extra_args.key?(:contact_details)
   end
 
   def self.merge_parking_notice_template_keys!(vars, extra_args)
@@ -323,10 +347,54 @@ class MemberMailer < ApplicationMailer
   end
 
   class << self
-    private :base_template_variables, :merge_template_extras!, :merge_parking_notice_template_keys!
+    private :base_template_variables, :merge_template_extras!, :merge_training_request_template_keys!,
+            :merge_parking_notice_template_keys!
   end
 
   private
+
+  def assign_training_requested_instance_vars(user, opts)
+    normalized = normalize_training_requested_opts(opts)
+    @user = user
+    @organization = organization_name
+    @training_topic = normalized[:training_topic]
+    @requester_name = normalized[:requester_name] || @user.display_name
+    @requester_email = normalized[:requester_email] || @user.email.to_s
+    @requester_slack = normalized[:requester_slack] || @user.slack_handle.to_s
+    @share_contact_info = ActiveModel::Type::Boolean.new.cast(normalized[:share_contact_info])
+    @recipient_role = normalized[:recipient_role] || 'trainer'
+    @trainer_names = normalized[:trainer_names] || ''
+  end
+
+  def training_requested_template_vars
+    {
+      training_topic: @training_topic,
+      requester_name: @requester_name,
+      requester_email: @requester_email,
+      requester_slack: @requester_slack,
+      recipient_role: @recipient_role,
+      trainer_names: @trainer_names,
+      contact_details: training_requested_contact_block
+    }
+  end
+
+  def training_requested_contact_block
+    return 'The member did not consent to sharing contact details.' unless @share_contact_info
+
+    [
+      ("Email: #{@requester_email}" if @requester_email.present?),
+      ("Slack: #{@requester_slack}" if @requester_slack.present?)
+    ].compact.join('<br>')
+  end
+
+  def training_requested_to_address(user, opts)
+    normalized = normalize_training_requested_opts(opts)
+    normalized[:to] || user.email
+  end
+
+  def normalize_training_requested_opts(opts)
+    opts.to_h.deep_symbolize_keys
+  end
 
   def send_from_template(template_key, user, extra_variables = {}, mail_options = {})
     template = EmailTemplate.find_enabled(template_key)

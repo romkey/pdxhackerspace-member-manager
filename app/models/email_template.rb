@@ -14,7 +14,14 @@ class EmailTemplate < ApplicationRecord
     '{{invitation_expiry}}' => 'When the invitation expires (invitation emails only)',
     '{{invitation_type}}' => 'Type of membership being offered, e.g. Sponsored Member (invitation emails only)',
     '{{invitation_type_details}}' => 'Description of what the membership type includes (invitation emails only)',
-    '{{application_url}}' => 'Direct link to the membership application (admin new application & staff alert templates)'
+    '{{application_url}}' => 'Direct link to the membership application ' \
+                             '(admin new application & staff alert templates)',
+    '{{requester_name}}' => 'Name of the member who requested training',
+    '{{requester_email}}' => 'Email address of the member requesting training (if shared)',
+    '{{requester_slack}}' => 'Slack handle of the member requesting training (if shared)',
+    '{{recipient_role}}' => 'Whether this notification is for a member or trainer',
+    '{{trainer_names}}' => 'Comma-separated trainer names notified for a request',
+    '{{contact_details}}' => 'Rendered contact details block for training request notifications'
   }.freeze
 
   # Default templates that can be seeded
@@ -338,6 +345,45 @@ class EmailTemplate < ApplicationRecord
         Open in Member Manager: {{application_url}}
       TEXT
     },
+    'training_requested' => {
+      name: 'Training Requested',
+      description: 'Sent when a member requests training in a topic',
+      subject: '{{organization_name}}: Training request for {{training_topic}}',
+      body_html: <<~HTML,
+        <h1>Training Request: {{training_topic}}</h1>
+        <p>Hello {{member_name}},</p>
+        <p>A training request has been submitted for <strong>{{training_topic}}</strong>.</p>
+        <p><strong>Recipient role:</strong> {{recipient_role}}</p>
+        <h2>Requester details</h2>
+        <ul>
+          <li><strong>Name:</strong> {{requester_name}}</li>
+          <li><strong>Email:</strong> {{requester_email}}</li>
+          <li><strong>Slack:</strong> {{requester_slack}}</li>
+        </ul>
+        <p>{{contact_details}}</p>
+        <p>Trainers notified: {{trainer_names}}</p>
+        <p>You can respond in Member Manager from your profile dashboard.</p>
+      HTML
+      body_text: <<~TEXT
+        Training Request: {{training_topic}}
+
+        Hello {{member_name}},
+
+        A training request has been submitted for {{training_topic}}.
+        Recipient role: {{recipient_role}}
+
+        Requester details:
+        - Name: {{requester_name}}
+        - Email: {{requester_email}}
+        - Slack: {{requester_slack}}
+
+        {{contact_details}}
+
+        Trainers notified: {{trainer_names}}
+
+        You can respond in Member Manager from your profile dashboard.
+      TEXT
+    },
     'training_completed' => {
       name: 'Training Completed',
       description: 'Sent when a member completes training on a topic',
@@ -484,7 +530,13 @@ class EmailTemplate < ApplicationRecord
       invitation_expiry: 'in 3 days',
       invitation_type: 'Sponsored Member',
       invitation_type_details: 'Sponsored membership — full access including building access, no dues required.',
-      application_url: "#{ENV.fetch('APP_BASE_URL', 'http://localhost:3000')}/membership_applications/1"
+      application_url: "#{ENV.fetch('APP_BASE_URL', 'http://localhost:3000')}/membership_applications/1",
+      requester_name: 'Alex Example',
+      requester_email: 'alex@example.com',
+      requester_slack: '@alex',
+      recipient_role: 'trainer',
+      trainer_names: 'Trainer One, Trainer Two',
+      contact_details: 'Email: alex@example.com'
     }
     render(sample_variables)
   end

@@ -34,7 +34,7 @@ gem 'faraday', '~> 2.10'
 gem 'google-apis-sheets_v4', '~> 0.47.0'
 gem 'googleauth', '~> 1.9'
 gem 'omniauth', '~> 2.1'
-gem 'omniauth_openid_connect', '~> 0.6.1'
+gem 'omniauth_openid_connect', '~> 0.8.0'
 gem 'omniauth-rails_csrf_protection'
 
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
@@ -48,8 +48,8 @@ gem 'redis', '>= 4.0.1'
 
 # Background job processing
 gem 'connection_pool', '< 4.0' # Pin below 3.0 — sidekiq 7.x incompatible with connection_pool 3.0+
-gem 'sidekiq', '~> 7.0'
-gem 'sidekiq-cron', '~> 1.12'
+gem 'sidekiq', '~> 8.1'
+gem 'sidekiq-cron', '~> 2.3'
 
 # PDF generation
 gem 'prawn', '~> 2.5'
@@ -108,7 +108,7 @@ group :development do
   # gem "spring"
 
   # Code style checker
-  gem 'rubocop', '~> 1.64', require: false
+  gem 'rubocop', '~> 1.86', require: false
   gem 'rubocop-rails', '~> 2.24', require: false
 
   # Preview emails in browser instead of sending

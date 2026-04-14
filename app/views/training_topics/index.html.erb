@@ -24,7 +24,13 @@
           </div>
         <% end %>
       </div>
-      <div class="col-md-4">
+      <div class="col-md-2 d-flex align-items-center">
+        <div class="form-check mt-1">
+          <%= f.check_box :offered_to_members, class: "form-check-input" %>
+          <%= f.label :offered_to_members, "Offered to members", class: "form-check-label" %>
+        </div>
+      </div>
+      <div class="col-md-2">
         <%= f.submit "Add Topic", class: "btn btn-primary w-100" %>
       </div>
     <% end %>
@@ -40,6 +46,7 @@
           <thead class="bg-body-tertiary">
             <tr>
               <th scope="col">Name</th>
+              <th scope="col" class="text-center">Member Offered</th>
               <th scope="col" class="text-center">Trained Count</th>
               <th scope="col" class="text-center">Trainer Count</th>
               <th scope="col" class="text-end">Actions</th>
@@ -49,6 +56,13 @@
             <% @training_topics.each do |topic| %>
               <tr>
                 <td><strong><%= link_to topic.name, edit_training_topic_path(topic), class: "text-decoration-none" %></strong></td>
+                <td class="text-center">
+                  <% if topic.offered_to_members? %>
+                    <span class="badge text-bg-success">Yes</span>
+                  <% else %>
+                    <span class="badge text-bg-secondary">No</span>
+                  <% end %>
+                </td>
                 <td class="text-center">
                   <span class="badge text-bg-primary"><%= topic.trainings.select(:trainee_id).distinct.count %></span>
                 </td>

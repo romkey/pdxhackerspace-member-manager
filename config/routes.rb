@@ -52,6 +52,7 @@ Rails.application.routes.draw do
   delete "/impersonate", to: "impersonations#destroy", as: :stop_impersonation
 
   resources :messages, only: [:create]
+  resources :training_requests, only: %i[create edit update]
 
   resources :users, only: [:index, :show, :new, :create, :edit, :update, :destroy], constraints: { id: /[^\/]+/ } do
     member do
