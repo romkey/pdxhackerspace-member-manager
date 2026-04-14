@@ -82,6 +82,16 @@ class TrainingRequestsControllerTest < ActionDispatch::IntegrationTest
     assert_not_nil request.responded_at
   end
 
+  test 'member profile renders training request fields under training_request scope' do
+    sign_in_as_member
+    member = User.find_by(authentik_id: "local:#{local_accounts(:regular_member).id}")
+
+    get user_path(member)
+    assert_response :success
+    assert_match 'name="training_request[training_topic_id]"', response.body
+    assert_match 'name="training_request[share_contact_info]"', response.body
+  end
+
   private
 
   def sign_in_as_member

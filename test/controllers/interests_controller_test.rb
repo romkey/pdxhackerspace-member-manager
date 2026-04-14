@@ -135,9 +135,7 @@ class InterestsControllerTest < ActionDispatch::IntegrationTest
     target = interests(:electronics)
 
     # users(:one) already has electronics; merging should not create a duplicate
-    assert_nothing_raised do
-      post merge_interest_path(source), params: { target_interest_id: target.id }
-    end
+    post merge_interest_path(source), params: { target_interest_id: target.id }
     assert_redirected_to interests_path
   end
 

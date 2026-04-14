@@ -221,7 +221,9 @@ GEM
     mini_magick (5.3.1)
       logger
     mini_mime (1.1.5)
-    minitest (5.27.0)
+    minitest (6.0.3)
+      drb (~> 2.0)
+      prism (~> 1.5)
     msgpack (1.8.0)
     multi_json (1.19.1)
     net-http (0.9.1)
@@ -503,7 +505,7 @@ DEPENDENCIES
   jbuilder
   letter_opener (~> 1.10)
   letter_opener_web (~> 3.0)
-  minitest (~> 5.0)
+  minitest (~> 6.0)
   net-ssh (~> 7.3)
   omniauth (~> 2.1)
   omniauth-rails_csrf_protection

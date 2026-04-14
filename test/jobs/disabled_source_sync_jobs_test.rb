@@ -1,5 +1,4 @@
 require 'test_helper'
-require 'minitest/mock'
 
 class DisabledSourceSyncJobsTest < ActiveJob::TestCase
   # ─── Authentik::GroupSyncJob ────────────────────────────────────
@@ -7,9 +6,7 @@ class DisabledSourceSyncJobsTest < ActiveJob::TestCase
   test 'Authentik::GroupSyncJob skips when authentik source is disabled' do
     member_sources(:authentik).update!(enabled: false)
 
-    assert_nothing_raised do
-      Authentik::GroupSyncJob.perform_now
-    end
+    assert_nil Authentik::GroupSyncJob.perform_now
   end
 
   # ─── GoogleSheets::SyncJob ─────────────────────────────────────
@@ -17,9 +14,7 @@ class DisabledSourceSyncJobsTest < ActiveJob::TestCase
   test 'GoogleSheets::SyncJob skips when sheet source is disabled' do
     member_sources(:sheet).update!(enabled: false)
 
-    assert_nothing_raised do
-      GoogleSheets::SyncJob.perform_now
-    end
+    assert_nil GoogleSheets::SyncJob.perform_now
   end
 
   # ─── Slack::UserSyncJob ────────────────────────────────────────
@@ -27,9 +22,7 @@ class DisabledSourceSyncJobsTest < ActiveJob::TestCase
   test 'Slack::UserSyncJob skips when slack source is disabled' do
     member_sources(:slack).update!(enabled: false)
 
-    assert_nothing_raised do
-      Slack::UserSyncJob.perform_now
-    end
+    assert_nil Slack::UserSyncJob.perform_now
   end
 
   # ─── Authentik::FullSyncToAuthentikJob ─────────────────────────
@@ -37,9 +30,7 @@ class DisabledSourceSyncJobsTest < ActiveJob::TestCase
   test 'Authentik::FullSyncToAuthentikJob skips when member_manager source is disabled' do
     member_sources(:member_manager).update!(enabled: false)
 
-    assert_nothing_raised do
-      Authentik::FullSyncToAuthentikJob.perform_now
-    end
+    assert_nil Authentik::FullSyncToAuthentikJob.perform_now
   end
 
   # ─── Authentik::ApplicationGroupMembershipSyncJob ──────────────
@@ -47,8 +38,6 @@ class DisabledSourceSyncJobsTest < ActiveJob::TestCase
   test 'Authentik::ApplicationGroupMembershipSyncJob skips when member_manager source is disabled' do
     member_sources(:member_manager).update!(enabled: false)
 
-    assert_nothing_raised do
-      Authentik::ApplicationGroupMembershipSyncJob.perform_now(%w[sheet slack])
-    end
+    assert_nil Authentik::ApplicationGroupMembershipSyncJob.perform_now(%w[sheet slack])
   end
 end

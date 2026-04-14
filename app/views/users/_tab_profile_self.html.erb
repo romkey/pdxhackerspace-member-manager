@@ -3,7 +3,7 @@
   <div class="card-body">
     <h2 class="h5 mb-3"><i class="bi bi-mortarboard me-2"></i>Request Training</h2>
     <% if @member_requestable_topics.any? %>
-      <%= form_with url: training_requests_path, local: true do |f| %>
+      <%= form_with scope: :training_request, url: training_requests_path, local: true do |f| %>
         <div class="row g-3 align-items-end">
           <div class="col-md-6">
             <%= f.label :training_topic_id, 'Training topic', class: 'form-label' %>
