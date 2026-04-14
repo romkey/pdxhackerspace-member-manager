@@ -14,7 +14,8 @@ class EmailTemplate < ApplicationRecord
     '{{invitation_expiry}}' => 'When the invitation expires (invitation emails only)',
     '{{invitation_type}}' => 'Type of membership being offered, e.g. Sponsored Member (invitation emails only)',
     '{{invitation_type_details}}' => 'Description of what the membership type includes (invitation emails only)',
-    '{{application_url}}' => 'Direct link to the membership application (admin new application & staff alert templates)',
+    '{{application_url}}' => 'Direct link to the membership application ' \
+                             '(admin new application & staff alert templates)',
     '{{requester_name}}' => 'Name of the member who requested training',
     '{{requester_email}}' => 'Email address of the member requesting training (if shared)',
     '{{requester_slack}}' => 'Slack handle of the member requesting training (if shared)',

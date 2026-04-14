@@ -2,6 +2,10 @@ class TrainingRequestsController < AuthenticatedController
   before_action :set_training_request, only: %i[edit update]
   before_action :authorize_responder!, only: %i[edit update]
 
+  def edit
+    @requester = @training_request.user
+  end
+
   def create
     topic = TrainingTopic.available_for_member_requests.find_by(id: training_request_params[:training_topic_id])
     if topic.nil?
@@ -25,10 +29,6 @@ class TrainingRequestsController < AuthenticatedController
     else
       redirect_to user_path(current_user), alert: request.errors.full_messages.to_sentence
     end
-  end
-
-  def edit
-    @requester = @training_request.user
   end
 
   def update
@@ -61,7 +61,9 @@ class TrainingRequestsController < AuthenticatedController
 
   def authorize_responder!
     return if current_user_admin?
-    return if @training_request.pending? && current_user.training_topics.exists?(id: @training_request.training_topic_id)
+    if @training_request.pending? && current_user.training_topics.exists?(id: @training_request.training_topic_id)
+      return
+    end
 
     redirect_to user_path(current_user), alert: 'You are not allowed to respond to that request.'
   end
@@ -73,17 +75,8 @@ class TrainingRequestsController < AuthenticatedController
   def queue_training_request_emails!(request)
     topic = request.training_topic
     requester = request.user
-    trainer_names = topic.trainers.order(:full_name, :email).map(&:display_name).join(', ')
-
-    requester_args = {
-      training_topic: topic.name,
-      requester_name: requester.display_name,
-      requester_email: requester.email.to_s,
-      requester_slack: requester.slack_handle.to_s,
-      share_contact_info: request.share_contact_info,
-      recipient_role: 'member',
-      trainer_names: trainer_names
-    }
+    trainer_names = trainer_display_names_for(topic)
+    requester_args = training_request_mail_args(request, recipient_role: 'member', trainer_names: trainer_names)
 
     QueuedMail.enqueue(
       :training_requested,
@@ -93,21 +86,35 @@ class TrainingRequestsController < AuthenticatedController
     )
 
     topic.trainers.find_each do |trainer|
-      next if trainer.email.blank?
-
-      QueuedMail.enqueue(
-        :training_requested,
-        trainer,
-        to: trainer.email,
-        reason: "Training request notification for #{topic.name}",
-        training_topic: topic.name,
-        requester_name: requester.display_name,
-        requester_email: requester.email.to_s,
-        requester_slack: requester.slack_handle.to_s,
-        share_contact_info: request.share_contact_info,
-        recipient_role: 'trainer',
-        trainer_names: trainer_names
-      )
+      enqueue_trainer_training_request_mail(request, trainer, trainer_names: trainer_names)
     end
+  end
+
+  def trainer_display_names_for(topic)
+    topic.trainers.order(:full_name, :email).map(&:display_name).join(', ')
+  end
+
+  def training_request_mail_args(request, recipient_role:, trainer_names:)
+    {
+      training_topic: request.training_topic.name,
+      requester_name: request.user.display_name,
+      requester_email: request.user.email.to_s,
+      requester_slack: request.user.slack_handle.to_s,
+      share_contact_info: request.share_contact_info,
+      recipient_role: recipient_role,
+      trainer_names: trainer_names
+    }
+  end
+
+  def enqueue_trainer_training_request_mail(request, trainer, trainer_names:)
+    return if trainer.email.blank?
+
+    QueuedMail.enqueue(
+      :training_requested,
+      trainer,
+      to: trainer.email,
+      reason: "Training request notification for #{request.training_topic.name}",
+      **training_request_mail_args(request, recipient_role: 'trainer', trainer_names: trainer_names)
+    )
   end
 end

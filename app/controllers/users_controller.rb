@@ -582,12 +582,13 @@ class UsersController < AuthenticatedController
     @member_requestable_topics = TrainingTopic.available_for_member_requests
 
     trainer_topic_ids = current_user.training_topics.select(:id)
+    ordering = 'training_topics.name ASC, training_requests.created_at DESC'
     @trainer_training_requests_by_topic = TrainingRequest.pending
-                                                       .where(training_topic_id: trainer_topic_ids)
-                                                       .joins(:training_topic)
-                                                       .includes(:training_topic, :user)
-                                                       .order('training_topics.name ASC, training_requests.created_at DESC')
-                                                       .group_by(&:training_topic)
+                                                         .where(training_topic_id: trainer_topic_ids)
+                                                         .joins(:training_topic)
+                                                         .includes(:training_topic, :user)
+                                                         .order(ordering)
+                                                         .group_by(&:training_topic)
   end
 
   def user_params
