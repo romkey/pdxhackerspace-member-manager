@@ -1,15 +1,37 @@
 require 'test_helper'
-require 'minitest/mock'
 
 module GoogleSheets
   class EntrySynchronizerTest < ActiveSupport::TestCase
     setup do
-      @client = Minitest::Mock.new
-      @client.expect(:fetch_sheet, member_rows, [GoogleSheets::Client::MEMBER_LIST_TAB])
-      @client.expect(:fetch_sheet, access_rows, [GoogleSheets::Client::ACCESS_TAB])
-      GoogleSheetsConfig.stub(:enabled?, true) do
-        EntrySynchronizer.new(client: @client).call
-      end
+      @google_sheets_settings = GoogleSheetsConfig.settings
+      @original_credentials_json = @google_sheets_settings.credentials_json
+      @original_spreadsheet_id = @google_sheets_settings.spreadsheet_id
+      @google_sheets_settings.credentials_json = '{"type":"service_account"}'
+      @google_sheets_settings.spreadsheet_id = 'test-sheet-id'
+
+      @client = Class.new do
+        def initialize(member_rows:, access_rows:)
+          @member_rows = member_rows
+          @access_rows = access_rows
+        end
+
+        def fetch_sheet(tab_name)
+          case tab_name
+          when GoogleSheets::Client::MEMBER_LIST_TAB
+            @member_rows
+          when GoogleSheets::Client::ACCESS_TAB
+            @access_rows
+          else
+            raise ArgumentError, "Unexpected tab: #{tab_name}"
+          end
+        end
+      end.new(member_rows: member_rows, access_rows: access_rows)
+      EntrySynchronizer.new(client: @client).call
+    end
+
+    teardown do
+      @google_sheets_settings.credentials_json = @original_credentials_json
+      @google_sheets_settings.spreadsheet_id = @original_spreadsheet_id
     end
 
     test 'merges member and access data' do

@@ -53,8 +53,6 @@ class LoginLinkExpirationJobTest < ActiveJob::TestCase
   end
 
   test 'handles users without tokens' do
-    assert_nothing_raised do
-      LoginLinkExpirationJob.perform_now
-    end
+    assert_nil LoginLinkExpirationJob.perform_now
   end
 end
