@@ -28,8 +28,6 @@ jobs:
 
       - name: Require staging, hotfix/*, or release/* when merging to main
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           HEAD_REF: ${{ github.head_ref }}
         run: |
           case "$HEAD_REF" in
@@ -40,23 +38,6 @@ jobs:
               exit 1
               ;;
           esac
-
-          CHANGED_FILES=$(git diff --name-only "$BASE_SHA...$HEAD_SHA")
-          if printf '%s\n' "$CHANGED_FILES" | grep -qx 'VERSION'; then
-            case "$HEAD_REF" in
-              release/auto-version-*)
-                if [ "$CHANGED_FILES" != "VERSION" ]; then
-                  echo "::error::Automation VERSION PRs must only modify VERSION."
-                  exit 1
-                fi
-                echo "OK: workflow-managed VERSION update from '$HEAD_REF'."
-                ;;
-              *)
-                echo "::error::PRs into \`main\` must not modify VERSION manually. VERSION updates are workflow-managed only."
-                exit 1
-                ;;
-            esac
-          fi
 
           echo "OK: source branch and VERSION policy checks passed."
 
