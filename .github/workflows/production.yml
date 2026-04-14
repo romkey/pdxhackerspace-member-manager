@@ -1,11 +1,8 @@
 name: Production - Build and Push Image
 
-# Runs on pushes to main and performs an early preflight classification:
-# - staging -> main merges: no-op (fast success)
-# - release/* and hotfix/* merges:
-#   - if VERSION not changed yet, compute managed VERSION and open an automation PR
-#   - if VERSION already changed by automation branch merge, build and publish image
-# VERSION is workflow-managed and is never pushed directly to main.
+# Runs on pushes to main.
+# Builds only for merges from release/* or hotfix/* where VERSION changed
+# in that merge commit. VERSION is manually managed in PRs.
 
 on:
   push:
@@ -17,7 +14,6 @@ concurrency:
 
 permissions:
   contents: write
-  pull-requests: write
   packages: write
 
 jobs:
@@ -28,8 +24,6 @@ jobs:
       merge_branch: ${{ steps.resolve.outputs.merge_branch }}
       app_version: ${{ steps.resolve.outputs.app_version }}
       major: ${{ steps.resolve.outputs.major }}
-      target_version: ${{ steps.resolve.outputs.target_version }}
-      target_reason: ${{ steps.resolve.outputs.target_reason }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -40,19 +34,6 @@ jobs:
         id: resolve
         run: |
           set -euo pipefail
-
-          parse_semver() {
-            local value="$1"
-            if [[ "$value" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)(-hf([0-9]+))?$ ]]; then
-              BASE_MAJOR="${BASH_REMATCH[1]}"
-              BASE_MINOR="${BASH_REMATCH[2]}"
-              BASE_PATCH="${BASH_REMATCH[3]}"
-              BASE_HF="${BASH_REMATCH[5]:-0}"
-              BASE_VERSION="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
-              return 0
-            fi
-            return 1
-          }
 
           HEAD_MSG="${{ github.event.head_commit.message }}"
           MSG_FIRST=$(printf '%s\n' "$HEAD_MSG" | head -1)
@@ -90,116 +71,24 @@ jobs:
               ;;
           esac
 
-          PARENT_COUNT=$(git rev-list --parents -n 1 HEAD | wc -w | tr -d ' ')
-          PARENT_COUNT=$((PARENT_COUNT - 1))
-          if [ "$PARENT_COUNT" -lt 2 ]; then
-            echo "::error::Expected a merge commit when pushing to main from PR merge."
+          CHANGED_FILES=$(git diff --name-only HEAD^1 HEAD)
+          if ! printf '%s\n' "$CHANGED_FILES" | grep -qx 'VERSION'; then
+            echo "::error::Merge from '$MERGE_BRANCH' did not change VERSION. Releases must bump VERSION in the PR."
             exit 1
           fi
 
-          PREV=$(git show HEAD^1:VERSION | tr -d '[:space:]')
-          CURR=$(cat VERSION | tr -d '[:space:]')
+          CURR_RAW=$(cat VERSION | tr -d '[:space:]')
+          CURR="${CURR_RAW#v}"
+          if [[ ! "$CURR" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-hf[0-9]+)?$ ]]; then
+            echo "::error::VERSION must be MAJOR.MINOR.PATCH[-hfN] with optional leading v; got '$CURR_RAW'."
+            exit 1
+          fi
+
+          MAJOR="${CURR%%.*}"
           echo "merge_branch=$MERGE_BRANCH" >> "$GITHUB_OUTPUT"
-
-          if ! parse_semver "$PREV"; then
-            echo "::error::Invalid VERSION before merge: '$PREV'. Expected MAJOR.MINOR.PATCH[-hfN]."
-            exit 1
-          fi
-          PREV_MAJOR="$BASE_MAJOR"
-          PREV_MINOR="$BASE_MINOR"
-          PREV_PATCH="$BASE_PATCH"
-          PREV_HF="$BASE_HF"
-          PREV_BASE="$BASE_VERSION"
-
-          if [ "$CURR" != "$PREV" ]; then
-            if [[ "$MERGE_BRANCH" == release/auto-version-* ]]; then
-              if ! parse_semver "$CURR"; then
-                echo "::error::Automation branch merged invalid VERSION '$CURR'."
-                exit 1
-              fi
-              echo "action=build" >> "$GITHUB_OUTPUT"
-              echo "app_version=$CURR" >> "$GITHUB_OUTPUT"
-              echo "major=${BASE_MAJOR}" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-
-            echo "::error::VERSION changed on '$MERGE_BRANCH'. VERSION is workflow-managed only."
-            exit 1
-          fi
-
-          TARGET=""
-          REASON=""
-
-          case "$MERGE_BRANCH" in
-            release/major)
-              TARGET="$((PREV_MAJOR + 1)).0.0"
-              REASON="release_major"
-              ;;
-            release/minor)
-              TARGET="${PREV_MAJOR}.$((PREV_MINOR + 1)).0"
-              REASON="release_minor"
-              ;;
-            release/patch)
-              TARGET="${PREV_MAJOR}.${PREV_MINOR}.$((PREV_PATCH + 1))"
-              REASON="release_patch"
-              ;;
-            release/*)
-              EXACT="${MERGE_BRANCH#release/}"
-              if [[ ! "$EXACT" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-                echo "::error::Unsupported release branch '$MERGE_BRANCH'. Use release/x.y.z, release/major, release/minor, or release/patch."
-                exit 1
-              fi
-              TARGET="$EXACT"
-              REASON="release_exact"
-              ;;
-            hotfix/*)
-              TARGET="${PREV_BASE}-hf$((PREV_HF + 1))"
-              REASON="hotfix"
-              ;;
-          esac
-
-          if [ -z "$TARGET" ]; then
-            echo "::error::Unable to derive target VERSION from '$MERGE_BRANCH'."
-            exit 1
-          fi
-
-          echo "action=open_version_pr" >> "$GITHUB_OUTPUT"
-          echo "target_version=$TARGET" >> "$GITHUB_OUTPUT"
-          echo "target_reason=$REASON" >> "$GITHUB_OUTPUT"
-          echo "Derived managed VERSION '$TARGET' for '$MERGE_BRANCH'; opening PR."
-
-  open-version-pr:
-    needs: preflight
-    if: needs.preflight.outputs.action == 'open_version_pr'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Write managed VERSION
-        run: |
-          set -euo pipefail
-          printf '%s\n' "${{ needs.preflight.outputs.target_version }}" > VERSION
-
-      - name: Create VERSION bump pull request
-        uses: peter-evans/create-pull-request@v8
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          base: main
-          branch: release/auto-version-${{ github.run_id }}
-          delete-branch: true
-          add-paths: |
-            VERSION
-          commit-message: "chore(release): bump VERSION to ${{ needs.preflight.outputs.target_version }} [automated version bump]"
-          title: "chore(release): bump VERSION to ${{ needs.preflight.outputs.target_version }}"
-          body: |
-            Automated VERSION update after merging `${{ needs.preflight.outputs.merge_branch }}` into `main`.
-
-            - Reason: `${{ needs.preflight.outputs.target_reason }}`
-            - Target version: `${{ needs.preflight.outputs.target_version }}`
-            - Generated by: `${{ github.workflow }} #${{ github.run_number }}`
+          echo "action=build" >> "$GITHUB_OUTPUT"
+          echo "app_version=$CURR" >> "$GITHUB_OUTPUT"
+          echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
 
   build-and-push:
     needs: preflight
