@@ -93,11 +93,11 @@ class TrainingRequestsControllerTest < ActionDispatch::IntegrationTest
     assert_not_nil request.responded_at
   end
 
-  test 'member profile links to training request page' do
+  test 'member dashboard links to training request page' do
     sign_in_as_member
     member = User.find_by(authentik_id: "local:#{local_accounts(:regular_member).id}")
 
-    get user_path(member, tab: :profile)
+    get user_path(member)
     assert_response :success
     assert_match(/Request Training/i, response.body)
     assert_match(new_training_request_path, response.body)

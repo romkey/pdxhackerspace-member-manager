@@ -37,6 +37,9 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
 
     get root_path(tab: :profile)
     assert_response :success
+
+    get root_path(tab: :member_dashboard)
+    assert_response :success
     assert_match(/Request Training/i, response.body)
   end
 
