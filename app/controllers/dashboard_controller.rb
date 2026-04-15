@@ -1,5 +1,10 @@
 class DashboardController < AdminController
+  include MemberHomeTabs
+
   def index
+    @home_user = true_user || current_user
+    @active_tab = params[:tab]&.to_sym || :admin_dashboard
+
     @user_count = User.non_legacy.count
     @active_user_count = User.active.count
     @last_synced_at = User.maximum(:last_synced_at)
@@ -29,6 +34,8 @@ class DashboardController < AdminController
                                 .where(changed_at: 2.weeks.ago..)
                                 .order(changed_at: :desc)
                                 .limit(50)
+
+    prepare_member_home_tabs_data
   end
 
   private

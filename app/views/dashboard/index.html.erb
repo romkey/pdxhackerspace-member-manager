@@ -1,4 +1,49 @@
 <div class="py-4">
+  <ul class="nav nav-tabs mb-4" role="tablist">
+    <li class="nav-item" role="presentation">
+      <%= link_to root_path(tab: :admin_dashboard), class: "nav-link #{'active' if @active_tab == :admin_dashboard}", role: "tab" do %>
+        <i class="bi bi-speedometer2 me-1"></i> Admin Dashboard
+      <% end %>
+    </li>
+    <li class="nav-item" role="presentation">
+      <%= link_to root_path(tab: :member_dashboard), class: "nav-link #{'active' if @active_tab == :member_dashboard}", role: "tab" do %>
+        <i class="bi bi-person-badge me-1"></i> Member Dashboard
+      <% end %>
+    </li>
+    <li class="nav-item" role="presentation">
+      <%= link_to root_path(tab: :profile), class: "nav-link #{'active' if @active_tab == :profile}", role: "tab" do %>
+        <i class="bi bi-person me-1"></i> Profile
+      <% end %>
+    </li>
+    <li class="nav-item" role="presentation">
+      <%= link_to root_path(tab: :payments), class: "nav-link #{'active' if @active_tab == :payments}", role: "tab" do %>
+        <i class="bi bi-credit-card me-1"></i> Payment History
+        <% if @home_payments_count.to_i > 0 %>
+          <span class="badge bg-secondary ms-1"><%= @home_payments_count %></span>
+        <% end %>
+      <% end %>
+    </li>
+    <% if @home_parking_notices_count.to_i > 0 %>
+      <li class="nav-item" role="presentation">
+        <%= link_to root_path(tab: :parking), class: "nav-link #{'active' if @active_tab == :parking}", role: "tab" do %>
+          <i class="bi bi-car-front me-1"></i> Parking
+          <span class="badge bg-secondary ms-1"><%= @home_parking_notices_count %></span>
+        <% end %>
+      </li>
+    <% end %>
+    <li class="nav-item" role="presentation">
+      <%= link_to root_path(tab: :messages), class: "nav-link #{'active' if @active_tab == :messages}", role: "tab" do %>
+        <i class="bi bi-chat-dots me-1"></i> Messages
+        <% if @home_unread_messages_count.to_i > 0 %>
+          <span class="badge bg-danger ms-1"><%= @home_unread_messages_count %></span>
+        <% elsif @home_messages_count.to_i > 0 %>
+          <span class="badge bg-secondary ms-1"><%= @home_messages_count %></span>
+        <% end %>
+      <% end %>
+    </li>
+  </ul>
+
+  <% if @active_tab == :admin_dashboard %>
   <!-- Member Search (full width) -->
   <div class="card dashboard-panel dashboard-panel-search mb-4">
     <div class="card-body py-3">
@@ -172,8 +217,22 @@
       </div>
     </div>
   </div>
-</div>
 
+  <% elsif @active_tab == :member_dashboard %>
+    <%= render 'users/tab_dashboard_self', user: @home_user %>
+  <% elsif @active_tab == :profile %>
+    <%= render 'users/tab_profile_self', user: @home_user %>
+  <% elsif @active_tab == :payments %>
+    <%= render 'users/tab_payments', payments: @home_payments, pagy: @pagy_payments, user: @home_user, show_payment_links: false, dashboard_mode: true %>
+  <% elsif @active_tab == :parking %>
+    <%= render 'users/tab_parking', parking_notices: @home_parking_notices_list, show_actions: false %>
+  <% elsif @active_tab == :messages %>
+    <%= render 'users/tab_messages', messages: @home_messages, pagy: @pagy_messages, user: @home_user, show_send: false %>
+  <% else %>
+    <%= render 'users/tab_dashboard_self', user: @home_user %>
+  <% end %>
+
+<% if @active_tab == :admin_dashboard %>
 <script>
   (function() {
     var _debounceTimer = null;
@@ -273,3 +332,5 @@
     document.addEventListener('turbo:load', initDashboardSearch);
   })();
 </script>
+<% end %>
+</div>

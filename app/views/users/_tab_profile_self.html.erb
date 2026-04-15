@@ -1,35 +1,18 @@
 <%# Self Profile Tab - what the user sees on their own profile %>
 <div class="card shadow-sm border-0 mb-4">
   <div class="card-body">
-    <h2 class="h5 mb-3"><i class="bi bi-mortarboard me-2"></i>Request Training</h2>
-    <% if @member_requestable_topics.any? %>
-      <%= form_with scope: :training_request, url: training_requests_path, local: true do |f| %>
-        <div class="row g-3 align-items-end">
-          <div class="col-md-6">
-            <%= f.label :training_topic_id, 'Training topic', class: 'form-label' %>
-            <%= f.select :training_topic_id,
-                         options_from_collection_for_select(@member_requestable_topics, :id, :name),
-                         { include_blank: 'Choose a topic' },
-                         { class: 'form-select', required: true } %>
-          </div>
-          <div class="col-md-6">
-            <div class="form-check mt-4">
-              <%= f.check_box :share_contact_info, class: 'form-check-input', required: true %>
-              <%= f.label :share_contact_info,
-                          'I consent to sharing my email and Slack handle (if available) with trainers for this topic.',
-                          class: 'form-check-label' %>
-            </div>
-          </div>
-        </div>
-        <div class="alert alert-secondary mt-3 mb-3">
-          If you do not see the training topic you need, please post in <strong>#help</strong> on Slack
-          or email <a href="mailto:info@pdxhackerspace.org">info@pdxhackerspace.org</a>.
-        </div>
-        <%= f.submit 'Request Training', class: 'btn btn-primary' %>
+    <h2 class="h5 mb-3"><i class="bi bi-lightning-charge me-2"></i>Quick Actions</h2>
+    <div class="d-flex flex-wrap gap-2">
+      <%= link_to new_training_request_path, class: 'btn btn-primary' do %>
+        <i class="bi bi-mortarboard me-1"></i> Request Training
       <% end %>
-    <% else %>
-      <div class="alert alert-secondary mb-0">
-        No training topics are currently available for member requests.
+      <%= link_to new_member_parking_permit_path, class: 'btn btn-success' do %>
+        <i class="bi bi-p-circle me-1"></i> Parking Permit
+      <% end %>
+    </div>
+    <% unless @member_requestable_topics.any? %>
+      <div class="alert alert-secondary mb-0 mt-3">
+        Training requests are temporarily unavailable because no topics are currently open for member requests.
       </div>
     <% end %>
   </div>

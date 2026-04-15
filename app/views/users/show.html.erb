@@ -351,6 +351,13 @@
   <%# ===== SELF VIEW WITH TABS ===== %>
   <ul class="nav nav-tabs mb-4" role="tablist">
     <li class="nav-item" role="presentation">
+      <%= link_to user_path(@user, tab: :dashboard, view_as: params[:view_as]),
+          class: "nav-link #{'active' if @active_tab == :dashboard}",
+          role: "tab" do %>
+        <i class="bi bi-speedometer2 me-1"></i> Dashboard
+      <% end %>
+    </li>
+    <li class="nav-item" role="presentation">
       <%= link_to user_path(@user, tab: :profile, view_as: params[:view_as]), 
           class: "nav-link #{'active' if @active_tab == :profile}", 
           role: "tab" do %>
@@ -392,7 +399,9 @@
   </ul>
 
   <div class="tab-content">
-    <% if @active_tab == :profile %>
+    <% if @active_tab == :dashboard %>
+      <%= render 'users/tab_dashboard_self', user: @user %>
+    <% elsif @active_tab == :profile %>
       <%= render 'users/tab_profile_self', user: @user %>
     <% elsif @active_tab == :payments %>
       <%= render 'users/tab_payments', payments: @payments, pagy: @pagy_payments, user: @user, show_payment_links: false %>

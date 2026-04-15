@@ -2,6 +2,10 @@ class TrainingRequestsController < AuthenticatedController
   before_action :set_training_request, only: %i[edit update]
   before_action :authorize_responder!, only: %i[edit update]
 
+  def new
+    @member_requestable_topics = TrainingTopic.available_for_member_requests
+  end
+
   def edit
     @requester = @training_request.user
   end
@@ -9,12 +13,12 @@ class TrainingRequestsController < AuthenticatedController
   def create
     topic = TrainingTopic.available_for_member_requests.find_by(id: training_request_params[:training_topic_id])
     if topic.nil?
-      redirect_to user_path(current_user), alert: 'Please select a valid training topic.'
+      redirect_to new_training_request_path, alert: 'Please select a valid training topic.'
       return
     end
 
     if training_request_params[:share_contact_info] != '1'
-      redirect_to user_path(current_user), alert: 'Please confirm contact sharing to submit your request.'
+      redirect_to new_training_request_path, alert: 'Please confirm contact sharing to submit your request.'
       return
     end
 
@@ -25,9 +29,10 @@ class TrainingRequestsController < AuthenticatedController
 
     if request.save
       queue_training_request_emails!(request)
-      redirect_to user_path(current_user), notice: "Your training request for #{topic.name} has been sent."
+      redirect_to user_path(current_user, tab: :profile),
+                  notice: "Your training request for #{topic.name} has been sent."
     else
-      redirect_to user_path(current_user), alert: request.errors.full_messages.to_sentence
+      redirect_to new_training_request_path, alert: request.errors.full_messages.to_sentence
     end
   end
 

@@ -1,0 +1,41 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0">Request Training</h1>
+  <%= link_to "&larr; Back to profile".html_safe, user_path(current_user, tab: :profile), class: "text-decoration-none" %>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <% if @member_requestable_topics.any? %>
+      <%= form_with scope: :training_request, url: training_requests_path, local: true do |f| %>
+        <div class="row g-3 align-items-end">
+          <div class="col-md-6">
+            <%= f.label :training_topic_id, 'Training topic', class: 'form-label' %>
+            <%= f.select :training_topic_id,
+                         options_from_collection_for_select(@member_requestable_topics, :id, :name),
+                         { include_blank: 'Choose a topic' },
+                         { class: 'form-select', required: true } %>
+          </div>
+          <div class="col-md-6">
+            <div class="form-check mt-4">
+              <%= f.check_box :share_contact_info, class: 'form-check-input', required: true %>
+              <%= f.label :share_contact_info,
+                          'I consent to sharing my email and Slack handle (if available) with trainers for this topic.',
+                          class: 'form-check-label' %>
+            </div>
+          </div>
+        </div>
+
+        <div class="alert alert-secondary mt-3 mb-3">
+          If you do not see the training topic you need, please post in <strong>#help</strong> on Slack
+          or email <a href="mailto:info@pdxhackerspace.org">info@pdxhackerspace.org</a>.
+        </div>
+
+        <%= f.submit 'Request Training', class: 'btn btn-primary' %>
+      <% end %>
+    <% else %>
+      <div class="alert alert-secondary mb-0">
+        No training topics are currently available for member requests.
+      </div>
+    <% end %>
+  </div>
+</div>

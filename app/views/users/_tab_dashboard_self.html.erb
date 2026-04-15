@@ -1,0 +1,69 @@
+<% tier_class = {
+  urgent: 'text-bg-danger',
+  important: 'text-bg-warning',
+  housekeeping: 'text-bg-secondary'
+} %>
+<% tier_label = {
+  urgent: 'Urgent',
+  important: 'Important',
+  housekeeping: 'Housekeeping'
+} %>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <h2 class="h5 mb-3">
+          <i class="bi bi-exclamation-circle me-2 text-danger"></i>Needs Attention
+        </h2>
+
+        <% if @member_dashboard_attention_items.any? %>
+          <div class="list-group list-group-flush">
+            <% @member_dashboard_attention_items.each do |item| %>
+              <div class="list-group-item px-0">
+                <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+                  <strong><%= item[:title] %></strong>
+                  <span class="badge <%= tier_class[item[:tier]] %>"><%= tier_label[item[:tier]] %></span>
+                </div>
+                <p class="mb-2 text-secondary"><%= item[:detail] %></p>
+                <% if item[:action_path].present? && item[:action_label].present? %>
+                  <%= link_to item[:action_label], item[:action_path], class: 'btn btn-outline-primary btn-sm' %>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="alert alert-success mb-0">
+            Everything looks good right now. Nothing needs immediate action.
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <h2 class="h5 mb-3">
+          <i class="bi bi-check-circle me-2 text-success"></i>No Action Required
+        </h2>
+
+        <% if @member_dashboard_ok_items.any? %>
+          <div class="list-group list-group-flush">
+            <% @member_dashboard_ok_items.each do |item| %>
+              <div class="list-group-item px-0">
+                <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+                  <strong><%= item[:title] %></strong>
+                  <span class="badge text-bg-success">OK</span>
+                </div>
+                <p class="mb-0 text-secondary"><%= item[:detail] %></p>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="text-muted">No informational items to show.</div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
