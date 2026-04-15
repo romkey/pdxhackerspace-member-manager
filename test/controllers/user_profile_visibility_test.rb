@@ -121,16 +121,27 @@ class UserProfileVisibilityTest < ActionDispatch::IntegrationTest
 
     # Should see nav tabs
     assert_match(/nav-tabs/, response.body)
+    assert_match(/Dashboard/i, response.body)
     assert_match(/Profile/, response.body)
     assert_match(/Payment History/i, response.body)
   end
 
-  test 'user sees status panel on their own profile' do
+  test 'user sees dashboard tab by default on their own profile' do
     sign_in_as_member
     get user_path(@member_with_account)
     assert_response :success
 
-    # Should see status panel
+    assert_match(/Needs Attention/i, response.body)
+    assert_match(/No Action Required/i, response.body)
+    assert_match(/Open training requests/i, response.body)
+    assert_match(/Join Slack/i, response.body)
+  end
+
+  test 'user sees status panel on profile tab' do
+    sign_in_as_member
+    get user_path(@member_with_account, tab: :profile)
+    assert_response :success
+
     assert_match(/Payment Type/i, response.body)
     assert_match(/Membership Status/i, response.body)
   end
@@ -140,6 +151,42 @@ class UserProfileVisibilityTest < ActionDispatch::IntegrationTest
     get user_path(@member_with_account, tab: :payments)
     assert_response :success
     assert_match(/Payment History/i, response.body)
+  end
+
+  test 'dashboard shows due soon cash payment and urgent expired parking' do
+    @member_with_account.update!(
+      payment_type: 'cash',
+      dues_due_at: 3.days.from_now
+    )
+
+    ParkingNotice.create!(
+      notice_type: 'permit',
+      status: 'active',
+      user: @member_with_account,
+      issued_by: @members_user,
+      description: 'Active member permit',
+      location: 'Woodshop',
+      expires_at: 5.days.from_now
+    )
+    ParkingNotice.create!(
+      notice_type: 'ticket',
+      status: 'expired',
+      user: @member_with_account,
+      issued_by: @members_user,
+      description: 'Expired ticket',
+      location: 'Electronics',
+      expires_at: 2.days.ago
+    )
+
+    sign_in_as_member
+    get user_path(@member_with_account)
+    assert_response :success
+
+    assert_match(/Cash payment due soon/i, response.body)
+    assert_match(/due in 3 days/i, response.body)
+    assert_match(%r{Open parking permits/tickets}i, response.body)
+    assert_match(/expired and 1 active open parking/i, response.body)
+    assert_match(/Urgent/i, response.body)
   end
 
   test 'user sees edit button on their own profile' do

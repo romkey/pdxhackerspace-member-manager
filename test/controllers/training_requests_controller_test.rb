@@ -15,6 +15,7 @@ class TrainingRequestsControllerTest < ActionDispatch::IntegrationTest
 
   test 'member can request training for offered topic' do
     sign_in_as_member
+    member = User.find_by(authentik_id: "local:#{local_accounts(:regular_member).id}")
 
     assert_difference 'TrainingRequest.count', 1 do
       assert_difference 'QueuedMail.count', 3 do
@@ -29,7 +30,7 @@ class TrainingRequestsControllerTest < ActionDispatch::IntegrationTest
 
     request = TrainingRequest.order(:created_at).last
     assert_equal 'pending', request.status
-    assert_redirected_to user_path(User.find_by(authentik_id: "local:#{local_accounts(:regular_member).id}"))
+    assert_redirected_to user_path(member, tab: :profile)
   end
 
   test 'member must consent to sharing contact info' do
@@ -44,8 +45,18 @@ class TrainingRequestsControllerTest < ActionDispatch::IntegrationTest
       }
     end
 
-    assert_redirected_to user_path(User.find_by(authentik_id: "local:#{local_accounts(:regular_member).id}"))
+    assert_redirected_to new_training_request_path
     assert_equal 'Please confirm contact sharing to submit your request.', flash[:alert]
+  end
+
+  test 'member can open new training request page' do
+    sign_in_as_member
+
+    get new_training_request_path
+    assert_response :success
+    assert_match(/Request Training/i, response.body)
+    assert_match 'name="training_request[training_topic_id]"', response.body
+    assert_match 'name="training_request[share_contact_info]"', response.body
   end
 
   test 'trainer can open response form for request in their topic' do
@@ -82,14 +93,14 @@ class TrainingRequestsControllerTest < ActionDispatch::IntegrationTest
     assert_not_nil request.responded_at
   end
 
-  test 'member profile renders training request fields under training_request scope' do
+  test 'member profile links to training request page' do
     sign_in_as_member
     member = User.find_by(authentik_id: "local:#{local_accounts(:regular_member).id}")
 
-    get user_path(member)
+    get user_path(member, tab: :profile)
     assert_response :success
-    assert_match 'name="training_request[training_topic_id]"', response.body
-    assert_match 'name="training_request[share_contact_info]"', response.body
+    assert_match(/Request Training/i, response.body)
+    assert_match(new_training_request_path, response.body)
   end
 
   private

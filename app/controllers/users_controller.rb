@@ -160,7 +160,14 @@ class UsersController < AuthenticatedController
     setup_view_preview_options
 
     # Default tab
-    @active_tab = params[:tab]&.to_sym || :profile
+    requested_tab = params[:tab]&.to_sym
+    @active_tab = if requested_tab.present?
+                    requested_tab
+                  elsif @view_level == :self
+                    :dashboard
+                  else
+                    :profile
+                  end
 
     # Parking notices for admin and self views
     if @view_level == :admin || @view_level == :self
@@ -182,7 +189,10 @@ class UsersController < AuthenticatedController
       end
     end
 
-    set_self_service_training_data if @view_level == :self
+    if @view_level == :self
+      set_self_service_training_data
+      set_member_dashboard_data
+    end
 
     # Load payment history for admin and self views (paginated)
     if @view_level == :admin || @view_level == :self
@@ -589,6 +599,182 @@ class UsersController < AuthenticatedController
                                                          .includes(:training_topic, :user)
                                                          .order(ordering)
                                                          .group_by(&:training_topic)
+  end
+
+  def set_member_dashboard_data
+    @member_dashboard_attention_items = []
+    @member_dashboard_ok_items = []
+
+    append_member_dashboard_payment_item
+    append_member_dashboard_training_item
+    append_member_dashboard_slack_item
+    append_member_dashboard_parking_item
+  end
+
+  def append_member_dashboard_payment_item
+    unless member_manual_payment?
+      add_member_dashboard_item(
+        ok: true,
+        id: :cash_payment_due,
+        tier: :none,
+        title: 'Cash payment due',
+        detail: 'You are not on a manual/cash payment plan.'
+      )
+      return
+    end
+
+    due_on = @user.next_payment_date
+    if due_on.blank?
+      add_member_dashboard_item(
+        ok: false,
+        id: :cash_payment_due,
+        tier: :housekeeping,
+        title: 'Cash payment due',
+        detail: 'No next payment due date is recorded yet. Please contact an admin.',
+        action_label: 'View payment history',
+        action_path: user_path(@user, tab: :payments, view_as: params[:view_as])
+      )
+      return
+    end
+
+    days_until = (due_on - Date.current).to_i
+    if days_until.negative?
+      add_member_dashboard_item(
+        ok: false,
+        id: :cash_payment_due,
+        tier: :urgent,
+        title: 'Cash payment due',
+        detail: "Your next cash payment was due #{due_on.strftime('%B %-d, %Y')} (#{days_until.abs} days overdue).",
+        action_label: 'View payment history',
+        action_path: user_path(@user, tab: :payments, view_as: params[:view_as])
+      )
+      return
+    end
+
+    due_soon_days = MembershipSetting.manual_payment_due_soon_days
+    if days_until <= due_soon_days
+      add_member_dashboard_item(
+        ok: false,
+        id: :cash_payment_due,
+        tier: :important,
+        title: 'Cash payment due soon',
+        detail: "Your next cash payment is due in #{days_until} days (#{due_on.strftime('%B %-d, %Y')}).",
+        action_label: 'View payment history',
+        action_path: user_path(@user, tab: :payments, view_as: params[:view_as])
+      )
+      return
+    end
+
+    add_member_dashboard_item(
+      ok: true,
+      id: :cash_payment_due,
+      tier: :none,
+      title: 'Cash payment due',
+      detail: "Your next cash payment is due in #{days_until} days (#{due_on.strftime('%B %-d, %Y')})."
+    )
+  end
+
+  def append_member_dashboard_training_item
+    pending_count = @user.training_requests.pending.count
+    if pending_count.positive?
+      add_member_dashboard_item(
+        ok: false,
+        id: :training_requests,
+        tier: :important,
+        title: 'Open training requests',
+        detail: "You have #{pending_count} open training request#{'s' unless pending_count == 1}.",
+        action_label: 'Open Profile tab',
+        action_path: user_path(@user, tab: :profile, view_as: params[:view_as])
+      )
+      return
+    end
+
+    add_member_dashboard_item(
+      ok: true,
+      id: :training_requests,
+      tier: :none,
+      title: 'Open training requests',
+      detail: 'You have no open training requests.'
+    )
+  end
+
+  def append_member_dashboard_slack_item
+    if @user.slack_user.present?
+      add_member_dashboard_item(
+        ok: true,
+        id: :slack_signup,
+        tier: :none,
+        title: 'Slack account',
+        detail: 'Your account is linked to Slack.'
+      )
+      return
+    end
+
+    add_member_dashboard_item(
+      ok: false,
+      id: :slack_signup,
+      tier: :housekeeping,
+      title: 'Join Slack',
+      detail: 'You do not have a linked Slack user yet. Please ask an admin for an invite.',
+      action_label: 'View Profile',
+      action_path: user_path(@user, tab: :profile, view_as: params[:view_as])
+    )
+  end
+
+  def append_member_dashboard_parking_item
+    notices = @user.parking_notices.not_cleared
+    expired_count = notices.expired_notices.count
+    active_count = notices.active_notices.count
+    open_count = expired_count + active_count
+
+    if expired_count.positive?
+      detail = "#{expired_count} expired and #{active_count} active open parking notice#{'s' unless open_count == 1}."
+      add_member_dashboard_item(
+        ok: false,
+        id: :parking_notices,
+        tier: :urgent,
+        title: 'Open parking permits/tickets',
+        detail: detail,
+        action_label: 'Open Parking tab',
+        action_path: user_path(@user, tab: :parking, view_as: params[:view_as])
+      )
+      return
+    end
+
+    if active_count.positive?
+      add_member_dashboard_item(
+        ok: false,
+        id: :parking_notices,
+        tier: :important,
+        title: 'Open parking permits/tickets',
+        detail: "#{active_count} active open parking notice#{'s' unless active_count == 1}.",
+        action_label: 'Open Parking tab',
+        action_path: user_path(@user, tab: :parking, view_as: params[:view_as])
+      )
+      return
+    end
+
+    add_member_dashboard_item(
+      ok: true,
+      id: :parking_notices,
+      tier: :none,
+      title: 'Open parking permits/tickets',
+      detail: 'You have no open parking permits or tickets.'
+    )
+  end
+
+  def member_manual_payment?
+    return true if @user.payment_type == 'cash'
+
+    @user.all_membership_plans.any?(&:manual?)
+  end
+
+  def add_member_dashboard_item(item)
+    if item[:ok]
+      @member_dashboard_ok_items << item
+    else
+      @member_dashboard_attention_items << item
+    end
   end
 
   def user_params
