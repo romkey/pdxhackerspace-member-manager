@@ -3,6 +3,7 @@ require 'faraday'
 module Slack
   class Client
     USERS_LIST_ENDPOINT = '/api/users.list'.freeze
+    USERS_INFO_ENDPOINT = '/api/users.info'.freeze
     DEFAULT_LIMIT = 200
 
     def initialize(token: SlackConfig.settings.api_token, base_url: SlackConfig.settings.base_url)
@@ -29,6 +30,20 @@ module Slack
       members
     end
 
+    # Single member; same attribute shape as +list_users+ entries.
+    def user_info(slack_user_id)
+      raise ArgumentError, 'Slack API token is missing' if @token.blank?
+
+      response = connection.get(USERS_INFO_ENDPOINT, { user: slack_user_id })
+      payload = JSON.parse(response.body)
+      handle_error!(payload)
+
+      member = payload['user']
+      return nil if member.blank?
+
+      build_member_attrs(member)
+    end
+
     private
 
     def connection
@@ -52,26 +67,28 @@ module Slack
     end
 
     def extract_members(payload)
-      Array(payload['members']).map do |member|
-        {
-          slack_id: member['id'],
-          team_id: member['team_id'],
-          username: member['name'],
-          real_name: member.dig('profile', 'real_name'),
-          display_name: member.dig('profile', 'display_name'),
-          email: normalize_email(member.dig('profile', 'email')),
-          pronouns: member.dig('profile', 'pronouns').presence,
-          title: member.dig('profile', 'title'),
-          phone: member.dig('profile', 'phone'),
-          tz: member['tz'],
-          is_admin: truthy?(member['is_admin']),
-          is_owner: truthy?(member['is_owner']),
-          is_bot: truthy?(member['is_bot']),
-          deleted: truthy?(member['deleted']),
-          raw_attributes: member,
-          last_synced_at: Time.current
-        }
-      end
+      Array(payload['members']).map { |member| build_member_attrs(member) }
+    end
+
+    def build_member_attrs(member)
+      {
+        slack_id: member['id'],
+        team_id: member['team_id'],
+        username: member['name'],
+        real_name: member.dig('profile', 'real_name'),
+        display_name: member.dig('profile', 'display_name'),
+        email: normalize_email(member.dig('profile', 'email')),
+        pronouns: member.dig('profile', 'pronouns').presence,
+        title: member.dig('profile', 'title'),
+        phone: member.dig('profile', 'phone'),
+        tz: member['tz'],
+        is_admin: truthy?(member['is_admin']),
+        is_owner: truthy?(member['is_owner']),
+        is_bot: truthy?(member['is_bot']),
+        deleted: truthy?(member['deleted']),
+        raw_attributes: member,
+        last_synced_at: Time.current
+      }
     end
 
     def normalize_email(email)

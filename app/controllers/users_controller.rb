@@ -710,15 +710,27 @@ class UsersController < AuthenticatedController
       return
     end
 
-    add_member_dashboard_item(
-      ok: false,
-      id: :slack_signup,
-      tier: :housekeeping,
-      title: 'Join Slack',
-      detail: 'You do not have a linked Slack user yet. Please ask an admin for an invite.',
-      action_label: 'View Profile',
-      action_path: user_path(@user, tab: :profile, view_as: params[:view_as])
-    )
+    if SlackOidcConfig.configured?
+      add_member_dashboard_item(
+        ok: false,
+        id: :slack_signup,
+        tier: :housekeeping,
+        title: 'Slack account',
+        detail: 'Link your CTRLH Slack workspace member to your profile so we can recognize you on Slack.',
+        action_label: 'Associate Slack account',
+        action_path: slack_link_start_path
+      )
+    else
+      add_member_dashboard_item(
+        ok: false,
+        id: :slack_signup,
+        tier: :housekeeping,
+        title: 'Join Slack',
+        detail: 'You do not have a linked Slack user yet. Please ask an admin for an invite.',
+        action_label: 'View Profile',
+        action_path: user_path(@user, tab: :profile, view_as: params[:view_as])
+      )
+    end
   end
 
   def append_member_dashboard_parking_item

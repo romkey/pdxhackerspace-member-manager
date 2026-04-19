@@ -110,16 +110,29 @@ class MemberDashboardBuilder
   def slack_item
     return ok_item(:slack_signup, 'Slack account', 'Your account is linked to Slack.') if user.slack_user.present?
 
-    attention_item(
-      tier: :housekeeping,
-      id: :slack_signup,
-      title: 'Join Slack',
-      detail: 'You do not have a linked Slack user yet. Please ask an admin for an invite.',
-      action: {
-        label: 'Open Profile tab',
-        path: tab_path(:profile)
-      }
-    )
+    if SlackOidcConfig.configured?
+      attention_item(
+        tier: :housekeeping,
+        id: :slack_signup,
+        title: 'Slack account',
+        detail: 'Link your CTRLH Slack workspace member to your profile so we can recognize you on Slack.',
+        action: {
+          label: 'Associate Slack account',
+          path: Rails.application.routes.url_helpers.slack_link_start_path
+        }
+      )
+    else
+      attention_item(
+        tier: :housekeeping,
+        id: :slack_signup,
+        title: 'Join Slack',
+        detail: 'You do not have a linked Slack user yet. Please ask an admin for an invite.',
+        action: {
+          label: 'Open Profile tab',
+          path: tab_path(:profile)
+        }
+      )
+    end
   end
 
   def parking_item

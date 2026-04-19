@@ -19,6 +19,11 @@
       <%= link_to new_member_parking_permit_path, class: 'btn btn-success' do %>
         <i class="bi bi-p-circle me-1"></i> Parking Permit
       <% end %>
+      <% if SlackOidcConfig.configured? && user.slack_user.blank? %>
+        <%= link_to slack_link_start_path, class: 'btn btn-outline-secondary' do %>
+          <i class="bi bi-slack me-1"></i> Associate Slack account
+        <% end %>
+      <% end %>
     </div>
     <% unless @member_requestable_topics.any? %>
       <div class="alert alert-secondary mb-0 mt-3">
