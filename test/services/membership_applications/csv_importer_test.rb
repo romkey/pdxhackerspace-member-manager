@@ -88,6 +88,17 @@ module MembershipApplications
       assert_equal Time.zone.local(2023, 5, 4, 16, 13, 19), app.submitted_at
     end
 
+    test 'parses 3/8/2026 as March 8 (US month/day), not August 3' do
+      csv = <<~CSV
+        Approved,Timestamp,Email Address,Name
+        Yes,3/8/2026 14:50:55,md-order@example.com,Pat
+      CSV
+
+      CsvImporter.new.call(StringIO.new(csv))
+      app = MembershipApplication.find_by!(email: 'md-order@example.com')
+      assert_equal Time.zone.local(2026, 3, 8, 14, 50, 55), app.submitted_at
+    end
+
     test 'merge fills submitted_at when missing and does not create duplicate application' do
       existing = MembershipApplication.create!(
         email: 'merge-submitted@example.com',
@@ -107,7 +118,23 @@ module MembershipApplications
       assert_equal Time.zone.local(2023, 5, 4, 16, 13, 19), existing.reload.submitted_at
     end
 
-    test 'merge leaves submitted_at unchanged when already set' do
+    test 'merge overwrites submitted_at from CSV Timestamp when present' do
+      wrong = Time.zone.local(2026, 8, 3, 14, 50, 55) # mis-parsed as Aug 3 instead of Mar 8
+      existing = MembershipApplication.create!(
+        email: 'merge-correct-ts@example.com',
+        status: 'submitted',
+        submitted_at: wrong
+      )
+      csv = <<~CSV
+        Approved,Timestamp,Email Address,Name
+        ,3/8/2026 14:50:55,merge-correct-ts@example.com,Pat
+      CSV
+
+      CsvImporter.new.call(StringIO.new(csv))
+      assert_equal Time.zone.local(2026, 3, 8, 14, 50, 55), existing.reload.submitted_at
+    end
+
+    test 'merge leaves submitted_at unchanged when Timestamp column is blank' do
       t = Time.zone.parse('2022-06-01 12:00:00')
       existing = MembershipApplication.create!(
         email: 'merge-keep-ts@example.com',
@@ -116,7 +143,7 @@ module MembershipApplications
       )
       csv = <<~CSV
         Approved,Timestamp,Email Address,Name
-        ,5/4/2023 16:13:19,merge-keep-ts@example.com,Pat
+        ,,merge-keep-ts@example.com,Pat
       CSV
 
       CsvImporter.new.call(StringIO.new(csv))

@@ -88,7 +88,9 @@ module MembershipApplications
       extras = unmapped_column_notes(row_hash)
       new_notes = compose_admin_notes(approved_notes, extras)
       attrs = {}
-      attrs[:submitted_at] = submitted_at if submitted_at.present? && app.submitted_at.blank?
+      # When Timestamp parses, always set submitted_at so re-imports can fix bad values (e.g. wrong M/D order).
+      # Blank Timestamp leaves submitted_at unchanged (nil does not overwrite).
+      attrs[:submitted_at] = submitted_at if submitted_at.present?
 
       if app.submitted? || app.under_review?
         attrs[:status] = status
@@ -193,25 +195,34 @@ module MembershipApplications
       ['submitted', nil, s]
     end
 
-    # Parses export timestamps; uses US month/day for slash dates (e.g. 5/4/2023) so they are not read as D/M.
-    # Does not pass arbitrary prose to +Time.zone.parse+ (which can treat phrases like "next month" as valid times).
+    # Parses export timestamps. Slash dates use explicit US order (%m/%d/%Y) via Time.zone.strptime so month and day
+    # are never ambiguous (e.g. 3/8/2026 is March 8, not August 3). Does not pass arbitrary prose to
+    # +Time.zone.parse+ (which can treat phrases like "next month" as valid times).
     def parse_timestamp(val)
       return nil if val.blank?
 
       raw = val.to_s.strip
 
-      us = raw.match(%r{\A(\d{1,2})/(\d{1,2})/(\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?\z})
-      if us
-        return Time.zone.local(
-          us[3].to_i, us[1].to_i, us[2].to_i,
-          (us[4] || 0).to_i, (us[5] || 0).to_i, (us[6] || 0).to_i
-        )
+      if raw.match?(%r{\A\d{1,2}/\d{1,2}/\d{4}})
+        parsed = parse_us_slash_timestamp(raw)
+        return parsed if parsed
       end
 
       return Time.zone.parse(raw) if raw.match?(/\A\d{4}-\d{2}-\d{2}/)
 
       nil
     rescue ArgumentError, TypeError
+      nil
+    end
+
+    def parse_us_slash_timestamp(raw)
+      # Order matters: try longest time patterns first.
+      formats = ['%m/%d/%Y %H:%M:%S', '%m/%d/%Y %H:%M', '%m/%d/%Y']
+      formats.each do |fmt|
+        return Time.zone.strptime(raw, fmt)
+      rescue ArgumentError
+        next
+      end
       nil
     end
   end
