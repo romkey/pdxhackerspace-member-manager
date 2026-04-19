@@ -16,7 +16,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h1 class="h3 mb-0">
     Application #<%= @application.id %>
-    <span class="badge bg-<%= @application.status_badge_color %>"><%= @application.status_display %></span>
+    <span class="badge bg-<%= @application.status_badge_color %><%= ' text-dark' if @application.under_review? %>"><%= @application.status_display %></span>
   </h1>
   <div>
     <%= link_to membership_applications_path, class: "btn btn-outline-secondary" do %>
@@ -41,7 +41,7 @@
 
           <div class="rounded border border-secondary-subtle bg-body-tertiary p-3 mb-2">
             <dt>Status</dt>
-            <dd class="mb-0"><span class="badge bg-<%= @application.status_badge_color %>"><%= @application.status_display %></span></dd>
+            <dd class="mb-0"><span class="badge bg-<%= @application.status_badge_color %><%= ' text-dark' if @application.under_review? %>"><%= @application.status_display %></span></dd>
           </div>
 
           <div class="rounded border border-secondary-subtle bg-body-tertiary p-3 mb-2">
@@ -163,7 +163,7 @@
           <textarea id="admin_notes" class="form-control" rows="3"
                     placeholder="Reason for approval or rejection…"><%= @application.admin_notes %></textarea>
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-flex flex-wrap gap-2">
           <%= form_with url: approve_membership_application_path(@application), method: :post, local: true do %>
             <input type="hidden" name="admin_notes" id="approve_admin_notes" value="">
             <button type="submit" class="btn btn-success review-btn"
@@ -178,10 +178,19 @@
               <i class="bi bi-x-circle me-1"></i> Reject
             </button>
           <% end %>
+          <% if @application.submitted? %>
+            <%= form_with url: delay_for_review_membership_application_path(@application), method: :post, local: true do %>
+              <input type="hidden" name="admin_notes" id="delay_admin_notes" value="">
+              <button type="submit" class="btn btn-outline-warning review-btn"
+                      data-turbo-confirm="Mark this application as under review?">
+                <i class="bi bi-hourglass-split me-1"></i> Delay for review
+              </button>
+            <% end %>
+          <% end %>
         </div>
       <% else %>
         <p class="text-muted mb-0">
-          Only members trained as <strong>Executive Director</strong> may approve or reject applications.
+          Only members trained as <strong>Executive Director</strong> may approve, reject, or delay applications.
           Use admin acceptance votes above to record your recommendation.
         </p>
       <% end %>

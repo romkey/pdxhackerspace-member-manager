@@ -85,7 +85,10 @@ when :ac_issues %>
         <strong><%= @pending_applications_count %></strong> pending membership <%= 'application'.pluralize(@pending_applications_count) %>
       <% end %>
       <div class="text-muted small mt-1">
-        <%= "#{@submitted_applications_count} open" if @submitted_applications_count > 0 %>
+        <% parts = [] %>
+        <% parts << "#{@submitted_applications_count} open" if @submitted_applications_count.to_i > 0 %>
+        <% parts << "#{@under_review_applications_count} under review" if @under_review_applications_count.to_i > 0 %>
+        <%= parts.join(', ') if parts.any? %>
       </div>
     </div>
   <% end %>

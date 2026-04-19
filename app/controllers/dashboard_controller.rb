@@ -76,9 +76,10 @@ class DashboardController < AdminController
     # Important: Member-suggested interests needing review
     @interests_needing_review_count = Interest.needs_review.count
 
-    # Important: Pending membership applications
+    # Important: Pending membership applications (open or under review)
     @pending_applications_count = MembershipApplication.pending.count
     @submitted_applications_count = MembershipApplication.submitted_apps.count
+    @under_review_applications_count = MembershipApplication.under_review_apps.count
 
     # Important: Parking notices
     @active_parking_permit_count = ParkingNotice.permits.active_notices.count

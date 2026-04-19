@@ -59,7 +59,7 @@ gem 'prawn-table', '~> 0.2'
 gem 'pagy', '~> 9.0'
 
 # QR code generation
-gem 'rqrcode', '~> 2.2'
+gem 'rqrcode', '~> 3.2'
 
 gem 'bcrypt', '~> 3.1'
 

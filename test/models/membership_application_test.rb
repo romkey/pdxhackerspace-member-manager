@@ -29,6 +29,30 @@ class MembershipApplicationTest < ActiveSupport::TestCase
     assert_enqueued_jobs 1, only: MembershipApplicationAiFeedbackJob
   end
 
+  test 'delay_for_review! moves open application to under_review and journals' do
+    app = MembershipApplication.create!(email: 'delay-review@example.com', status: 'submitted')
+    admin = users(:one)
+
+    assert_difference -> { Journal.where(action: 'application_delayed_for_review').count }, 1 do
+      app.delay_for_review!(admin, notes: 'Need board input')
+    end
+
+    app.reload
+    assert_equal 'under_review', app.status
+    assert_equal admin, app.reviewed_by
+    assert app.reviewed_at.present?
+    assert_equal 'Need board input', app.admin_notes
+  end
+
+  test 'delay_for_review! raises when not open' do
+    app = MembershipApplication.create!(email: 'delay-bad@example.com', status: 'approved',
+                                        submitted_at: Time.current, reviewed_at: Time.current)
+
+    assert_raises(ArgumentError) do
+      app.delay_for_review!(users(:one))
+    end
+  end
+
   test 'reject! creates pending queued rejection mail' do
     app = MembershipApplication.create!(email: 'reject-mail-test@example.com', status: 'submitted')
     admin = users(:one)
@@ -58,6 +82,32 @@ class MembershipApplicationTest < ActiveSupport::TestCase
 
     assert_equal member.email, qm.to
     assert_equal member, qm.recipient
+  end
+
+  test 'newest_first orders by submitted time (fallback created_at), then id desc' do
+    travel_to Time.zone.local(2026, 4, 15, 12, 0, 0) do
+      older = MembershipApplication.create!(
+        email: 'order-old@example.com', status: 'submitted',
+        submitted_at: 5.days.ago, created_at: 5.days.ago
+      )
+      newer = MembershipApplication.create!(
+        email: 'order-new@example.com', status: 'submitted',
+        submitted_at: 1.day.ago, created_at: 2.days.ago
+      )
+      ids = MembershipApplication.where(id: [older.id, newer.id]).newest_first.pluck(:id)
+      assert_equal [newer.id, older.id], ids
+
+      t = Time.current
+      first = MembershipApplication.create!(
+        email: 'tie-a@example.com', status: 'submitted', submitted_at: t, created_at: t
+      )
+      second = MembershipApplication.create!(
+        email: 'tie-b@example.com', status: 'submitted', submitted_at: t, created_at: t
+      )
+      assert_operator second.id, :>, first.id
+      tie_ids = MembershipApplication.where(id: [first.id, second.id]).newest_first.pluck(:id)
+      assert_equal [second.id, first.id], tie_ids
+    end
   end
 
   test 'admin_search matches email, answer text, and linked member fields' do
