@@ -38,6 +38,25 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 'Please choose a CSV file to import.', flash[:alert]
   end
 
+  test 'non-admin cannot view membership application show' do
+    app = MembershipApplication.create!(
+      email: 'non-admin-denied@example.com',
+      status: 'submitted',
+      submitted_at: Time.current
+    )
+
+    delete logout_path
+    account = local_accounts(:regular_member)
+    post local_login_path, params: {
+      session: { email: account.email, password: 'memberpassword123' }
+    }
+
+    get membership_application_path(app)
+
+    assert_redirected_to user_path(users(:member_with_local_account))
+    assert_equal 'You do not have access to that section.', flash[:alert]
+  end
+
   test 'link_user associates member with application' do
     app = MembershipApplication.create!(
       email: 'link-app-test@example.com',
@@ -92,9 +111,15 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_select 'a[href=?]', membership_application_path(closed_app), count: 0
   end
 
-  test 'index unlinked tab lists only unlinked non-rejected applications' do
+  test 'index unlinked tab lists only approved applications without a linked member' do
     linked_member = users(:member_with_local_account)
     keep = MembershipApplication.create!(
+      email: 'unlinked-approved@example.com',
+      status: 'approved',
+      submitted_at: Time.current,
+      reviewed_at: Time.current
+    )
+    filtered_open = MembershipApplication.create!(
       email: 'unlinked-open@example.com',
       status: 'submitted',
       submitted_at: Time.current
@@ -106,9 +131,10 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
       reviewed_at: Time.current
     )
     filtered_linked = MembershipApplication.create!(
-      email: 'linked-open@example.com',
-      status: 'submitted',
+      email: 'linked-approved@example.com',
+      status: 'approved',
       submitted_at: Time.current,
+      reviewed_at: Time.current,
       user: linked_member
     )
 
@@ -117,11 +143,12 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select 'a.nav-link.active', text: /Unlinked/
     assert_select 'a[href=?]', membership_application_path(keep)
+    assert_select 'a[href=?]', membership_application_path(filtered_open), count: 0
     assert_select 'a[href=?]', membership_application_path(filtered_rejected), count: 0
     assert_select 'a[href=?]', membership_application_path(filtered_linked), count: 0
   end
 
-  test 'index unlinked count excludes rejected applications' do
+  test 'index unlinked count includes only approved without a linked member' do
     MembershipApplication.create!(
       email: 'badge-open-unlinked@example.com',
       status: 'submitted',
@@ -143,7 +170,7 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     get membership_applications_path(status: 'all')
 
     assert_response :success
-    expected_count = MembershipApplication.where.not(status: %w[draft rejected]).where(user_id: nil).count
+    expected_count = MembershipApplication.where(status: 'approved').where(user_id: nil).count
     assert_select "a[href='#{membership_applications_path(status: 'unlinked')}'] span.badge",
                   text: expected_count.to_s
   end

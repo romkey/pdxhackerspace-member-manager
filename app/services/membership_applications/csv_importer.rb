@@ -6,7 +6,8 @@ module MembershipApplications
   # Imports historical membership application rows from CSV exports.
   # Does not call +submit!+, +approve!+, or +reject!+ — no journal entries and no mail side effects.
   class CsvImporter
-    RESERVED_HEADERS = %w[Approved Timestamp Email Address].freeze
+    # Full header strings as they appear in CSVs (do not use %w[Email Address] — that splits).
+    RESERVED_HEADERS = ['Approved', 'Timestamp', 'Email Address'].freeze
 
     def initialize(imported_by: nil, logger: Rails.logger)
       @imported_by = imported_by
@@ -52,14 +53,58 @@ module MembershipApplications
       end
 
       submitted_at = parse_timestamp(row_hash['Timestamp'])
-      status, reviewed_at = interpret_approved(row_hash['Approved'])
-      reviewed_at = finalize_reviewed_at(status, reviewed_at, submitted_at)
+      status, rev_at, approved_notes = interpret_approved(row_hash['Approved'])
+      reviewed_at = finalize_reviewed_at(status, rev_at, submitted_at)
+      row_meta = {
+        submitted_at: submitted_at, status: status, reviewed_at: reviewed_at, approved_notes: approved_notes
+      }
 
-      app = build_application(row_hash, email:, status:, submitted_at:, reviewed_at:)
-      app.save!
-      create_answers!(row_hash, app)
+      existing = find_existing_non_draft_application(email)
+      if existing
+        merge_application!(existing, row_hash, row_meta)
+        create_or_update_answers!(row_hash, existing)
+      else
+        app = build_application(row_hash, email, row_meta)
+        app.save!
+        create_or_update_answers!(row_hash, app)
+      end
 
       counts[:imported] += 1
+    end
+
+    def find_existing_non_draft_application(email)
+      MembershipApplication.where.not(status: 'draft')
+                           .where('LOWER(email) = ?', email.downcase)
+                           .order(created_at: :desc)
+                           .first
+    end
+
+    def merge_application!(app, row_hash, row_meta)
+      submitted_at = row_meta[:submitted_at]
+      status = row_meta[:status]
+      reviewed_at = row_meta[:reviewed_at]
+      approved_notes = row_meta[:approved_notes]
+
+      extras = unmapped_column_notes(row_hash)
+      new_notes = compose_admin_notes(approved_notes, extras)
+      attrs = {}
+      attrs[:submitted_at] = submitted_at if submitted_at.present? && app.submitted_at.blank?
+
+      if app.submitted?
+        attrs[:status] = status
+        if status.in?(%w[approved rejected])
+          attrs[:reviewed_at] = reviewed_at
+          attrs[:reviewed_by] = @imported_by if app.reviewed_by.nil?
+        end
+      end
+
+      attrs[:admin_notes] = merge_note_segments(app.admin_notes, new_notes) if new_notes.present?
+
+      app.update!(attrs) if attrs.any?
+    end
+
+    def merge_note_segments(*parts)
+      parts.flatten.compact.map(&:strip).compact_blank.uniq.join("\n\n").presence
     end
 
     def finalize_reviewed_at(status, reviewed_at, submitted_at)
@@ -68,7 +113,12 @@ module MembershipApplications
       reviewed_at || submitted_at || Time.current
     end
 
-    def build_application(row_hash, email:, status:, submitted_at:, reviewed_at:)
+    def build_application(row_hash, email, row_meta)
+      status = row_meta[:status]
+      submitted_at = row_meta[:submitted_at]
+      reviewed_at = row_meta[:reviewed_at]
+      approved_notes = row_meta[:approved_notes]
+
       extras = unmapped_column_notes(row_hash)
       app = MembershipApplication.new(
         email: email,
@@ -76,7 +126,7 @@ module MembershipApplications
         submitted_at: submitted_at,
         reviewed_at: reviewed_at,
         reviewed_by: (@imported_by if status.in?(%w[approved rejected])),
-        admin_notes: extras.join("\n\n").presence
+        admin_notes: compose_admin_notes(approved_notes, extras)
       )
       if submitted_at
         app.created_at = submitted_at
@@ -97,7 +147,12 @@ module MembershipApplications
       extras
     end
 
-    def create_answers!(row_hash, app)
+    def compose_admin_notes(approved_notes, extras_lines)
+      extra_text = extras_lines.join("\n\n").presence
+      merge_note_segments(approved_notes, extra_text)
+    end
+
+    def create_or_update_answers!(row_hash, app)
       row_hash.each do |header, value|
         next if RESERVED_HEADERS.include?(header)
         next if value.blank?
@@ -105,32 +160,57 @@ module MembershipApplications
         qid = @question_ids_by_label[header]
         next unless qid
 
-        ApplicationAnswer.create!(
-          membership_application: app,
-          application_form_question_id: qid,
-          value: value.to_s.strip
-        )
+        answer = app.application_answers.find_by(application_form_question_id: qid)
+        v = value.to_s.strip
+        if answer
+          answer.update!(value: v)
+        else
+          ApplicationAnswer.create!(
+            membership_application: app,
+            application_form_question_id: qid,
+            value: v
+          )
+        end
       end
     end
 
+    # Returns [status, reviewed_at, notes_from_approved_cell]
     def interpret_approved(raw)
       s = raw.to_s.strip
-      return ['submitted', nil] if s.blank?
+      return ['submitted', nil, nil] if s.blank?
 
-      return ['approved', nil] if s.match?(/\A(yes|true|1|y|approved|x)\z/i)
+      return ['approved', nil, nil] if s.match?(/\A(yes|true|1|y|approved|x)\z/i)
 
-      return ['rejected', nil] if s.match?(/\A(no|false|0|n|rejected)\z/i)
+      return ['rejected', nil, nil] if s.match?(/\A(no|false|0|n|rejected)\z/i)
+
+      return ['rejected', nil, s[1..].to_s.strip] if s.match?(/\An/i)
+
+      return ['approved', nil, nil] if s.match?(/\Ay/i)
 
       t = parse_timestamp(s)
-      return ['approved', t] if t
+      return ['approved', t, nil] if t
 
-      ['submitted', nil]
+      ['submitted', nil, s]
     end
 
+    # Parses export timestamps; uses US month/day for slash dates (e.g. 5/4/2023) so they are not read as D/M.
+    # Does not pass arbitrary prose to +Time.zone.parse+ (which can treat phrases like "next month" as valid times).
     def parse_timestamp(val)
       return nil if val.blank?
 
-      Time.zone.parse(val.to_s)
+      raw = val.to_s.strip
+
+      us = raw.match(%r{\A(\d{1,2})/(\d{1,2})/(\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?\z})
+      if us
+        return Time.zone.local(
+          us[3].to_i, us[1].to_i, us[2].to_i,
+          (us[4] || 0).to_i, (us[5] || 0).to_i, (us[6] || 0).to_i
+        )
+      end
+
+      return Time.zone.parse(raw) if raw.match?(/\A\d{4}-\d{2}-\d{2}/)
+
+      nil
     rescue ArgumentError, TypeError
       nil
     end

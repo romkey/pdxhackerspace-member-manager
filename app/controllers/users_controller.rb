@@ -497,7 +497,7 @@ class UsersController < AuthenticatedController
 
   def set_user_for_show
     @user = User.includes(
-      :sheet_entry, :slack_user, :rfids, :user_links,
+      :sheet_entry, :slack_user, :rfids, :user_links, :membership_applications,
       trainings_as_trainee: :training_topic, training_topics: []
     ).find_by_param(params[:id])
   end

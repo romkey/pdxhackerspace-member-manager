@@ -25,6 +25,40 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_match(/Payment Events/i, response.body)
   end
 
+  test 'admin profile tab links to linked membership applications' do
+    app = MembershipApplication.create!(
+      email: 'profile-link-test@example.com',
+      user: @user,
+      status: 'approved',
+      submitted_at: 1.day.ago,
+      reviewed_at: Time.current
+    )
+
+    get user_path(@user, tab: :profile)
+
+    assert_response :success
+    assert_select 'a[href=?]', membership_application_path(app), text: /Application ##{app.id}/
+  end
+
+  test 'member profile does not show membership application links' do
+    member = users(:member_with_local_account)
+    app = MembershipApplication.create!(
+      email: 'member-hidden-app@example.com',
+      user: member,
+      status: 'approved',
+      submitted_at: 1.day.ago,
+      reviewed_at: Time.current
+    )
+
+    delete logout_path
+    sign_in_as_regular_member
+
+    get user_path(member, tab: :profile)
+
+    assert_response :success
+    assert_select 'a[href=?]', membership_application_path(app), count: 0
+  end
+
   # ─── Disabled Source Guards ──────────────────────────────────────
 
   test 'sync from authentik redirects with alert when authentik source is disabled' do
@@ -80,6 +114,16 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
       session: {
         email: account.email,
         password: 'localpassword123'
+      }
+    }
+  end
+
+  def sign_in_as_regular_member
+    account = local_accounts(:regular_member)
+    post local_login_path, params: {
+      session: {
+        email: account.email,
+        password: 'memberpassword123'
       }
     }
   end

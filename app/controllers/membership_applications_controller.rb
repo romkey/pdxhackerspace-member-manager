@@ -47,7 +47,7 @@ class MembershipApplicationsController < ApplicationController
                     when 'all'
                       @applications
                     when 'unlinked'
-                      @applications.where(user_id: nil).where.not(status: 'rejected')
+                      @applications.where(user_id: nil).where(status: 'approved')
                     else
                       @applications.where(status: @current_status)
                     end
@@ -58,7 +58,7 @@ class MembershipApplicationsController < ApplicationController
       submitted: MembershipApplication.submitted_apps.count,
       approved: MembershipApplication.approved.count,
       rejected: MembershipApplication.rejected.count,
-      unlinked: MembershipApplication.where.not(status: %w[draft rejected]).where(user_id: nil).count
+      unlinked: MembershipApplication.where(status: 'approved').where(user_id: nil).count
     }
 
     @pagy, @applications = pagy(@applications, limit: 25)
