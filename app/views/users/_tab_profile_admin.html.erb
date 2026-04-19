@@ -83,6 +83,27 @@
             <% end %>
           </dd>
 
+          <dt class="col-sm-3 text-secondary">Membership application</dt>
+          <dd class="col-sm-9">
+            <% if user.membership_applications.any? %>
+              <ul class="list-unstyled mb-0">
+                <% user.membership_applications.each do |app| %>
+                  <% status_class = { 'draft' => 'text-bg-secondary', 'submitted' => 'text-bg-warning text-dark',
+                                      'approved' => 'text-bg-success', 'rejected' => 'text-bg-danger' }[app.status] || 'text-bg-secondary' %>
+                  <li class="mb-1">
+                    <%= link_to membership_application_path(app), class: "text-decoration-none" do %>
+                      <span class="me-1">Application #<%= app.id %></span>
+                      <span class="badge <%= status_class %>"><%= app.status.titleize %></span>
+                    <% end %>
+                    <span class="text-muted small ms-1"><%= l(app.created_at, format: :long) %></span>
+                  </li>
+                <% end %>
+              </ul>
+            <% else %>
+              <span class="text-muted fst-italic">None linked</span>
+            <% end %>
+          </dd>
+
           <dt class="col-sm-3 text-secondary">Slack</dt>
           <dd class="col-sm-9">
             <% if user.slack_handle.present? || user.slack_id.present? %>

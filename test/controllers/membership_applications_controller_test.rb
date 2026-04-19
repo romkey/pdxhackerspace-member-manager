@@ -38,6 +38,25 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 'Please choose a CSV file to import.', flash[:alert]
   end
 
+  test 'non-admin cannot view membership application show' do
+    app = MembershipApplication.create!(
+      email: 'non-admin-denied@example.com',
+      status: 'submitted',
+      submitted_at: Time.current
+    )
+
+    delete logout_path
+    account = local_accounts(:regular_member)
+    post local_login_path, params: {
+      session: { email: account.email, password: 'memberpassword123' }
+    }
+
+    get membership_application_path(app)
+
+    assert_redirected_to user_path(users(:member_with_local_account))
+    assert_equal 'You do not have access to that section.', flash[:alert]
+  end
+
   test 'link_user associates member with application' do
     app = MembershipApplication.create!(
       email: 'link-app-test@example.com',
