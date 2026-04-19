@@ -55,6 +55,7 @@
                                when 'application_submitted' then 'text-bg-info'
                                when 'application_approved' then 'text-bg-success'
                                when 'application_rejected' then 'text-bg-danger'
+                               when 'application_delayed_for_review' then 'text-bg-warning'
                                else 'text-bg-secondary'
                                end %>
               <span class="badge <%= badge_class %>"><%= j.action.humanize %></span>

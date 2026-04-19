@@ -46,6 +46,12 @@
       <% end %>
     </li>
     <li class="nav-item">
+      <%= link_to membership_applications_path(ma_nav.merge(status: 'under_review')),
+          class: "nav-link #{@current_status == 'under_review' ? 'active' : ''}" do %>
+        Under Review <span class="badge bg-warning text-dark"><%= @status_counts[:under_review] %></span>
+      <% end %>
+    </li>
+    <li class="nav-item">
       <%= link_to membership_applications_path(ma_nav.merge(status: 'approved')),
           class: "nav-link #{@current_status == 'approved' ? 'active' : ''}" do %>
         Approved <span class="badge bg-success"><%= @status_counts[:approved] %></span>
@@ -121,7 +127,7 @@
                             data: { turbo_frame: '_top' } %>
               </td>
               <td>
-                <span class="badge bg-<%= app.status_badge_color %>"><%= app.status_display %></span>
+                <span class="badge bg-<%= app.status_badge_color %><%= ' text-dark' if app.under_review? %>"><%= app.status_display %></span>
               </td>
               <td><%= app.submitted_at&.strftime('%b %d, %Y') || '—' %></td>
               <td class="text-nowrap">

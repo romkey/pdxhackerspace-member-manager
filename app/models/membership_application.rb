@@ -1,5 +1,5 @@
 class MembershipApplication < ApplicationRecord
-  STATUSES = %w[draft submitted approved rejected].freeze
+  STATUSES = %w[draft submitted under_review approved rejected].freeze
 
   # Training topic name (TrainingTopic.name) — viewers with this training see applicant PII without masking.
   EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME = 'Executive Director'.freeze
@@ -39,9 +39,11 @@ class MembershipApplication < ApplicationRecord
     where.not(status: 'draft').where(ai_feedback_processed_at: nil)
   }
   scope :submitted_apps, -> { where(status: 'submitted') }
+  scope :under_review_apps, -> { where(status: 'under_review') }
   scope :approved, -> { where(status: 'approved') }
   scope :rejected, -> { where(status: 'rejected') }
-  scope :pending, -> { submitted_apps }
+  # Applications awaiting a final decision (Open or Under Review).
+  scope :pending, -> { where(status: %w[submitted under_review]) }
   scope :newest_first, -> { order(created_at: :desc) }
   scope :admin_search, lambda { |query|
     raw = query.to_s.strip
@@ -78,6 +80,10 @@ class MembershipApplication < ApplicationRecord
 
   def submitted?
     status == 'submitted'
+  end
+
+  def under_review?
+    status == 'under_review'
   end
 
   def approved?
@@ -124,8 +130,23 @@ class MembershipApplication < ApplicationRecord
     queued_mail
   end
 
+  # Marks the application as delayed for executive review (no applicant email).
+  def delay_for_review!(admin, notes: nil)
+    raise ArgumentError, 'Only open applications can be delayed for review' unless submitted?
+
+    update!(
+      status: 'under_review',
+      reviewed_by: admin,
+      reviewed_at: Time.current,
+      admin_notes: notes
+    )
+    Journal.record_application_event!(application: self, action: 'application_delayed_for_review', actor: admin)
+  end
+
   def status_display
     return 'Open' if submitted?
+
+    return 'Under Review' if under_review?
 
     status&.titleize
   end
@@ -133,6 +154,7 @@ class MembershipApplication < ApplicationRecord
   def status_badge_color
     case status
     when 'submitted' then 'primary'
+    when 'under_review' then 'warning'
     when 'approved' then 'success'
     when 'rejected' then 'danger'
     else 'secondary'

@@ -29,6 +29,30 @@ class MembershipApplicationTest < ActiveSupport::TestCase
     assert_enqueued_jobs 1, only: MembershipApplicationAiFeedbackJob
   end
 
+  test 'delay_for_review! moves open application to under_review and journals' do
+    app = MembershipApplication.create!(email: 'delay-review@example.com', status: 'submitted')
+    admin = users(:one)
+
+    assert_difference -> { Journal.where(action: 'application_delayed_for_review').count }, 1 do
+      app.delay_for_review!(admin, notes: 'Need board input')
+    end
+
+    app.reload
+    assert_equal 'under_review', app.status
+    assert_equal admin, app.reviewed_by
+    assert app.reviewed_at.present?
+    assert_equal 'Need board input', app.admin_notes
+  end
+
+  test 'delay_for_review! raises when not open' do
+    app = MembershipApplication.create!(email: 'delay-bad@example.com', status: 'approved',
+                                        submitted_at: Time.current, reviewed_at: Time.current)
+
+    assert_raises(ArgumentError) do
+      app.delay_for_review!(users(:one))
+    end
+  end
+
   test 'reject! creates pending queued rejection mail' do
     app = MembershipApplication.create!(email: 'reject-mail-test@example.com', status: 'submitted')
     admin = users(:one)

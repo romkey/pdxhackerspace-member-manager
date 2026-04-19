@@ -6,17 +6,18 @@ class MembershipApplicationsController < ApplicationController
   include MembershipApplicationWizard::Actions
 
   ADMIN_ACTIONS = %i[
-    index show import approve reject link_user unlink_user vote_ai_feedback
+    index show import approve reject delay_for_review link_user unlink_user vote_ai_feedback
     save_tour_feedback vote_acceptance
   ].freeze
   APPLICATION_MEMBER_ACTIONS = %i[
-    show approve reject link_user unlink_user vote_ai_feedback
+    show approve reject delay_for_review link_user unlink_user vote_ai_feedback
     save_tour_feedback vote_acceptance
   ].freeze
 
   before_action :require_admin!, only: ADMIN_ACTIONS
   before_action :set_application_admin, only: APPLICATION_MEMBER_ACTIONS
-  before_action :require_executive_director_for_final_decision!, only: %i[approve reject]
+  before_action :require_executive_director_for_final_decision!, only: %i[approve reject delay_for_review]
+  before_action :require_submitted_for_delay!, only: :delay_for_review
   before_action :require_pending_application_for_acceptance_vote!, only: :vote_acceptance
 
   # --- Admin actions ---
@@ -56,6 +57,7 @@ class MembershipApplicationsController < ApplicationController
     @status_counts = {
       all: MembershipApplication.where.not(status: 'draft').count,
       submitted: MembershipApplication.submitted_apps.count,
+      under_review: MembershipApplication.under_review_apps.count,
       approved: MembershipApplication.approved.count,
       rejected: MembershipApplication.rejected.count,
       unlinked: MembershipApplication.where(status: 'approved').where(user_id: nil).count
@@ -165,6 +167,13 @@ class MembershipApplicationsController < ApplicationController
     end
   end
 
+  def delay_for_review
+    notes = params[:admin_notes]
+    @application.delay_for_review!(current_user, notes: notes)
+    redirect_to membership_application_path(@application),
+                notice: 'Application marked as under review.'
+  end
+
   def vote_ai_feedback
     unless @application.ai_feedback_processed?
       redirect_to membership_application_path(@application),
@@ -189,7 +198,14 @@ class MembershipApplicationsController < ApplicationController
     return if true_user&.can_finalize_membership_application?
 
     redirect_to membership_application_path(@application),
-                alert: 'Only members trained as Executive Director may approve or reject applications.'
+                alert: 'Only members trained as Executive Director may approve, reject, or delay applications.'
+  end
+
+  def require_submitted_for_delay!
+    return if @application.submitted?
+
+    redirect_to membership_application_path(@application),
+                alert: 'Only open applications can be marked for delayed review.'
   end
 
   def require_pending_application_for_acceptance_vote!

@@ -325,6 +325,55 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal app.user, qm.recipient
   end
 
+  test 'delay_for_review blocked when executive director topic exists and admin lacks training' do
+    TrainingTopic.create!(name: 'Executive Director')
+    app = MembershipApplication.create!(
+      email: 'delay-gate@example.com',
+      status: 'submitted',
+      submitted_at: Time.current
+    )
+    assert_no_changes -> { app.reload.status } do
+      post delay_for_review_membership_application_path(app), params: { admin_notes: 'Later' }
+    end
+    assert_redirected_to membership_application_path(app)
+    assert_match(/Executive Director/i, flash[:alert].to_s)
+  end
+
+  test 'delay_for_review sets under_review when executive director' do
+    topic = TrainingTopic.create!(name: 'Executive Director')
+    admin = User.find(session[:user_id])
+    Training.create!(trainee: admin, training_topic: topic, trained_at: Time.current)
+    app = MembershipApplication.create!(
+      email: 'delay-ok@example.com',
+      status: 'submitted',
+      submitted_at: Time.current
+    )
+
+    assert_difference -> { Journal.where(action: 'application_delayed_for_review').count }, 1 do
+      post delay_for_review_membership_application_path(app), params: { admin_notes: 'Deferred' }
+    end
+    assert_redirected_to membership_application_path(app)
+    assert_match(/under review/i, flash[:notice].to_s)
+    assert_equal 'under_review', app.reload.status
+    assert_equal 'Deferred', app.admin_notes
+  end
+
+  test 'delay_for_review redirects when application already under review' do
+    topic = TrainingTopic.create!(name: 'Executive Director')
+    admin = User.find(session[:user_id])
+    Training.create!(trainee: admin, training_topic: topic, trained_at: Time.current)
+    app = MembershipApplication.create!(
+      email: 'delay-twice@example.com',
+      status: 'under_review',
+      submitted_at: Time.current,
+      reviewed_at: Time.current
+    )
+
+    post delay_for_review_membership_application_path(app), params: { admin_notes: 'x' }
+    assert_redirected_to membership_application_path(app)
+    assert_match(/open applications/i, flash[:alert].to_s)
+  end
+
   test 'reject redirects to edit queued mail when executive director' do
     topic = TrainingTopic.create!(name: 'Executive Director')
     admin = User.find(session[:user_id])

@@ -89,6 +89,7 @@
               <ul class="list-unstyled mb-0">
                 <% user.membership_applications.each do |app| %>
                   <% status_class = { 'draft' => 'text-bg-secondary', 'submitted' => 'text-bg-warning text-dark',
+                                      'under_review' => 'text-bg-warning text-dark',
                                       'approved' => 'text-bg-success', 'rejected' => 'text-bg-danger' }[app.status] || 'text-bg-secondary' %>
                   <li class="mb-1">
                     <%= link_to membership_application_path(app), class: "text-decoration-none" do %>

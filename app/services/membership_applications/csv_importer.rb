@@ -90,7 +90,7 @@ module MembershipApplications
       attrs = {}
       attrs[:submitted_at] = submitted_at if submitted_at.present? && app.submitted_at.blank?
 
-      if app.submitted?
+      if app.submitted? || app.under_review?
         attrs[:status] = status
         if status.in?(%w[approved rejected])
           attrs[:reviewed_at] = reviewed_at
