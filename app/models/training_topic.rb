@@ -13,7 +13,11 @@ class TrainingTopic < ApplicationRecord
 
   scope :offered_for_members, -> { where(offered_to_members: true) }
   scope :with_trainers, -> { joins(:trainer_capabilities).distinct }
-  scope :available_for_member_requests, -> { offered_for_members.with_trainers.order(:name) }
+  # Only counts trainers whose membership is still active; inactive trainers
+  # are not contacted, so topics whose only trainers are inactive are not
+  # offered for member requests.
+  scope :with_active_trainers, -> { joins(:trainers).merge(User.active).distinct }
+  scope :available_for_member_requests, -> { offered_for_members.with_active_trainers.order(:name) }
 
   after_create_commit :provision_authentik_groups
 

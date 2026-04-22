@@ -33,6 +33,34 @@ class TrainingRequestsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to user_path(member, tab: :profile)
   end
 
+  test 'training request only emails trainers whose membership is active' do
+    users(:two).update!(active: false)
+
+    sign_in_as_member
+
+    assert_difference 'TrainingRequest.count', 1 do
+      assert_difference 'QueuedMail.count', 2 do
+        post training_requests_path, params: {
+          training_request: {
+            training_topic_id: @topic.id,
+            share_contact_info: '1'
+          }
+        }
+      end
+    end
+
+    recipient_ids = QueuedMail.order(:id).last(2).map(&:recipient_id)
+    assert_not_includes recipient_ids, users(:two).id
+    assert_includes recipient_ids, users(:one).id
+  end
+
+  test 'topic whose only trainer is inactive is not requestable' do
+    users(:one).update!(active: false)
+    users(:two).update!(active: false)
+
+    assert_not TrainingTopic.available_for_member_requests.exists?(id: @topic.id)
+  end
+
   test 'member must consent to sharing contact info' do
     sign_in_as_member
 

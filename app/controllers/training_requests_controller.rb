@@ -80,7 +80,8 @@ class TrainingRequestsController < AuthenticatedController
   def queue_training_request_emails!(request)
     topic = request.training_topic
     requester = request.user
-    trainer_names = trainer_display_names_for(topic)
+    active_trainers = topic.trainers.active.order(:full_name, :email).to_a
+    trainer_names = active_trainers.map(&:display_name).join(', ')
     requester_args = training_request_mail_args(request, recipient_role: 'member', trainer_names: trainer_names)
 
     QueuedMail.enqueue(
@@ -90,13 +91,9 @@ class TrainingRequestsController < AuthenticatedController
       **requester_args
     )
 
-    topic.trainers.find_each do |trainer|
+    active_trainers.each do |trainer|
       enqueue_trainer_training_request_mail(request, trainer, trainer_names: trainer_names)
     end
-  end
-
-  def trainer_display_names_for(topic)
-    topic.trainers.order(:full_name, :email).map(&:display_name).join(', ')
   end
 
   def training_request_mail_args(request, recipient_role:, trainer_names:)

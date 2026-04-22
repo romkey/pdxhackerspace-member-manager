@@ -19,6 +19,10 @@
           <a class="navbar-brand" href="<%= root_path %>" aria-label="Home">
             <i class="bi bi-house"></i>
           </a>
+        <% elsif user_signed_in? %>
+          <%= link_to user_path(current_user, tab: :dashboard), class: 'navbar-brand', aria: { label: 'Dashboard' }, title: 'Dashboard' do %>
+            <i class="bi bi-speedometer2"></i>
+          <% end %>
         <% end %>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>

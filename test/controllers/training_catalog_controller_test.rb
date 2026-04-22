@@ -62,6 +62,19 @@ class TrainingCatalogControllerTest < ActionDispatch::IntegrationTest
     assert_no_match(/Request Training/i, response.body)
   end
 
+  test 'index does not show request training button when only trainers are inactive' do
+    TrainerCapability.where(training_topic: [@laser_topic, @woodworking_topic]).delete_all
+    inactive_trainer = users(:two)
+    inactive_trainer.update!(active: false)
+    TrainerCapability.find_or_create_by!(user: inactive_trainer, training_topic: @laser_topic)
+
+    sign_in_as_member
+    get training_catalog_path
+
+    assert_response :success
+    assert_no_match(/Request Training/i, response.body)
+  end
+
   test 'admin index marks whether each topic is offered to members' do
     sign_in_as_admin
     get training_catalog_path
@@ -150,6 +163,71 @@ class TrainingCatalogControllerTest < ActionDispatch::IntegrationTest
     assert_no_match(/Request Training/i, response.body)
   end
 
+  test 'show does not list trainers whose membership is inactive' do
+    active_trainer   = users(:one)
+    inactive_trainer = users(:two)
+    inactive_trainer.update!(active: false)
+    TrainerCapability.find_or_create_by!(user: active_trainer,   training_topic: @laser_topic)
+    TrainerCapability.find_or_create_by!(user: inactive_trainer, training_topic: @laser_topic)
+
+    sign_in_as_admin
+    get training_catalog_topic_path(@laser_topic)
+
+    assert_response :success
+    assert_match active_trainer.display_name, response.body
+    assert_no_match(/#{Regexp.escape(inactive_trainer.display_name)}/, response.body)
+  end
+
+  test 'show does not display request training button when only trainers are inactive' do
+    inactive_trainer = users(:two)
+    inactive_trainer.update!(active: false)
+    TrainerCapability.where(training_topic: @laser_topic).delete_all
+    TrainerCapability.find_or_create_by!(user: inactive_trainer, training_topic: @laser_topic)
+
+    sign_in_as_member
+    get training_catalog_topic_path(@laser_topic)
+
+    assert_response :success
+    assert_no_match(/Request Training/i, response.body)
+  end
+
+  test 'show renders training materials before trainers and trained members' do
+    TrainerCapability.find_or_create_by!(user: users(:one), training_topic: @laser_topic)
+
+    sign_in_as_admin
+    get training_catalog_topic_path(@laser_topic)
+
+    assert_response :success
+    materials_index = response.body.index('Training Materials')
+    trainers_index  = response.body.index('Trainers</h2>')
+    trained_index   = response.body.index('Trained Members')
+
+    assert materials_index, 'expected Training Materials section'
+    assert trainers_index,  'expected Trainers section'
+    assert trained_index,   'expected Trained Members section'
+    assert materials_index < trainers_index,
+           'expected Training Materials to appear before Trainers'
+    assert materials_index < trained_index,
+           'expected Training Materials to appear before Trained Members'
+  end
+
+  test 'show displays edit button for admin' do
+    sign_in_as_admin
+    get training_catalog_topic_path(@laser_topic)
+
+    assert_response :success
+    assert_match edit_training_topic_path(@laser_topic), response.body
+    assert_match(/>\s*Edit\s*</, response.body)
+  end
+
+  test 'show does not display edit button for non-admin' do
+    sign_in_as_member
+    get training_catalog_topic_path(@laser_topic)
+
+    assert_response :success
+    assert_no_match(/#{Regexp.escape(edit_training_topic_path(@laser_topic))}/, response.body)
+  end
+
   test 'show returns friendly error for unknown topic' do
     sign_in_as_admin
     get training_catalog_topic_path(id: 999_999_999)
@@ -176,6 +254,27 @@ class TrainingCatalogControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match(%r{>Training</a>}, response.body)
     assert_match training_catalog_path, response.body
+  end
+
+  test 'navbar shows dashboard shortcut icon for non-admin member' do
+    sign_in_as_member
+    member = User.find_by(authentik_id: "local:#{local_accounts(:regular_member).id}")
+
+    get training_catalog_path
+
+    assert_response :success
+    assert_match(/aria-label="Dashboard"/, response.body)
+    assert_match(/bi bi-speedometer2/, response.body)
+    assert_match user_path(member, tab: :dashboard), response.body
+  end
+
+  test 'navbar shows home icon for admin rather than dashboard shortcut' do
+    sign_in_as_admin
+    get root_path
+
+    assert_response :success
+    assert_match(/aria-label="Home"/, response.body)
+    assert_no_match(/aria-label="Dashboard"/, response.body)
   end
 
   private

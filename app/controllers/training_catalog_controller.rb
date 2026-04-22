@@ -11,25 +11,23 @@ class TrainingCatalogController < AuthenticatedController
 
   def index
     @training_topics = visible_topics.order(:name)
-    # Build a Set of topic ids that are currently open for member training requests.
-    # We avoid the `available_for_member_requests` scope here because it combines
-    # `distinct` with `order(:name)`, which Postgres rejects once we narrow the
-    # select list (e.g. via `pluck(:id)`).
-    @requestable_topic_ids = TrainingTopic.offered_for_members
-                                          .joins(:trainer_capabilities)
-                                          .distinct
+    # Topics that are currently open for member training requests: offered to
+    # members and with at least one active trainer. `reorder(nil)` drops the
+    # scope's `order(:name)` so Postgres accepts the `DISTINCT id` select.
+    @requestable_topic_ids = TrainingTopic.available_for_member_requests
+                                          .reorder(nil)
                                           .pluck(:id)
                                           .to_set
   end
 
   def show
-    @trainers = @training_topic.trainers.order(:full_name, :email)
+    @trainers = @training_topic.trainers.active.order(:full_name, :email)
     @trainees = User.where(id: @training_topic.trainings.select(:trainee_id).distinct)
                     .order(:full_name, :email)
     @topic_links = @training_topic.links.order(:title)
     @topic_documents = visible_documents_for(@training_topic)
     @requestable = @training_topic.offered_to_members? &&
-                   @training_topic.trainer_capabilities.exists?
+                   @training_topic.trainers.active.exists?
   end
 
   private
