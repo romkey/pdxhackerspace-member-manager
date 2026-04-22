@@ -299,5 +299,13 @@
     </table>
   </div>
 </div>
+<% if @pagy.pages > 1 %>
+  <div class="mt-3">
+    <%== @pagy.series_nav(:bootstrap) %>
+    <div class="text-center text-muted small mt-2">
+      Showing <%= @pagy.from %>-<%= @pagy.to %> of <%= @pagy.count %>
+    </div>
+  </div>
+<% end %>
 </div><%# /data-controller="live-filter" %>
 

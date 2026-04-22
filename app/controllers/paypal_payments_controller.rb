@@ -1,4 +1,6 @@
 class PaypalPaymentsController < AdminController
+  include Pagy::Method
+
   def index
     # Determine if we're showing unmatched payments
     @show_unmatched = params[:show_unmatched] == 'true'
@@ -31,6 +33,8 @@ class PaypalPaymentsController < AdminController
     @payments = @payments.ordered
     @payment_count = @payments.count
     @total_amount = @payments.sum(:amount)
+
+    @pagy, @payments = pagy(@payments.includes(:user), limit: 100)
 
     # Track filter state
     @filter_active = params[:linked].present?
