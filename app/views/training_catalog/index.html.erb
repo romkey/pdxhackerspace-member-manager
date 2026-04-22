@@ -1,0 +1,82 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0"><i class="bi bi-mortarboard me-2"></i>Training</h1>
+  <% if @requestable_topic_ids.any? %>
+    <%= link_to new_training_request_path, class: 'btn btn-primary' do %>
+      <i class="bi bi-mortarboard me-1"></i> Request Training
+    <% end %>
+  <% end %>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <p class="text-muted mb-0">
+      Browse available training topics. Click a topic for details, including trainers,
+      trainees, and materials. Topics offered to members can be requested; if you do not
+      see what you need, please post in <strong>#help</strong> on Slack or email
+      <a href="mailto:info@pdxhackerspace.org">info@pdxhackerspace.org</a>.
+    </p>
+  </div>
+</div>
+
+<% if @training_topics.any? %>
+  <div class="card shadow-sm border-0">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="bg-body-tertiary">
+            <tr>
+              <th scope="col">Topic</th>
+              <% if current_user_admin? %>
+                <th scope="col" class="text-center">Offered to members</th>
+              <% end %>
+              <th scope="col" class="text-center">Trainers</th>
+              <th scope="col" class="text-center">Trained</th>
+              <th scope="col" class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @training_topics.each do |topic| %>
+              <tr>
+                <td>
+                  <strong><%= link_to topic.name, training_catalog_topic_path(topic), class: 'text-decoration-none' %></strong>
+                  <% if topic.description.present? %>
+                    <div class="text-muted small"><%= truncate(topic.description.to_s, length: 140) %></div>
+                  <% end %>
+                </td>
+                <% if current_user_admin? %>
+                  <td class="text-center">
+                    <% if topic.offered_to_members? %>
+                      <span class="badge text-bg-success">Yes</span>
+                    <% else %>
+                      <span class="badge text-bg-secondary">No</span>
+                    <% end %>
+                  </td>
+                <% end %>
+                <td class="text-center">
+                  <span class="badge text-bg-success"><%= topic.trainer_capabilities.select(:user_id).distinct.count %></span>
+                </td>
+                <td class="text-center">
+                  <span class="badge text-bg-primary"><%= topic.trainings.select(:trainee_id).distinct.count %></span>
+                </td>
+                <td class="text-end">
+                  <div class="d-flex gap-2 justify-content-end">
+                    <%= link_to 'Details', training_catalog_topic_path(topic), class: 'btn btn-sm btn-outline-secondary' %>
+                    <% if @requestable_topic_ids.include?(topic.id) %>
+                      <%= link_to new_training_request_path, class: 'btn btn-sm btn-primary' do %>
+                        <i class="bi bi-mortarboard"></i> Request
+                      <% end %>
+                    <% end %>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+<% else %>
+  <div class="alert alert-secondary mb-0">
+    No training topics are currently available.
+  </div>
+<% end %>

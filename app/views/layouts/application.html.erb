@@ -87,6 +87,9 @@
                   </ul>
                 </li>
                 <li class="nav-item">
+                  <%= link_to "Training", training_catalog_path, class: "nav-link #{controller_name == 'training_catalog' ? 'active' : ''}" %>
+                </li>
+                <li class="nav-item">
                   <%= link_to "Journal", journals_path, class: "nav-link #{current_page?(journals_path) ? 'active' : ''}" %>
                 </li>
                 <li class="nav-item dropdown">
@@ -133,7 +136,9 @@
                   </ul>
                 </li>
               <% else %>
-                <%# non-admins see no extra admin links %>
+                <li class="nav-item">
+                  <%= link_to "Training", training_catalog_path, class: "nav-link #{controller_name == 'training_catalog' ? 'active' : ''}" %>
+                </li>
               <% end %>
               <li class="nav-item dropdown">
                 <% help_pages = controller_name == 'pages' && %w[help help_faq help_admin_faq].include?(action_name) %>

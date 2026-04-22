@@ -62,6 +62,10 @@ Rails.application.routes.draw do
     end
   end
   resources :training_requests, only: %i[new create edit update]
+
+  # Member-facing catalog of training topics
+  get '/training',      to: 'training_catalog#index', as: :training_catalog
+  get '/training/:id',  to: 'training_catalog#show',  as: :training_catalog_topic, constraints: { id: /\d+/ }
   resources :member_parking_permits, only: %i[new create]
 
   resources :users, only: [:index, :show, :new, :create, :edit, :update, :destroy], constraints: { id: /[^\/]+/ } do
