@@ -608,9 +608,34 @@ class UsersController < AuthenticatedController
     @member_dashboard_ok_items = []
 
     append_member_dashboard_payment_item
+    append_member_dashboard_messages_item
     append_member_dashboard_training_item
     append_member_dashboard_slack_item
     append_member_dashboard_parking_item
+  end
+
+  def append_member_dashboard_messages_item
+    unread_count = @user.received_messages.unread.count
+    if unread_count.positive?
+      add_member_dashboard_item(
+        ok: false,
+        id: :unread_messages,
+        tier: :urgent,
+        title: 'Unread messages',
+        detail: "You have #{unread_count} unread message#{'s' unless unread_count == 1}.",
+        action_label: 'Open Messages tab',
+        action_path: user_path(@user, tab: :messages, view_as: params[:view_as])
+      )
+      return
+    end
+
+    add_member_dashboard_item(
+      ok: true,
+      id: :unread_messages,
+      tier: :none,
+      title: 'Unread messages',
+      detail: 'You have no unread messages.'
+    )
   end
 
   def append_member_dashboard_payment_item
