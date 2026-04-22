@@ -15,7 +15,7 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     Rails.application.config.x.local_auth.enabled = @original_local_auth_enabled
   end
 
-  # ─── Admin can send messages ───────────────────────────────────
+  # ─── Create: admin sending (existing behavior) ───────────────────
 
   test 'admin can send a message' do
     sign_in_as_local_admin
@@ -91,9 +91,9 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     assert_equal 'Recipient not found.', flash[:alert]
   end
 
-  # ─── Non-admin access ─────────────────────────────────────────
+  # ─── Non-admin initiating a new message ─────────────────────────
 
-  test 'non-admin cannot send messages' do
+  test 'non-admin cannot initiate a new message' do
     sign_in_as_local_member
 
     assert_no_difference 'Message.count' do
@@ -103,6 +103,9 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
         body: 'Test'
       }
     end
+
+    assert_redirected_to messages_path
+    assert flash[:alert].present?
   end
 
   test 'unauthenticated user cannot send messages' do
@@ -113,6 +116,297 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
         body: 'Test'
       }
     end
+  end
+
+  # ─── Reply flow ─────────────────────────────────────────────────
+
+  test 'recipient can reply to a message they received (non-admin)' do
+    member_user = member_user_for_local
+    original = Message.create!(
+      sender: @sender,
+      recipient: member_user,
+      subject: 'Hello',
+      body: 'Hi'
+    )
+
+    sign_in_as_local_member
+
+    assert_difference 'Message.count', 1 do
+      post messages_path, params: {
+        in_reply_to_id: original.id,
+        subject: 'Re: Hello',
+        body: 'Reply body'
+      }
+    end
+
+    reply = Message.last
+    assert_equal member_user, reply.sender
+    assert_equal @sender, reply.recipient
+    assert_equal 'Re: Hello', reply.subject
+    assert_redirected_to messages_path(folder: :sent)
+    assert_equal 'Reply sent.', flash[:notice]
+  end
+
+  test 'non-recipient cannot reply to a message' do
+    original = Message.create!(
+      sender: @sender,
+      recipient: @recipient,
+      subject: 'Hello',
+      body: 'Hi'
+    )
+
+    sign_in_as_local_member
+
+    assert_no_difference 'Message.count' do
+      post messages_path, params: {
+        in_reply_to_id: original.id,
+        subject: 'Re: Hello',
+        body: 'Reply'
+      }
+    end
+
+    assert_redirected_to messages_path
+    assert flash[:alert].present?
+  end
+
+  # ─── Index ──────────────────────────────────────────────────────
+
+  test 'unauthenticated user cannot view messages index' do
+    get messages_path
+    assert_redirected_to login_path
+  end
+
+  test 'index default folder shows unread received messages' do
+    member_user = member_user_for_local
+    Message.create!(sender: @sender, recipient: member_user, subject: 'Unread One', body: '.')
+    read_msg = Message.create!(sender: @sender, recipient: member_user, subject: 'Read One', body: '.')
+    read_msg.read!
+    deleted = Message.create!(sender: @sender, recipient: member_user, subject: 'Deleted', body: '.')
+    deleted.update!(deleted_by_recipient_at: Time.current)
+
+    sign_in_as_local_member
+    get messages_path
+    assert_response :success
+
+    body = response.body
+    assert_includes body, 'Unread One'
+    assert_not_includes body, 'Read One'
+    assert_not_includes body, 'Deleted'
+  end
+
+  test 'index folder=read shows read received messages only' do
+    member_user = member_user_for_local
+    Message.create!(sender: @sender, recipient: member_user, subject: 'Unread One', body: '.')
+    read_msg = Message.create!(sender: @sender, recipient: member_user, subject: 'Read One', body: '.')
+    read_msg.read!
+
+    sign_in_as_local_member
+    get messages_path, params: { folder: :read }
+
+    assert_response :success
+    assert_includes response.body, 'Read One'
+    assert_not_includes response.body, 'Unread One'
+  end
+
+  test 'index folder=sent shows messages authored by viewer' do
+    member_user = member_user_for_local
+    original = Message.create!(sender: @sender, recipient: member_user, subject: 'Hi', body: '.')
+    Message.create!(sender: member_user, recipient: @sender, subject: 'From member', body: 'body')
+
+    sign_in_as_local_member
+    get messages_path, params: { folder: :sent }
+
+    assert_response :success
+    assert_includes response.body, 'From member'
+    assert_not_includes response.body, original.subject
+  end
+
+  test 'index folder=all includes inbox and sent (non-trashed)' do
+    member_user = member_user_for_local
+    inbox = Message.create!(sender: @sender, recipient: member_user, subject: 'Inbox entry', body: '.')
+    sent = Message.create!(sender: member_user, recipient: @sender, subject: 'Sent entry', body: '.')
+    trashed = Message.create!(sender: @sender, recipient: member_user, subject: 'Trashed entry', body: '.')
+    trashed.update!(deleted_by_recipient_at: Time.current)
+
+    sign_in_as_local_member
+    get messages_path, params: { folder: :all }
+
+    assert_response :success
+    assert_includes response.body, inbox.subject
+    assert_includes response.body, sent.subject
+    assert_not_includes response.body, trashed.subject
+  end
+
+  test 'index folder=trash includes deleted-within-30-days messages' do
+    member_user = member_user_for_local
+    recent = Message.create!(sender: @sender, recipient: member_user, subject: 'Recent trash', body: '.')
+    recent.update!(deleted_by_recipient_at: 2.days.ago)
+    expired = Message.create!(sender: @sender, recipient: member_user, subject: 'Expired trash', body: '.')
+    expired.update!(deleted_by_recipient_at: 60.days.ago)
+
+    sign_in_as_local_member
+    get messages_path, params: { folder: :trash }
+
+    assert_response :success
+    assert_includes response.body, recent.subject
+    assert_not_includes response.body, expired.subject
+  end
+
+  # ─── Show ───────────────────────────────────────────────────────
+
+  test 'recipient viewing an unread message marks it read' do
+    member_user = member_user_for_local
+    message = Message.create!(sender: @sender, recipient: member_user, subject: 'Hi', body: '.')
+    assert message.unread?
+
+    sign_in_as_local_member
+    get message_path(message)
+
+    assert_response :success
+    assert_not_nil message.reload.read_at
+  end
+
+  test 'sender viewing their own sent message does not change read_at' do
+    member_user = member_user_for_local
+    message = Message.create!(sender: member_user, recipient: @sender, subject: 'Mine', body: '.')
+    assert_nil message.read_at
+
+    sign_in_as_local_member
+    get message_path(message)
+
+    assert_response :success
+    assert_nil message.reload.read_at
+  end
+
+  test 'show redirects when message is not visible to the user' do
+    member_user = member_user_for_local
+    assert member_user.present?
+    other = Message.create!(sender: @sender, recipient: @recipient, subject: 'Not yours', body: '.')
+
+    sign_in_as_local_member
+    get message_path(other)
+
+    assert_redirected_to messages_path
+    assert_equal 'Message not found.', flash[:alert]
+  end
+
+  test 'show of a message in the viewer trash (within retention) succeeds' do
+    member_user = member_user_for_local
+    message = Message.create!(sender: @sender, recipient: member_user, subject: 'In trash', body: '.')
+    message.update!(deleted_by_recipient_at: 3.days.ago)
+
+    sign_in_as_local_member
+    get message_path(message, folder: :trash)
+
+    assert_response :success
+    assert_includes response.body, 'In trash'
+  end
+
+  test 'show of a message whose trash has expired is not found' do
+    member_user = member_user_for_local
+    message = Message.create!(sender: @sender, recipient: member_user, subject: 'Expired', body: '.')
+    message.update!(deleted_by_recipient_at: 60.days.ago)
+
+    sign_in_as_local_member
+    get message_path(message)
+
+    assert_redirected_to messages_path
+  end
+
+  # ─── Destroy ────────────────────────────────────────────────────
+
+  test 'recipient destroy soft-deletes for recipient only' do
+    member_user = member_user_for_local
+    message = Message.create!(sender: @sender, recipient: member_user, subject: 'Kill', body: '.')
+
+    sign_in_as_local_member
+    assert_no_difference 'Message.count' do
+      delete message_path(message)
+    end
+
+    message.reload
+    assert_not_nil message.deleted_by_recipient_at
+    assert_nil message.deleted_by_sender_at
+  end
+
+  test 'sender destroy soft-deletes for sender only' do
+    member_user = member_user_for_local
+    message = Message.create!(sender: member_user, recipient: @sender, subject: 'Mine', body: '.')
+
+    sign_in_as_local_member
+    assert_no_difference 'Message.count' do
+      delete message_path(message)
+    end
+
+    message.reload
+    assert_not_nil message.deleted_by_sender_at
+    assert_nil message.deleted_by_recipient_at
+  end
+
+  test 'destroy by unrelated user returns not found' do
+    other = Message.create!(sender: @sender, recipient: @recipient, subject: 'Nope', body: '.')
+
+    sign_in_as_local_member
+    delete message_path(other)
+
+    assert_redirected_to messages_path
+    other.reload
+    assert_nil other.deleted_by_sender_at
+    assert_nil other.deleted_by_recipient_at
+  end
+
+  # ─── Mark unread ────────────────────────────────────────────────
+
+  test 'recipient can mark a read message unread' do
+    member_user = member_user_for_local
+    message = Message.create!(sender: @sender, recipient: member_user, subject: 'Hi', body: '.')
+    message.read!
+    assert_not_nil message.read_at
+
+    sign_in_as_local_member
+    patch mark_unread_message_path(message)
+
+    assert_redirected_to messages_path(folder: :unread)
+    assert_nil message.reload.read_at
+  end
+
+  test 'sender cannot mark their own sent message unread' do
+    member_user = member_user_for_local
+    message = Message.create!(sender: member_user, recipient: @sender, subject: 'Out', body: '.')
+    message.read!
+    original_read_at = message.read_at
+
+    sign_in_as_local_member
+    patch mark_unread_message_path(message)
+
+    assert_redirected_to message_path(message)
+    assert_equal original_read_at.to_i, message.reload.read_at.to_i
+  end
+
+  # ─── Restore ────────────────────────────────────────────────────
+
+  test 'recipient can restore a message from trash within 30 days' do
+    member_user = member_user_for_local
+    message = Message.create!(sender: @sender, recipient: member_user, subject: 'Save me', body: '.')
+    message.update!(deleted_by_recipient_at: 2.days.ago)
+
+    sign_in_as_local_member
+    post restore_message_path(message)
+
+    assert_redirected_to messages_path(folder: :all)
+    assert_nil message.reload.deleted_by_recipient_at
+  end
+
+  test 'restoring a message past retention fails' do
+    member_user = member_user_for_local
+    message = Message.create!(sender: @sender, recipient: member_user, subject: 'Expired', body: '.')
+    message.update!(deleted_by_recipient_at: 60.days.ago)
+
+    sign_in_as_local_member
+    post restore_message_path(message)
+
+    assert_redirected_to messages_path
+    assert_not_nil message.reload.deleted_by_recipient_at
   end
 
   private
@@ -135,5 +429,11 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
         password: 'memberpassword123'
       }
     }
+  end
+
+  # The regular_member local account email matches the member_with_local_account user fixture;
+  # signing in syncs that fixture user and sets session[:user_id] to its id.
+  def member_user_for_local
+    users(:member_with_local_account)
   end
 end

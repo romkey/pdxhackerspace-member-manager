@@ -55,7 +55,12 @@ Rails.application.routes.draw do
   post "/impersonate/:user_id", to: "impersonations#create", as: :impersonate_user, constraints: { user_id: /[^\/]+/ }
   delete "/impersonate", to: "impersonations#destroy", as: :stop_impersonation
 
-  resources :messages, only: [:create]
+  resources :messages, only: %i[index show create destroy] do
+    member do
+      patch :mark_unread
+      post :restore
+    end
+  end
   resources :training_requests, only: %i[new create edit update]
   resources :member_parking_permits, only: %i[new create]
 

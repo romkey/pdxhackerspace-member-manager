@@ -16,13 +16,9 @@ module MemberHomeTabs
   end
 
   def set_home_messages_data
-    messages_query = @home_user.received_messages.includes(:sender).newest_first
-    @home_messages_count = messages_query.count
-    @home_unread_messages_count = @home_user.received_messages.unread.count
-
-    return unless @active_tab == :messages
-
-    @pagy_messages, @home_messages = pagy(messages_query, limit: 20, page_key: 'messages_page')
+    base = @home_user.received_messages.not_deleted_by_recipient
+    @home_messages_count = base.count
+    @home_unread_messages_count = base.unread.count
   end
 
   def set_home_payments_data

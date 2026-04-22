@@ -8,6 +8,7 @@ class MemberDashboardBuilder
   def build
     items = [
       payment_item,
+      messages_item,
       training_item,
       slack_item,
       parking_item
@@ -84,6 +85,26 @@ class MemberDashboardBuilder
       :cash_payment_due,
       'Cash payment due',
       "Your next cash payment is due in #{days_until} days (#{date_text(due_on)})."
+    )
+  end
+
+  def messages_item
+    unread_count = Message.folder(user, :unread).count
+    return messages_unread_item(unread_count) if unread_count.positive?
+
+    ok_item(:unread_messages, 'Unread messages', 'You have no unread messages.')
+  end
+
+  def messages_unread_item(unread_count)
+    attention_item(
+      tier: :urgent,
+      id: :unread_messages,
+      title: 'Unread messages',
+      detail: "You have #{unread_count} unread message#{'s' unless unread_count == 1}.",
+      action: {
+        label: 'Open Messages',
+        path: Rails.application.routes.url_helpers.messages_path(folder: :unread)
+      }
     )
   end
 

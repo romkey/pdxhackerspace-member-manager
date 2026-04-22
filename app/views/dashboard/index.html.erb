@@ -32,7 +32,7 @@
       </li>
     <% end %>
     <li class="nav-item" role="presentation">
-      <%= link_to root_path(tab: :messages), class: "nav-link #{'active' if @active_tab == :messages}", role: "tab" do %>
+      <%= link_to messages_path(folder: :unread), class: 'nav-link', role: 'tab' do %>
         <i class="bi bi-chat-dots me-1"></i> Messages
         <% if @home_unread_messages_count.to_i > 0 %>
           <span class="badge bg-danger ms-1"><%= @home_unread_messages_count %></span>
@@ -226,8 +226,6 @@
     <%= render 'users/tab_payments', payments: @home_payments, pagy: @pagy_payments, user: @home_user, show_payment_links: false, dashboard_mode: true %>
   <% elsif @active_tab == :parking %>
     <%= render 'users/tab_parking', parking_notices: @home_parking_notices_list, show_actions: false %>
-  <% elsif @active_tab == :messages %>
-    <%= render 'users/tab_messages', messages: @home_messages, pagy: @pagy_messages, user: @home_user, show_send: false %>
   <% else %>
     <%= render 'users/tab_dashboard_self', user: @home_user %>
   <% end %>

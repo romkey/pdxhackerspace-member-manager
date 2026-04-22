@@ -77,6 +77,14 @@ Sidekiq.configure_server do |config|
     class: 'LoginLinkExpirationJob',
     active_job: true
   )
+
+  # Message Trash Cleanup - Daily at 5am
+  Sidekiq::Cron::Job.create(
+    name: 'Message Trash Cleanup - Daily at 5am',
+    cron: '0 5 * * *',
+    class: 'MessageTrashCleanupJob',
+    active_job: true
+  )
 end
 
 Sidekiq.configure_client do |config|

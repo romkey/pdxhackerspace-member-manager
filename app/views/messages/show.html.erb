@@ -1,0 +1,101 @@
+<% content_for(:page_title, @message.subject) %>
+
+<%
+  viewer = current_user
+  is_recipient = @message.recipient_id == viewer.id
+  is_sender = @message.sender_id == viewer.id
+  in_trash = @message.in_trash_for?(viewer)
+%>
+
+<div class="py-4">
+  <div class="mb-3">
+    <%= link_to messages_path(folder: @return_folder || :unread),
+                class: 'btn btn-sm btn-outline-secondary' do %>
+      <i class="bi bi-arrow-left me-1"></i> Back to <%= (@return_folder || :unread).to_s.titleize %>
+    <% end %>
+  </div>
+
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-body-tertiary">
+      <h1 class="h5 mb-1"><%= @message.subject %></h1>
+      <div class="text-muted small">
+        <strong>From:</strong> <%= @message.sender&.display_name || '(unknown)' %><br>
+        <strong>To:</strong> <%= @message.recipient&.display_name || '(unknown)' %><br>
+        <strong>Sent:</strong> <%= l(@message.created_at, format: :long) %>
+        <% if @message.read_at.present? %>
+          &middot; Read <%= time_ago_in_words(@message.read_at) %> ago
+        <% end %>
+        <% if in_trash %>
+          <br><span class="badge bg-secondary">In trash &mdash; expires
+            <%= time_ago_in_words(viewer_deletion_time(@message, viewer) + Message::TRASH_RETENTION) %>
+            from now</span>
+        <% end %>
+      </div>
+    </div>
+    <div class="card-body">
+      <%= simple_format(@message.body) %>
+    </div>
+    <div class="card-footer d-flex flex-wrap gap-2">
+      <% if in_trash %>
+        <%= button_to restore_message_path(@message),
+                      method: :post,
+                      class: 'btn btn-outline-success' do %>
+          <i class="bi bi-arrow-counterclockwise me-1"></i> Restore
+        <% end %>
+      <% else %>
+        <% if is_recipient %>
+          <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#replyModal">
+            <i class="bi bi-reply me-1"></i> Reply
+          </button>
+          <% if !@message.unread? %>
+            <%= button_to mark_unread_message_path(@message),
+                          method: :patch,
+                          class: 'btn btn-outline-secondary' do %>
+              <i class="bi bi-envelope me-1"></i> Mark unread
+            <% end %>
+          <% end %>
+        <% end %>
+        <%= button_to message_path(@message, return_folder: @return_folder),
+                      method: :delete,
+                      form: { data: { turbo_confirm: 'Move this message to trash?' } },
+                      class: 'btn btn-outline-danger' do %>
+          <i class="bi bi-trash me-1"></i> Delete
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<% if is_recipient && !in_trash %>
+  <div class="modal fade" id="replyModal" tabindex="-1" aria-labelledby="replyModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <%= form_with url: messages_path, method: :post, local: true do %>
+          <div class="modal-header">
+            <h5 class="modal-title" id="replyModalLabel">Reply to <%= @message.sender&.display_name %></h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" name="in_reply_to_id" value="<%= @message.id %>">
+            <div class="mb-3">
+              <label for="reply_subject" class="form-label">Subject</label>
+              <input type="text" name="subject" id="reply_subject" class="form-control"
+                     value="<%= @message.subject.to_s.start_with?('Re: ') ? @message.subject : "Re: #{@message.subject}" %>"
+                     required>
+            </div>
+            <div class="mb-3">
+              <label for="reply_body" class="form-label">Message</label>
+              <textarea name="body" id="reply_body" class="form-control" rows="6" required></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-send me-1"></i> Send reply
+            </button>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>

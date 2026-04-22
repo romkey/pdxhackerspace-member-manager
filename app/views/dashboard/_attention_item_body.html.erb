@@ -1,5 +1,19 @@
 <% case item_id
-when :ac_issues %>
+when :unread_messages %>
+  <% if @admin_unread_messages_count.zero? %>
+    <div>
+      <i class="bi bi-check-circle-fill text-success me-1"></i>
+      No unread messages
+    </div>
+  <% else %>
+    <div>
+      <i class="bi bi-x-circle-fill text-danger me-1"></i>
+      <%= link_to messages_path(folder: :unread), class: "text-decoration-none fw-semibold" do %>
+        <strong><%= @admin_unread_messages_count %></strong> unread <%= 'message'.pluralize(@admin_unread_messages_count) %>
+      <% end %>
+    </div>
+  <% end %>
+<% when :ac_issues %>
   <% if @ac_issue_count == 0 %>
     <div>
       <i class="bi bi-check-circle-fill text-success me-1"></i>

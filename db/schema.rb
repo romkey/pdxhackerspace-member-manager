@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_19_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_22_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -589,14 +589,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_19_120000) do
   create_table "messages", force: :cascade do |t|
     t.text "body", null: false
     t.datetime "created_at", null: false
+    t.datetime "deleted_by_recipient_at"
+    t.datetime "deleted_by_sender_at"
     t.datetime "read_at"
     t.bigint "recipient_id", null: false
     t.bigint "sender_id", null: false
     t.string "subject", null: false
     t.datetime "updated_at", null: false
     t.index ["recipient_id", "created_at"], name: "index_messages_on_recipient_id_and_created_at"
+    t.index ["recipient_id", "deleted_by_recipient_at"], name: "index_messages_on_recipient_id_and_deleted_by_recipient_at"
     t.index ["recipient_id"], name: "index_messages_on_recipient_id"
     t.index ["sender_id", "created_at"], name: "index_messages_on_sender_id_and_created_at"
+    t.index ["sender_id", "deleted_by_sender_at"], name: "index_messages_on_sender_id_and_deleted_by_sender_at"
     t.index ["sender_id"], name: "index_messages_on_sender_id"
   end
 

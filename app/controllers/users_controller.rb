@@ -178,17 +178,15 @@ class UsersController < AuthenticatedController
       @parking_notices_list = parking_query.limit(50)
     end
 
-    # Messages for admin and self views
+    # Messages for admin and self views (not deleted by the recipient)
     if @view_level == :admin || @view_level == :self
-      messages_query = @user.received_messages.includes(:sender).newest_first
+      messages_query = @user.received_messages
+                            .not_deleted_by_recipient
+                            .includes(:sender)
+                            .newest_first
       @messages_count = messages_query.count
-      @unread_messages_count = @user.received_messages.unread.count
+      @unread_messages_count = @user.received_messages.not_deleted_by_recipient.unread.count
       @pagy_messages, @messages = pagy(messages_query, limit: 20, page_key: 'messages_page')
-
-      if @view_level == :self && @active_tab == :messages
-        @user.received_messages.unread.update_all(read_at: Time.current)
-        @unread_messages_count = 0
-      end
     end
 
     if @view_level == :self
@@ -608,9 +606,34 @@ class UsersController < AuthenticatedController
     @member_dashboard_ok_items = []
 
     append_member_dashboard_payment_item
+    append_member_dashboard_messages_item
     append_member_dashboard_training_item
     append_member_dashboard_slack_item
     append_member_dashboard_parking_item
+  end
+
+  def append_member_dashboard_messages_item
+    unread_count = Message.folder(@user, :unread).count
+    if unread_count.positive?
+      add_member_dashboard_item(
+        ok: false,
+        id: :unread_messages,
+        tier: :urgent,
+        title: 'Unread messages',
+        detail: "You have #{unread_count} unread message#{'s' unless unread_count == 1}.",
+        action_label: 'Open Messages',
+        action_path: messages_path(folder: :unread)
+      )
+      return
+    end
+
+    add_member_dashboard_item(
+      ok: true,
+      id: :unread_messages,
+      tier: :none,
+      title: 'Unread messages',
+      detail: 'You have no unread messages.'
+    )
   end
 
   def append_member_dashboard_payment_item
