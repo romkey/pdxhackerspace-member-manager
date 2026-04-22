@@ -1,5 +1,5 @@
 class CashPaymentsController < AdminController
-  include Pagy::Backend
+  include Pagy::Method
 
   before_action :set_cash_payment, only: %i[show edit update destroy]
 

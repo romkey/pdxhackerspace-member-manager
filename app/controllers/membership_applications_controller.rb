@@ -1,7 +1,7 @@
 class MembershipApplicationsController < ApplicationController
   require 'csv'
 
-  include Pagy::Backend
+  include Pagy::Method
   include MembershipApplicationWizard
   include MembershipApplicationWizard::Actions
 

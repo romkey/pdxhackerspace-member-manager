@@ -1,6 +1,4 @@
 module ApplicationHelper
-  include Pagy::Frontend
-
   require 'digest'
 
   def bootstrap_class_for(flash_type)

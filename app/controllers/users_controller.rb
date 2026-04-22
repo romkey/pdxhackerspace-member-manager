@@ -181,7 +181,7 @@ class UsersController < AuthenticatedController
       messages_query = @user.received_messages.includes(:sender).newest_first
       @messages_count = messages_query.count
       @unread_messages_count = @user.received_messages.unread.count
-      @pagy_messages, @messages = pagy(messages_query, limit: 20, page_param: :messages_page)
+      @pagy_messages, @messages = pagy(messages_query, limit: 20, page_key: 'messages_page')
 
       if @view_level == :self && @active_tab == :messages
         @user.received_messages.unread.update_all(read_at: Time.current)
@@ -199,7 +199,7 @@ class UsersController < AuthenticatedController
       @payment_event_filter = params[:event_type].presence
       payments_query = PaymentHistory.for_user(@user, event_type: @payment_event_filter)
       @payments_count = payments_query.count
-      @pagy_payments, @payments = pagy(payments_query, limit: 20, page_param: :payments_page)
+      @pagy_payments, @payments = pagy(payments_query, limit: 20, page_key: 'payments_page')
     end
 
     # Admin-only data (true admins, even when impersonating)
@@ -208,23 +208,23 @@ class UsersController < AuthenticatedController
       if @view_level == :admin
         journals_query = @user.journals.includes(:actor_user).order(changed_at: :desc, created_at: :desc)
         @journals_count = journals_query.count
-        @pagy_journals, @journals = pagy(journals_query, limit: 20, page_param: :journal_page)
+        @pagy_journals, @journals = pagy(journals_query, limit: 20, page_key: 'journal_page')
 
         # Access logs (paginated)
         access_query = @user.access_logs.order(logged_at: :desc)
         @access_count = access_query.count
         @most_recent_access = access_query.first
-        @pagy_accesses, @recent_accesses = pagy(access_query, limit: 20, page_param: :access_page)
+        @pagy_accesses, @recent_accesses = pagy(access_query, limit: 20, page_key: 'access_page')
 
         # Incidents (paginated)
         incidents_query = @user.incident_reports.includes(:reporter).ordered
         @incidents_count = incidents_query.count
-        @pagy_incidents, @user_incidents = pagy(incidents_query, limit: 20, page_param: :incidents_page)
+        @pagy_incidents, @user_incidents = pagy(incidents_query, limit: 20, page_key: 'incidents_page')
 
         # Mail (queued mails for this recipient, with log entries)
         mail_query = @user.queued_mails.includes(:email_template, :reviewed_by, :mail_log_entries).newest_first
         @mail_count = mail_query.count
-        @pagy_mails, @queued_mails = pagy(mail_query, limit: 20, page_param: :mail_page)
+        @pagy_mails, @queued_mails = pagy(mail_query, limit: 20, page_key: 'mail_page')
       end
 
       # Find previous and next users for navigation (always for admin toolbar)

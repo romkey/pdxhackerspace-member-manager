@@ -1,5 +1,5 @@
 class ReportsController < AdminController
-  include Pagy::Backend
+  include Pagy::Method
 
   LIMIT = 20
 

@@ -22,7 +22,7 @@ module MemberHomeTabs
 
     return unless @active_tab == :messages
 
-    @pagy_messages, @home_messages = pagy(messages_query, limit: 20, page_param: :messages_page)
+    @pagy_messages, @home_messages = pagy(messages_query, limit: 20, page_key: 'messages_page')
   end
 
   def set_home_payments_data
@@ -31,7 +31,7 @@ module MemberHomeTabs
 
     return unless @active_tab == :payments
 
-    @pagy_payments, @home_payments = pagy(payments_query, limit: 20, page_param: :payments_page)
+    @pagy_payments, @home_payments = pagy(payments_query, limit: 20, page_key: 'payments_page')
   end
 
   def set_self_service_training_data

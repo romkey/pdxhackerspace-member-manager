@@ -270,7 +270,10 @@ GEM
       validate_url
       webfinger (~> 2.0)
     os (1.1.4)
-    pagy (9.4.0)
+    pagy (43.5.1)
+      json
+      uri
+      yaml
     parallel (2.0.1)
     parser (3.3.11.1)
       ast (~> 2.4.1)
@@ -479,6 +482,7 @@ GEM
     websocket-extensions (0.1.5)
     xpath (3.2.0)
       nokogiri (~> 1.8)
+    yaml (0.4.0)
     zeitwerk (2.7.5)
 
 PLATFORMS
@@ -510,7 +514,7 @@ DEPENDENCIES
   omniauth (~> 2.1)
   omniauth-rails_csrf_protection
   omniauth_openid_connect (~> 0.8.0)
-  pagy (~> 9.0)
+  pagy (~> 43.0)
   pg (~> 1.1)
   prawn (~> 2.5)
   prawn-table (~> 0.2)
@@ -538,4 +542,4 @@ RUBY VERSION
    ruby 3.3.11p205
 
 BUNDLED WITH
-   2.6.7
+   2.5.22
