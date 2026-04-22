@@ -1,5 +1,5 @@
 class ParkingNoticesController < AdminController
-  include Pagy::Backend
+  include Pagy::Method
 
   before_action :set_parking_notice,
                 only: %i[show edit update clear download_pdf print_notice remove_photo download_photo]

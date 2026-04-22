@@ -1,12 +1,12 @@
 class ApplicationController < ActionController::Base
-  include Pagy::Backend
+  include Pagy::Method
 
   protect_from_forgery with: :exception
 
   add_flash_types :success, :info
 
   helper_method :current_user, :user_signed_in?, :local_auth_enabled?, :authentik_enabled?,
-                :current_user_admin?, :true_user_admin?, :pagy_nav, :impersonating?, :true_user
+                :current_user_admin?, :true_user_admin?, :impersonating?, :true_user
 
   private
 
