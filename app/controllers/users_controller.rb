@@ -149,6 +149,8 @@ class UsersController < AuthenticatedController
     @recent_members = User.non_service_accounts.non_legacy
                           .where(created_at: 1.week.ago..)
                           .ordered_by_display_name
+
+    @pagy, @users = pagy(@users, limit: 100)
   end
 
   def show
