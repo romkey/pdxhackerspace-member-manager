@@ -85,7 +85,7 @@ GEM
     bigdecimal (3.3.1)
     bindata (2.5.1)
     bindex (0.8.1)
-    bootsnap (1.23.0)
+    bootsnap (1.24.0)
       msgpack (~> 1.2)
     builder (3.3.0)
     capybara (3.40.0)
@@ -221,7 +221,7 @@ GEM
     mini_magick (5.3.1)
       logger
     mini_mime (1.1.5)
-    minitest (6.0.4)
+    minitest (6.0.5)
       drb (~> 2.0)
       prism (~> 1.5)
     msgpack (1.8.0)
@@ -270,7 +270,7 @@ GEM
       validate_url
       webfinger (~> 2.0)
     os (1.1.4)
-    pagy (43.5.1)
+    pagy (43.5.2)
       json
       uri
       yaml
@@ -514,7 +514,7 @@ DEPENDENCIES
   omniauth (~> 2.1)
   omniauth-rails_csrf_protection
   omniauth_openid_connect (~> 0.8.0)
-  pagy (~> 43.0)
+  pagy (~> 43.5)
   pg (~> 1.1)
   prawn (~> 2.5)
   prawn-table (~> 0.2)
