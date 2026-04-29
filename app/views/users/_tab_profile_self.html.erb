@@ -1,97 +1,145 @@
-<div class="card shadow-sm border-0">
-  <div class="card-body">
-    <div class="row">
-      <div class="col-md-8">
-        <dl class="row mb-0">
-          <dt class="col-sm-3 text-secondary">Username</dt>
-          <dd class="col-sm-9 text-monospace text-secondary"><%= user.username.presence || content_tag(:span, "Not provided", class: "text-muted fst-italic") %></dd>
+<% edit_profile_path = edit_user_path(user) %>
+<% visibility_label = { 'public' => 'Public', 'members' => 'Other members', 'private' => 'Private' }[user.profile_visibility] || user.profile_visibility.humanize %>
+<% user_interests = user.interests.order(:name) %>
 
-          <dt class="col-sm-3 text-secondary">Email</dt>
-          <dd class="col-sm-9">
-            <% if user.email.present? %>
-              <%= mail_to user.email %>
-            <% else %>
-              <span class="text-muted fst-italic">Not provided</span>
-            <% end %>
-          </dd>
-
-          <dt class="col-sm-3 text-secondary">Full name</dt>
-          <dd class="col-sm-9"><%= user.full_name.presence || content_tag(:span, "Not provided", class: "text-muted fst-italic") %></dd>
-
-          <dt class="col-sm-3 text-secondary">About</dt>
-          <dd class="col-sm-9">
-            <% if user.bio.present? %>
-              <div class="small"><%= sanitize(user.bio, tags: %w[p br strong b em i u s ul ol li a h1 h2 h3 h4 h5 h6 span div], attributes: %w[href target style]) %></div>
-            <% else %>
-              <span class="text-muted fst-italic">Not provided</span>
-            <% end %>
-          </dd>
-
-          <dt class="col-sm-3 text-secondary">Links</dt>
-          <dd class="col-sm-9">
-            <% if user.user_links.any? %>
-              <div class="d-flex flex-wrap gap-2">
-                <% user.user_links.ordered.each do |link| %>
-                  <%= link_to sanitize_url(link.url), target: '_blank', rel: 'noopener', class: 'btn btn-sm btn-outline-secondary' do %>
-                    <i class="bi <%= link.icon_class %> me-1"></i><%= link.title %>
-                  <% end %>
-                <% end %>
-              </div>
-            <% else %>
-              <span class="text-muted fst-italic">None</span>
-            <% end %>
-          </dd>
-
-          <dt class="col-sm-3 text-secondary">Interests</dt>
-          <dd class="col-sm-9">
-            <% user_interests = user.interests.order(:name) %>
-            <% if user_interests.any? %>
-              <div class="d-flex flex-wrap gap-1">
-                <% user_interests.each do |interest| %>
-                  <span class="badge rounded-pill text-bg-secondary"><%= interest.name %></span>
-                <% end %>
-              </div>
-            <% else %>
-              <span class="text-muted fst-italic">None selected</span>
-            <% end %>
-          </dd>
-
-          <dt class="col-sm-3 text-secondary">Profile Visibility</dt>
-          <dd class="col-sm-9">
-            <% visibility_label = { 'public' => 'Public', 'members' => 'Other Members', 'private' => 'Private' }[user.profile_visibility] || user.profile_visibility.humanize %>
-            <%= visibility_label %>
-          </dd>
-
-          <dt class="col-sm-3 text-secondary">Greeting Name</dt>
-          <dd class="col-sm-9"><%= user.greeting_name.presence || content_tag(:span, "Not provided", class: "text-muted fst-italic") %></dd>
-
-          <dt class="col-sm-3 text-secondary">Trained on</dt>
-          <dd class="col-sm-9">
-            <% trained_topics = user.trainings_as_trainee.map(&:training_topic).uniq.sort_by(&:name) %>
-            <% if trained_topics.any? %>
-              <% trained_topics.each do |topic| %>
-                <span class="badge text-bg-primary me-1 mb-1"><%= topic.name %></span>
-              <% end %>
-            <% else %>
-              <span class="text-muted fst-italic">None recorded</span>
-            <% end %>
-          </dd>
-
-          <dt class="col-sm-3 text-secondary">Can train</dt>
-          <dd class="col-sm-9">
-            <% if user.training_topics.any? %>
-              <% user.training_topics.order(:name).each do |topic| %>
-                <span class="badge text-bg-success me-1 mb-1"><%= topic.name %></span>
-              <% end %>
-            <% else %>
-              <span class="text-muted fst-italic">None</span>
-            <% end %>
-          </dd>
-        </dl>
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="mb-4">
+      <div class="profile-section-header">
+        <span class="h-section-label">Public profile</span>
+        <span class="profile-section-context">- visible to other members</span>
       </div>
-      <div class="col-md-4">
-        <%= render 'users/status_panel', user: user, show_dues: false %>
+      <div class="profile-field-group">
+        <div class="profile-field-row">
+          <span class="profile-field-label">Display name</span>
+          <% if user.greeting_name.present? %>
+            <span class="profile-field-value"><%= user.greeting_name %></span>
+            <%= link_to "Edit", edit_profile_path, class: "profile-field-edit" %>
+          <% else %>
+            <span class="profile-field-value empty">Choose how members should greet you</span>
+            <%= link_to "Add", edit_profile_path, class: "profile-field-edit" %>
+          <% end %>
+        </div>
+
+        <div class="profile-field-row">
+          <span class="profile-field-label">About</span>
+          <% if user.bio.present? %>
+            <span class="profile-field-value"><%= sanitize(user.bio, tags: %w[p br strong b em i u s ul ol li a h1 h2 h3 h4 h5 h6 span div], attributes: %w[href target style]) %></span>
+            <%= link_to "Edit", edit_profile_path, class: "profile-field-edit" %>
+          <% else %>
+            <span class="profile-field-value empty">Tell others a bit about yourself</span>
+            <%= link_to "Add", edit_profile_path, class: "profile-field-edit" %>
+          <% end %>
+        </div>
+
+        <div class="profile-field-row">
+          <span class="profile-field-label">Links</span>
+          <% if user.user_links.any? %>
+            <span class="profile-field-value">
+              <% user.user_links.ordered.each do |link| %>
+                <%= link_to sanitize_url(link.url), target: '_blank', rel: 'noopener', class: 'resource-link me-2' do %>
+                  <i class="bi <%= link.icon_class %> me-1"></i><%= link.title %>
+                <% end %>
+              <% end %>
+            </span>
+            <%= link_to "Edit", edit_profile_path, class: "profile-field-edit" %>
+          <% else %>
+            <span class="profile-field-value empty">Website, social, portfolio...</span>
+            <%= link_to "Add", edit_profile_path, class: "profile-field-edit" %>
+          <% end %>
+        </div>
+
+        <div class="profile-field-row">
+          <span class="profile-field-label">Interests</span>
+          <% if user_interests.any? %>
+            <span class="profile-field-value">
+              <% user_interests.each do |interest| %>
+                <span class="cert-pill me-1"><%= interest.name %></span>
+              <% end %>
+            </span>
+            <%= link_to "Edit", edit_profile_path, class: "profile-field-edit" %>
+          <% else %>
+            <span class="profile-field-value empty">Help others find common ground</span>
+            <%= link_to "Add", edit_profile_path, class: "profile-field-edit" %>
+          <% end %>
+        </div>
+
+        <div class="profile-field-row">
+          <span class="profile-field-label">Profile visibility</span>
+          <span class="profile-field-value"><%= visibility_label %></span>
+          <%= link_to "Edit", edit_profile_path, class: "profile-field-edit" %>
+        </div>
       </div>
     </div>
+
+    <div class="mb-4">
+      <div class="profile-section-header">
+        <span class="h-section-label">Contact</span>
+        <span class="profile-section-context">- how we reach you</span>
+      </div>
+      <div class="profile-field-group">
+        <div class="profile-field-row">
+          <span class="profile-field-label">Email</span>
+          <% if user.email.present? %>
+            <span class="profile-field-value"><%= mail_to user.email %></span>
+            <%= link_to "Edit", edit_profile_path, class: "profile-field-edit" %>
+          <% else %>
+            <span class="profile-field-value empty">Add an email address</span>
+            <%= link_to "Add", edit_profile_path, class: "profile-field-edit" %>
+          <% end %>
+        </div>
+
+        <div class="profile-field-row">
+          <span class="profile-field-label">Slack</span>
+          <% if user.slack_user.present? || user.slack_handle.present? %>
+            <span class="profile-field-value">
+              <%= user.slack_handle.presence || user.slack_user&.display_name || 'Slack account' %>
+              <span class="text-success small ms-1">● connected</span>
+            </span>
+            <span></span>
+          <% elsif SlackOidcConfig.configured? %>
+            <span class="profile-field-value empty">Connect Slack for member coordination</span>
+            <%= link_to "Add", slack_link_start_path, class: "profile-field-edit" %>
+          <% else %>
+            <span class="profile-field-value empty">Slack connection is not available</span>
+            <span></span>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-4">
+      <div class="profile-section-header">
+        <span class="h-section-label">Account</span>
+      </div>
+      <div class="profile-field-group">
+        <div class="profile-field-row">
+          <span class="profile-field-label">Username</span>
+          <% if user.username.present? %>
+            <span class="profile-field-value"><%= user.username %></span>
+          <% else %>
+            <span class="profile-field-value empty">Assigned by your sign-in provider</span>
+          <% end %>
+          <span></span>
+        </div>
+
+        <div class="profile-field-row">
+          <span class="profile-field-label">Password</span>
+          <span class="profile-field-value">Managed by your sign-in provider</span>
+          <span></span>
+        </div>
+
+        <div class="profile-field-row">
+          <span class="profile-field-label">Sessions</span>
+          <span class="profile-field-value">Current session active</span>
+          <span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <%= render 'users/member_membership_card', user: user %>
+    <%= render 'users/member_training_card', user: user %>
   </div>
 </div>

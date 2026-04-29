@@ -1,20 +1,36 @@
 <%# locals: attention_need %>
+<% attention_items = attention_need.reject { |item| item[:tier] == :housekeeping } %>
+<% housekeeping_items = attention_need.select { |item| item[:tier] == :housekeeping } %>
+
 <div class="card dashboard-panel mb-4">
   <div class="card-header rounded-0">
     <h2 class="h-section-label mb-0">Needs attention</h2>
   </div>
   <div class="card-body p-0">
-    <% if attention_need.empty? %>
+    <% if attention_items.empty? %>
       <ul class="list-group list-group-flush">
         <li class="list-group-item py-3 text-muted">
           <span class="status-dot status-success me-2" title="OK"></span>
-          Nothing needs attention right now.
+          <%= housekeeping_items.any? ? "Nothing urgent or important needs attention right now." : "Nothing needs attention right now." %>
         </li>
       </ul>
     <% else %>
       <ul class="list-group list-group-flush">
-        <%= render 'dashboard/attention_tiered_list', items: attention_need %>
+        <%= render 'dashboard/attention_tiered_list', items: attention_items %>
       </ul>
     <% end %>
   </div>
 </div>
+
+<% if housekeeping_items.any? %>
+  <div class="card dashboard-panel mb-4">
+    <div class="card-header rounded-0">
+      <h2 class="h-section-label mb-0">Housekeeping</h2>
+    </div>
+    <div class="card-body p-0">
+      <ul class="list-group list-group-flush">
+        <%= render 'dashboard/attention_tiered_list', items: housekeeping_items %>
+      </ul>
+    </div>
+  </div>
+<% end %>

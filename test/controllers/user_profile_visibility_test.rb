@@ -123,7 +123,7 @@ class UserProfileVisibilityTest < ActionDispatch::IntegrationTest
     assert_match(/nav-tabs/, response.body)
     assert_match(/Dashboard/i, response.body)
     assert_match(/Profile/, response.body)
-    assert_match(/Payment History/i, response.body)
+    assert_match(/Payments/i, response.body)
   end
 
   test 'user sees dashboard tab by default on their own profile' do
@@ -131,26 +131,27 @@ class UserProfileVisibilityTest < ActionDispatch::IntegrationTest
     get user_path(@member_with_account)
     assert_response :success
 
-    assert_match(/Needs Attention/i, response.body)
-    assert_match(/No Action Required/i, response.body)
-    assert_match(/Open training requests/i, response.body)
-    assert_match(/Join Slack/i, response.body)
+    assert_match(/Quick actions/i, response.body)
+    assert_match(/Membership/i, response.body)
+    assert_match(/Request training/i, response.body)
+    assert_match(/Project parking permit/i, response.body)
   end
 
-  test 'user sees status panel on profile tab' do
+  test 'user sees membership card on profile tab' do
     sign_in_as_member
     get user_path(@member_with_account, tab: :profile)
     assert_response :success
 
-    assert_match(/Payment Type/i, response.body)
-    assert_match(/Membership Status/i, response.body)
+    assert_match(/Your profile/i, response.body)
+    assert_match(/Public profile/i, response.body)
+    assert_match(/Membership/i, response.body)
   end
 
   test 'user can access payments tab on their own profile' do
     sign_in_as_member
     get user_path(@member_with_account, tab: :payments)
     assert_response :success
-    assert_match(/Payment History/i, response.body)
+    assert_match(/Payments/i, response.body)
   end
 
   test 'dashboard shows due soon cash payment and urgent expired parking' do
@@ -182,11 +183,9 @@ class UserProfileVisibilityTest < ActionDispatch::IntegrationTest
     get user_path(@member_with_account)
     assert_response :success
 
-    assert_match(/Cash payment due soon/i, response.body)
+    assert_match(/things need your attention/i, response.body)
     assert_match(/due in 3 days/i, response.body)
-    assert_match(%r{Open parking permits/tickets}i, response.body)
     assert_match(/expired and 1 active open parking/i, response.body)
-    assert_match(/Urgent/i, response.body)
   end
 
   test 'user sees edit button on their own profile' do
@@ -287,7 +286,7 @@ class UserProfileVisibilityTest < ActionDispatch::IntegrationTest
 
     # Should see self-view tabs
     assert_match(/nav-tabs/, response.body)
-    assert_match(/Payment History/i, response.body)
+    assert_match(/Payments/i, response.body)
 
     # Should NOT see admin tabs
     assert_no_match(/Access.*Journal/i, response.body)

@@ -1,0 +1,16 @@
+<%# locals: user, editable: false %>
+<% editable = local_assigns.fetch(:editable, false) %>
+<div class="<%= editable ? 'member-avatar-editable' : 'member-avatar-sm' %>">
+  <% if user.avatar.present? %>
+    <img src="<%= user.avatar %>" alt="" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover;">
+  <% elsif user.email.present? %>
+    <img src="<%= gravatar_url(user.email, size: 44) %>" alt="" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover;">
+  <% else %>
+    <div class="avatar-initial"><%= user.display_name.to_s.first&.upcase || "?" %></div>
+  <% end %>
+  <% if editable %>
+    <%= link_to edit_user_path(user), class: "avatar-edit-btn", title: "Change photo" do %>
+      <i class="bi bi-camera-fill" aria-hidden="true"></i>
+    <% end %>
+  <% end %>
+</div>

@@ -78,7 +78,9 @@ The app is at [http://localhost:3000](http://localhost:3000). Configure `.env` (
 
 ### Tests (Docker)
 
-Default workflow uses an **existing** `member_manager_web:latest` and bind-mounts the repo (no image build on each run). Build or refresh the image when the Dockerfile or base stack changes, or the first time on a machine:
+Default workflow uses a thin test image and bind-mounts the repo at `/rails`. Gems are installed at container startup into a named Docker volume, so repeat runs reuse the previous bundle unless `Gemfile.lock` changed. Each test run recreates and reloads the test database before running the requested command.
+
+Build or refresh the image when `Dockerfile.test` or base system dependencies change, or the first time on a machine:
 
 ```bash
 docker compose -f docker-compose.test.build.yml build test
@@ -92,7 +94,7 @@ docker compose -f docker-compose.test.yml run --rm test
 docker compose -f docker-compose.test.yml run --rm test bin/rails test test/models/member_test.rb
 ```
 
-To run tests **after** a full image rebuild in one shot:
+To run tests **after** forcing a test image rebuild in one shot:
 
 ```bash
 docker compose -f docker-compose.test.build.yml run --rm test

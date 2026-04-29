@@ -15,11 +15,6 @@
     </p>
   </div>
   <div class="d-flex gap-2">
-    <% if MemberSource.enabled?('authentik') %>
-      <%= button_to "Sync from Authentik", sync_users_path, method: :post, class: "btn btn-outline-secondary btn-sm", data: { turbo: false } %>
-    <% else %>
-      <button class="btn btn-outline-secondary btn-sm" disabled title="Authentik source is disabled">Sync from Authentik</button>
-    <% end %>
     <% if MemberSource.enabled?('member_manager') %>
       <%= button_to "Sync to Authentik", sync_all_to_authentik_users_path, method: :post, class: "btn btn-outline-secondary btn-sm", data: { turbo: false, turbo_confirm: "This will sync all members, groups, and the active members group to Authentik. Continue?" } %>
     <% else %>

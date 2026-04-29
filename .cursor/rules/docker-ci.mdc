@@ -21,20 +21,20 @@ Use `-f docker-compose.<stack>.yml`; each stack sets a top-level `name:` so volu
 | File | Purpose |
 |------|---------|
 | `docker-compose.dev.yml` | Local dev: Postgres + Redis + `web` + `sidekiq` (bind-mounted app). Postgres container `membermanager-dev-postgres`, host DB port `5432`. |
-| `docker-compose.test.yml` | Tests (quick): prebuilt `member_manager_web:latest`, bind-mounted app; Postgres + Redis + `test` service. |
-| `docker-compose.test.build.yml` | Same as test stack but **includes** a `build:` for the app image (full Docker build before runs). |
+| `docker-compose.test.yml` | Tests: thin Ruby image, bind-mounted app, cached Bundler volume; Postgres + Redis + `test` service. |
+| `docker-compose.test.build.yml` | Same as test stack but forces a rebuild of the thin test image. |
 | `docker-compose.lint.yml` | RuboCop (quick): prebuilt `member_manager_rubocop:latest`, bind-mounted app; no Postgres service. |
 | `docker-compose.lint.build.yml` | Same as lint stack but **includes** a `build:` for `Dockerfile.rubocop`. |
 | `docker-compose.server.yml` | Prod/staging-style: **no** Postgres service; set `DATABASE_URL` (or DB\_\* ) for external DB. Includes Redis for Sidekiq unless `REDIS_URL` points elsewhere. |
 
 - **Dev migrate:** `docker compose -f docker-compose.dev.yml --profile tools run --rm migrate`
-- **Tests (quick):** `docker compose -f docker-compose.test.yml run --rm test` — refresh image with `docker compose -f docker-compose.test.build.yml build test` when the Dockerfile changes
-- **Tests (full build):** `docker compose -f docker-compose.test.build.yml run --rm test`
+- **Tests:** `docker compose -f docker-compose.test.yml run --rm test` — installs changed gems into the cached bundle volume and recreates the test DB before each run
+- **Tests (image rebuild):** `docker compose -f docker-compose.test.build.yml run --rm test`
 - **Lint (quick):** `docker compose -f docker-compose.lint.yml run --rm rubocop` — refresh image with `docker compose -f docker-compose.lint.build.yml build rubocop` when needed
 - **Lint (full build):** `docker compose -f docker-compose.lint.build.yml run --rm rubocop`
 - **Server migrate:** `docker compose -f docker-compose.server.yml --profile tools run --rm migrate`
 
-Dev/test bind-mount the repo at `/rails`; lint bind-mounts at `/workspace`; server uses the built image only.
+Dev/test bind-mount the repo at `/rails`; test images should not copy application code. Lint bind-mounts at `/workspace`; server uses the built image only.
 
 ## GitHub Actions
 
