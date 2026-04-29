@@ -188,11 +188,11 @@ class UserProfileVisibilityTest < ActionDispatch::IntegrationTest
     assert_match(/expired and 1 active open parking/i, response.body)
   end
 
-  test 'user sees edit button on their own profile' do
+  test 'user sees profile update action on their own dashboard' do
     sign_in_as_member
     get user_path(@member_with_account)
     assert_response :success
-    assert_match(/Edit Profile/i, response.body)
+    assert_match(/Update your profile/i, response.body)
   end
 
   # ==========================================
