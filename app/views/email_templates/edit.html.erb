@@ -17,6 +17,7 @@
                       local: true,
                       data: {
                         controller: "email-template-rewrite",
+                        action: "submit->email-template-rewrite#syncBodyTextBeforeSubmit",
                         email_template_rewrite_url_value: rewrite_with_ai_email_template_path(@email_template)
                       } do |f| %>
           <% if @email_template.errors.any? %>
@@ -56,15 +57,35 @@
             <%= f.text_area :body_html,
                             class: "form-control",
                             rows: 15,
-                            data: { rich_editor_target: "editor", email_template_rewrite_target: "bodyHtml" } %>
+                            data: {
+                              rich_editor_target: "editor",
+                              email_template_rewrite_target: "bodyHtml",
+                              action: "input->email-template-rewrite#syncBodyText change->email-template-rewrite#syncBodyText rich-editor:change->email-template-rewrite#syncBodyText"
+                            } %>
             <div class="form-text">HTML content for email clients that support it. Use "Insert Variable" to add template variables.</div>
           </div>
 
           <div class="mb-3">
-            <%= f.label :body_text, "Plain Text Body", class: "form-label" %>
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+              <%= f.label :body_text, "Plain Text Body", class: "form-label mb-0" %>
+              <div class="form-check">
+                <%= check_box_tag :sync_body_text,
+                                  "1",
+                                  true,
+                                  id: "email_template_sync_body_text",
+                                  class: "form-check-input",
+                                  data: {
+                                    email_template_rewrite_target: "syncBodyText",
+                                    action: "change->email-template-rewrite#syncBodyText"
+                                  } %>
+                <%= label_tag :email_template_sync_body_text,
+                              "Keep in sync with HTML",
+                              class: "form-check-label" %>
+              </div>
+            </div>
             <%= f.text_area :body_text, class: "form-control font-monospace", rows: 10,
                                            data: { email_template_rewrite_target: "bodyText" } %>
-            <div class="form-text">Plain text version for email clients that don't support HTML.</div>
+            <div class="form-text">Plain text version for email clients that don't support HTML. Uncheck to edit it independently.</div>
           </div>
 
           <div class="mb-3 border rounded bg-body-tertiary p-3">

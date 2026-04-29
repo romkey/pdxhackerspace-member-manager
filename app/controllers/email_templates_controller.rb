@@ -1,4 +1,7 @@
 class EmailTemplatesController < AdminController
+  HTML_BLOCK_TAGS = %w[p div h1 h2 h3 h4 h5 h6 li tr].freeze
+  HTML_SPACED_TAGS = %w[td th].freeze
+
   before_action :set_email_template,
                 only: %i[show edit update preview toggle mark_reviewed mark_needs_review rewrite_with_ai]
 
@@ -20,7 +23,7 @@ class EmailTemplatesController < AdminController
   def edit; end
 
   def update
-    if @email_template.update(email_template_params)
+    if @email_template.update(email_template_update_params)
       redirect_to email_templates_path, notice: "Email template '#{@email_template.name}' was successfully updated."
     else
       render :edit, status: :unprocessable_content
@@ -106,6 +109,35 @@ class EmailTemplatesController < AdminController
 
   def email_template_params
     params.expect(email_template: %i[name description subject body_html body_text enabled])
+  end
+
+  def email_template_update_params
+    attrs = email_template_params.to_h
+    attrs['body_text'] = html_to_plain_text(attrs['body_html']) if sync_body_text?
+    attrs
+  end
+
+  def sync_body_text?
+    params[:sync_body_text].present?
+  end
+
+  def html_to_plain_text(html)
+    fragment = Nokogiri::HTML.fragment(html.to_s)
+    node_to_plain_text(fragment)
+      .gsub("\u00a0", ' ')
+      .gsub(/[ \t]+\n/, "\n")
+      .gsub(/\n{3,}/, "\n\n")
+      .strip
+  end
+
+  def node_to_plain_text(node)
+    return node.text if node.text?
+    return "\n" if node.element? && node.name == 'br'
+
+    text = node.children.map { |child| node_to_plain_text(child) }.join
+    text += "\n" if node.element? && HTML_BLOCK_TAGS.include?(node.name)
+    text += ' ' if node.element? && HTML_SPACED_TAGS.include?(node.name)
+    text
   end
 
   def rewrite_params

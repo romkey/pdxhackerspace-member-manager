@@ -1,7 +1,16 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["subject", "bodyHtml", "bodyText", "rewriteButton", "undoButton", "spinner", "status"]
+  static targets = [
+    "subject",
+    "bodyHtml",
+    "bodyText",
+    "syncBodyText",
+    "rewriteButton",
+    "undoButton",
+    "spinner",
+    "status"
+  ]
   static values = { url: String }
 
   connect() {
@@ -47,7 +56,11 @@ export default class extends Controller {
 
       this.subjectTarget.value = payload.subject || ""
       this.setHtmlBody(payload.body_html || "")
-      this.bodyTextTarget.value = payload.body_text || ""
+      if (this.shouldSyncBodyText()) {
+        this.syncBodyTextFromHtml()
+      } else {
+        this.bodyTextTarget.value = payload.body_text || ""
+      }
       this.setStatus(payload.message || "Template rewritten.", "success")
     } catch (_error) {
       this.setStatus("Rewrite failed. Please try again.", "danger")
@@ -62,10 +75,22 @@ export default class extends Controller {
 
     this.subjectTarget.value = this.previousState.subject
     this.setHtmlBody(this.previousState.bodyHtml)
-    this.bodyTextTarget.value = this.previousState.bodyText
+    if (this.shouldSyncBodyText()) {
+      this.syncBodyTextFromHtml()
+    } else {
+      this.bodyTextTarget.value = this.previousState.bodyText
+    }
     this.previousState = null
     this.toggleUndo(false)
     this.setStatus("Restored previous template text.", "secondary")
+  }
+
+  syncBodyText() {
+    this.syncBodyTextFromHtml()
+  }
+
+  syncBodyTextBeforeSubmit() {
+    this.syncBodyTextFromHtml()
   }
 
   setLoading(isLoading) {
@@ -106,6 +131,39 @@ export default class extends Controller {
   editorInstance() {
     if (typeof tinymce === "undefined") return null
     return tinymce.get(this.bodyHtmlTarget.id)
+  }
+
+  syncBodyTextFromHtml() {
+    if (!this.shouldSyncBodyText()) return
+
+    this.bodyTextTarget.value = this.htmlToPlainText(this.currentHtmlBody())
+  }
+
+  shouldSyncBodyText() {
+    return !this.hasSyncBodyTextTarget || this.syncBodyTextTarget.checked
+  }
+
+  htmlToPlainText(html) {
+    const container = document.createElement("div")
+    container.innerHTML = html || ""
+
+    container.querySelectorAll("br").forEach((element) => {
+      element.replaceWith("\n")
+    })
+
+    container.querySelectorAll("p, div, h1, h2, h3, h4, h5, h6, li, tr").forEach((element) => {
+      element.append("\n")
+    })
+
+    container.querySelectorAll("td, th").forEach((element) => {
+      element.append(" ")
+    })
+
+    return container.textContent
+      .replace(/\u00a0/g, " ")
+      .replace(/[ \t]+\n/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim()
   }
 
   csrfToken() {
