@@ -1,0 +1,35 @@
+# syntax = docker/dockerfile:1
+
+# Thin test image: system dependencies only. The app code is bind-mounted by
+# docker-compose.test.yml, and gems are installed into a reusable named volume.
+ARG RUBY_VERSION=3.3.11
+FROM registry.docker.com/library/ruby:$RUBY_VERSION-slim
+
+ARG RUBY_VERSION=3.3.11
+RUN test "$(ruby -e 'print RUBY_VERSION')" = "${RUBY_VERSION}" || \
+    (echo "Expected Ruby ${RUBY_VERSION}, got $(ruby -v)" >&2; exit 1)
+
+WORKDIR /rails
+
+ENV RAILS_ENV="test" \
+    BUNDLE_PATH="/usr/local/bundle" \
+    BUNDLE_WITHOUT="development:staging" \
+    BUNDLE_JOBS="4" \
+    BUNDLE_RETRY="3" \
+    PATH="/usr/local/bundle/bin:${PATH}"
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update -qq && \
+    apt-get install --no-install-recommends -y \
+      build-essential \
+      git \
+      libpq-dev \
+      libvips \
+      libyaml-dev \
+      pkg-config \
+      postgresql-client \
+      tzdata && \
+    rm -rf /var/lib/apt/lists /var/cache/apt/archives
+
+CMD ["bin/rails", "test"]

@@ -1,30 +1,35 @@
 # Test suite with dedicated Postgres + Redis (for humans and automation).
-# Quick path: uses existing member_manager_web:latest (bind-mounts repo at /rails).
-# Build or refresh the image when the Dockerfile or base image changes:
-#   docker compose -f docker-compose.test.build.yml build test
-# Postgres is published on host port 5433 so it can run alongside dev (5432).
+# Uses a thin Ruby image, bind-mounts the repo at /rails, and caches gems in a
+# named volume. Each run installs changed gems and recreates the test database.
 # Usage: docker compose -f docker-compose.test.yml run --rm test
 #        docker compose -f docker-compose.test.yml run --rm test bin/rails test test/models/member_test.rb
 name: membermanager-test
 
 x-web-common: &web-common
-  image: member_manager_web:latest
+  build:
+    context: .
+    dockerfile: Dockerfile.test
+    args:
+      RUBY_VERSION: "3.3.11"
+  image: member_manager_test:latest
   env_file:
     - .env
   volumes:
     - .:/rails
     - ./tmp/access:/tmp/access
+    - test_bundle:/usr/local/bundle
 
 services:
   db:
-    image: postgres:18-alpine
+    image: postgres:16-alpine
     container_name: membermanager-test-postgres
     environment:
       POSTGRES_DB: member_manager_test
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-    volumes:
-      - test_postgres_data:/var/lib/postgresql/data
+      PGDATA: /var/lib/postgresql/data/pgdata
+    tmpfs:
+      - /var/lib/postgresql/data
 #    ports:
 #      - "5433:5432"
     healthcheck:
@@ -36,15 +41,16 @@ services:
   redis:
     image: redis:7-alpine
     container_name: membermanager-test-redis
-    command: redis-server --appendonly yes
+    command: redis-server --save "" --appendonly no
 #    ports:
 #      - "6380:6379"
-    volumes:
-      - test_redis_data:/data
+    tmpfs:
+      - /data
 
   test:
     <<: *web-common
-    command: sh -c "bin/rails db:create db:schema:load && bin/rails test"
+    entrypoint: ["bin/docker-test-entrypoint"]
+    command: ["bin/rails", "test"]
     environment:
       RAILS_ENV: test
       DB_HOST: db
@@ -62,5 +68,4 @@ services:
         condition: service_started
 
 volumes:
-  test_postgres_data:
-  test_redis_data:
+  test_bundle:

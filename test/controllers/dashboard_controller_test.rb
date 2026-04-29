@@ -25,9 +25,9 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     get root_path(tab: :member_dashboard)
     assert_response :success
 
-    assert_match(/Needs Attention/i, response.body)
-    assert_match(/No Action Required/i, response.body)
-    assert_match(/Open training requests/i, response.body)
+    assert_match(/Quick actions/i, response.body)
+    assert_match(/Membership/i, response.body)
+    assert_match(/Request training/i, response.body)
   end
 
   test 'admin home includes normal user tabs' do
@@ -40,7 +40,7 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
 
     get root_path(tab: :member_dashboard)
     assert_response :success
-    assert_match(/Request Training/i, response.body)
+    assert_match(/Request training/i, response.body)
   end
 
   private
