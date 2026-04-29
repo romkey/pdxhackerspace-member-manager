@@ -5,7 +5,7 @@
   </div>
   <div class="d-flex gap-2">
     <%= button_to "Seed Defaults", seed_email_templates_path, method: :post, class: "btn btn-outline-secondary", data: { turbo_confirm: "This will create any missing default templates. Existing templates will not be modified. Continue?" } %>
-    <%= link_to "Back to Settings", settings_path, class: "btn btn-secondary" %>
+    <%= link_to "Back to Settings", settings_path, class: "btn btn-outline-secondary" %>
   </div>
 </div>
 
@@ -25,11 +25,11 @@
 
 <!-- Filters -->
 <div class="d-flex flex-wrap gap-2 mb-3">
-  <%= link_to "All", email_templates_path, class: "btn btn-sm #{@filter.blank? ? 'btn-primary' : 'btn-outline-primary'}" %>
-  <%= link_to "Needs Review", email_templates_path(filter: 'needs_review'), class: "btn btn-sm #{@filter == 'needs_review' ? 'btn-warning' : 'btn-outline-warning'}" %>
-  <%= link_to "Reviewed", email_templates_path(filter: 'reviewed'), class: "btn btn-sm #{@filter == 'reviewed' ? 'btn-success' : 'btn-outline-success'}" %>
-  <%= link_to "Enabled", email_templates_path(filter: 'enabled'), class: "btn btn-sm #{@filter == 'enabled' ? 'btn-info' : 'btn-outline-info'}" %>
-  <%= link_to "Disabled", email_templates_path(filter: 'disabled'), class: "btn btn-sm #{@filter == 'disabled' ? 'btn-secondary' : 'btn-outline-secondary'}" %>
+  <%= link_to "All", email_templates_path, class: "filter-chip text-decoration-none #{@filter.blank? ? 'active' : ''}" %>
+  <%= link_to "Needs review", email_templates_path(filter: 'needs_review'), class: "filter-chip warning text-decoration-none #{@filter == 'needs_review' ? 'active' : ''}" %>
+  <%= link_to "Reviewed", email_templates_path(filter: 'reviewed'), class: "filter-chip text-decoration-none #{@filter == 'reviewed' ? 'active' : ''}" %>
+  <%= link_to "Enabled", email_templates_path(filter: 'enabled'), class: "filter-chip text-decoration-none #{@filter == 'enabled' ? 'active' : ''}" %>
+  <%= link_to "Disabled", email_templates_path(filter: 'disabled'), class: "filter-chip text-decoration-none #{@filter == 'disabled' ? 'active' : ''}" %>
 </div>
 
 <% if @email_templates.any? %>
@@ -63,23 +63,23 @@
               </td>
               <td>
                 <% if template.enabled? %>
-                  <span class="badge text-bg-success">Enabled</span>
+                  <span class="badge text-bg-success-subtle">Enabled</span>
                 <% else %>
-                  <span class="badge text-bg-secondary">Disabled</span>
+                  <span class="badge text-bg-secondary-subtle">Disabled</span>
                 <% end %>
                 <% if template.needs_review? %>
-                  <span class="badge text-bg-warning"><i class="bi bi-exclamation-circle me-1"></i>Needs Review</span>
+                  <span class="badge text-bg-warning-subtle"><i class="bi bi-exclamation-circle me-1"></i>Needs review</span>
                 <% end %>
               </td>
               <td class="text-end">
                 <div class="btn-group btn-group-sm">
                   <%= link_to "View", email_template_path(template), class: "btn btn-outline-secondary" %>
-                  <%= link_to "Preview", preview_email_template_path(template), class: "btn btn-outline-info", target: "_blank" %>
-                  <%= link_to "Edit", edit_email_template_path(template), class: "btn btn-outline-primary" %>
+                  <%= link_to "Preview", preview_email_template_path(template), class: "btn btn-outline-secondary", target: "_blank" %>
+                  <%= link_to "Edit", edit_email_template_path(template), class: "btn btn-outline-secondary" %>
                   <%= button_to template.enabled? ? "Disable" : "Enable", 
                       toggle_email_template_path(template), 
                       method: :post, 
-                      class: "btn btn-outline-#{template.enabled? ? 'warning' : 'success'}" %>
+                      class: "btn btn-outline-secondary" %>
                 </div>
               </td>
             </tr>

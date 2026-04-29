@@ -1,10 +1,10 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h1 class="h3 mb-0">Parking Notices</h1>
   <div class="d-flex gap-2">
-    <%= link_to new_parking_notice_path(type: 'permit'), class: "btn btn-success" do %>
+    <%= link_to new_parking_notice_path(type: 'permit'), class: "btn btn-primary btn-sm" do %>
       <i class="bi bi-plus-circle me-1"></i> New Permit
     <% end %>
-    <%= link_to new_parking_notice_path(type: 'ticket'), class: "btn btn-danger" do %>
+    <%= link_to new_parking_notice_path(type: 'ticket'), class: "btn btn-outline-secondary btn-sm" do %>
       <i class="bi bi-plus-circle me-1"></i> New Ticket
     <% end %>
   </div>
@@ -41,11 +41,11 @@
 <%# Type sub-filter %>
 <div class="mb-3 d-flex gap-2">
   <%= link_to "All Types", parking_notices_path(status: params[:status]),
-      class: "btn btn-sm #{params[:type].blank? ? 'btn-dark' : 'btn-outline-dark'}" %>
+      class: "btn btn-sm #{params[:type].blank? ? 'btn-primary' : 'btn-outline-secondary'}" %>
   <%= link_to "Permits", parking_notices_path(status: params[:status], type: 'permit'),
-      class: "btn btn-sm #{params[:type] == 'permit' ? 'btn-success' : 'btn-outline-success'}" %>
+      class: "btn btn-sm #{params[:type] == 'permit' ? 'btn-primary' : 'btn-outline-secondary'}" %>
   <%= link_to "Tickets", parking_notices_path(status: params[:status], type: 'ticket'),
-      class: "btn btn-sm #{params[:type] == 'ticket' ? 'btn-danger' : 'btn-outline-danger'}" %>
+      class: "btn btn-sm #{params[:type] == 'ticket' ? 'btn-primary' : 'btn-outline-secondary'}" %>
 </div>
 
 <% if @parking_notices.any? %>
@@ -67,7 +67,7 @@
           <% @parking_notices.each do |notice| %>
             <tr>
               <td>
-                <span class="badge bg-<%= notice.badge_color %>">
+                <span class="badge text-bg-secondary-subtle">
                   <%= notice.notice_type_display %>
                 </span>
               </td>
@@ -88,10 +88,10 @@
                 <% end %>
               </td>
               <td>
-                <span class="badge bg-<%= notice.status_badge_color %>"><%= notice.status_display %></span>
+                <span class="badge text-bg-<%= notice.status_badge_color %>-subtle"><%= notice.status_display %></span>
               </td>
               <td class="text-end">
-                <%= link_to "View", parking_notice_path(notice), class: "btn btn-sm btn-outline-primary" %>
+                <%= link_to "View", parking_notice_path(notice), class: "btn btn-sm btn-outline-secondary" %>
               </td>
             </tr>
           <% end %>

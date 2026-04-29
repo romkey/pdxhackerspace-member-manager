@@ -27,7 +27,7 @@ class UsersIndexFiltersTest < ActionDispatch::IntegrationTest
 
     get users_path
     assert_response :success
-    assert_match 'Payment Plan', response.body
+    assert_match(/Payment plan/i, response.body)
     assert_match 'Test Monthly Plan', response.body
   end
 
@@ -161,8 +161,8 @@ class UsersIndexFiltersTest < ActionDispatch::IntegrationTest
     get users_path(dues_status: 'lapsed')
     assert_response :success
 
-    assert_select 'a[href*="membership_status=paying"]', /Paying:\s*\d+/
-    assert_select 'a[href*="membership_status=sponsored"]', /Sponsored:\s*\d+/
+    assert_select 'a[href*="membership_status=paying"]', /Paying\s+\d+/
+    assert_select 'a[href*="membership_status=sponsored"]', /Sponsored\s+\d+/
   end
 
   test 'filter summary shows all active filter labels' do

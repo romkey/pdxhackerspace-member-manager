@@ -7,10 +7,9 @@
   <% if prev_tier && item[:tier] != prev_tier %>
     <li class="list-group-item border-0 p-0 dashboard-attention-tier-boundary" aria-hidden="true"><hr class="my-0 opacity-25"></li>
   <% end %>
-  <li class="list-group-item d-flex align-items-start gap-2 py-3">
-    <% if show_numbers %>
-      <span class="badge rounded-pill text-bg-secondary"><%= number_offset + i + 1 %></span>
-    <% end %>
+  <li class="list-group-item list-group-item-action d-flex align-items-start gap-2 py-2 dashboard-attention-item">
+    <% dot_class = item[:tier] == :urgent ? 'status-danger' : 'status-warning' %>
+    <span class="status-dot <%= dot_class %> mt-2 flex-shrink-0" title="<%= item[:tier].to_s.humanize %>"></span>
     <%= render 'dashboard/attention_item_body', item_id: item[:id] %>
   </li>
   <% prev_tier = item[:tier] %>

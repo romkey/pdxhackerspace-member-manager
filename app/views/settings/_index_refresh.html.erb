@@ -1,0 +1,214 @@
+<% settings_items = [
+  { category: "Membership", title: "Application form", desc: "Pages and questions for the public membership application.", path: application_form_pages_path },
+  { category: "Membership", title: "Applications", desc: "Applications, groups, and member application assignments.", path: applications_path },
+  { category: "Membership", title: "Application group defaults", desc: "Default prefixes and group names for application groups.", path: default_settings_path },
+  { category: "Membership", title: "Invitations", desc: "Membership invitations, status, and linked member accounts.", path: invitations_path },
+  { category: "Membership", title: "Membership tiers", desc: "Plans, billing frequencies, costs, and member dues settings.", path: membership_plans_path },
+  { category: "Membership", title: "Membership settings", desc: "Grace periods, reactivation windows, and manual payment timing.", path: membership_settings_path },
+  { category: "Access & hardware", title: "Access controllers", desc: "RFID-enabled door controllers and device sync status.", path: access_controllers_path, attention_count: @settings_attention_counts[:access_controllers] },
+  { category: "Access & hardware", title: "Access controller types", desc: "SSH script types and optional access tokens.", path: access_controller_types_path },
+  { category: "Access & hardware", title: "Authentik webhooks", desc: "User and group change notifications from Authentik.", path: authentik_webhooks_path },
+  { category: "Access & hardware", title: "Incoming webhooks", desc: "Webhook URLs for RFID, Ko-Fi, access logs, and integrations.", path: incoming_webhooks_path },
+  { category: "Access & hardware", title: "RFID readers", desc: "Reader devices and API keys for keyfob authentication.", path: rfid_readers_path },
+  { category: "Access & hardware", title: "Rooms", desc: "Rooms and locations used by parking and operations.", path: rooms_path },
+  { category: "Access & hardware", title: "Printers", desc: "CUPS printers for notices, reports, and documents.", path: printers_path },
+  { category: "Payments", title: "Payment processors", desc: "PayPal, Recharge, and Ko-Fi integration sync health.", path: payment_processors_path, attention_count: @settings_attention_counts[:payment_processors] },
+  { category: "Payments", title: "Recharge", desc: "Recharge records that may need member linking.", path: recharge_payments_path, attention_count: @settings_attention_counts[:recharge] },
+  { category: "Payments", title: "Dues", desc: "Dues windows and manual payment settings.", path: membership_settings_path },
+  { category: "Communications", title: "Email templates", desc: "Messages sent for applications, approvals, payments, and more.", path: email_templates_path, attention_count: @settings_attention_counts[:email_templates] },
+  { category: "Communications", title: "Documents", desc: "Member documents and training-topic attachments.", path: documents_path },
+  { category: "Communications", title: "Text fragments", desc: "Reusable HTML snippets for help text and system messages.", path: text_fragments_path },
+  { category: "Member profiles", title: "Interests", desc: "Profile interests, suggested terms, renames, and merges.", path: interests_path, attention_count: @settings_attention_counts[:interests] },
+  { category: "AI & integrations", title: "AI services", desc: "Service prompts, model selections, and health checks.", path: ai_ollama_profiles_path, attention_count: @settings_attention_counts[:ai_services] },
+  { category: "AI & integrations", title: "AI providers", desc: "Reusable AI provider URLs and optional API keys.", path: ai_providers_path },
+  { category: "AI & integrations", title: "Member sources", desc: "Authentik, Sheets, and Slack reconciliation sources.", path: member_sources_path },
+  { category: "System", title: "Training topics", desc: "Topics members can learn or train others on.", path: training_topics_path }
+] %>
+<% categories = settings_items.map { |item| item[:category] }.uniq %>
+<% attention_items = settings_items.select { |item| item[:attention_count].to_i.positive? } %>
+<% total_attention = attention_items.sum { |item| item[:attention_count].to_i } %>
+
+<div class="d-flex align-items-end justify-content-between mb-3">
+  <div>
+    <h1 class="h-page-title mb-0">Settings</h1>
+    <div class="text-13 text-secondary mt-1">
+      <span class="text-body"><%= settings_items.size %></span> settings ·
+      <span class="<%= total_attention.positive? ? 'text-warning' : 'text-secondary' %>"><%= total_attention %></span> need attention
+    </div>
+  </div>
+  <button class="btn btn-outline-secondary btn-sm d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#settingsNavMobile">
+    Categories
+  </button>
+</div>
+
+<button class="form-control text-start text-secondary mb-3" data-bs-toggle="modal" data-bs-target="#settingsSearch">
+  <i class="bi bi-search me-1"></i> Search all settings...
+  <kbd class="float-end small">Cmd+K</kbd>
+</button>
+
+<% nav_markup = capture do %>
+  <a href="#" class="settings-nav-item attention" data-settings-category="needs_attention">
+    <span>Needs attention</span>
+    <span class="count"><%= total_attention %></span>
+  </a>
+  <a href="#" class="settings-nav-item active" data-settings-category="all">
+    <span>All settings</span>
+    <span class="count"><%= settings_items.size %></span>
+  </a>
+  <div class="settings-nav-divider"></div>
+  <% categories.each do |category| %>
+    <a href="#" class="settings-nav-item" data-settings-category="<%= category.parameterize %>">
+      <span><%= category %></span>
+      <span class="count"><%= settings_items.count { |item| item[:category] == category } %></span>
+    </a>
+  <% end %>
+<% end %>
+
+<div class="offcanvas offcanvas-start" tabindex="-1" id="settingsNavMobile" aria-labelledby="settingsNavMobileLabel">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="settingsNavMobileLabel">Settings categories</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body">
+    <nav class="settings-nav"><%= nav_markup %></nav>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-3 d-none d-md-block">
+    <nav class="settings-nav" style="position: sticky; top: 1rem;">
+      <%= nav_markup %>
+    </nav>
+  </div>
+  <div class="col-md-9">
+    <% if attention_items.any? %>
+      <section class="settings-section d-none" data-settings-section="needs_attention">
+        <h2 class="h-section-label mb-2">Needs attention</h2>
+        <div class="list-group list-compact mb-3">
+          <% attention_items.each do |item| %>
+            <%= link_to item[:path], class: "list-group-item list-group-item-action d-flex justify-content-between align-items-center", data: { settings_search_item: true, title: item[:title].downcase, description: item[:desc].downcase } do %>
+              <span>
+                <div class="item-title">
+                  <%= item[:title] %>
+                  <span class="badge text-bg-warning-subtle small fw-normal"><%= item[:attention_count] %> need review</span>
+                </div>
+                <div class="item-desc"><%= item[:desc] %></div>
+              </span>
+              <span class="chevron"></span>
+            <% end %>
+          <% end %>
+        </div>
+      </section>
+    <% end %>
+
+    <% categories.each do |category| %>
+      <section class="settings-section" data-settings-section="<%= category.parameterize %>">
+        <h2 class="h-section-label mb-2"><%= category %></h2>
+        <div class="list-group list-compact mb-3">
+          <% settings_items.select { |item| item[:category] == category }.each do |item| %>
+            <%= link_to item[:path], class: "list-group-item list-group-item-action d-flex justify-content-between align-items-center", data: { settings_search_item: true, title: item[:title].downcase, description: item[:desc].downcase } do %>
+              <span>
+                <div class="item-title">
+                  <%= item[:title] %>
+                  <% if item[:attention_count].to_i.positive? %>
+                    <span class="badge text-bg-warning-subtle small fw-normal"><%= item[:attention_count] %> need review</span>
+                  <% end %>
+                </div>
+                <div class="item-desc"><%= item[:desc] %></div>
+              </span>
+              <span class="chevron"></span>
+            <% end %>
+          <% end %>
+        </div>
+      </section>
+    <% end %>
+  </div>
+</div>
+
+<div class="modal fade" id="settingsSearch" tabindex="-1" aria-labelledby="settingsSearchLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="settingsSearchLabel">Search settings</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input type="search" class="form-control form-control-sm mb-3" id="settingsSearchInput" placeholder="Type a setting name or description..." autocomplete="off">
+        <div class="list-group list-compact" id="settingsSearchResults">
+          <% settings_items.each do |item| %>
+            <%= link_to item[:path], class: "list-group-item list-group-item-action d-flex justify-content-between align-items-center", data: { settings_search_result: true, title: item[:title].downcase, description: item[:desc].downcase } do %>
+              <span>
+                <div class="item-title"><%= item[:title] %></div>
+                <div class="item-desc"><%= item[:category] %> · <%= item[:desc] %></div>
+              </span>
+              <span class="chevron"></span>
+            <% end %>
+          <% end %>
+        </div>
+        <div class="text-center text-secondary py-5 d-none" id="settingsSearchEmpty">
+          <div class="text-13 mb-1">No results</div>
+          <div class="text-12">Try a different setting or integration name</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    function initSettingsIndex() {
+      var navItems = document.querySelectorAll('[data-settings-category]');
+      var sections = document.querySelectorAll('[data-settings-section]');
+      var searchInput = document.getElementById('settingsSearchInput');
+      var searchResults = document.querySelectorAll('[data-settings-search-result]');
+      var searchEmpty = document.getElementById('settingsSearchEmpty');
+      var searchModal = document.getElementById('settingsSearch');
+
+      function showCategory(category) {
+        navItems.forEach(function(item) {
+          item.classList.toggle('active', item.getAttribute('data-settings-category') === category);
+        });
+        sections.forEach(function(section) {
+          var sectionCategory = section.getAttribute('data-settings-section');
+          section.classList.toggle('d-none', category !== 'all' && sectionCategory !== category);
+        });
+      }
+
+      navItems.forEach(function(item) {
+        item.addEventListener('click', function(event) {
+          event.preventDefault();
+          showCategory(item.getAttribute('data-settings-category'));
+          var openOffcanvas = document.querySelector('.offcanvas.show');
+          if (openOffcanvas && window.bootstrap) {
+            window.bootstrap.Offcanvas.getInstance(openOffcanvas).hide();
+          }
+        });
+      });
+
+      function filterSearch() {
+        var query = (searchInput.value || '').trim().toLowerCase();
+        var visible = 0;
+        searchResults.forEach(function(result) {
+          var haystack = result.getAttribute('data-title') + ' ' + result.getAttribute('data-description');
+          var matches = query.length === 0 || haystack.indexOf(query) !== -1;
+          result.classList.toggle('d-none', !matches);
+          if (matches) visible += 1;
+        });
+        if (searchEmpty) searchEmpty.classList.toggle('d-none', visible !== 0);
+      }
+
+      if (searchInput) searchInput.addEventListener('input', filterSearch);
+
+      document.addEventListener('keydown', function(event) {
+        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k' && searchModal && window.bootstrap) {
+          event.preventDefault();
+          window.bootstrap.Modal.getOrCreateInstance(searchModal).show();
+          setTimeout(function() { if (searchInput) searchInput.focus(); }, 150);
+        }
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', initSettingsIndex);
+    document.addEventListener('turbo:load', initSettingsIndex);
+  })();
+</script>

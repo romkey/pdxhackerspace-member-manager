@@ -1,6 +1,245 @@
 @import 'bootstrap/scss/bootstrap';
 @import 'bootstrap-icons/font/bootstrap-icons';
 
+/* ============================================
+   Member Manager UI Refresh
+   Custom styles layered on top of Bootstrap 5.3
+   ============================================ */
+
+/* === Typography discipline === */
+/* Force a tight type scale. Override Bootstrap defaults that creep in. */
+.h-page-title       { font-size: 22px; font-weight: 500; line-height: 1.3; }
+.h-section-label    { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--bs-secondary-color); font-weight: 400; }
+.text-13            { font-size: 13px; }
+.text-12            { font-size: 12px; }
+.text-11            { font-size: 11px; }
+.fw-medium          { font-weight: 500; }
+
+/* Bootstrap has subtle color variables but not text-bg-*-subtle utilities. */
+.text-bg-primary-subtle { color: var(--bs-primary-text-emphasis); background-color: var(--bs-primary-bg-subtle); }
+.text-bg-secondary-subtle { color: var(--bs-secondary-text-emphasis); background-color: var(--bs-secondary-bg-subtle); }
+.text-bg-success-subtle { color: var(--bs-success-text-emphasis); background-color: var(--bs-success-bg-subtle); }
+.text-bg-info-subtle { color: var(--bs-info-text-emphasis); background-color: var(--bs-info-bg-subtle); }
+.text-bg-warning-subtle { color: var(--bs-warning-text-emphasis); background-color: var(--bs-warning-bg-subtle); }
+.text-bg-danger-subtle { color: var(--bs-danger-text-emphasis); background-color: var(--bs-danger-bg-subtle); }
+.text-bg-dark-subtle { color: var(--bs-body-color); background-color: var(--bs-tertiary-bg); }
+
+/* Legacy templates still use saturated badge utilities; soften them app-wide. */
+.badge.bg-primary,
+.badge.text-bg-primary {
+  color: var(--bs-primary-text-emphasis) !important;
+  background-color: var(--bs-primary-bg-subtle) !important;
+}
+.badge.bg-secondary,
+.badge.text-bg-secondary {
+  color: var(--bs-secondary-text-emphasis) !important;
+  background-color: var(--bs-secondary-bg-subtle) !important;
+}
+.badge.bg-success,
+.badge.text-bg-success {
+  color: var(--bs-success-text-emphasis) !important;
+  background-color: var(--bs-success-bg-subtle) !important;
+}
+.badge.bg-info,
+.badge.text-bg-info {
+  color: var(--bs-info-text-emphasis) !important;
+  background-color: var(--bs-info-bg-subtle) !important;
+}
+.badge.bg-warning,
+.badge.text-bg-warning {
+  color: var(--bs-warning-text-emphasis) !important;
+  background-color: var(--bs-warning-bg-subtle) !important;
+}
+.badge.bg-danger,
+.badge.text-bg-danger {
+  color: var(--bs-danger-text-emphasis) !important;
+  background-color: var(--bs-danger-bg-subtle) !important;
+}
+.badge.bg-dark,
+.badge.text-bg-dark {
+  color: var(--bs-body-color) !important;
+  background-color: var(--bs-tertiary-bg) !important;
+}
+
+/* === Status dots ===
+   Replace fat status pills with a 6px colored dot.
+   Use: <span class="status-dot status-success" title="Success"></span> */
+.status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  vertical-align: middle;
+}
+.status-dot.status-success { background-color: var(--bs-success); }
+.status-dot.status-danger  { background-color: var(--bs-danger); }
+.status-dot.status-warning { background-color: var(--bs-warning); }
+.status-dot.status-muted   { background-color: var(--bs-secondary-color); opacity: 0.5; }
+
+/* === Filter chip ===
+   The clickable category-count filter pill.
+   Use: <button class="filter-chip">Label <span class="count">42</span></button>
+   Variants: .active (selected), .warning (needs-attention semantic), .danger, .muted (zero count) */
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--bs-body-color);
+  background: transparent;
+  border: 0.5px solid rgba(255,255,255,0.12);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+}
+.filter-chip:hover {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.2);
+}
+.filter-chip .count {
+  color: var(--bs-secondary-color);
+  font-variant-numeric: tabular-nums;
+}
+.filter-chip.active {
+  background: rgba(13, 110, 253, 0.18);
+  color: var(--bs-info-text-emphasis);
+  border-color: rgba(13, 110, 253, 0.4);
+}
+.filter-chip.active .count { color: inherit; opacity: 0.85; }
+.filter-chip.warning {
+  color: var(--bs-warning-text-emphasis);
+  border-color: rgba(255, 193, 7, 0.25);
+}
+.filter-chip.warning .count { color: inherit; opacity: 0.7; }
+.filter-chip.danger {
+  color: var(--bs-danger-text-emphasis);
+  border-color: rgba(220, 53, 69, 0.25);
+}
+.filter-chip.muted {
+  color: rgba(255,255,255,0.25);
+  border-color: rgba(255,255,255,0.06);
+  cursor: default;
+}
+.filter-chip.muted:hover { background: transparent; border-color: rgba(255,255,255,0.06); }
+
+/* === KPI tile ===
+   For dashboard summary numbers and clickable filter tiles.
+   Use: <div class="kpi-tile"><div class="kpi-label">Active</div><div class="kpi-value">179</div></div> */
+.kpi-tile {
+  background: var(--bs-tertiary-bg);
+  border: 0.5px solid var(--bs-border-color);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+.kpi-tile.clickable { cursor: pointer; transition: border-color 0.1s; }
+.kpi-tile.clickable:hover { border-color: rgba(255,255,255,0.2); }
+.kpi-tile.active {
+  background: rgba(13, 110, 253, 0.12);
+  border-color: rgba(13, 110, 253, 0.4);
+}
+.kpi-tile.warning {
+  background: rgba(255, 193, 7, 0.06);
+  border-color: rgba(255, 193, 7, 0.3);
+}
+.kpi-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--bs-secondary-color);
+  margin-bottom: 2px;
+}
+.kpi-tile.warning .kpi-label { color: var(--bs-warning); }
+.kpi-tile.active .kpi-label  { color: var(--bs-info-text-emphasis); }
+.kpi-value {
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--bs-body-color);
+  font-variant-numeric: tabular-nums;
+}
+.kpi-tile.warning .kpi-value { color: var(--bs-warning); }
+
+/* === Compact table styling ===
+   Apply with: <table class="table table-compact"> */
+.table-compact { font-size: 13px; }
+.table-compact thead th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--bs-secondary-color);
+  font-weight: 400;
+  border-bottom: 0.5px solid var(--bs-border-color);
+  padding: 8px 12px;
+}
+.table-compact tbody td {
+  padding: 9px 12px;
+  border-bottom: 0.5px solid rgba(255,255,255,0.04);
+  vertical-align: middle;
+}
+.table-compact tbody tr:last-child td { border-bottom: none; }
+.table-compact tbody tr:hover td { background: rgba(255,255,255,0.02); }
+.table-compact .num { font-variant-numeric: tabular-nums; text-align: right; }
+.table-compact .muted-num { color: var(--bs-secondary-color); }
+
+/* Dim repeated currency parts: "$40.00" -> bright "40", muted "$" and ".00" */
+.money .currency, .money .cents { color: var(--bs-secondary-color); }
+
+/* === Settings sidebar nav === */
+.settings-nav { font-size: 13px; }
+.settings-nav-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 5px;
+  color: var(--bs-secondary-color);
+  text-decoration: none;
+  cursor: pointer;
+}
+.settings-nav-item:hover { background: rgba(255,255,255,0.03); color: var(--bs-body-color); }
+.settings-nav-item.active {
+  background: rgba(13, 110, 253, 0.12);
+  color: var(--bs-body-color);
+  border-left: 2px solid var(--bs-info);
+  padding-left: 8px;
+}
+.settings-nav-item.attention { color: var(--bs-warning); }
+.settings-nav-item .count {
+  font-size: 11px;
+  color: var(--bs-secondary-color);
+}
+.settings-nav-item.attention .count {
+  background: rgba(255, 193, 7, 0.15);
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+.settings-nav-divider {
+  height: 1px;
+  background: var(--bs-border-color);
+  margin: 8px 4px;
+}
+
+/* === Compact list row (for settings, navigation lists, etc.) === */
+.list-compact .list-group-item {
+  padding: 11px 14px;
+  background: transparent;
+  border-color: rgba(255,255,255,0.04);
+  font-size: 13px;
+}
+.list-compact .list-group-item:first-child { border-top: none; }
+.list-compact .list-group-item-action:hover {
+  background: rgba(255,255,255,0.03);
+}
+.list-compact .item-title { font-size: 13px; font-weight: 500; }
+.list-compact .item-desc { font-size: 12px; color: var(--bs-secondary-color); margin-top: 1px; }
+.list-compact .chevron::after {
+  content: "›";
+  color: var(--bs-secondary-color);
+  font-size: 14px;
+  margin-left: 10px;
+}
+
 // Admin dashboard: soft frame for each section (search, stats, actions, lists, highlights)
 .card.dashboard-panel {
   --dashboard-panel-bg: color-mix(in srgb, var(--bs-body-bg) 97%, #fff 3%);
@@ -35,6 +274,10 @@
 
 .dashboard-attention-tier-boundary hr {
   border-color: var(--bs-border-color-translucent);
+}
+
+.dashboard-attention-item > div > .bi {
+  display: none;
 }
 
 // Membership application show: mask applicant / referrer contact until "Show contact details"

@@ -1,33 +1,38 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
-  <h1 class="h3 mb-0"><i class="bi bi-mortarboard me-2"></i>Training</h1>
+  <div>
+    <h1 class="h-page-title mb-0">Training</h1>
+    <div class="text-13 text-secondary mt-1">
+      Browse topics, trainers, and requestable training. Ask in <strong>#help</strong> if you do not see what you need.
+    </div>
+  </div>
   <% if @requestable_topic_ids.any? %>
-    <%= link_to new_training_request_path, class: 'btn btn-primary' do %>
-      <i class="bi bi-mortarboard me-1"></i> Request Training
+    <%= link_to new_training_request_path, class: 'btn btn-primary btn-sm' do %>
+      <i class="bi bi-mortarboard me-1"></i> Request training
     <% end %>
   <% end %>
 </div>
 
-<div class="card shadow-sm border-0 mb-4">
-  <div class="card-body">
-    <p class="text-muted mb-0">
-      Browse available training topics. Click a topic for details, including trainers,
-      trainees, and materials. Topics offered to members can be requested; if you do not
-      see what you need, please post in <strong>#help</strong> on Slack or email
-      <a href="mailto:info@pdxhackerspace.org">info@pdxhackerspace.org</a>.
-    </p>
-  </div>
+<div class="d-flex flex-wrap gap-2 mb-3">
+  <%= link_to training_catalog_path, class: "filter-chip text-decoration-none #{'active' if params[:training_filter].blank?}" do %>
+    <%= '✓ ' if params[:training_filter].blank? %>All <span class="count"><%= @all_topic_count %></span>
+  <% end %>
+  <%= link_to training_catalog_path(training_filter: 'offered'), class: "filter-chip text-decoration-none #{'active' if params[:training_filter] == 'offered'}" do %>
+    <%= '✓ ' if params[:training_filter] == 'offered' %>Offered <span class="count"><%= @offered_topic_count %></span>
+  <% end %>
+  <%= link_to training_catalog_path(training_filter: 'needs_trainers'), class: "filter-chip warning text-decoration-none #{'active' if params[:training_filter] == 'needs_trainers'} #{'muted' if @needs_trainers_count.zero?}" do %>
+    <%= '✓ ' if params[:training_filter] == 'needs_trainers' %>Needs trainers <span class="count"><%= @needs_trainers_count %></span>
+  <% end %>
 </div>
 
 <% if @training_topics.any? %>
   <div class="card shadow-sm border-0">
-    <div class="card-body">
       <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="bg-body-tertiary">
+        <table class="table table-compact table-hover align-middle mb-0">
+          <thead>
             <tr>
               <th scope="col">Topic</th>
               <% if current_user_admin? %>
-                <th scope="col" class="text-center">Offered to members</th>
+              <th scope="col" class="text-center">Offered</th>
               <% end %>
               <th scope="col" class="text-center">Trainers</th>
               <th scope="col" class="text-center">Trained</th>
@@ -36,7 +41,10 @@
           </thead>
           <tbody>
             <% @training_topics.each do |topic| %>
-              <tr>
+              <% trainer_count = @topic_trainer_counts[topic.id].to_i %>
+              <% trained_count = @topic_trained_counts[topic.id].to_i %>
+              <% needs_trainers = topic.offered_to_members? && trainer_count.zero? %>
+              <tr onclick="if (!event.target.closest('a, button')) window.location='<%= training_catalog_topic_path(topic) %>'" style="cursor: pointer;">
                 <td>
                   <strong><%= link_to topic.name, training_catalog_topic_path(topic), class: 'text-decoration-none' %></strong>
                   <% if topic.description.present? %>
@@ -46,23 +54,24 @@
                 <% if current_user_admin? %>
                   <td class="text-center">
                     <% if topic.offered_to_members? %>
-                      <span class="badge text-bg-success">Yes</span>
+                      <span class="text-success">✓</span>
                     <% else %>
-                      <span class="badge text-bg-secondary">No</span>
+                      <span class="text-secondary">—</span>
                     <% end %>
                   </td>
                 <% end %>
-                <td class="text-center">
-                  <span class="badge text-bg-success"><%= topic.trainer_capabilities.select(:user_id).distinct.count %></span>
+                <td class="num <%= needs_trainers ? 'text-warning' : (trainer_count.zero? ? 'muted-num' : '') %>">
+                  <%= trainer_count %>
                 </td>
-                <td class="text-center">
-                  <span class="badge text-bg-primary"><%= topic.trainings.select(:trainee_id).distinct.count %></span>
+                <td class="num <%= trained_count.zero? ? 'muted-num' : ('fw-medium' if trained_count >= 50) %>">
+                  <%= trained_count %>
                 </td>
                 <td class="text-end">
                   <div class="d-flex gap-2 justify-content-end">
-                    <%= link_to 'Details', training_catalog_topic_path(topic), class: 'btn btn-sm btn-outline-secondary' %>
-                    <% if @requestable_topic_ids.include?(topic.id) %>
-                      <%= link_to new_training_request_path, class: 'btn btn-sm btn-primary' do %>
+                    <% if needs_trainers %>
+                      <span class="text-warning text-12">No trainers</span>
+                    <% elsif @requestable_topic_ids.include?(topic.id) %>
+                      <%= link_to new_training_request_path, class: 'btn btn-sm btn-outline-info' do %>
                         <i class="bi bi-mortarboard"></i> Request
                       <% end %>
                     <% end %>
@@ -73,7 +82,6 @@
           </tbody>
         </table>
       </div>
-    </div>
   </div>
 <% else %>
   <div class="alert alert-secondary mb-0">

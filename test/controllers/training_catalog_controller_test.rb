@@ -80,7 +80,7 @@ class TrainingCatalogControllerTest < ActionDispatch::IntegrationTest
     get training_catalog_path
 
     assert_response :success
-    assert_match(/Offered to members/i, response.body)
+    assert_match(/Offered/i, response.body)
   end
 
   # Show

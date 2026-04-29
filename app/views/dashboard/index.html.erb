@@ -44,11 +44,25 @@
   </ul>
 
   <% if @active_tab == :admin_dashboard %>
+  <% attention_need = @dashboard_attention_items.reject { |i| i[:ok] } %>
+  <% attention_ok = @dashboard_attention_items.select { |i| i[:ok] } %>
+
+  <div class="d-flex align-items-end justify-content-between mb-3">
+    <div>
+      <h1 class="h-page-title mb-0">Admin dashboard</h1>
+      <div class="text-13 text-secondary mt-1">
+        <span class="text-body"><%= @active_user_count %></span> active members ·
+        <span class="text-body"><%= @user_count %></span> total ·
+        <span class="<%= attention_need.any? ? 'text-warning' : 'text-secondary' %>"><%= attention_need.size %></span> need attention
+      </div>
+    </div>
+  </div>
+
   <!-- Member Search (full width) -->
-  <div class="card dashboard-panel dashboard-panel-search mb-4">
-    <div class="card-body py-3">
+  <div class="card dashboard-panel dashboard-panel-search mb-3">
+    <div class="card-body py-2">
       <div class="position-relative">
-        <input type="text" id="dashboard_member_search" class="form-control form-control-lg"
+        <input type="text" id="dashboard_member_search" class="form-control form-control-sm"
                placeholder="Find a member by name, email or username" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
                data-search-url="<%= api_users_search_path %>">
         <div id="dashboard_search_results" class="position-absolute w-100 bg-body border rounded shadow-sm mt-1"
@@ -62,22 +76,30 @@
     </div>
   </div>
 
-  <!-- Stats (full width, unboxed) -->
-  <div class="mb-4">
-    <div class="d-flex flex-wrap justify-content-center gap-4 text-center py-2">
-      <div>
-        <span class="text-muted">Members:</span>
-        <%= link_to "#{@active_user_count} active", users_path(filter: 'active'), class: "fw-bold text-decoration-none" %>
-        /
-        <%= link_to "#{@user_count} total", users_path, class: "fw-bold text-decoration-none" %>
-      </div>
-      <div class="border-start ps-4">
-        <span class="text-muted">Slack:</span>
-        <%= link_to @slack_user_count, slack_users_path, class: "fw-bold text-decoration-none" %>
-      </div>
-      <div class="border-start ps-4">
-        <span class="text-muted">Sheet:</span>
-        <%= link_to @sheet_entry_count, sheet_entries_path, class: "fw-bold text-decoration-none" %>
+  <!-- Stats -->
+  <div class="row g-2 mb-3">
+    <div class="col-sm-6 col-lg-3">
+      <%= link_to users_path(filter: 'active'), class: "kpi-tile clickable d-block text-decoration-none h-100" do %>
+        <div class="kpi-label">Active members</div>
+        <div class="kpi-value"><%= @active_user_count %> <span class="text-secondary fs-6 fw-normal">/ <%= @user_count %></span></div>
+      <% end %>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <%= link_to slack_users_path, class: "kpi-tile clickable d-block text-decoration-none h-100" do %>
+        <div class="kpi-label">Slack users</div>
+        <div class="kpi-value"><%= @slack_user_count %></div>
+      <% end %>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <%= link_to sheet_entries_path, class: "kpi-tile clickable d-block text-decoration-none h-100" do %>
+        <div class="kpi-label">Sheet entries</div>
+        <div class="kpi-value"><%= @sheet_entry_count %></div>
+      <% end %>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="kpi-tile h-100 <%= 'warning' if attention_need.any? %>">
+        <div class="kpi-label">Needs attention</div>
+        <div class="kpi-value"><%= attention_need.size %></div>
       </div>
     </div>
   </div>
@@ -85,48 +107,55 @@
   <div class="row align-items-start g-4">
     <!-- Main column: actions + attention items -->
     <div class="col-lg-8">
-      <!-- Quick Actions -->
       <div class="card dashboard-panel mb-4">
         <div class="card-body">
-          <div class="d-flex flex-wrap justify-content-center gap-3 mb-3">
-            <%= link_to onboard_path, class: "btn btn-primary btn-lg" do %>
-              <i class="bi bi-person-badge me-2"></i>Create New Member
-            <% end %>
-            <%= link_to new_invitation_path, class: "btn btn-info btn-lg" do %>
-              <i class="bi bi-envelope-plus me-2"></i>Send Invitation
-            <% end %>
-            <%= link_to new_rfid_path, class: "btn btn-success btn-lg" do %>
-              <i class="bi bi-key me-2"></i>Add Key Fob
-            <% end %>
-          </div>
-          <div class="d-flex flex-wrap justify-content-center gap-3 mb-3">
-            <% if current_user_admin? || current_user&.trainer_capabilities&.any? %>
-              <%= link_to train_member_path, class: "btn btn-info btn-lg" do %>
-                <i class="bi bi-mortarboard me-2"></i>Train a Member
-              <% end %>
-            <% end %>
-            <%= link_to new_parking_notice_path(type: 'permit'), class: "btn btn-success btn-lg" do %>
-              <i class="bi bi-p-circle me-2"></i>New Parking Permit
-            <% end %>
-            <%= link_to new_parking_notice_path(type: 'ticket'), class: "btn btn-danger btn-lg" do %>
-              <i class="bi bi-ticket-perforated me-2"></i>New Parking Ticket
-            <% end %>
-          </div>
-          <div class="d-flex flex-wrap justify-content-center gap-3">
-            <%= link_to new_incident_report_path, class: "btn btn-warning btn-lg" do %>
-              <i class="bi bi-exclamation-triangle me-2"></i>New Incident Report
-            <% end %>
-            <% if current_user_admin? %>
-              <%= link_to access_controllers_path, class: "btn btn-secondary btn-lg" do %>
-                <i class="bi bi-router me-2"></i>Access Controllers
-              <% end %>
-            <% end %>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="h-section-label mb-2">Members</div>
+              <div class="d-flex flex-wrap gap-2">
+                <%= link_to onboard_path, class: "btn btn-primary btn-sm" do %>
+                  <i class="bi bi-person-badge me-1"></i>New member
+                <% end %>
+                <%= link_to new_invitation_path, class: "btn btn-outline-secondary btn-sm" do %>
+                  <i class="bi bi-envelope-plus me-1"></i>Invitation
+                <% end %>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="h-section-label mb-2">Access & parking</div>
+              <div class="d-flex flex-wrap gap-2">
+                <%= link_to new_rfid_path, class: "btn btn-outline-secondary btn-sm" do %>
+                  <i class="bi bi-key me-1"></i>Key fob
+                <% end %>
+                <%= link_to new_parking_notice_path(type: 'permit'), class: "btn btn-outline-secondary btn-sm" do %>
+                  <i class="bi bi-p-circle me-1"></i>Parking permit
+                <% end %>
+                <%= link_to new_parking_notice_path(type: 'ticket'), class: "btn btn-outline-secondary btn-sm" do %>
+                  <i class="bi bi-ticket-perforated me-1"></i>Parking ticket
+                <% end %>
+                <% if current_user_admin? %>
+                  <%= link_to access_controllers_path, class: "btn btn-outline-secondary btn-sm" do %>
+                    <i class="bi bi-router me-1"></i>Controllers
+                  <% end %>
+                <% end %>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="h-section-label mb-2">Operations</div>
+              <div class="d-flex flex-wrap gap-2">
+                <% if current_user_admin? || current_user&.trainer_capabilities&.any? %>
+                  <%= link_to train_member_path, class: "btn btn-outline-secondary btn-sm" do %>
+                    <i class="bi bi-mortarboard me-1"></i>Train member
+                  <% end %>
+                <% end %>
+                <%= link_to new_incident_report_path, class: "btn btn-outline-secondary btn-sm" do %>
+                  <i class="bi bi-exclamation-triangle me-1"></i>Incident report
+                <% end %>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-
-      <% attention_need = @dashboard_attention_items.reject { |i| i[:ok] } %>
-      <% attention_ok = @dashboard_attention_items.select { |i| i[:ok] } %>
 
       <%= render 'dashboard/attention_needs_card', attention_need: attention_need %>
       <%= render 'dashboard/attention_all_good_card', attention_ok: attention_ok if attention_ok.any? %>
@@ -135,34 +164,26 @@
     <!-- Highlights Column -->
     <div class="col-lg-4">
       <div class="card dashboard-panel">
-        <div class="card-header bg-warning bg-opacity-25 d-flex justify-content-between align-items-center">
-          <h5 class="mb-0">
-            <i class="bi bi-star-fill text-warning me-2"></i>Recent Highlights
-          </h5>
-          <%= link_to "View All", journals_path(filter: 'highlights'), class: "btn btn-sm btn-outline-warning" %>
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h2 class="h-section-label mb-0">Recent highlights</h2>
+          <%= link_to "View all", journals_path(filter: 'highlights'), class: "btn btn-sm btn-outline-secondary" %>
         </div>
         <div class="card-body p-0" style="max-height: 600px; overflow-y: auto;">
           <% if @recent_highlights.any? %>
             <div class="list-group list-group-flush">
               <% @recent_highlights.each do |j| %>
-                <div class="list-group-item list-group-item-action px-3 py-2">
+                <div class="list-group-item list-group-item-action px-3 py-2 text-13">
                   <div class="d-flex justify-content-between align-items-start mb-1">
-                    <% badge_class = case j.action
-                                     when 'created' then 'text-bg-success'
-                                     when 'incident_report_involvement' then 'text-bg-danger'
-                                     when 'membership_status_changed', 'activated', 'deactivated' then 'text-bg-warning'
-                                     when 'banned' then 'text-bg-dark'
-                                     when 'training_added', 'training_removed' then 'text-bg-primary'
-                                     when 'trainer_capability_added', 'trainer_capability_removed' then 'text-bg-info'
-                                     when 'application_submitted' then 'text-bg-info'
-                                     when 'application_approved' then 'text-bg-success'
-                                     when 'application_rejected' then 'text-bg-danger'
-                                     else 'text-bg-secondary'
-                                     end %>
-                    <span class="badge <%= badge_class %> small"><%= j.action.humanize %></span>
-                    <small class="text-muted"><%= time_ago_in_words(j.changed_at) %> ago</small>
+                    <% dot_class = case j.action
+                                  when 'created', 'application_approved' then 'status-success'
+                                  when 'incident_report_involvement', 'banned', 'application_rejected' then 'status-danger'
+                                  when 'membership_status_changed', 'activated', 'deactivated' then 'status-warning'
+                                  else 'status-muted'
+                                  end %>
+                    <span class="text-secondary text-12"><span class="status-dot <%= dot_class %> me-1" title="<%= j.action.humanize %>"></span><%= j.action.humanize %></span>
+                    <small class="text-secondary"><%= time_ago_in_words(j.changed_at) %> ago</small>
                   </div>
-                  <div class="fw-semibold">
+                  <div class="fw-medium">
                     <% if j.user.present? %>
                       <%= link_to j.user.display_name, user_path(j.user), class: "text-decoration-none" %>
                     <% elsif j.changes_json.dig('application', 'email').present? %>
@@ -186,11 +207,11 @@
                     </small>
                   <% elsif j.changes_json['training'].is_a?(Hash) %>
                     <small class="text-muted d-block">
-                      <span class="badge text-bg-primary"><%= j.changes_json['training']['topic'] %></span>
+                      <span class="badge text-bg-primary-subtle"><%= j.changes_json['training']['topic'] %></span>
                     </small>
                   <% elsif j.changes_json['trainer_capability'].is_a?(Hash) %>
                     <small class="text-muted d-block">
-                      <span class="badge text-bg-info"><%= j.changes_json['trainer_capability']['topic'] %></span>
+                      <span class="badge text-bg-info-subtle"><%= j.changes_json['trainer_capability']['topic'] %></span>
                       <span>can train others</span>
                     </small>
                   <% elsif j.changes_json.present? %>

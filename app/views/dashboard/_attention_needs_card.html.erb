@@ -1,54 +1,20 @@
 <%# locals: attention_need %>
-<% urgent_need = attention_need.select { |i| i[:tier] == :urgent } %>
-<% important_need = attention_need.select { |i| i[:tier] == :important } %>
-<% housekeeping_need = attention_need.select { |i| i[:tier] == :housekeeping } %>
-
 <div class="card dashboard-panel mb-4">
-  <div class="card-header bg-danger bg-opacity-10 rounded-0">
-    <h5 class="mb-0"><i class="bi bi-exclamation-octagon-fill text-danger me-2"></i>Needs attention</h5>
+  <div class="card-header rounded-0">
+    <h2 class="h-section-label mb-0">Needs attention</h2>
   </div>
   <div class="card-body p-0">
     <% if attention_need.empty? %>
       <ul class="list-group list-group-flush">
         <li class="list-group-item py-3 text-muted">
-          <i class="bi bi-check2-circle text-success me-2"></i>
+          <span class="status-dot status-success me-2" title="OK"></span>
           Nothing needs attention right now.
         </li>
       </ul>
     <% else %>
-      <% offset = 0 %>
-      <% if urgent_need.any? %>
-        <section class="dashboard-attention-subsection">
-          <div class="card-header bg-danger bg-opacity-10 rounded-0 border-0">
-            <h5 class="mb-0"><i class="bi bi-exclamation-octagon-fill text-danger me-2"></i>Urgent</h5>
-          </div>
-          <ul class="list-group list-group-flush">
-            <%= render 'dashboard/attention_tiered_list', items: urgent_need, show_numbers: true, number_offset: offset %>
-          </ul>
-        </section>
-        <% offset += urgent_need.size %>
-      <% end %>
-      <% if important_need.any? %>
-        <section class="dashboard-attention-subsection">
-          <div class="card-header bg-info bg-opacity-10 rounded-0 border-0">
-            <h5 class="mb-0"><i class="bi bi-info-circle-fill text-info me-2"></i>Important</h5>
-          </div>
-          <ul class="list-group list-group-flush">
-            <%= render 'dashboard/attention_tiered_list', items: important_need, show_numbers: true, number_offset: offset %>
-          </ul>
-        </section>
-        <% offset += important_need.size %>
-      <% end %>
-      <% if housekeeping_need.any? %>
-        <section class="dashboard-attention-subsection">
-          <div class="card-header bg-warning bg-opacity-10 rounded-0 border-0">
-            <h5 class="mb-0"><i class="bi bi-clipboard-check text-warning me-2"></i>Housekeeping</h5>
-          </div>
-          <ul class="list-group list-group-flush">
-            <%= render 'dashboard/attention_tiered_list', items: housekeeping_need, show_numbers: true, number_offset: offset %>
-          </ul>
-        </section>
-      <% end %>
+      <ul class="list-group list-group-flush">
+        <%= render 'dashboard/attention_tiered_list', items: attention_need %>
+      </ul>
     <% end %>
   </div>
 </div>

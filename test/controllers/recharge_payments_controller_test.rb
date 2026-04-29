@@ -18,7 +18,7 @@ class RechargePaymentsControllerTest < ActionDispatch::IntegrationTest
   test 'shows index' do
     get recharge_payments_path
     assert_response :success
-    assert_select 'h1', /Recharge Payments/
+    assert_select 'h1', /Recharge payments/i
     assert_match @payment.recharge_id, response.body
   end
 

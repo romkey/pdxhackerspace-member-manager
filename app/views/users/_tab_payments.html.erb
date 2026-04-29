@@ -13,18 +13,18 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h2 class="h6 mb-0">Payment Events</h2>
       <% if local_assigns[:show_payment_links] && user.personal_membership_plans.any? %>
-        <%= link_to "Record Cash Payment", new_cash_payment_path(user_id: user.id), class: "btn btn-success btn-sm" %>
+        <%= link_to "Record Cash Payment", new_cash_payment_path(user_id: user.id), class: "btn btn-outline-secondary btn-sm" %>
       <% end %>
     </div>
 
     <% current_filter = @payment_event_filter %>
     <div class="btn-group btn-group-sm mb-3" role="group">
-      <%= link_to "All", payments_tab_path.call, class: "btn #{current_filter.blank? ? 'btn-primary' : 'btn-outline-primary'}" %>
-      <%= link_to "Payments", payments_tab_path.call(event_type: 'payment'), class: "btn #{current_filter == 'payment' ? 'btn-primary' : 'btn-outline-primary'}" %>
-      <%= link_to "Subscriptions", payments_tab_path.call(event_type: 'subscription_started'), class: "btn #{current_filter == 'subscription_started' ? 'btn-primary' : 'btn-outline-primary'}" %>
-      <%= link_to "Cancellations", payments_tab_path.call(event_type: 'subscription_cancelled'), class: "btn #{current_filter == 'subscription_cancelled' ? 'btn-primary' : 'btn-outline-primary'}" %>
-      <%= link_to "Paused", payments_tab_path.call(event_type: 'subscription_paused'), class: "btn #{current_filter == 'subscription_paused' ? 'btn-primary' : 'btn-outline-primary'}" %>
-      <%= link_to "Resumed", payments_tab_path.call(event_type: 'subscription_resumed'), class: "btn #{current_filter == 'subscription_resumed' ? 'btn-primary' : 'btn-outline-primary'}" %>
+      <%= link_to "All", payments_tab_path.call, class: "btn #{current_filter.blank? ? 'btn-primary' : 'btn-outline-secondary'}" %>
+      <%= link_to "Payments", payments_tab_path.call(event_type: 'payment'), class: "btn #{current_filter == 'payment' ? 'btn-primary' : 'btn-outline-secondary'}" %>
+      <%= link_to "Subscriptions", payments_tab_path.call(event_type: 'subscription_started'), class: "btn #{current_filter == 'subscription_started' ? 'btn-primary' : 'btn-outline-secondary'}" %>
+      <%= link_to "Cancellations", payments_tab_path.call(event_type: 'subscription_cancelled'), class: "btn #{current_filter == 'subscription_cancelled' ? 'btn-primary' : 'btn-outline-secondary'}" %>
+      <%= link_to "Paused", payments_tab_path.call(event_type: 'subscription_paused'), class: "btn #{current_filter == 'subscription_paused' ? 'btn-primary' : 'btn-outline-secondary'}" %>
+      <%= link_to "Resumed", payments_tab_path.call(event_type: 'subscription_resumed'), class: "btn #{current_filter == 'subscription_resumed' ? 'btn-primary' : 'btn-outline-secondary'}" %>
     </div>
 
     <% if payments.any? %>

@@ -32,6 +32,19 @@ module ApplicationHelper
     MEMBERSHIP_STATUS_BADGE_CLASSES.fetch(status.to_s, 'secondary')
   end
 
+  def membership_status_badge_subtle_class(status)
+    {
+      'paying' => 'text-bg-success-subtle',
+      'guest' => 'text-bg-warning-subtle',
+      'banned' => 'text-bg-danger-subtle',
+      'deceased' => 'text-bg-dark-subtle',
+      'sponsored' => 'text-bg-info-subtle',
+      'applicant' => 'text-bg-warning-subtle',
+      'cancelled' => 'text-bg-secondary-subtle',
+      'unknown' => 'text-bg-secondary-subtle'
+    }.fetch(status.to_s, 'text-bg-secondary-subtle')
+  end
+
   def dues_status_badge_class(status)
     DUES_STATUS_BADGE_CLASSES.fetch(status.to_s, 'secondary')
   end
