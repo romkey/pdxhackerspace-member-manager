@@ -151,6 +151,16 @@ export default class extends Controller {
       element.replaceWith("\n")
     })
 
+    container.querySelectorAll("p, li").forEach((element) => {
+      const urls = Array.from(element.querySelectorAll("a[href]"))
+        .map((link) => link.getAttribute("href"))
+        .filter((url) => url && url.trim().length > 0)
+
+      if (urls.length > 0) {
+        element.append(`\n\n${urls.join("\n")}\n`)
+      }
+    })
+
     container.querySelectorAll("p, div, h1, h2, h3, h4, h5, h6, li, tr").forEach((element) => {
       element.append("\n")
     })
@@ -162,6 +172,7 @@ export default class extends Controller {
     return container.textContent
       .replace(/\u00a0/g, " ")
       .replace(/[ \t]+\n/g, "\n")
+      .replace(/\n[ \t]+/g, "\n")
       .replace(/\n{3,}/g, "\n\n")
       .trim()
   }

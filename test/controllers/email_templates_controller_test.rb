@@ -59,6 +59,13 @@ class EmailTemplatesControllerTest < ActionDispatch::IntegrationTest
     assert_select 'label[for=?]', 'email_template_sync_body_text', text: 'Keep in sync with HTML'
   end
 
+  test 'show wraps html body in high contrast preview container' do
+    get email_template_path(@template)
+
+    assert_response :success
+    assert_select '.email-template-html-body'
+  end
+
   test 'update syncs plain text from html when checkbox is checked' do
     patch email_template_path(@template), params: {
       sync_body_text: '1',
@@ -76,6 +83,37 @@ class EmailTemplatesControllerTest < ActionDispatch::IntegrationTest
     @template.reload
     assert_equal '<h1>Welcome</h1><p>Hello <strong>{{member_name}}</strong><br>Line two</p>', @template.body_html
     assert_equal "Welcome\nHello {{member_name}}\nLine two", @template.body_text
+  end
+
+  test 'update sync lists link urls under their containing paragraph' do
+    html = <<~HTML.squish
+      <p>Visit <a href="https://example.com/start">the getting started guide</a>
+      and <a href="{{application_url}}">your application</a>.</p>
+      <p>Thanks for reading.</p>
+    HTML
+
+    patch email_template_path(@template), params: {
+      sync_body_text: '1',
+      email_template: {
+        name: @template.name,
+        description: @template.description,
+        subject: 'Updated Subject',
+        body_html: html,
+        body_text: 'Stale plain text',
+        enabled: '1'
+      }
+    }
+
+    assert_redirected_to email_templates_path
+    @template.reload
+    assert_equal <<~TEXT.strip, @template.body_text
+      Visit the getting started guide and your application.
+
+      https://example.com/start
+      {{application_url}}
+
+      Thanks for reading.
+    TEXT
   end
 
   test 'update leaves plain text unchanged when checkbox is unchecked' do

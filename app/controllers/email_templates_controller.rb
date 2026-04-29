@@ -1,5 +1,6 @@
 class EmailTemplatesController < AdminController
   HTML_BLOCK_TAGS = %w[p div h1 h2 h3 h4 h5 h6 li tr].freeze
+  HTML_LINK_URL_TAGS = %w[p li].freeze
   HTML_SPACED_TAGS = %w[td th].freeze
 
   before_action :set_email_template,
@@ -126,6 +127,7 @@ class EmailTemplatesController < AdminController
     node_to_plain_text(fragment)
       .gsub("\u00a0", ' ')
       .gsub(/[ \t]+\n/, "\n")
+      .gsub(/\n[ \t]+/, "\n")
       .gsub(/\n{3,}/, "\n\n")
       .strip
   end
@@ -135,9 +137,23 @@ class EmailTemplatesController < AdminController
     return "\n" if node.element? && node.name == 'br'
 
     text = node.children.map { |child| node_to_plain_text(child) }.join
+    if append_link_urls?(node)
+      urls = node.css('a[href]').filter_map { |link| link['href'].presence }
+      text = append_link_urls(text, urls)
+    end
     text += "\n" if node.element? && HTML_BLOCK_TAGS.include?(node.name)
     text += ' ' if node.element? && HTML_SPACED_TAGS.include?(node.name)
     text
+  end
+
+  def append_link_urls?(node)
+    node.element? && HTML_LINK_URL_TAGS.include?(node.name) && node.css('a[href]').any?
+  end
+
+  def append_link_urls(text, urls)
+    return text if urls.blank?
+
+    [text.rstrip, '', *urls, ''].join("\n")
   end
 
   def rewrite_params

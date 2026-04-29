@@ -404,6 +404,17 @@
 }
 .resource-link:hover { text-decoration: underline; }
 
+// Email template show previews sit on a white canvas; override low-contrast template styles there only.
+.email-template-html-body {
+  color: #212529;
+}
+.email-template-html-body :not(a) {
+  color: #212529 !important;
+}
+.email-template-html-body a {
+  color: #0a58ca !important;
+}
+
 .profile-section-header {
   display: flex;
   align-items: baseline;
