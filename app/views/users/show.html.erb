@@ -150,16 +150,6 @@
             <i class="bi bi-cloud-upload"></i> Push to Authentik
           </button>
         <% end %>
-        <% if MemberSource.enabled?('authentik') %>
-          <%= button_to sync_from_authentik_user_path(@user), method: :post, class: "btn btn-outline-primary",
-              title: "Pull changes from Authentik", data: { turbo: false } do %>
-            <i class="bi bi-cloud-download"></i> Pull from Authentik
-          <% end %>
-        <% else %>
-          <button class="btn btn-outline-secondary" disabled title="Authentik source is disabled">
-            <i class="bi bi-cloud-download"></i> Pull from Authentik
-          </button>
-        <% end %>
       <% end %>
     </div>
   </div>
@@ -349,28 +339,44 @@
 
 <% elsif @view_level == :self %>
   <%# ===== SELF VIEW WITH TABS ===== %>
-  <ul class="nav nav-tabs mb-4" role="tablist">
+  <% member_since = @user.membership_start_date || @user.created_at %>
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div class="d-flex align-items-center gap-3">
+      <%= render 'users/member_avatar_44', user: @user, editable: @active_tab == :profile %>
+      <div>
+        <% if @active_tab == :profile %>
+          <div class="h-page-title mb-0">Your profile</div>
+          <div class="text-12 text-secondary">How others see you and how we reach you</div>
+        <% else %>
+          <div class="h-page-title mb-0">Hi, <%= @user.display_name %></div>
+          <div class="text-12 text-secondary">Member since <%= member_since.strftime('%b %Y') %></div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <ul class="nav nav-tabs mb-3 small" role="tablist">
     <li class="nav-item" role="presentation">
       <%= link_to user_path(@user, tab: :dashboard, view_as: params[:view_as]),
           class: "nav-link #{'active' if @active_tab == :dashboard}",
           role: "tab" do %>
-        <i class="bi bi-speedometer2 me-1"></i> Dashboard
+        Dashboard
       <% end %>
     </li>
     <li class="nav-item" role="presentation">
       <%= link_to user_path(@user, tab: :profile, view_as: params[:view_as]), 
           class: "nav-link #{'active' if @active_tab == :profile}", 
           role: "tab" do %>
-        <i class="bi bi-person me-1"></i> Profile
+        Profile
       <% end %>
     </li>
     <li class="nav-item" role="presentation">
       <%= link_to user_path(@user, tab: :payments, view_as: params[:view_as]), 
           class: "nav-link #{'active' if @active_tab == :payments}", 
           role: "tab" do %>
-        <i class="bi bi-credit-card me-1"></i> Payment History
+        Payments
         <% if @payments_count.to_i > 0 %>
-          <span class="badge bg-secondary ms-1"><%= @payments_count %></span>
+          <span class="text-secondary small ms-1"><%= @payments_count %></span>
         <% end %>
       <% end %>
     </li>
@@ -379,8 +385,7 @@
         <%= link_to user_path(@user, tab: :parking, view_as: params[:view_as]),
             class: "nav-link #{'active' if @active_tab == :parking}",
             role: "tab" do %>
-          <i class="bi bi-car-front me-1"></i> Parking
-          <span class="badge bg-secondary ms-1"><%= @parking_notices_count %></span>
+          Parking <span class="text-secondary small ms-1"><%= @parking_notices_count %></span>
         <% end %>
       </li>
     <% end %>
@@ -388,11 +393,11 @@
       <%= link_to user_path(@user, tab: :messages, view_as: params[:view_as]),
           class: "nav-link #{'active' if @active_tab == :messages}",
           role: "tab" do %>
-        <i class="bi bi-chat-dots me-1"></i> Messages
+        Messages
         <% if @unread_messages_count.to_i > 0 %>
-          <span class="badge bg-danger ms-1"><%= @unread_messages_count %></span>
+          <span class="text-warning small ms-1"><%= @unread_messages_count %></span>
         <% elsif @messages_count.to_i > 0 %>
-          <span class="badge bg-secondary ms-1"><%= @messages_count %></span>
+          <span class="text-secondary small ms-1"><%= @messages_count %></span>
         <% end %>
       <% end %>
     </li>

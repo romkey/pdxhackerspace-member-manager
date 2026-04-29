@@ -1,0 +1,23 @@
+<%# locals: user %>
+<% documents = user.available_documents %>
+<% topics_with_links = user.training_topics_with_links %>
+
+<% if documents.any? || topics_with_links.any? %>
+  <div class="sidebar-card">
+    <div class="h-section-label mb-2">Resources for you</div>
+    <div class="d-flex flex-column gap-1 small">
+      <% documents.each do |doc| %>
+        <%= link_to download_document_path(doc), class: "resource-link" do %>
+          &darr; <%= doc.title %>
+        <% end %>
+      <% end %>
+      <% topics_with_links.each do |topic| %>
+        <% topic.links.order(:title).each do |link| %>
+          <%= link_to link.url, class: "resource-link", target: "_blank", rel: "noopener" do %>
+            &nearr; <%= link.title %>
+          <% end %>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+<% end %>

@@ -1,0 +1,19 @@
+<%# locals: user, show_request_link: true %>
+<% show_request_link = local_assigns.fetch(:show_request_link, true) %>
+<% trained_topics = user.trainings_as_trainee.map(&:training_topic).uniq.sort_by(&:name) %>
+
+<div class="sidebar-card mb-2">
+  <div class="h-section-label mb-2">You're trained on</div>
+  <% if trained_topics.any? %>
+    <div class="d-flex flex-wrap gap-1 <%= 'mb-2' if show_request_link %>">
+      <% trained_topics.each do |topic| %>
+        <span class="cert-pill"><%= topic.name %></span>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="text-12 text-secondary <%= 'mb-2' if show_request_link %>">No trainings recorded yet.</div>
+  <% end %>
+  <% if show_request_link %>
+    <%= link_to "+ Request more training", new_training_request_path, class: "text-12 text-decoration-none", style: "color: var(--bs-info-text-emphasis);" %>
+  <% end %>
+</div>

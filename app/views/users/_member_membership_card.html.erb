@@ -1,0 +1,73 @@
+<%# locals: user %>
+<% plan = user.membership_plan || user.supplementary_plans.ordered.first %>
+<% next_payment = user.next_payment_date %>
+<% days_until_payment = next_payment.present? ? (next_payment - Date.current).to_i : nil %>
+<% payment_due = user.dues_status == 'lapsed' || days_until_payment.to_i.negative? %>
+<% inactive = user.dues_status == 'inactive' || user.membership_status.in?(%w[banned deceased inactive]) %>
+<% pill_text, pill_class, card_class =
+  if inactive
+    ['Inactive', 'status-pill-overdue', 'status-overdue']
+  elsif payment_due
+    ['Payment due', 'status-pill-attention', 'status-attention']
+  elsif user.is_sponsored?
+    ['Sponsored', 'status-pill-active', '']
+  else
+    ['Active', 'status-pill-active', '']
+  end %>
+<% plan_name = plan&.name || (user.is_sponsored? ? 'Sponsored membership' : 'Membership') %>
+<% payment_method = user.payment_type.to_s.humanize %>
+
+<div class="card-membership <%= card_class %> mb-2">
+  <div class="d-flex align-items-center justify-content-between mb-2">
+    <div class="h-section-label">Membership</div>
+    <span class="status-pill <%= pill_class %>">
+      <span class="dot">●</span> <%= pill_text %>
+    </span>
+  </div>
+
+  <div class="text-14 fw-medium"><%= plan_name %></div>
+  <div class="text-12 text-secondary mb-3">
+    <% if plan.present? %>
+      $<%= format('%.2f', plan.cost) %> / <%= plan.billing_frequency %> · <%= payment_method %>
+    <% else %>
+      <%= payment_method %>
+    <% end %>
+  </div>
+
+  <% if next_payment.present? %>
+    <div class="text-12 text-secondary mb-1">Next payment</div>
+    <div class="text-13 mb-3">
+      <%= next_payment.strftime('%b %-d') %>
+      <% if days_until_payment.present? %>
+        <span class="text-secondary">
+          · <%= days_until_payment.negative? ? "#{days_until_payment.abs} days overdue" : "in #{days_until_payment} days" %>
+        </span>
+      <% end %>
+    </div>
+  <% end %>
+
+  <% manage_membership_content = TextFragment.content_for('manage_your_membership') %>
+  <% if manage_membership_content.present? && current_user&.id == user.id %>
+    <button type="button" class="btn btn-outline-secondary btn-sm w-100"
+            data-bs-toggle="modal" data-bs-target="#manageMembershipModal">
+      <%= payment_due ? 'Update payment' : 'Manage membership' %>
+    </button>
+
+    <div class="modal fade" id="manageMembershipModal" tabindex="-1" aria-labelledby="manageMembershipModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="manageMembershipModalLabel">Manage your membership</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <%= sanitize(manage_membership_content) %>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>
