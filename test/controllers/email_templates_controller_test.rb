@@ -51,6 +51,51 @@ class EmailTemplatesControllerTest < ActionDispatch::IntegrationTest
     assert_equal 'Improved text', parsed['body_text']
   end
 
+  test 'edit shows text sync checkbox checked by default' do
+    get edit_email_template_path(@template)
+
+    assert_response :success
+    assert_select 'input#email_template_sync_body_text[name=?][checked]', 'sync_body_text'
+    assert_select 'label[for=?]', 'email_template_sync_body_text', text: 'Keep in sync with HTML'
+  end
+
+  test 'update syncs plain text from html when checkbox is checked' do
+    patch email_template_path(@template), params: {
+      sync_body_text: '1',
+      email_template: {
+        name: @template.name,
+        description: @template.description,
+        subject: 'Updated Subject',
+        body_html: '<h1>Welcome</h1><p>Hello <strong>{{member_name}}</strong><br>Line two</p>',
+        body_text: 'Stale plain text',
+        enabled: '1'
+      }
+    }
+
+    assert_redirected_to email_templates_path
+    @template.reload
+    assert_equal '<h1>Welcome</h1><p>Hello <strong>{{member_name}}</strong><br>Line two</p>', @template.body_html
+    assert_equal "Welcome\nHello {{member_name}}\nLine two", @template.body_text
+  end
+
+  test 'update leaves plain text unchanged when checkbox is unchecked' do
+    patch email_template_path(@template), params: {
+      email_template: {
+        name: @template.name,
+        description: @template.description,
+        subject: 'Updated Subject',
+        body_html: '<p>Replacement HTML</p>',
+        body_text: 'Custom plain text',
+        enabled: '1'
+      }
+    }
+
+    assert_redirected_to email_templates_path
+    @template.reload
+    assert_equal '<p>Replacement HTML</p>', @template.body_html
+    assert_equal 'Custom plain text', @template.body_text
+  end
+
   private
 
   def sign_in_as_admin

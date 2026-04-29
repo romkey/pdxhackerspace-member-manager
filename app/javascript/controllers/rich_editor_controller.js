@@ -25,6 +25,8 @@ export default class extends Controller {
     const variables = this.variablesValue || []
     const controller = this
 
+    if (typeof tinymce === "undefined") return
+
     // Build menu items for variable insertion
     const variableMenuItems = variables.map(v => ({
       type: 'menuitem',
@@ -53,6 +55,11 @@ export default class extends Controller {
       setup: function(editor) {
         controller.editor = editor
 
+        const syncTextarea = function() {
+          editor.save()
+          textarea.dispatchEvent(new CustomEvent("rich-editor:change", { bubbles: true }))
+        }
+
         // Add custom variable insertion button
         if (variableMenuItems.length > 0) {
           editor.ui.registry.addMenuButton('insertvariable', {
@@ -64,9 +71,7 @@ export default class extends Controller {
         }
 
         // Sync content to textarea on change
-        editor.on('change', function() {
-          editor.save()
-        })
+        editor.on('change keyup undo redo setcontent', syncTextarea)
 
         // Sync before form submission
         editor.on('submit', function() {
