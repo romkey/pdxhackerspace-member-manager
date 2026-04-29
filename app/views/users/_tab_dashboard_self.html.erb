@@ -1,32 +1,89 @@
-<% tier_class = {
-  urgent: 'text-bg-danger',
-  important: 'text-bg-warning',
-  housekeeping: 'text-bg-secondary'
-} %>
-<% tier_label = {
-  urgent: 'Urgent',
-  important: 'Important',
-  housekeeping: 'Housekeeping'
-} %>
+<% attention_items = @member_dashboard_attention_items || [] %>
+<% ok_items = @member_dashboard_ok_items || [] %>
+<% training_request_count = (@trainer_training_requests_by_topic || {}).values.sum(&:size) %>
+<% requestable_training = @member_requestable_topics&.any? %>
+<% unread_message_count = Message.folder(user, :unread).count %>
+<% open_parking_count = user.parking_notices.not_cleared.count %>
 
-<div class="card shadow-sm border-0 mb-4">
-  <div class="card-body">
-    <h2 class="h5 mb-3"><i class="bi bi-lightning-charge me-2"></i>Quick Actions</h2>
-    <div class="d-flex flex-wrap gap-2">
-      <%= link_to new_training_request_path, class: 'btn btn-primary' do %>
-        <i class="bi bi-mortarboard me-1"></i> Request Training
-      <% end %>
-      <%= link_to new_member_parking_permit_path, class: 'btn btn-success' do %>
-        <i class="bi bi-p-circle me-1"></i> Parking Permit
-      <% end %>
-      <% if SlackOidcConfig.configured? && user.slack_user.blank? %>
-        <%= link_to slack_link_start_path, class: 'btn btn-outline-secondary' do %>
-          <i class="bi bi-slack me-1"></i> Associate Slack account
-        <% end %>
-      <% end %>
+<div class="d-flex align-items-end justify-content-between mb-3">
+  <div>
+    <h2 class="h-page-title mb-0">Member dashboard</h2>
+    <div class="text-13 text-secondary mt-1">
+      <span class="<%= attention_items.any? ? 'text-warning' : 'text-success' %>"><%= attention_items.size %></span> need attention ·
+      <span class="text-body"><%= training_request_count %></span> training <%= 'request'.pluralize(training_request_count) %> for you
     </div>
-    <% unless @member_requestable_topics.any? %>
-      <div class="alert alert-secondary mb-0 mt-3">
+  </div>
+</div>
+
+<div class="row g-2 mb-3">
+  <div class="col-sm-6 col-lg-3">
+    <div class="kpi-tile h-100 <%= 'warning' if attention_items.any? %>">
+      <div class="kpi-label">Needs attention</div>
+      <div class="kpi-value"><%= attention_items.size %></div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <%= link_to messages_path(folder: :unread), class: "kpi-tile clickable d-block text-decoration-none h-100" do %>
+      <div class="kpi-label">Unread messages</div>
+      <div class="kpi-value"><%= unread_message_count %></div>
+    <% end %>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <%= link_to user_path(user, tab: :parking, view_as: params[:view_as]), class: "kpi-tile clickable d-block text-decoration-none h-100" do %>
+      <div class="kpi-label">Open parking</div>
+      <div class="kpi-value"><%= open_parking_count %></div>
+    <% end %>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="kpi-tile h-100 <%= 'warning' if training_request_count.positive? %>">
+      <div class="kpi-label">Training requests</div>
+      <div class="kpi-value"><%= training_request_count %></div>
+    </div>
+  </div>
+</div>
+
+<div class="card dashboard-panel mb-4">
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <div class="h-section-label mb-2">Learning</div>
+        <div class="d-flex flex-wrap gap-2">
+          <% if requestable_training %>
+            <%= link_to new_training_request_path, class: 'btn btn-primary btn-sm' do %>
+              <i class="bi bi-mortarboard me-1"></i>Request training
+            <% end %>
+          <% else %>
+            <button class="btn btn-outline-secondary btn-sm" disabled title="No topics are currently open for member requests">
+              <i class="bi bi-mortarboard me-1"></i>Request training
+            </button>
+          <% end %>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="h-section-label mb-2">Building</div>
+        <div class="d-flex flex-wrap gap-2">
+          <%= link_to new_member_parking_permit_path, class: 'btn btn-outline-secondary btn-sm' do %>
+            <i class="bi bi-p-circle me-1"></i>Parking permit
+          <% end %>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="h-section-label mb-2">Account</div>
+        <div class="d-flex flex-wrap gap-2">
+          <% if SlackOidcConfig.configured? && user.slack_user.blank? %>
+            <%= link_to slack_link_start_path, class: 'btn btn-outline-secondary btn-sm' do %>
+              <i class="bi bi-slack me-1"></i>Associate Slack
+            <% end %>
+          <% else %>
+            <%= link_to user_path(user, tab: :profile, view_as: params[:view_as]), class: 'btn btn-outline-secondary btn-sm' do %>
+              <i class="bi bi-person me-1"></i>Profile
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+    <% unless requestable_training %>
+      <div class="text-secondary text-12 mt-3">
         Training requests are temporarily unavailable because no topics are currently open for member requests.
       </div>
     <% end %>
@@ -34,42 +91,44 @@
 </div>
 
 <% if @trainer_training_requests_by_topic.present? %>
-  <div class="card shadow-sm border-0 mb-4">
-    <div class="card-body">
-      <h2 class="h5 mb-3"><i class="bi bi-inbox me-2"></i>Training Requests for You</h2>
+  <div class="card dashboard-panel mb-4">
+    <div class="card-header">
+      <h3 class="h-section-label mb-0">Training requests for you</h3>
+    </div>
+    <div class="card-body p-0">
       <% @trainer_training_requests_by_topic.each do |topic, requests| %>
-        <div class="border rounded p-3 mb-3">
-          <h3 class="h6 mb-2"><%= topic.name %></h3>
-          <% requests.each do |request| %>
-            <div class="d-flex justify-content-between align-items-start border-top pt-2 mt-2">
-              <div>
+        <div class="px-3 py-2 border-bottom">
+          <div class="item-title mb-1"><%= topic.name %></div>
+          <div class="list-group list-group-flush list-compact">
+            <% requests.each do |request| %>
+              <div class="list-group-item d-flex justify-content-between align-items-start gap-3">
                 <div>
-                  <strong><%= link_to request.user.display_name, user_path(request.user), class: "text-decoration-none" %></strong>
-                  <span class="text-muted small">requested <%= time_ago_in_words(request.created_at) %> ago</span>
+                  <div class="fw-medium">
+                    <%= link_to request.user.display_name, user_path(request.user), class: "text-decoration-none" %>
+                    <span class="text-secondary text-12">requested <%= time_ago_in_words(request.created_at) %> ago</span>
+                  </div>
+                  <% if request.share_contact_info? %>
+                    <div class="text-secondary text-12 mt-1">
+                      <% if request.user.email.present? %>
+                        Email: <%= mail_to request.user.email %>
+                      <% end %>
+                      <% if request.user.slack_handle.present? %>
+                        <span class="ms-2">Slack: <code><%= request.user.slack_handle %></code></span>
+                      <% end %>
+                    </div>
+                  <% else %>
+                    <div class="text-secondary text-12 mt-1">Contact details were not shared.</div>
+                  <% end %>
                 </div>
-                <% if request.share_contact_info? %>
-                  <div class="small text-muted mt-1">
-                    <% if request.user.email.present? %>
-                      Email: <%= mail_to request.user.email %><br>
-                    <% end %>
-                    <% if request.user.slack_handle.present? %>
-                      Slack: <code><%= request.user.slack_handle %></code>
-                    <% end %>
-                  </div>
-                <% else %>
-                  <div class="small text-muted mt-1">
-                    Contact details were not shared.
-                  </div>
-                <% end %>
+                <div class="d-flex gap-2 flex-shrink-0">
+                  <%= link_to 'Respond', edit_training_request_path(request), class: 'btn btn-sm btn-outline-secondary' %>
+                  <% if request.share_contact_info? && request.user.email.present? %>
+                    <%= link_to 'Email', "mailto:#{request.user.email}", class: 'btn btn-sm btn-outline-secondary' %>
+                  <% end %>
+                </div>
               </div>
-              <div class="d-flex gap-2">
-                <%= link_to 'Respond in Member Manager', edit_training_request_path(request), class: 'btn btn-sm btn-outline-primary' %>
-                <% if request.share_contact_info? && request.user.email.present? %>
-                  <%= link_to 'Email', "mailto:#{request.user.email}", class: 'btn btn-sm btn-outline-secondary' %>
-                <% end %>
-              </div>
-            </div>
-          <% end %>
+            <% end %>
+          </div>
         </div>
       <% end %>
     </div>
@@ -78,30 +137,38 @@
 
 <div class="row g-4">
   <div class="col-lg-6">
-    <div class="card shadow-sm border-0 h-100">
-      <div class="card-body">
-        <h2 class="h5 mb-3">
-          <i class="bi bi-exclamation-circle me-2 text-danger"></i>Needs Attention
-        </h2>
-
-        <% if @member_dashboard_attention_items.any? %>
-          <div class="list-group list-group-flush">
-            <% @member_dashboard_attention_items.each do |item| %>
-              <div class="list-group-item px-0">
-                <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
-                  <strong><%= item[:title] %></strong>
-                  <span class="badge <%= tier_class[item[:tier]] %>"><%= tier_label[item[:tier]] %></span>
-                </div>
-                <p class="mb-2 text-secondary"><%= item[:detail] %></p>
-                <% if item[:action_path].present? && item[:action_label].present? %>
-                  <%= link_to item[:action_label], item[:action_path], class: 'btn btn-outline-primary btn-sm' %>
+    <div class="card dashboard-panel h-100">
+      <div class="card-header">
+        <h3 class="h-section-label mb-0">Needs attention</h3>
+      </div>
+      <div class="card-body p-0">
+        <% if attention_items.any? %>
+          <div class="list-group list-group-flush list-compact">
+            <% attention_items.each do |item| %>
+              <% dot_class = case item[:tier]
+                             when :urgent then 'status-danger'
+                             when :important then 'status-important'
+                             else 'status-housekeeping'
+                             end %>
+              <%= link_to item[:action_path].presence || '#', class: "list-group-item list-group-item-action d-flex justify-content-between align-items-start gap-3" do %>
+                <span class="d-flex align-items-start gap-2">
+                  <span class="status-dot <%= dot_class %> mt-2 flex-shrink-0" title="<%= item[:tier].to_s.humanize %>"></span>
+                  <span>
+                    <span class="item-title d-block"><%= item[:title] %></span>
+                    <span class="item-desc d-block"><%= item[:detail] %></span>
+                  </span>
+                </span>
+                <% if item[:action_label].present? %>
+                  <span class="btn btn-sm btn-outline-secondary flex-shrink-0"><%= item[:action_label] %></span>
                 <% end %>
-              </div>
+              <% end %>
             <% end %>
           </div>
         <% else %>
-          <div class="alert alert-success mb-0">
-            Everything looks good right now. Nothing needs immediate action.
+          <div class="text-center text-secondary py-5">
+            <i class="bi bi-check-circle-fill text-success d-block mb-2" style="font-size: 22px;"></i>
+            <div class="text-13 mb-1">Nothing needs attention</div>
+            <div class="text-12">Your membership dashboard is clear.</div>
           </div>
         <% end %>
       </div>
@@ -109,26 +176,28 @@
   </div>
 
   <div class="col-lg-6">
-    <div class="card shadow-sm border-0 h-100">
-      <div class="card-body">
-        <h2 class="h5 mb-3">
-          <i class="bi bi-check-circle me-2 text-success"></i>No Action Required
-        </h2>
-
-        <% if @member_dashboard_ok_items.any? %>
-          <div class="list-group list-group-flush">
-            <% @member_dashboard_ok_items.each do |item| %>
-              <div class="list-group-item px-0">
-                <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
-                  <strong><%= item[:title] %></strong>
-                  <span class="badge text-bg-success">OK</span>
-                </div>
-                <p class="mb-0 text-secondary"><%= item[:detail] %></p>
+    <div class="card dashboard-panel h-100">
+      <div class="card-header">
+        <h3 class="h-section-label mb-0">No action required</h3>
+      </div>
+      <div class="card-body p-0">
+        <% if ok_items.any? %>
+          <div class="list-group list-group-flush list-compact">
+            <% ok_items.each do |item| %>
+              <div class="list-group-item d-flex align-items-start gap-2">
+                <i class="bi bi-check-circle-fill text-success mt-1 flex-shrink-0" aria-hidden="true"></i>
+                <span>
+                  <span class="item-title d-block"><%= item[:title] %></span>
+                  <span class="item-desc d-block"><%= item[:detail] %></span>
+                </span>
               </div>
             <% end %>
           </div>
         <% else %>
-          <div class="text-muted">No informational items to show.</div>
+          <div class="text-center text-secondary py-5">
+            <div class="text-13 mb-1">No informational items</div>
+            <div class="text-12">Completed checks will appear here.</div>
+          </div>
         <% end %>
       </div>
     </div>

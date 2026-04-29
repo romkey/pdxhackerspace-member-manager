@@ -2,14 +2,23 @@
 <% items = local_assigns.fetch(:items) %>
 <% show_numbers = local_assigns.fetch(:show_numbers, false) %>
 <% number_offset = local_assigns.fetch(:number_offset, 0) %>
+<% ok_state = local_assigns.fetch(:ok_state, false) %>
 <% prev_tier = nil %>
 <% items.each_with_index do |item, i| %>
   <% if prev_tier && item[:tier] != prev_tier %>
     <li class="list-group-item border-0 p-0 dashboard-attention-tier-boundary" aria-hidden="true"><hr class="my-0 opacity-25"></li>
   <% end %>
   <li class="list-group-item list-group-item-action d-flex align-items-start gap-2 py-2 dashboard-attention-item">
-    <% dot_class = item[:tier] == :urgent ? 'status-danger' : 'status-warning' %>
-    <span class="status-dot <%= dot_class %> mt-2 flex-shrink-0" title="<%= item[:tier].to_s.humanize %>"></span>
+    <% if ok_state %>
+      <i class="bi bi-check-circle-fill text-success mt-1 flex-shrink-0" aria-hidden="true"></i>
+    <% else %>
+      <% dot_class = case item[:tier]
+                     when :urgent then 'status-danger'
+                     when :important then 'status-important'
+                     else 'status-housekeeping'
+                     end %>
+      <span class="status-dot <%= dot_class %> mt-2 flex-shrink-0" title="<%= item[:tier].to_s.humanize %>"></span>
+    <% end %>
     <%= render 'dashboard/attention_item_body', item_id: item[:id] %>
   </li>
   <% prev_tier = item[:tier] %>

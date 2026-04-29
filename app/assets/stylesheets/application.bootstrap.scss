@@ -74,6 +74,8 @@
 .status-dot.status-success { background-color: var(--bs-success); }
 .status-dot.status-danger  { background-color: var(--bs-danger); }
 .status-dot.status-warning { background-color: var(--bs-warning); }
+.status-dot.status-important { background-color: var(--bs-orange, #fd7e14); }
+.status-dot.status-housekeeping { background-color: var(--bs-warning); }
 .status-dot.status-muted   { background-color: var(--bs-secondary-color); opacity: 0.5; }
 
 /* === Filter chip ===
