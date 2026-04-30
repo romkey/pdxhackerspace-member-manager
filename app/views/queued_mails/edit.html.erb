@@ -17,6 +17,7 @@
           class: "needs-validation",
           data: {
             controller: "queued-mail-rewrite",
+            action: "submit->queued-mail-rewrite#syncBodyTextBeforeSubmit",
             queued_mail_rewrite_url_value: rewrite_with_ai_queued_mail_path(@queued_mail)
           }
         ) do |f| %>
@@ -48,7 +49,11 @@
             class: "form-control #{'is-invalid' if @queued_mail.errors.key?(:body_html)}",
             rows: 16,
             required: true,
-            data: { rich_editor_target: "editor", queued_mail_rewrite_target: "bodyHtml" } %>
+            data: {
+              rich_editor_target: "editor",
+              queued_mail_rewrite_target: "bodyHtml",
+              action: "input->queued-mail-rewrite#syncBodyText change->queued-mail-rewrite#syncBodyText rich-editor:change->queued-mail-rewrite#syncBodyText"
+            } %>
         <% if @queued_mail.errors.key?(:body_html) %>
           <div class="invalid-feedback"><%= @queued_mail.errors[:body_html].join(', ') %></div>
         <% end %>
@@ -56,12 +61,28 @@
       </div>
 
       <div class="mb-3">
-        <%= f.label :body_text, "Plain Text Body", class: "form-label" %>
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+          <%= f.label :body_text, "Plain Text Body", class: "form-label mb-0" %>
+          <div class="form-check">
+            <%= check_box_tag :sync_body_text,
+                              "1",
+                              true,
+                              id: "queued_mail_sync_body_text",
+                              class: "form-check-input",
+                              data: {
+                                queued_mail_rewrite_target: "syncBodyText",
+                                action: "change->queued-mail-rewrite#syncBodyText"
+                              } %>
+            <%= label_tag :queued_mail_sync_body_text,
+                          "Keep in sync with HTML",
+                          class: "form-check-label" %>
+          </div>
+        </div>
         <%= f.text_area :body_text,
             class: "form-control font-monospace",
             rows: 10,
             data: { queued_mail_rewrite_target: "bodyText" } %>
-        <div class="form-text">Optional plain text alternative for email clients that don't support HTML.</div>
+        <div class="form-text">Optional plain text alternative for email clients that don't support HTML. Uncheck to edit it independently.</div>
       </div>
 
       <div class="mb-3 border rounded bg-body-tertiary p-3">
