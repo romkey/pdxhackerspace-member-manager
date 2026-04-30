@@ -6,9 +6,12 @@ class DashboardController < AdminController
     @active_tab = params[:tab]&.to_sym || :admin_dashboard
 
     @user_count = User.non_legacy.count
-    @active_user_count = User.active.count
+    @active_user_count = User.non_legacy.active.count
+    @inactive_user_count = User.non_legacy.where(active: false).count
+    @legacy_user_count = User.legacy.count
     @last_synced_at = User.maximum(:last_synced_at)
     @sheet_entry_count = SheetEntry.count
+    @active_slack_user_count = SlackUser.active.count
     @slack_user_count = SlackUser.count
     @paypal_payment_count = PaypalPayment.count
     @recharge_payment_count = RechargePayment.count
