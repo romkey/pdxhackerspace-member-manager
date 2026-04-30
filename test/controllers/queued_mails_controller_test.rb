@@ -55,6 +55,8 @@ class QueuedMailsControllerTest < ActionDispatch::IntegrationTest
     get edit_queued_mail_path(@pending)
     assert_response :success
     assert_select 'form'
+    assert_select 'input#queued_mail_sync_body_text[name=?][checked]', 'sync_body_text'
+    assert_select 'label[for=?]', 'queued_mail_sync_body_text', text: 'Keep in sync with HTML'
   end
 
   test 'redirects edit for non-pending mail' do
@@ -74,6 +76,68 @@ class QueuedMailsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to queued_mail_path(@pending)
     @pending.reload
     assert_equal 'Updated Subject', @pending.subject
+  end
+
+  test 'update syncs plain text from html when checkbox is checked' do
+    patch queued_mail_path(@pending), params: {
+      sync_body_text: '1',
+      queued_mail: {
+        to: @pending.to,
+        subject: 'Updated Subject',
+        body_html: '<h1>Welcome</h1><p>Hello <strong>member</strong><br>Line two</p>',
+        body_text: 'Stale plain text'
+      }
+    }
+
+    assert_redirected_to queued_mail_path(@pending)
+    @pending.reload
+    assert_equal '<h1>Welcome</h1><p>Hello <strong>member</strong><br>Line two</p>', @pending.body_html
+    assert_equal "Welcome\nHello member\nLine two", @pending.body_text
+  end
+
+  test 'update sync lists link urls under their containing paragraph' do
+    html = <<~HTML.squish
+      <p>Review <a href="https://example.com/message">this message</a>
+      and <a href="{{application_url}}">the application</a>.</p>
+      <p>Thanks for helping.</p>
+    HTML
+
+    patch queued_mail_path(@pending), params: {
+      sync_body_text: '1',
+      queued_mail: {
+        to: @pending.to,
+        subject: 'Updated Subject',
+        body_html: html,
+        body_text: 'Stale plain text'
+      }
+    }
+
+    assert_redirected_to queued_mail_path(@pending)
+    @pending.reload
+    assert_equal <<~TEXT.strip, @pending.body_text
+      Review this message and the application.
+
+      https://example.com/message
+      {{application_url}}
+
+      Thanks for helping.
+    TEXT
+  end
+
+  test 'update leaves plain text unchanged when checkbox is unchecked' do
+    patch queued_mail_path(@pending), params: {
+      queued_mail: {
+        to: @pending.to,
+        subject: 'Updated Subject',
+        body_html: '<p>Replacement HTML</p>',
+        body_text: 'Custom plain text'
+      }
+    }
+
+    assert_redirected_to queued_mail_path(@pending)
+    @pending.reload
+    assert_equal '<p>Replacement HTML</p>', @pending.body_html
+    assert_equal 'Custom plain text', @pending.body_text
   end
 
   test 'rejects update for non-pending mail' do
