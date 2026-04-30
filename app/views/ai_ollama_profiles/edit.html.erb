@@ -42,7 +42,12 @@
 
       <div class="mb-3">
         <%= f.label :api_key, "Service API key (optional)", class: "form-label" %>
-        <%= f.password_field :api_key, class: "form-control", autocomplete: "new-password" %>
+        <%= f.password_field :api_key,
+                             value: nil,
+                             class: "form-control",
+                             autocomplete: "new-password",
+                             placeholder: (@ai_ollama_profile.api_key.present? ? "KEY****" : "Optional") %>
+        <div class="form-text">Leave blank to keep the existing service API key.</div>
       </div>
 
       <div class="mb-3">
@@ -58,8 +63,12 @@
 
       <div class="mb-3">
         <%= f.label :provider_api_key_override, "Provider override API key (optional)", class: "form-label" %>
-        <%= f.password_field :provider_api_key_override, class: "form-control", autocomplete: "new-password" %>
-        <div class="form-text">When set, this takes precedence over selected provider and service API key.</div>
+        <%= f.password_field :provider_api_key_override,
+                             value: nil,
+                             class: "form-control",
+                             autocomplete: "new-password",
+                             placeholder: (@ai_ollama_profile.provider_api_key_override.present? ? "KEY****" : "Optional") %>
+        <div class="form-text">Leave blank to keep the existing override key. When set, this takes precedence over selected provider and service API key.</div>
       </div>
 
       <div class="mb-3">

@@ -22,7 +22,12 @@
 
   <div class="mb-3">
     <%= f.label :api_key, "API key", class: "form-label" %>
-    <%= f.password_field :api_key, class: "form-control", autocomplete: "new-password", placeholder: "Optional" %>
+    <%= f.password_field :api_key,
+                         value: nil,
+                         class: "form-control",
+                         autocomplete: "new-password",
+                         placeholder: (ai_provider.api_key.present? ? "KEY****" : "Optional") %>
+    <div class="form-text">Leave blank to keep the existing API key.</div>
   </div>
 
   <div class="d-flex gap-2">

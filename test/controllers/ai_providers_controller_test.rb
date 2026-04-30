@@ -39,6 +39,7 @@ class AiProvidersControllerTest < ActionDispatch::IntegrationTest
   test 'should get edit' do
     get edit_ai_provider_url(@ai_provider)
     assert_response :success
+    assert_select 'input[name="ai_provider[api_key]"][placeholder="KEY****"]'
   end
 
   test 'should update provider' do
@@ -54,6 +55,23 @@ class AiProvidersControllerTest < ActionDispatch::IntegrationTest
     @ai_provider.reload
     assert_equal 'Claude 3', @ai_provider.name
     assert_equal 'https://api.anthropic.com/v1', @ai_provider.url
+    assert_equal 'new-key', @ai_provider.api_key
+  end
+
+  test 'blank api key preserves existing key when updating provider' do
+    patch ai_provider_url(@ai_provider), params: {
+      ai_provider: {
+        name: 'Claude 3',
+        url: 'https://api.anthropic.com/v1',
+        api_key: ''
+      }
+    }
+
+    assert_redirected_to ai_providers_url
+    @ai_provider.reload
+    assert_equal 'Claude 3', @ai_provider.name
+    assert_equal 'https://api.anthropic.com/v1', @ai_provider.url
+    assert_equal 'claude-key', @ai_provider.api_key
   end
 
   test 'should destroy provider' do

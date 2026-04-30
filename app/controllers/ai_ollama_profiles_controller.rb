@@ -28,7 +28,7 @@ class AiOllamaProfilesController < AdminController
   end
 
   def ai_ollama_profile_params
-    params.expect(
+    permitted = params.expect(
       ai_ollama_profile: %i[
         name
         ai_provider_id
@@ -42,6 +42,12 @@ class AiOllamaProfilesController < AdminController
         enabled
       ]
     )
+
+    %i[api_key provider_api_key_override].each do |key|
+      permitted.delete(key) if permitted[key].blank?
+    end
+
+    permitted
   end
 
   def set_ai_providers

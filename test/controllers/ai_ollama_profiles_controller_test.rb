@@ -19,8 +19,11 @@ class AiOllamaProfilesControllerTest < ActionDispatch::IntegrationTest
 
   test 'should get edit' do
     profile = ai_ollama_profiles(:default)
+    profile.update!(api_key: 'existing-service-key', provider_api_key_override: 'existing-override-key')
     get edit_ai_ollama_profile_url(profile)
     assert_response :success
+    assert_select 'input[name="ai_ollama_profile[api_key]"][placeholder="KEY****"]'
+    assert_select 'input[name="ai_ollama_profile[provider_api_key_override]"][placeholder="KEY****"]'
   end
 
   test 'should update profile' do
@@ -47,6 +50,35 @@ class AiOllamaProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_equal 'Custom Provider', profile.provider_name_override
     assert_equal 'https://api.custom.example', profile.provider_url_override
     assert_equal 'llama3.2', profile.model
+  end
+
+  test 'blank key fields preserve existing keys when updating profile' do
+    profile = ai_ollama_profiles(:default)
+    profile.update!(
+      api_key: 'existing-service-key',
+      provider_api_key_override: 'existing-override-key'
+    )
+
+    patch ai_ollama_profile_url(profile), params: {
+      ai_ollama_profile: {
+        name: 'Default Ollama',
+        ai_provider_id: ai_providers(:chatgpt).id,
+        base_url: 'http://127.0.0.1:11434',
+        api_key: '',
+        provider_name_override: 'Custom Provider',
+        provider_url_override: 'https://api.custom.example',
+        provider_api_key_override: '',
+        model: 'llama3.2',
+        prompt: 'You are helpful.',
+        enabled: '1'
+      }
+    }
+
+    assert_redirected_to ai_ollama_profiles_url
+    profile.reload
+    assert_equal 'Default Ollama', profile.name
+    assert_equal 'existing-service-key', profile.api_key
+    assert_equal 'existing-override-key', profile.provider_api_key_override
   end
 
   test 'check_health_now runs job and redirects' do

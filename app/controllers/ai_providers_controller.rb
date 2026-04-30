@@ -40,6 +40,8 @@ class AiProvidersController < AdminController
   end
 
   def ai_provider_params
-    params.expect(ai_provider: %i[name url api_key])
+    permitted = params.expect(ai_provider: %i[name url api_key])
+    permitted.delete(:api_key) if permitted[:api_key].blank?
+    permitted
   end
 end
