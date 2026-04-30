@@ -1,4 +1,8 @@
 class QueuedMailsController < AdminController
+  HTML_BLOCK_TAGS = %w[p div h1 h2 h3 h4 h5 h6 li tr].freeze
+  HTML_LINK_URL_TAGS = %w[p li].freeze
+  HTML_SPACED_TAGS = %w[td th].freeze
+
   before_action :set_queued_mail, only: %i[show edit update approve reject regenerate retry_delivery rewrite_with_ai]
 
   def index
@@ -28,7 +32,7 @@ class QueuedMailsController < AdminController
       return
     end
 
-    if @queued_mail.update(queued_mail_params)
+    if @queued_mail.update(queued_mail_update_params)
       @queued_mail.log_edit!(current_user)
       redirect_to queued_mail_path(@queued_mail), notice: 'Message updated.'
     else
@@ -144,6 +148,50 @@ class QueuedMailsController < AdminController
 
   def queued_mail_params
     params.expect(queued_mail: %i[to subject body_html body_text])
+  end
+
+  def queued_mail_update_params
+    attrs = queued_mail_params.to_h
+    attrs['body_text'] = html_to_plain_text(attrs['body_html']) if sync_body_text?
+    attrs
+  end
+
+  def sync_body_text?
+    params[:sync_body_text].present?
+  end
+
+  def html_to_plain_text(html)
+    fragment = Nokogiri::HTML.fragment(html.to_s)
+    node_to_plain_text(fragment)
+      .gsub("\u00a0", ' ')
+      .gsub(/[ \t]+\n/, "\n")
+      .gsub(/\n[ \t]+/, "\n")
+      .gsub(/\n{3,}/, "\n\n")
+      .strip
+  end
+
+  def node_to_plain_text(node)
+    return node.text if node.text?
+    return "\n" if node.element? && node.name == 'br'
+
+    text = node.children.map { |child| node_to_plain_text(child) }.join
+    if append_link_urls?(node)
+      urls = node.css('a[href]').filter_map { |link| link['href'].presence }
+      text = append_link_urls(text, urls)
+    end
+    text += "\n" if node.element? && HTML_BLOCK_TAGS.include?(node.name)
+    text += ' ' if node.element? && HTML_SPACED_TAGS.include?(node.name)
+    text
+  end
+
+  def append_link_urls?(node)
+    node.element? && HTML_LINK_URL_TAGS.include?(node.name) && node.css('a[href]').any?
+  end
+
+  def append_link_urls(text, urls)
+    return text if urls.blank?
+
+    [text.rstrip, '', *urls, ''].join("\n")
   end
 
   def rewrite_params
