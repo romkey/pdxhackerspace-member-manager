@@ -44,29 +44,10 @@ class DashboardController < AdminController
   private
 
   def prepare_attention_items
-    # Urgent: Access controller issues
-    enabled_controllers = AccessController.enabled
-    @ac_offline_count = enabled_controllers.where(ping_status: 'failed').count
-    @ac_sync_failed_count = enabled_controllers.where(sync_status: 'failed').count
-    @ac_backup_failed_count = enabled_controllers.where(backup_status: 'failed').count
-    @ac_issue_count = @ac_offline_count + @ac_sync_failed_count + @ac_backup_failed_count
+    assign_urgent_attention_items
 
     # Urgent: Unlinked Recharge payments
     @unlinked_recharge_count = RechargePayment.where(user_id: nil, dont_link: false).count
-
-    # Urgent: Payment processor API sync failures (PayPal / Recharge jobs)
-    @payment_processors_sync_unhealthy = PaymentProcessor.enabled
-                                                         .where(sync_status: %w[degraded failing])
-                                                         .order(:name)
-
-    # Urgent: Authentik API not configured (login and/or member sync enabled)
-    @authentik_member_source = MemberSource.find_by(key: 'authentik')
-    @authentik_api_urgent = !AuthentikConfig.api_ready? &&
-                            (AuthentikConfig.enabled_for_login? || @authentik_member_source&.enabled?)
-
-    # Urgent: Authentik pull/push sync failures
-    @authentik_sync_issue = @authentik_member_source if @authentik_member_source&.enabled? &&
-                                                        @authentik_member_source.sync_status.in?(%w[degraded failing])
 
     # Important: Open and draft incident reports
     @open_incident_count = IncidentReport.where(status: 'in_progress').count
@@ -159,19 +140,28 @@ class DashboardController < AdminController
                                  .where(email: [nil, ''])
                                  .count
 
-    @ai_ollama_profiles = AiOllamaProfile.ordered.to_a
-    @ai_ollama_urgent = @ai_ollama_profiles.any?(&:urgent_health_issue?)
     @ai_ollama_unconfigured = @ai_ollama_profiles.any? { |p| p.enabled? && p.effective_base_url.blank? }
-
-    @printers = Printer.ordered.to_a
-    @unhealthy_printers = @printers.select(&:urgent_health_issue?)
 
     @emergency_active_override_count = User.non_service_accounts.where(emergency_active_override: true).count
 
-    # Urgent: Current user's unread messages (own inbox, excluding trashed)
-    @admin_unread_messages_count = Message.folder(@home_user, :unread).count
-
     @dashboard_attention_items = build_dashboard_attention_items
+  end
+
+  def assign_urgent_attention_items
+    urgent = AdminDashboard::UrgentItems.snapshot(user: @home_user)
+    @admin_unread_messages_count = urgent.unread_messages_count
+    @ac_offline_count = urgent.ac_offline_count
+    @ac_sync_failed_count = urgent.ac_sync_failed_count
+    @ac_backup_failed_count = urgent.ac_backup_failed_count
+    @ac_issue_count = urgent.ac_issue_count
+    @payment_processors_sync_unhealthy = urgent.payment_processors_sync_unhealthy
+    @authentik_member_source = urgent.authentik_member_source
+    @authentik_api_urgent = urgent.authentik_api_urgent
+    @authentik_sync_issue = urgent.authentik_sync_issue
+    @ai_ollama_profiles = urgent.ai_ollama_profiles
+    @ai_ollama_urgent = urgent.ai_ollama_urgent
+    @printers = urgent.printers
+    @unhealthy_printers = urgent.unhealthy_printers
   end
 
   def build_dashboard_attention_items

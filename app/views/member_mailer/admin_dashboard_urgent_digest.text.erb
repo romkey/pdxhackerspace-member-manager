@@ -1,0 +1,13 @@
+Urgent admin dashboard items
+
+The admin dashboard has <%= pluralize(@items.size, 'urgent item') %> that need attention.
+
+<% @items.each do |item| %>
+- <%= item.title %>
+<% if item.detail.present? %>
+  <%= item.detail %>
+<% end %>
+  <%= item.url %>
+
+<% end %>
+Open the admin dashboard: <%= @dashboard_url %>

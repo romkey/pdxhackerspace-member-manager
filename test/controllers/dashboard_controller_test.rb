@@ -43,6 +43,37 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_match(/Request training/i, response.body)
   end
 
+  test 'admin dashboard urgent items come from shared urgent snapshot' do
+    snapshot = AdminDashboard::UrgentItems::Snapshot.new(
+      [],
+      0,
+      2,
+      3,
+      4,
+      9,
+      [],
+      nil,
+      false,
+      nil,
+      [],
+      false,
+      [],
+      []
+    )
+
+    original_snapshot = AdminDashboard::UrgentItems.method(:snapshot)
+    AdminDashboard::UrgentItems.define_singleton_method(:snapshot) { |**_kwargs| snapshot }
+    begin
+      get root_path
+    ensure
+      AdminDashboard::UrgentItems.define_singleton_method(:snapshot, original_snapshot)
+    end
+
+    assert_response :success
+    assert_match(%r{9</strong> access controller issues}, response.body)
+    assert_match(/2 offline, 3 sync failed, 4 backup failed/, response.body)
+  end
+
   private
 
   def sign_in_as_admin

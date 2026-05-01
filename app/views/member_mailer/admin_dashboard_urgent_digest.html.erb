@@ -1,0 +1,17 @@
+<h1>Urgent admin dashboard items</h1>
+
+<p>The admin dashboard has <%= pluralize(@items.size, 'urgent item') %> that need attention.</p>
+
+<ul>
+  <% @items.each do |item| %>
+    <li>
+      <strong><%= item.title %></strong>
+      <% if item.detail.present? %>
+        <br><span><%= item.detail %></span>
+      <% end %>
+      <br><%= link_to 'Open in Member Manager', item.url %>
+    </li>
+  <% end %>
+</ul>
+
+<p><%= link_to 'Open the admin dashboard', @dashboard_url %></p>
