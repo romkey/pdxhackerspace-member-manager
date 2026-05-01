@@ -4,6 +4,8 @@
 class MemberMailer < ApplicationMailer
   include Rails.application.routes.url_helpers
 
+  UrgentDigestItem = Data.define(:title, :detail, :url)
+
   # Sent when a new member application is submitted
   def application_received(user)
     @user = user
@@ -309,6 +311,30 @@ class MemberMailer < ApplicationMailer
     end
   end
 
+  def admin_dashboard_urgent_digest(staff, items)
+    items = items.map { |item| urgent_digest_item(item) }
+    @user = staff
+    @organization = organization_name
+    @items = items
+    @dashboard_url = ENV.fetch('APP_BASE_URL', 'http://localhost:3000').chomp('/')
+
+    extra_vars = {
+      urgent_item_count: items.size.to_s,
+      urgent_items_html: urgent_items_html(items),
+      urgent_items_text: urgent_items_text(items),
+      dashboard_url: @dashboard_url
+    }
+
+    if send_from_template('admin_dashboard_urgent_digest', staff, extra_vars, to: staff.email)
+      # Email sent from database template
+    else
+      mail(
+        to: staff.email,
+        subject: "#{@organization}: #{items.size} urgent admin dashboard #{'item'.pluralize(items.size)}"
+      )
+    end
+  end
+
   def message_received(message)
     @message = message
     @sender = message.sender
@@ -460,6 +486,36 @@ class MemberMailer < ApplicationMailer
   def application_age_days(application)
     start_at = application.submitted_at || application.created_at
     ((Time.current - start_at) / 1.day).floor
+  end
+
+  def urgent_items_html(items)
+    rows = items.map do |item|
+      title = ERB::Util.html_escape(item.title)
+      detail = ERB::Util.html_escape(item.detail.to_s)
+      url = ERB::Util.html_escape(item.url)
+      detail_html = detail.present? ? "<br><span>#{detail}</span>" : ''
+      %(<li><strong>#{title}</strong>#{detail_html}<br><a href="#{url}">Open in Member Manager</a></li>)
+    end
+    "<ul>#{rows.join}</ul>"
+  end
+
+  def urgent_items_text(items)
+    items.map do |item|
+      lines = ["- #{item.title}"]
+      lines << "  #{item.detail}" if item.detail.present?
+      lines << "  #{item.url}"
+      lines.join("\n")
+    end.join("\n\n")
+  end
+
+  def urgent_digest_item(item)
+    return item if item.respond_to?(:title)
+
+    UrgentDigestItem.new(
+      item[:title] || item['title'],
+      item[:detail] || item['detail'],
+      item[:url] || item['url']
+    )
   end
 
   def send_parking_notice_mail(template_key, user, opts = {})

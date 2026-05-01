@@ -18,6 +18,10 @@ class EmailTemplate < ApplicationRecord
                              '(admin new application & staff alert templates)',
     '{{application_age_days}}' => 'How many days a membership application has been pending',
     '{{submitted_at}}' => 'Date the membership application was submitted',
+    '{{urgent_item_count}}' => 'Number of urgent admin dashboard items',
+    '{{urgent_items_html}}' => 'HTML list of urgent admin dashboard items',
+    '{{urgent_items_text}}' => 'Plain-text list of urgent admin dashboard items',
+    '{{dashboard_url}}' => 'Direct link to the admin dashboard',
     '{{requester_name}}' => 'Name of the member who requested training',
     '{{requester_email}}' => 'Email address of the member requesting training (if shared)',
     '{{requester_slack}}' => 'Slack handle of the member requesting training (if shared)',
@@ -388,6 +392,26 @@ class EmailTemplate < ApplicationRecord
         Please accept, reject, or move this application along.
       TEXT
     },
+    'admin_dashboard_urgent_digest' => {
+      name: 'Admin Dashboard: Urgent Items',
+      description: 'Daily 7am digest of urgent admin dashboard items for executive directors',
+      subject: '{{organization_name}}: {{urgent_item_count}} urgent admin dashboard items',
+      body_html: <<~HTML,
+        <h1>Urgent admin dashboard items</h1>
+        <p>The admin dashboard has {{urgent_item_count}} urgent item(s) that need attention.</p>
+        {{urgent_items_html}}
+        <p><a href="{{dashboard_url}}">Open the admin dashboard</a></p>
+      HTML
+      body_text: <<~TEXT
+        Urgent admin dashboard items
+
+        The admin dashboard has {{urgent_item_count}} urgent item(s) that need attention.
+
+        {{urgent_items_text}}
+
+        Open the admin dashboard: {{dashboard_url}}
+      TEXT
+    },
     'training_requested' => {
       name: 'Training Requested',
       description: 'Sent when a member requests training in a topic',
@@ -584,7 +608,7 @@ class EmailTemplate < ApplicationRecord
       recipient_role: 'trainer',
       trainer_names: 'Trainer One, Trainer Two',
       contact_details: 'Email: alex@example.com'
-    }
+    }.merge(admin_dashboard_preview_variables)
     render(sample_variables)
   end
 
@@ -601,6 +625,15 @@ class EmailTemplate < ApplicationRecord
 
   def clear_send_immediately_if_blocked
     self.send_immediately = false if block_send_immediately?
+  end
+
+  def admin_dashboard_preview_variables
+    {
+      urgent_item_count: '2',
+      urgent_items_html: '<ul><li><strong>1 access controller issue</strong><br><span>1 offline</span></li></ul>',
+      urgent_items_text: "- 1 access controller issue\n  1 offline",
+      dashboard_url: ENV.fetch('APP_BASE_URL', 'http://localhost:3000')
+    }
   end
 
   def substitute_variables(text, variables)

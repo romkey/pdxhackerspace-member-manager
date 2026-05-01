@@ -43,6 +43,18 @@ module MembershipApplications
       assert_includes mail.text_part.body.decoded, 'April 23, 2026'
     end
 
+    test 'queues nag emails through Action Mailer before delivery' do
+      now = Time.zone.local(2026, 5, 1, 9, 0, 0)
+      stale_application(now: now, email: 'queued-nag@example.com')
+      train_staff(users(:one), MembershipApplication::EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME)
+
+      travel_to now do
+        assert_enqueued_jobs 1, only: ActionMailer::MailDeliveryJob do
+          NotifyDirectorsOfStaleApplications.call(now: now)
+        end
+      end
+    end
+
     test 'does not email applications that are not stale and pending' do
       now = Time.zone.local(2026, 5, 1, 9, 0, 0)
       train_staff(users(:one), MembershipApplication::EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME)
