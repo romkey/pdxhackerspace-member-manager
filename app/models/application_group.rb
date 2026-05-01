@@ -7,7 +7,9 @@ class ApplicationGroup < ApplicationRecord
   belongs_to :application
   belongs_to :training_topic, optional: true
   belongs_to :sync_with_group, class_name: 'ApplicationGroup', optional: true
-  has_and_belongs_to_many :users
+  has_and_belongs_to_many :users,
+                          after_add: :queue_authentik_membership_sync,
+                          after_remove: :queue_authentik_membership_sync
 
   validates :name, presence: true
   validates :authentik_name, presence: true,
@@ -102,5 +104,12 @@ class ApplicationGroup < ApplicationRecord
     return if can_train? || trained_in?
 
     self.training_topic_id = nil
+  end
+
+  def queue_authentik_membership_sync(_user)
+    return if Current.skip_authentik_sync
+    return if authentik_group_id.blank?
+
+    Authentik::ApplicationGroupMembershipSyncJob.perform_later([member_source])
   end
 end

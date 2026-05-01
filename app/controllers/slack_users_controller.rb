@@ -67,20 +67,14 @@ class SlackUsersController < AdminController
     @slack_user = SlackUser.find(params[:id])
     user = User.find(params[:user_id])
 
-    # Link the slack user to the user
-    # The SlackUser after_save callback will call user.on_slack_user_linked
-    # to handle email syncing and Slack profile data
     @slack_user.update!(user_id: user.id)
-
-    # Add Slack name as alias if it differs
-    user.add_alias!(@slack_user.real_name) if @slack_user.real_name.present?
 
     if params[:from_index] == 'true'
       redirect_to slack_users_path(extract_filter_params),
                   notice: "Linked #{@slack_user.display_name} to #{user.display_name}."
     else
       redirect_to slack_user_path(@slack_user),
-                  notice: "Linked to #{user.display_name} and updated their Slack information."
+                  notice: "Linked to #{user.display_name}."
     end
   end
 
@@ -180,9 +174,6 @@ class SlackUsersController < AdminController
       if matches.one?
         user = matches.first
 
-        # Link the slack user to the user
-        # The SlackUser after_save callback will call user.on_slack_user_linked
-        # to handle email syncing and Slack profile data
         slack_user.update!(user_id: user.id)
 
         linked_count += 1

@@ -65,43 +65,16 @@ module Authentik
 
       begin
         authentik_data = client.get_user(user.authentik_id)
-        apply_authentik_data(authentik_data)
+        record_authentik_data(authentik_data)
       rescue StandardError => e
         Rails.logger.error("[Authentik::UserSync] Failed to fetch user from Authentik: #{e.message}")
         { status: 'error', error: e.message }
       end
     end
 
-    # Apply Authentik data to the local user record
+    # Store Authentik data locally without copying profile fields onto the User record.
     def apply_authentik_data(authentik_data, skip_if_no_changes: true)
-      changes = {}
-
-      # Map Authentik fields to User fields
-      if authentik_data['email'].present? && authentik_data['email'] != user.email
-        changes[:email] = authentik_data['email']
-      end
-
-      if authentik_data['name'].present? && authentik_data['name'] != user.full_name
-        changes[:full_name] = authentik_data['name']
-      end
-
-      if authentik_data['username'].present? && authentik_data['username'] != user.username
-        changes[:username] = authentik_data['username']
-      end
-
-      # NOTE: We intentionally don't sync is_active to active automatically
-      # because active status in MemberManager has different business logic
-
-      return { status: 'no_changes' } if changes.empty? && skip_if_no_changes
-
-      Rails.logger.info("[Authentik::UserSync] Applying changes to user #{user.id}: #{changes.keys.join(', ')}")
-
-      user.update!(changes.merge(last_synced_at: Time.current))
-
-      { status: 'updated', changes: changes.keys }
-    rescue StandardError => e
-      Rails.logger.error("[Authentik::UserSync] Failed to apply Authentik data: #{e.message}")
-      { status: 'error', error: e.message }
+      record_authentik_data(authentik_data, skip_if_no_changes: skip_if_no_changes)
     end
 
     # Class method for batch sync of all users with Authentik IDs
@@ -124,6 +97,35 @@ module Authentik
 
     def api_configured?
       AuthentikConfig.settings.api_token.present? && AuthentikConfig.settings.api_base_url.present?
+    end
+
+    def record_authentik_data(authentik_data, skip_if_no_changes: true)
+      authentik_user = AuthentikUser.find_or_initialize_by(authentik_id: user.authentik_id)
+      previous_attributes = authentik_user.attributes.slice('username', 'email', 'full_name', 'is_active')
+
+      authentik_user.assign_attributes(
+        username: authentik_data['username'],
+        email: authentik_data['email'],
+        full_name: authentik_data['name'],
+        is_active: authentik_data['is_active'] != false,
+        raw_attributes: authentik_data,
+        last_synced_at: Time.current,
+        user: user
+      )
+
+      current_attributes = authentik_user.attributes.slice('username', 'email', 'full_name', 'is_active')
+      changes = current_attributes.filter_map do |field, value|
+        field if previous_attributes[field] != value
+      end
+
+      return { status: 'no_changes' } if changes.empty? && skip_if_no_changes && authentik_user.persisted?
+
+      authentik_user.save!
+
+      { status: 'updated', changes: changes }
+    rescue StandardError => e
+      Rails.logger.error("[Authentik::UserSync] Failed to record Authentik data: #{e.message}")
+      { status: 'error', error: e.message }
     end
   end
 end

@@ -57,6 +57,24 @@ class SheetEntriesControllerTest < ActionDispatch::IntegrationTest
     assert_equal 'Google Sheet source is disabled.', flash[:alert]
   end
 
+  test 'sync_to_user links matching member without copying sheet data' do
+    user = users(:one)
+    @sheet_entry.update_columns(user_id: nil, rfid: 'RFID-SHOULD-NOT-COPY', status: '')
+    user.update_columns(active: true, payment_type: 'paypal', membership_status: 'paying', notes: nil)
+
+    post sync_to_user_sheet_entry_path(@sheet_entry)
+
+    assert_redirected_to sheet_entry_path(@sheet_entry)
+    assert_equal user.id, @sheet_entry.reload.user_id
+
+    user.reload
+    assert user.active?
+    assert_equal 'paypal', user.payment_type
+    assert_equal 'paying', user.membership_status
+    assert_nil user.notes
+    assert_not Rfid.exists?(user: user, rfid: 'RFID-SHOULD-NOT-COPY')
+  end
+
   private
 
   def log_in_local_user

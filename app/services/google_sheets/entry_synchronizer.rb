@@ -143,7 +143,6 @@ module GoogleSheets
           record.raw_attributes = attrs
           record.last_synced_at = timestamp
           record.save!
-          ensure_user_active_state(record)
         rescue ActiveRecord::RecordInvalid => e
           @logger.error("Failed to sync SheetEntry #{attrs.inspect}: #{e.message}")
         end
@@ -202,20 +201,6 @@ module GoogleSheets
       Time.zone.parse(value)
     rescue ArgumentError
       nil
-    end
-
-    # If a sheet entry has a blank status, treat as inactive and reflect that on the matching user (by email).
-    def ensure_user_active_state(sheet_entry)
-      email = sheet_entry.email.to_s.strip.downcase
-      return if email.blank?
-
-      return if sheet_entry.status.to_s.strip.present?
-
-      user = User.where('LOWER(email) = ?', email).first
-      return unless user
-
-      # Mark user inactive if status is blank
-      user.update_columns(active: false, updated_at: Time.current)
     end
   end
 end

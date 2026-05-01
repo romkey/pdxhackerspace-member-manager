@@ -369,30 +369,6 @@ class User < ApplicationRecord
     ensure_recharge_payment_events(payment.customer_id)
   end
 
-  # Called when a SlackUser is linked to this User.
-  # Handles email syncing and Slack profile data.
-  def on_slack_user_linked(slack_user)
-    return if slack_user.blank?
-
-    updates = {}
-
-    # Sync email from Slack user
-    merge_email_from_external_source(slack_user.email, updates)
-
-    # Add slack_id and slack_handle to user (only if not already set)
-    updates[:slack_id] = slack_user.slack_id if slack_id.blank?
-    updates[:slack_handle] = slack_user.username if slack_handle.blank?
-
-    # Set avatar from Slack profile image_192 if image_original exists (indicating a custom image)
-    if slack_user.raw_attributes&.dig('profile', 'image_original').present?
-      image_192_url = slack_user.raw_attributes.dig('profile', 'image_192')
-      updates[:avatar] = image_192_url if image_192_url.present? && avatar.blank?
-    end
-
-    # Apply all updates at once
-    update!(updates) if updates.any?
-  end
-
   # Shared method to update user from a payment.
   # Used by payment linking callbacks and synchronizer reconciliation.
   # Updates last_payment_date, membership status, and membership plan if needed.
@@ -528,7 +504,7 @@ class User < ApplicationRecord
   after_create_commit :provision_to_authentik
   after_create_commit :sync_application_group_memberships_on_create
   after_update_commit :journal_updated!
-  after_update_commit :sync_to_authentik_if_needed
+  after_update_commit :sync_authentik_user_if_needed
   after_update_commit :sync_application_group_memberships_on_update
   after_update_commit :queue_lapsed_email_if_needed
 
@@ -815,16 +791,17 @@ class User < ApplicationRecord
     Authentik::ProvisionUserJob.perform_later(id)
   end
 
-  def sync_to_authentik_if_needed
-    return if authentik_id.blank?
+  def sync_authentik_user_if_needed
     return if Current.skip_authentik_sync
 
-    # Check if any syncable fields changed
     changed_fields = saved_changes.keys & Authentik::UserSync::SYNCABLE_FIELDS
     return if changed_fields.empty?
 
-    # Perform sync asynchronously to avoid blocking
-    Authentik::UserSyncJob.perform_later(id, changed_fields)
+    if authentik_id.present?
+      Authentik::UserSyncJob.perform_later(id, changed_fields)
+    else
+      Authentik::ProvisionUserJob.perform_later(id)
+    end
   end
 
   def sync_application_group_memberships_on_create
@@ -854,6 +831,13 @@ class User < ApplicationRecord
     end
 
     sources << 'admin_members' if saved_change_to_is_admin?
+
+    if saved_change_to_authentik_id? && authentik_id.present?
+      sources << 'all_members'
+      sources << 'active_members' if active?
+      sources << 'unbanned_members' unless banned?
+      sources << 'admin_members' if is_admin?
+    end
 
     return if sources.empty?
 

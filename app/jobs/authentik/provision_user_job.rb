@@ -29,6 +29,7 @@ module Authentik
       if existing
         authentik_id = existing['pk'].to_s
         user.update_columns(authentik_id: authentik_id, last_synced_at: Time.current, authentik_dirty: false)
+        sync_application_group_memberships(user)
         Rails.logger.info(
           '[Authentik::ProvisionUserJob] Linked existing Authentik user ' \
           "#{authentik_id} to user #{user_id}"
@@ -46,10 +47,22 @@ module Authentik
 
       authentik_id = result['pk'].to_s
       user.update_columns(authentik_id: authentik_id, last_synced_at: Time.current, authentik_dirty: false)
+      sync_application_group_memberships(user)
       Rails.logger.info("[Authentik::ProvisionUserJob] Created Authentik user #{authentik_id} for user #{user_id}")
     rescue StandardError => e
       Rails.logger.error("[Authentik::ProvisionUserJob] Failed to provision user #{user_id}: #{e.class} #{e.message}")
       raise
+    end
+
+    private
+
+    def sync_application_group_memberships(user)
+      sources = %w[all_members]
+      sources << 'active_members' if user.active?
+      sources << 'unbanned_members' unless user.banned?
+      sources << 'admin_members' if user.is_admin?
+
+      Authentik::ApplicationGroupMembershipSyncJob.perform_later(sources)
     end
   end
 end

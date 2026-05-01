@@ -68,15 +68,18 @@ class SlackUsersControllerTest < ActionDispatch::IntegrationTest
     assert_equal user.id, slack_user.user_id
   end
 
-  test 'link_user adds real_name as alias if different' do
+  test 'link_user does not copy slack profile data to member' do
     slack_user = slack_users(:with_dept)
     user = users(:two)
-    user.update_columns(aliases: [])
+    user.update_columns(aliases: [], slack_id: nil, slack_handle: nil, avatar: nil)
 
     post link_user_slack_user_path(slack_user), params: { user_id: user.id }
 
     user.reload
-    assert_includes user.aliases, 'John Smith'
+    assert_empty user.aliases
+    assert_nil user.slack_id
+    assert_nil user.slack_handle
+    assert_nil user.avatar
   end
 
   test 'link_user from index redirects back to index' do
