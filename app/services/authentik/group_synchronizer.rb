@@ -11,7 +11,7 @@ module Authentik
         return 0
       end
 
-      members = @client.group_members
+      members = @client.group_members(source_group_id)
       now = Time.current
 
       ActiveRecord::Base.transaction do
@@ -25,6 +25,14 @@ module Authentik
     end
 
     private
+
+    def source_group_id
+      all_members_group&.authentik_group_id.presence || AuthentikConfig.settings.group_id
+    end
+
+    def all_members_group
+      ApplicationGroup.with_member_sources('all_members').with_authentik_group_id.first
+    end
 
     def upsert_members(members, timestamp)
       members.each do |attrs|
