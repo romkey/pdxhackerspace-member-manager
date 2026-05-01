@@ -251,9 +251,8 @@ class ReportsController < AdminController
   end
 
   def prepare_slack_inactive(limit: nil)
-    one_year_ago = 1.year.ago
-    scope = SlackUser.active
-                     .where('last_active_at < ? OR last_active_at IS NULL', one_year_ago)
+    scope = SlackUser.human
+                     .inactive
                      .order(Arel.sql('COALESCE(last_active_at, created_at) ASC'))
     @slack_inactive_count = scope.count
     @slack_inactive = limit ? scope.limit(limit) : scope
