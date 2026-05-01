@@ -19,11 +19,15 @@ module Authentik
       other_user.update_columns(active: true)
 
       client = Class.new do
+        attr_reader :requested_group_ids
+
         def initialize(members)
           @members = members
+          @requested_group_ids = []
         end
 
-        def group_members
+        def group_members(group_id = nil)
+          @requested_group_ids << group_id
           @members
         end
       end.new(
@@ -57,6 +61,31 @@ module Authentik
       assert_not Rfid.exists?(user: user, rfid: 'RFID-FROM-AUTHENTIK')
 
       assert other_user.reload.active?
+    end
+
+    test 'uses all members Authentik group as source when configured' do
+      all_members_group = application_groups(:sample_group)
+      all_members_group.update!(
+        member_source: 'all_members',
+        authentik_group_id: 'all-members-authentik-group'
+      )
+
+      client = Class.new do
+        attr_reader :requested_group_ids
+
+        def initialize
+          @requested_group_ids = []
+        end
+
+        def group_members(group_id = nil)
+          @requested_group_ids << group_id
+          []
+        end
+      end.new
+
+      Authentik::GroupSynchronizer.new(client: client).call
+
+      assert_equal ['all-members-authentik-group'], client.requested_group_ids
     end
   end
 end
