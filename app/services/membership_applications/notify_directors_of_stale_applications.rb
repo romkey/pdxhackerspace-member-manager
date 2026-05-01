@@ -3,7 +3,8 @@
 module MembershipApplications
   # Reminds executive application reviewers when pending applications are older than one week.
   class NotifyDirectorsOfStaleApplications
-    REMINDER_DELAY = 1.week
+    INITIAL_DELAY = 1.week
+    REPEAT_DELAY = 3.days
 
     def self.call(now: Time.current)
       new(now: now).call
@@ -14,7 +15,7 @@ module MembershipApplications
     end
 
     def call
-      MembershipApplication.awaiting_admin_nag(@now - REMINDER_DELAY).find_each do |application|
+      MembershipApplication.awaiting_admin_nag(@now - INITIAL_DELAY, @now - REPEAT_DELAY).find_each do |application|
         notify_application(application)
       end
     end
@@ -41,12 +42,17 @@ module MembershipApplications
 
     def naggable?(application)
       application.pending? &&
-        application.application_nag_sent_at.nil? &&
-        application_age_start(application) <= @now - REMINDER_DELAY
+        application_age_start(application) <= @now - INITIAL_DELAY &&
+        next_nag_due?(application)
     end
 
     def application_age_start(application)
       application.submitted_at || application.created_at
+    end
+
+    def next_nag_due?(application)
+      application.application_nag_sent_at.nil? ||
+        application.application_nag_sent_at <= @now - REPEAT_DELAY
     end
 
     def director_recipients

@@ -48,7 +48,7 @@ module MembershipApplications
       train_staff(users(:one), MembershipApplication::EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME)
       stale_application(now: now, email: 'already-approved@example.com', status: 'approved')
       stale_application(now: now, email: 'already-rejected@example.com', status: 'rejected')
-      stale_application(now: now, email: 'already-nagged@example.com', application_nag_sent_at: 1.day.ago)
+      stale_application(now: now, email: 'recently-nagged@example.com', application_nag_sent_at: now - 2.days)
       MembershipApplication.create!(
         email: 'too-new@example.com',
         status: 'submitted',
@@ -63,6 +63,46 @@ module MembershipApplications
           end
         end
       end
+    end
+
+    test 'emails applications again when the previous nag is at least three days old' do
+      now = Time.zone.local(2026, 5, 1, 9, 0, 0)
+      application = stale_application(
+        now: now,
+        email: 'repeat-due@example.com',
+        application_nag_sent_at: now - 3.days
+      )
+      train_staff(users(:one), MembershipApplication::EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME)
+
+      travel_to now do
+        assert_difference 'ActionMailer::Base.deliveries.size', 1 do
+          perform_enqueued_jobs only: ActionMailer::MailDeliveryJob do
+            NotifyDirectorsOfStaleApplications.call(now: now)
+          end
+        end
+      end
+
+      assert_equal now, application.reload.application_nag_sent_at
+    end
+
+    test 'does not repeat nag before three days have passed' do
+      now = Time.zone.local(2026, 5, 1, 9, 0, 0)
+      application = stale_application(
+        now: now,
+        email: 'repeat-not-due@example.com',
+        application_nag_sent_at: now - 2.days
+      )
+      train_staff(users(:one), MembershipApplication::EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME)
+
+      travel_to now do
+        assert_no_difference 'ActionMailer::Base.deliveries.size' do
+          perform_enqueued_jobs only: ActionMailer::MailDeliveryJob do
+            NotifyDirectorsOfStaleApplications.call(now: now)
+          end
+        end
+      end
+
+      assert_equal now - 2.days, application.reload.application_nag_sent_at
     end
 
     test 'deduplicates reviewers and only marks sent when a recipient exists' do

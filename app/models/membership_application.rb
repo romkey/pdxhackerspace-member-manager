@@ -46,10 +46,13 @@ class MembershipApplication < ApplicationRecord
   scope :rejected, -> { where(status: 'rejected') }
   # Applications awaiting a final decision (Open or Under Review).
   scope :pending, -> { where(status: %w[submitted under_review]) }
-  scope :awaiting_admin_nag, lambda { |cutoff = 1.week.ago|
+  scope :awaiting_admin_nag, lambda { |stale_cutoff = 1.week.ago, repeat_cutoff = 3.days.ago|
     pending
-      .where(application_nag_sent_at: nil)
-      .where('COALESCE(membership_applications.submitted_at, membership_applications.created_at) <= ?', cutoff)
+      .where('COALESCE(membership_applications.submitted_at, membership_applications.created_at) <= ?', stale_cutoff)
+      .where(
+        'application_nag_sent_at IS NULL OR application_nag_sent_at <= ?',
+        repeat_cutoff
+      )
   }
   # Newest by when the application was submitted (or created if not yet submitted); tie-break on id for stable ordering.
   scope :newest_first, lambda {
