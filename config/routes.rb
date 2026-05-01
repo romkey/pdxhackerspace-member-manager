@@ -80,6 +80,9 @@ Rails.application.routes.draw do
       post :unmark_sponsored
       post :sync_to_authentik
       post :sync_from_authentik
+      post :unlink_slack
+      post :unlink_authentik
+      post :unlink_sheet
       post :mark_help_seen
     end
     collection do
@@ -136,6 +139,7 @@ Rails.application.routes.draw do
     end
     member do
       post :link_user
+      post :unlink_user
       post :toggle_dont_link
       post :create_member
     end
@@ -147,6 +151,7 @@ Rails.application.routes.draw do
     end
     member do
       post :link_user
+      post :unlink_user
       post :accept_changes
       post :push_to_authentik
     end
@@ -165,6 +170,7 @@ Rails.application.routes.draw do
     end
     member do
       post :sync_to_user
+      post :unlink_user
     end
   end
 

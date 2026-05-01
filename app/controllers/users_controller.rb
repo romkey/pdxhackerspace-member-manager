@@ -7,6 +7,7 @@ class UsersController < AuthenticatedController
                          ban mark_deceased mark_sponsored
                          unmark_sponsored destroy
                          sync_to_authentik sync_from_authentik
+                         unlink_slack unlink_authentik unlink_sheet
                          mark_help_seen]
   before_action :require_admin!, except: %i[show edit update mark_help_seen]
   before_action :authorize_profile_view, only: [:show]
@@ -482,6 +483,50 @@ class UsersController < AuthenticatedController
     end
   end
 
+  def unlink_slack
+    slack_user = @user.slack_user
+    if slack_user.blank? && @user.slack_id.blank? && @user.slack_handle.blank?
+      redirect_to user_path(@user, tab: :profile), alert: 'Member is not linked to a Slack account.'
+      return
+    end
+
+    SlackUser.transaction do
+      slack_user&.update!(user_id: nil)
+      clear_user_slack_fields!(@user, slack_user)
+    end
+
+    MemberSource.for('slack').refresh_statistics!
+    redirect_to user_path(@user, tab: :profile), notice: 'Slack account disassociated from member.'
+  end
+
+  def unlink_authentik
+    authentik_user = @user.authentik_user || AuthentikUser.find_by(authentik_id: @user.authentik_id)
+    if authentik_user.blank? && @user.authentik_id.blank?
+      redirect_to user_path(@user, tab: :profile), alert: 'Member is not linked to an Authentik account.'
+      return
+    end
+
+    AuthentikUser.transaction do
+      authentik_user&.update!(user_id: nil)
+      @user.update_columns(authentik_id: nil, authentik_dirty: false, updated_at: Time.current)
+    end
+
+    MemberSource.for('authentik').refresh_statistics!
+    redirect_to user_path(@user, tab: :profile), notice: 'Authentik account disassociated from member.'
+  end
+
+  def unlink_sheet
+    sheet_entry = @user.sheet_entry
+    if sheet_entry.blank?
+      redirect_to user_path(@user, tab: :profile), alert: 'Member is not linked to a sheet entry.'
+      return
+    end
+
+    sheet_entry.update!(user_id: nil)
+    MemberSource.for('sheet').refresh_statistics!
+    redirect_to user_path(@user, tab: :profile), notice: 'Sheet entry disassociated from member.'
+  end
+
   # Mark member help as seen (only for the user themselves)
   def mark_help_seen
     # Use true_user to ensure impersonation doesn't mark the impersonated user's help as seen
@@ -504,6 +549,19 @@ class UsersController < AuthenticatedController
 
   def set_user
     @user = User.find_by_param(params[:id])
+  end
+
+  def clear_user_slack_fields!(user, slack_user)
+    updates = { updated_at: Time.current }
+    if slack_user.present?
+      updates[:slack_id] = nil if user.slack_id == slack_user.slack_id
+      updates[:slack_handle] = nil if user.slack_id == slack_user.slack_id || user.slack_handle == slack_user.username
+    else
+      updates[:slack_id] = nil
+      updates[:slack_handle] = nil
+    end
+
+    user.update_columns(updates) if updates.keys != [:updated_at]
   end
 
   def authorize_self_or_admin

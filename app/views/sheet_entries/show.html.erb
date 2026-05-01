@@ -38,7 +38,12 @@
       <dt class="col-sm-3 text-secondary">Member</dt>
       <dd class="col-sm-9">
         <% if @sheet_entry.user.present? %>
-          <%= link_to @sheet_entry.user.display_name, user_path(@sheet_entry.user), class: "text-decoration-none" %>
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <%= link_to @sheet_entry.user.display_name, user_path(@sheet_entry.user), class: "text-decoration-none" %>
+            <%= button_to "Disassociate", unlink_user_sheet_entry_path(@sheet_entry),
+                method: :post, class: "btn btn-sm btn-outline-secondary",
+                data: { turbo: false, turbo_confirm: "Disassociate this sheet entry from #{@sheet_entry.user.display_name}?" } %>
+          </div>
         <% else %>
           <span class="text-muted fst-italic">Not linked</span>
         <% end %>

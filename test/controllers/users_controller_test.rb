@@ -93,6 +93,47 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_equal 'Authentik source is disabled.', flash[:alert]
   end
 
+  test 'unlink_slack disassociates linked slack account from member page' do
+    slack_user = slack_users(:with_dept)
+    @user.update_columns(slack_id: slack_user.slack_id, slack_handle: slack_user.username)
+    slack_user.update!(user: @user)
+
+    post unlink_slack_user_path(@user)
+
+    assert_redirected_to user_path(@user, tab: :profile)
+    assert_nil slack_user.reload.user_id
+    @user.reload
+    assert_nil @user.slack_id
+    assert_nil @user.slack_handle
+  end
+
+  test 'unlink_authentik disassociates linked authentik account from member page' do
+    authentik_user = AuthentikUser.create!(
+      authentik_id: @user.authentik_id,
+      username: 'auth-user',
+      email: 'auth@example.com',
+      full_name: 'Auth User',
+      user: @user
+    )
+
+    post unlink_authentik_user_path(@user)
+
+    assert_redirected_to user_path(@user, tab: :profile)
+    assert_nil authentik_user.reload.user_id
+    assert_nil @user.reload.authentik_id
+    assert_not @user.authentik_dirty?
+  end
+
+  test 'unlink_sheet disassociates linked sheet entry from member page' do
+    sheet_entry = sheet_entries(:member_list_entry)
+    sheet_entry.update!(user: @user)
+
+    post unlink_sheet_user_path(@user)
+
+    assert_redirected_to user_path(@user, tab: :profile)
+    assert_nil sheet_entry.reload.user_id
+  end
+
   test 'create with duplicate email shows link to existing member profile' do
     post users_path, params: {
       user: {

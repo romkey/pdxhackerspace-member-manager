@@ -75,6 +75,16 @@ class SheetEntriesControllerTest < ActionDispatch::IntegrationTest
     assert_not Rfid.exists?(user: user, rfid: 'RFID-SHOULD-NOT-COPY')
   end
 
+  test 'unlink_user disassociates sheet entry from member' do
+    user = users(:one)
+    @sheet_entry.update!(user: user)
+
+    post unlink_user_sheet_entry_path(@sheet_entry)
+
+    assert_redirected_to sheet_entry_path(@sheet_entry)
+    assert_nil @sheet_entry.reload.user_id
+  end
+
   private
 
   def log_in_local_user

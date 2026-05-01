@@ -31,6 +31,24 @@ class AuthentikUsersControllerTest < ActionDispatch::IntegrationTest
     assert_equal 'Authentik source is disabled.', flash[:alert]
   end
 
+  test 'unlink_user disassociates authentik user and clears matching member authentik id' do
+    user = users(:two)
+    authentik_user = AuthentikUser.create!(
+      authentik_id: user.authentik_id,
+      username: 'auth-user',
+      email: 'auth@example.com',
+      full_name: 'Auth User',
+      user: user
+    )
+
+    post unlink_user_authentik_user_path(authentik_user)
+
+    assert_redirected_to authentik_user_path(authentik_user)
+    assert_nil authentik_user.reload.user_id
+    assert_nil user.reload.authentik_id
+    assert_not user.authentik_dirty?
+  end
+
   private
 
   def sign_in_as_admin

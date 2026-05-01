@@ -78,6 +78,24 @@ class SlackUsersController < AdminController
     end
   end
 
+  def unlink_user
+    @slack_user = SlackUser.find(params[:id])
+    user = @slack_user.user
+
+    if user.blank?
+      redirect_to slack_user_path(@slack_user), alert: 'Slack user is not linked to a member.'
+      return
+    end
+
+    SlackUser.transaction do
+      @slack_user.update!(user_id: nil)
+      clear_user_slack_fields!(user, @slack_user)
+    end
+
+    MemberSource.for('slack').refresh_statistics!
+    redirect_to slack_user_path(@slack_user), notice: "Disassociated from #{user.display_name}."
+  end
+
   def toggle_dont_link
     @slack_user = SlackUser.find(params[:id])
     new_value = !@slack_user.dont_link
@@ -292,5 +310,13 @@ class SlackUsersController < AdminController
     else
       query
     end
+  end
+
+  def clear_user_slack_fields!(user, slack_user)
+    updates = { updated_at: Time.current }
+    updates[:slack_id] = nil if user.slack_id == slack_user.slack_id
+    updates[:slack_handle] = nil if user.slack_id == slack_user.slack_id || user.slack_handle == slack_user.username
+
+    user.update_columns(updates) if updates.keys != [:updated_at]
   end
 end

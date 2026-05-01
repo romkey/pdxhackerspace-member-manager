@@ -4,6 +4,7 @@ class User < ApplicationRecord
   has_many :supplementary_plans, through: :user_supplementary_plans, source: :membership_plan
   has_one :sheet_entry, dependent: :nullify
   has_one :slack_user, dependent: :nullify
+  has_one :authentik_user, dependent: :nullify
   has_many :personal_membership_plans, class_name: 'MembershipPlan', dependent: :destroy
   has_many :paypal_payments, dependent: :nullify
   has_many :recharge_payments, dependent: :nullify

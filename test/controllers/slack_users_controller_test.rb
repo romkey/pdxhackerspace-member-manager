@@ -90,6 +90,21 @@ class SlackUsersControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to slack_users_path
   end
 
+  test 'unlink_user disassociates slack user and clears matching member slack fields' do
+    slack_user = slack_users(:with_dept)
+    user = users(:two)
+    user.update_columns(slack_id: slack_user.slack_id, slack_handle: slack_user.username)
+    slack_user.update!(user: user)
+
+    post unlink_user_slack_user_path(slack_user)
+
+    assert_redirected_to slack_user_path(slack_user)
+    assert_nil slack_user.reload.user_id
+    user.reload
+    assert_nil user.slack_id
+    assert_nil user.slack_handle
+  end
+
   # ─── Toggle Don't Link ─────────────────────────────────────────────
 
   test 'toggle_dont_link sets dont_link flag' do

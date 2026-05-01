@@ -8,7 +8,22 @@
           <dd class="col-sm-9 text-monospace text-secondary"><%= user.username.presence || content_tag(:span, "Not provided", class: "text-muted fst-italic") %></dd>
 
           <dt class="col-sm-3 text-secondary">Authentik ID</dt>
-          <dd class="col-sm-9"><%= user.authentik_id %></dd>
+          <dd class="col-sm-9">
+            <% if user.authentik_id.present? %>
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <% if user.authentik_user.present? %>
+                  <%= link_to user.authentik_id, authentik_user_path(user.authentik_user), class: "text-decoration-none font-monospace" %>
+                <% else %>
+                  <code><%= user.authentik_id %></code>
+                <% end %>
+                <%= button_to "Disassociate", unlink_authentik_user_path(user), method: :post,
+                    class: "btn btn-sm btn-outline-secondary",
+                    data: { turbo: false, turbo_confirm: "Disassociate this Authentik account from #{user.display_name}?" } %>
+              </div>
+            <% else %>
+              <span class="text-muted fst-italic">Not linked</span>
+            <% end %>
+          </dd>
 
           <dt class="col-sm-3 text-secondary">Email</dt>
           <dd class="col-sm-9">
@@ -77,7 +92,12 @@
           <dt class="col-sm-3 text-secondary">Sheet Entry</dt>
           <dd class="col-sm-9">
             <% if user.sheet_entry.present? %>
-              <%= link_to user.sheet_entry.name, sheet_entry_path(user.sheet_entry), class: "text-decoration-none" %>
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <%= link_to user.sheet_entry.name, sheet_entry_path(user.sheet_entry), class: "text-decoration-none" %>
+                <%= button_to "Disassociate", unlink_sheet_user_path(user), method: :post,
+                    class: "btn btn-sm btn-outline-secondary",
+                    data: { turbo: false, turbo_confirm: "Disassociate this sheet entry from #{user.display_name}?" } %>
+              </div>
             <% else %>
               <span class="text-muted fst-italic">Not linked</span>
             <% end %>
@@ -107,21 +127,33 @@
 
           <dt class="col-sm-3 text-secondary">Slack</dt>
           <dd class="col-sm-9">
-            <% if user.slack_handle.present? || user.slack_id.present? %>
-              <% if user.slack_id.present? && user.slack_user&.team_id.present? %>
-                <% slack_url = "slack://user?team=#{user.slack_user.team_id}&id=#{user.slack_id}" %>
-                <% if user.slack_handle.present? %>
-                  <%= link_to "@#{user.slack_handle}", slack_url, target: "_blank", rel: "noopener", class: "text-decoration-none" %>
-                  <span class="text-muted small ms-2">(ID: <%= link_to user.slack_id, slack_url, class: "text-decoration-none" %>)</span>
+            <% if user.slack_user.present? || user.slack_handle.present? || user.slack_id.present? %>
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span>
+                  <% if user.slack_id.present? && user.slack_user&.team_id.present? %>
+                    <% slack_url = "slack://user?team=#{user.slack_user.team_id}&id=#{user.slack_id}" %>
+                    <% if user.slack_handle.present? %>
+                      <%= link_to "@#{user.slack_handle}", slack_url, target: "_blank", rel: "noopener", class: "text-decoration-none" %>
+                      <span class="text-muted small ms-2">(ID: <%= link_to user.slack_id, slack_url, class: "text-decoration-none" %>)</span>
+                    <% else %>
+                      <%= link_to user.slack_id, slack_url, target: "_blank", rel: "noopener", class: "text-decoration-none" %>
+                    <% end %>
+                  <% else %>
+                    <span><%= user.slack_handle.present? ? "@#{user.slack_handle}" : user.slack_user&.display_name %></span>
+                    <% if user.slack_id.present? %>
+                      <span class="text-muted small ms-2">(ID: <%= user.slack_id %>)</span>
+                    <% end %>
+                  <% end %>
+                </span>
+                <% if user.slack_user.present? %>
+                  <%= link_to "Slack record", slack_user_path(user.slack_user), class: "btn btn-sm btn-outline-secondary" %>
                 <% else %>
-                  <%= link_to user.slack_id, slack_url, target: "_blank", rel: "noopener", class: "text-decoration-none" %>
+                  <span class="text-muted small">No Slack record linked</span>
                 <% end %>
-              <% else %>
-                <span>@<%= user.slack_handle %></span>
-                <% if user.slack_id.present? %>
-                  <span class="text-muted small ms-2">(ID: <%= user.slack_id %>)</span>
-                <% end %>
-              <% end %>
+                <%= button_to "Disassociate", unlink_slack_user_path(user), method: :post,
+                    class: "btn btn-sm btn-outline-secondary",
+                    data: { turbo: false, turbo_confirm: "Disassociate this Slack account from #{user.display_name}?" } %>
+              </div>
             <% else %>
               <span class="text-muted fst-italic">Not linked</span>
             <% end %>

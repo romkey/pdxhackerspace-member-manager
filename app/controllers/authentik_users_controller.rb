@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: CC0-1.0
 
 class AuthentikUsersController < AdminController
-  before_action :set_authentik_user, only: %i[show link_user accept_changes push_to_authentik]
+  before_action :set_authentik_user, only: %i[show link_user unlink_user accept_changes push_to_authentik]
 
   def index
     @authentik_users = AuthentikUser.includes(:user).order(updated_at: :desc)
@@ -64,6 +64,25 @@ class AuthentikUsersController < AdminController
     MemberSource.for('authentik').refresh_statistics!
 
     redirect_to authentik_user_path(@authentik_user), notice: "Linked to #{user.display_name}."
+  end
+
+  def unlink_user
+    unless @authentik_user.user
+      redirect_to @authentik_user, alert: 'Authentik user is not linked to a member.'
+      return
+    end
+
+    user = @authentik_user.user
+
+    AuthentikUser.transaction do
+      @authentik_user.update!(user_id: nil)
+      if user.authentik_id == @authentik_user.authentik_id
+        user.update_columns(authentik_id: nil, authentik_dirty: false, updated_at: Time.current)
+      end
+    end
+
+    MemberSource.for('authentik').refresh_statistics!
+    redirect_to @authentik_user, notice: "Disassociated from #{user.display_name}."
   end
 
   def accept_changes

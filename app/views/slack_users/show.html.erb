@@ -108,7 +108,12 @@
           <dt class="col-sm-3 text-secondary">Member</dt>
           <dd class="col-sm-9">
             <% if @slack_user.user.present? %>
-              <%= link_to @slack_user.user.display_name, user_path(@slack_user.user), class: "text-decoration-none" %>
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <%= link_to @slack_user.user.display_name, user_path(@slack_user.user), class: "text-decoration-none" %>
+                <%= button_to "Disassociate", unlink_user_slack_user_path(@slack_user),
+                    method: :post, class: "btn btn-sm btn-outline-secondary",
+                    data: { turbo: false, turbo_confirm: "Disassociate this Slack user from #{@slack_user.user.display_name}?" } %>
+              </div>
             <% elsif @slack_user.dont_link? %>
               <span class="badge text-bg-secondary me-2">Don't Link</span>
               <%= button_to "Clear Don't Link", toggle_dont_link_slack_user_path(@slack_user), 

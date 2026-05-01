@@ -131,6 +131,20 @@ class SheetEntriesController < AdminController
     end
   end
 
+  def unlink_user
+    @sheet_entry = SheetEntry.find(params[:id])
+    user = @sheet_entry.user
+
+    if user.blank?
+      redirect_to sheet_entry_path(@sheet_entry), alert: 'Sheet entry is not linked to a member.'
+      return
+    end
+
+    @sheet_entry.update!(user_id: nil)
+    MemberSource.for('sheet').refresh_statistics!
+    redirect_to sheet_entry_path(@sheet_entry), notice: "Disassociated from #{user.display_name}."
+  end
+
   def test
     @name_mismatches = []
     @email_mismatches = []

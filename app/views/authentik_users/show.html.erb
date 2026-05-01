@@ -66,7 +66,12 @@
           <dt class="col-sm-4 text-secondary">Linked Member</dt>
           <dd class="col-sm-8">
             <% if @authentik_user.user.present? %>
-              <%= link_to @authentik_user.user.display_name, user_path(@authentik_user.user), class: "text-decoration-none" %>
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <%= link_to @authentik_user.user.display_name, user_path(@authentik_user.user), class: "text-decoration-none" %>
+                <%= button_to "Disassociate", unlink_user_authentik_user_path(@authentik_user),
+                    method: :post, class: "btn btn-sm btn-outline-secondary",
+                    data: { turbo: false, turbo_confirm: "Disassociate this Authentik user from #{@authentik_user.user.display_name}?" } %>
+              </div>
             <% else %>
               <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#linkUserModal">
                 Link Member
