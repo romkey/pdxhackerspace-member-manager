@@ -21,6 +21,8 @@ class Journal < ApplicationRecord
     training_removed
     trainer_capability_added
     trainer_capability_removed
+    key_fob_added
+    key_fob_removed
     subscription_created
     subscription_cancelled
     parking_permit_issued
