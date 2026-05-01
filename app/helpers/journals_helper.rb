@@ -4,6 +4,7 @@ module JournalsHelper
 
     # Handle special training-related entries
     return render_training_change(changes_hash['training']) if changes_hash['training'].is_a?(Hash)
+    return render_key_fob_change(changes_hash['key_fob']) if changes_hash['key_fob'].is_a?(Hash)
 
     if changes_hash['trainer_capability'].is_a?(Hash)
       return render_trainer_capability_change(changes_hash['trainer_capability'])
@@ -56,6 +57,17 @@ module JournalsHelper
           content_tag(:span, "can now train others (granted by #{capability_data['granted_by']})", class: 'text-muted')
         elsif capability_data['revoked_by'].present?
           content_tag(:span, "trainer capability revoked by #{capability_data['revoked_by']}", class: 'text-muted')
+        else
+          ''.html_safe
+        end
+    end
+  end
+
+  def render_key_fob_change(key_fob_data)
+    content_tag(:div, class: 'small') do
+      content_tag(:code, key_fob_data['rfid'], class: 'bg-body-secondary px-2 py-1 rounded me-2') +
+        if key_fob_data['notes'].present?
+          content_tag(:span, key_fob_data['notes'], class: 'text-muted')
         else
           ''.html_safe
         end
