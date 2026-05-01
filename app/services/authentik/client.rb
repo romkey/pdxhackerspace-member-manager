@@ -436,18 +436,53 @@ module Authentik
     end
 
     def normalize_member(entry)
-      user_data = entry['user'] || entry
+      user_data = member_user_data(entry)
+      authentik_id = authentik_user_id(entry, user_data)
+      user_data = hydrate_member_user_data(authentik_id, entry, user_data)
 
       {
-        authentik_id: (user_data['pk'] || user_data['id'] || entry['pk'] || entry['id']).to_s,
-        email: normalize_email(user_data['email']),
-        full_name: user_data['name'] || [user_data['first_name'], user_data['last_name']].compact_blank.join(' '),
+        authentik_id: authentik_id.to_s,
+        email: normalize_email(user_data['email'] || entry['email']),
+        full_name: user_data['name'] || user_data['full_name'] ||
+          [user_data['first_name'], user_data['last_name']].compact_blank.join(' '),
         username: user_data['username'] || user_data['preferred_username'] || entry['username'],
-        active: !entry['is_active'].in?([false, 'false']),
+        active: !active_value(entry, user_data).in?([false, 'false']),
         attributes: extract_attributes(entry, user_data)
       }
     rescue NoMethodError
       nil
+    end
+
+    def member_user_data(entry)
+      [
+        entry['user_obj'],
+        entry['user_object'],
+        entry['user']
+      ].find { |value| value.is_a?(Hash) } || entry
+    end
+
+    def authentik_user_id(entry, user_data)
+      user_data['pk'] || user_data['id'] ||
+        entry['user_pk'] || entry['user_id'] || entry['pk'] || entry['id']
+    end
+
+    def hydrate_member_user_data(authentik_id, entry, user_data)
+      return user_data if authentik_id.blank?
+      return user_data unless member_identity_incomplete?(entry, user_data)
+
+      user_data.merge(get_user(authentik_id))
+    rescue StandardError => e
+      Rails.logger.warn("[Authentik::Client] Could not hydrate user #{authentik_id}: #{e.message}")
+      user_data
+    end
+
+    def member_identity_incomplete?(entry, user_data)
+      normalize_email(user_data['email'] || entry['email']).blank? ||
+        (user_data['username'] || user_data['preferred_username'] || entry['username']).blank?
+    end
+
+    def active_value(entry, user_data)
+      entry.key?('is_active') ? entry['is_active'] : user_data['is_active']
     end
 
     def log_page_metadata(payload)
