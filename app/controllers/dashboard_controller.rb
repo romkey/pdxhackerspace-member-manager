@@ -165,6 +165,9 @@ class DashboardController < AdminController
     @ai_ollama_urgent = @ai_ollama_profiles.any?(&:urgent_health_issue?)
     @ai_ollama_unconfigured = @ai_ollama_profiles.any? { |p| p.enabled? && p.effective_base_url.blank? }
 
+    @printers = Printer.ordered.to_a
+    @unhealthy_printers = @printers.select(&:urgent_health_issue?)
+
     @emergency_active_override_count = User.non_service_accounts.where(emergency_active_override: true).count
 
     # Urgent: Current user's unread messages (own inbox, excluding trashed)
@@ -180,6 +183,7 @@ class DashboardController < AdminController
       { tier: :urgent, id: :payment_processors, ok: @payment_processors_sync_unhealthy.empty? },
       { tier: :urgent, id: :authentik, ok: authentik_dashboard_ok? },
       { tier: :urgent, id: :ai_ollama, ok: !@ai_ollama_urgent },
+      { tier: :urgent, id: :printers, ok: @unhealthy_printers.empty? },
       { tier: :important, id: :membership_applications, ok: @pending_applications_count.zero? },
       { tier: :important, id: :unlinked_recharge, ok: @unlinked_recharge_count.zero? },
       { tier: :important, id: :mail_queue, ok: @queued_mail_count.zero? },

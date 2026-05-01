@@ -9,11 +9,11 @@ Sidekiq.configure_server do |config|
   # Plain queue names — no prefix needed since this app has its own Redis instance.
   # Do NOT use ActiveJob queue_name_prefix; it double-prefixes with sidekiq-cron.
   config.queues = %w[default mailers]
-  
+
   # Schedule recurring jobs (only runs in Sidekiq server process)
   # Note: When using active_job: true, don't specify a prefixed queue name -
   # ActiveJob will apply its own prefix automatically
-  
+
   # PayPal Payment Sync - Daily at 6am
   Sidekiq::Cron::Job.create(
     name: 'PayPal Payment Sync - Daily at 6am',
@@ -21,7 +21,7 @@ Sidekiq.configure_server do |config|
     class: 'Paypal::PaymentSyncJob',
     active_job: true
   )
-  
+
   # Recharge Payment Sync - Daily at 6am
   Sidekiq::Cron::Job.create(
     name: 'Recharge Payment Sync - Daily at 6am',
@@ -51,6 +51,14 @@ Sidekiq.configure_server do |config|
     name: 'AI Ollama Health Check - Every 10 minutes',
     cron: '*/10 * * * *',
     class: 'AiOllamaHealthCheckJob',
+    active_job: true
+  )
+
+  # Printer health - Every 10 minutes
+  Sidekiq::Cron::Job.create(
+    name: 'Printer Health Check - Every 10 minutes',
+    cron: '*/10 * * * *',
+    class: 'PrinterHealthCheckJob',
     active_job: true
   )
 
@@ -90,4 +98,3 @@ end
 Sidekiq.configure_client do |config|
   config.redis = { url: redis_url }
 end
-

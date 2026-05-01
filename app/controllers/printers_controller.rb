@@ -39,6 +39,11 @@ class PrintersController < AdminController
     redirect_to printers_path, notice: 'Printer removed.'
   end
 
+  def check_health_now
+    PrinterHealthCheckJob.perform_now
+    redirect_to printers_path, notice: 'Printer health check complete.'
+  end
+
   def test_print
     job_id = CupsService.test_print(
       @printer.cups_printer_name,

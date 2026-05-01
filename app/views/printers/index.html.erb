@@ -1,6 +1,9 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h1 class="h3 mb-0">Printers</h1>
-  <%= link_to "Add Printer", new_printer_path, class: "btn btn-primary" %>
+  <div class="d-flex gap-2">
+    <%= button_to "Check health now", check_health_now_printers_path, method: :post, class: "btn btn-outline-secondary" %>
+    <%= link_to "Add Printer", new_printer_path, class: "btn btn-primary" %>
+  </div>
 </div>
 
 <% if @printers.any? %>
@@ -12,6 +15,7 @@
             <th>Name</th>
             <th>Server</th>
             <th>CUPS Printer</th>
+            <th>Health</th>
             <th>Description</th>
             <th>Default</th>
             <th class="text-end">Actions</th>
@@ -29,6 +33,23 @@
                 <% end %>
               </td>
               <td><code><%= printer.cups_printer_name %></code></td>
+              <td>
+                <% if printer.urgent_health_issue? %>
+                  <span class="badge text-bg-danger-subtle"><%= printer.health_status_label %></span>
+                <% elsif printer.health_status == 'healthy' %>
+                  <span class="status-dot status-success me-1"></span>
+                  <span class="text-muted"><%= printer.health_status_label %></span>
+                <% else %>
+                  <span class="status-dot status-muted me-1"></span>
+                  <span class="text-muted"><%= printer.health_status_label %></span>
+                <% end %>
+                <% if printer.last_health_check_at.present? %>
+                  <div class="text-muted small"><%= l(printer.last_health_check_at, format: :short) %></div>
+                <% end %>
+                <% if printer.last_health_error.present? && printer.urgent_health_issue? %>
+                  <div class="text-danger small text-break"><%= truncate(printer.last_health_error, length: 120) %></div>
+                <% end %>
+              </td>
               <td class="text-muted"><%= printer.description %></td>
               <td>
                 <% if printer.default_printer? %>
