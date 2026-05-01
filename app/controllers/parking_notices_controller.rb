@@ -92,6 +92,7 @@ class ParkingNoticesController < AdminController
     job_id = CupsService.print_data(
       pdf.render,
       printer.cups_printer_name,
+      cups_printer_server: printer.cups_printer_server,
       filename: "parking_notice_#{@parking_notice.id}.pdf"
     )
 
