@@ -48,6 +48,22 @@ module AdminDashboard
       assert_includes mail.text_part.body.decoded, '/access_controllers'
     end
 
+    test 'queues urgent digest emails through Action Mailer before delivery' do
+      staff = users(:one)
+      train_staff(staff, MembershipApplication::EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME)
+      AccessController.create!(
+        name: 'Back Door',
+        hostname: 'back-door.local',
+        ping_status: 'failed',
+        sync_status: 'success',
+        backup_status: 'success'
+      )
+
+      assert_enqueued_jobs 1, only: ActionMailer::MailDeliveryJob do
+        SendUrgentDigest.call
+      end
+    end
+
     test 'uses each director unread messages as recipient-specific urgent items' do
       staff_with_message = users(:one)
       staff_without_message = users(:two)
