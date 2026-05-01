@@ -40,7 +40,10 @@ class PrintersController < AdminController
   end
 
   def test_print
-    job_id = CupsService.test_print(@printer.cups_printer_name)
+    job_id = CupsService.test_print(
+      @printer.cups_printer_name,
+      cups_printer_server: @printer.cups_printer_server
+    )
     redirect_to printers_path, notice: "Test page sent to #{@printer.name} (job #{job_id})."
   rescue CupsService::PrintError => e
     redirect_to printers_path, alert: "Test print failed: #{e.message}"
@@ -53,6 +56,6 @@ class PrintersController < AdminController
   end
 
   def printer_params
-    params.expect(printer: %i[name cups_printer_name description default_printer position])
+    params.expect(printer: %i[name cups_printer_server cups_printer_name description default_printer position])
   end
 end

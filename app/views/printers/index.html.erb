@@ -10,6 +10,7 @@
         <thead class="table-light">
           <tr>
             <th>Name</th>
+            <th>Server</th>
             <th>CUPS Printer</th>
             <th>Description</th>
             <th>Default</th>
@@ -20,6 +21,13 @@
           <% @printers.each do |printer| %>
             <tr>
               <td><%= printer.name %></td>
+              <td>
+                <% if printer.cups_printer_server.present? %>
+                  <code><%= printer.cups_printer_server %></code>
+                <% else %>
+                  <span class="text-muted">Local</span>
+                <% end %>
+              </td>
               <td><code><%= printer.cups_printer_name %></code></td>
               <td class="text-muted"><%= printer.description %></td>
               <td>

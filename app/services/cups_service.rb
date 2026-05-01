@@ -25,8 +25,8 @@ class CupsService
 
   # Print a file to a specific CUPS printer.
   # Returns the CUPS job ID on success, raises PrintError on failure.
-  def self.print_file(file_path, cups_printer_name, options: {})
-    args = ['lp', '-d', cups_printer_name]
+  def self.print_file(file_path, cups_printer_name, cups_printer_server: nil, options: {})
+    args = print_command_args(cups_printer_name, cups_printer_server: cups_printer_server)
     options.each { |key, val| args.push('-o', "#{key}=#{val}") }
     args.push(file_path.to_s)
 
@@ -34,23 +34,28 @@ class CupsService
     job_id = output[/request id is (\S+)/, 1]
     raise PrintError, "Unexpected lp output: #{output}" unless job_id
 
-    Rails.logger.info("CupsService: Printed #{file_path} to #{cups_printer_name} (job #{job_id})")
+    Rails.logger.info(
+      "CupsService: Printed #{file_path} to #{cups_destination(cups_printer_name, cups_printer_server)} (job #{job_id})"
+    )
     job_id
   end
 
   # Print raw data (e.g. PDF bytes from Prawn) by writing to a temp file first.
-  def self.print_data(data, cups_printer_name, filename: 'print_job.pdf', options: {})
+  def self.print_data(data, cups_printer_name, cups_printer_server: nil, filename: 'print_job.pdf', options: {})
     Tempfile.create(['cups_print_', File.extname(filename)]) do |tmp|
       tmp.binmode
       tmp.write(data)
       tmp.flush
-      print_file(tmp.path, cups_printer_name, options: options)
+      print_file(tmp.path, cups_printer_name, cups_printer_server: cups_printer_server, options: options)
     end
   end
 
   # Send a test page to the printer.
-  def self.test_print(cups_printer_name)
-    output = run_command('lp', '-d', cups_printer_name, '-o', 'raw', '/usr/share/cups/data/testprint')
+  def self.test_print(cups_printer_name, cups_printer_server: nil)
+    args = print_command_args(cups_printer_name, cups_printer_server: cups_printer_server)
+    args.push('-o', 'raw', '/usr/share/cups/data/testprint')
+
+    output = run_command(*args)
     job_id = output[/request id is (\S+)/, 1]
     raise PrintError, "Test print failed: #{output}" unless job_id
 
@@ -59,6 +64,14 @@ class CupsService
     raise PrintError, "CUPS test page not found: #{e.message}"
   end
 
+  def self.print_command_args(cups_printer_name, cups_printer_server: nil)
+    args = ['lp']
+    args.push('-h', cups_printer_server) if cups_printer_server.present?
+    args.push('-d', cups_printer_name)
+    args
+  end
+  private_class_method :print_command_args
+
   def self.run_command(*args)
     stdout, stderr, status = Open3.capture3(*args)
     raise PrintError, "Command '#{args.first}' failed (exit #{status.exitstatus}): #{stderr}" unless status.success?
@@ -66,6 +79,13 @@ class CupsService
     stdout
   end
   private_class_method :run_command
+
+  def self.cups_destination(cups_printer_name, cups_printer_server)
+    return cups_printer_name if cups_printer_server.blank?
+
+    "#{cups_printer_server}/#{cups_printer_name}"
+  end
+  private_class_method :cups_destination
 
   def self.parse_lpstat(output)
     printers = []

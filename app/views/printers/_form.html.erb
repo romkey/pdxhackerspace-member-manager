@@ -19,6 +19,13 @@
       </div>
 
       <div class="mb-3">
+        <%= f.label :cups_printer_server, 'CUPS Printer Server', class: "form-label" %>
+        <%= f.text_field :cups_printer_server, class: "form-control",
+            placeholder: "e.g. print.example.org" %>
+        <div class="form-text">Leave blank to use the local/default CUPS server.</div>
+      </div>
+
+      <div class="mb-3">
         <%= f.label :cups_printer_name, 'CUPS Printer Name', class: "form-label" %>
         <% if cups_printers.any? %>
           <div class="d-flex flex-wrap gap-2 mb-2">
