@@ -6,9 +6,29 @@ module AdminDashboard
     include Rails.application.routes.url_helpers
 
     Item = Data.define(:id, :title, :detail, :url)
+    Snapshot = Data.define(
+      :items,
+      :unread_messages_count,
+      :ac_offline_count,
+      :ac_sync_failed_count,
+      :ac_backup_failed_count,
+      :ac_issue_count,
+      :payment_processors_sync_unhealthy,
+      :authentik_member_source,
+      :authentik_api_urgent,
+      :authentik_sync_issue,
+      :ai_ollama_profiles,
+      :ai_ollama_urgent,
+      :printers,
+      :unhealthy_printers
+    )
 
     def self.call(user: nil)
-      new(user: user).call
+      snapshot(user: user).items
+    end
+
+    def self.snapshot(user: nil)
+      new(user: user).snapshot
     end
 
     def initialize(user: nil)
@@ -16,6 +36,33 @@ module AdminDashboard
     end
 
     def call
+      snapshot.items
+    end
+
+    def snapshot
+      Snapshot.new(
+        items,
+        unread_messages_count,
+        ac_offline_count,
+        ac_sync_failed_count,
+        ac_backup_failed_count,
+        ac_issue_count,
+        payment_processors_sync_unhealthy,
+        authentik_member_source,
+        authentik_api_urgent?,
+        authentik_sync_issue,
+        ai_ollama_profiles,
+        ai_ollama_urgent?,
+        printers,
+        unhealthy_printers
+      )
+    end
+
+    private
+
+    attr_reader :user
+
+    def items
       [
         unread_messages_item,
         access_controller_item,
@@ -26,62 +73,51 @@ module AdminDashboard
       ].compact
     end
 
-    private
-
-    attr_reader :user
-
     def unread_messages_item
-      return nil unless user
-
-      count = Message.folder(user, :unread).count
-      return nil if count.zero?
+      return nil if unread_messages_count.zero?
 
       item(
         :unread_messages,
-        "#{count} unread #{'message'.pluralize(count)}",
+        "#{unread_messages_count} unread #{'message'.pluralize(unread_messages_count)}",
         'Your Member Manager inbox has unread messages.',
         messages_path(folder: :unread)
       )
     end
 
     def access_controller_item
-      enabled_controllers = AccessController.enabled
-      offline_count = enabled_controllers.where(ping_status: 'failed').count
-      sync_failed_count = enabled_controllers.where(sync_status: 'failed').count
-      backup_failed_count = enabled_controllers.where(backup_status: 'failed').count
-      issue_count = offline_count + sync_failed_count + backup_failed_count
-      return nil if issue_count.zero?
+      return nil if ac_issue_count.zero?
 
       details = []
-      details << "#{offline_count} offline" if offline_count.positive?
-      details << "#{sync_failed_count} sync failed" if sync_failed_count.positive?
-      details << "#{backup_failed_count} backup failed" if backup_failed_count.positive?
+      details << "#{ac_offline_count} offline" if ac_offline_count.positive?
+      details << "#{ac_sync_failed_count} sync failed" if ac_sync_failed_count.positive?
+      details << "#{ac_backup_failed_count} backup failed" if ac_backup_failed_count.positive?
 
       item(
         :ac_issues,
-        "#{issue_count} access controller #{'issue'.pluralize(issue_count)}",
+        "#{ac_issue_count} access controller #{'issue'.pluralize(ac_issue_count)}",
         details.join(', '),
         access_controllers_path
       )
     end
 
     def payment_processors_item
-      unhealthy = PaymentProcessor.enabled.where(sync_status: %w[degraded failing]).order(:name).to_a
-      return nil if unhealthy.empty?
+      return nil if payment_processors_sync_unhealthy.empty?
+
+      details = payment_processors_sync_unhealthy.map do |processor|
+        "#{processor.name} (#{processor.status_label})"
+      end
 
       item(
         :payment_processors,
-        "#{unhealthy.size} payment processor #{'integration'.pluralize(unhealthy.size)} with sync problems",
-        unhealthy.map { |processor| "#{processor.name} (#{processor.status_label})" }.join(', '),
+        "#{payment_processors_sync_unhealthy.size} " \
+        "payment processor #{'integration'.pluralize(payment_processors_sync_unhealthy.size)} with sync problems",
+        details.join(', '),
         payment_processors_path
       )
     end
 
     def authentik_item
-      source = MemberSource.find_by(key: 'authentik')
-      api_urgent = !AuthentikConfig.api_ready? && (AuthentikConfig.enabled_for_login? || source&.enabled?)
-
-      if api_urgent
+      if authentik_api_urgent?
         return item(
           :authentik,
           'Authentik API integration is not configured',
@@ -90,37 +126,107 @@ module AdminDashboard
         )
       end
 
-      return nil unless source&.enabled? && source.sync_status.in?(%w[degraded failing])
+      return nil unless authentik_sync_issue
 
       item(
         :authentik,
-        "Authentik sync is #{source.sync_status_label.downcase}",
-        source.last_error_message.to_s.truncate(200),
-        member_source_path(source)
-      )
-    end
-
-    def ai_ollama_item
-      unhealthy = AiOllamaProfile.ordered.select(&:urgent_health_issue?)
-      return nil if unhealthy.empty?
-
-      item(
-        :ai_ollama,
-        "AI Services: #{unhealthy.size} unhealthy #{'service'.pluralize(unhealthy.size)}",
-        unhealthy.map { |profile| "#{profile.name}: #{profile.last_health_error}" }.join('; ').truncate(300),
-        ai_ollama_profiles_path
+        "Authentik sync is #{authentik_sync_issue.sync_status_label.downcase}",
+        authentik_sync_issue.last_error_message.to_s.truncate(200),
+        member_source_path(authentik_sync_issue)
       )
     end
 
     def printers_item
-      unhealthy = Printer.ordered.select(&:urgent_health_issue?)
-      return nil if unhealthy.empty?
+      return nil if unhealthy_printers.empty?
 
       item(
         :printers,
-        "Printers: #{unhealthy.size} unhealthy #{'printer'.pluralize(unhealthy.size)}",
-        unhealthy.map { |printer| "#{printer.name}: #{printer.last_health_error}" }.join('; ').truncate(300),
+        "Printers: #{unhealthy_printers.size} unhealthy #{'printer'.pluralize(unhealthy_printers.size)}",
+        unhealthy_printers.map { |printer| "#{printer.name}: #{printer.last_health_error}" }.join('; ').truncate(300),
         printers_path
+      )
+    end
+
+    def unread_messages_count
+      @unread_messages_count ||= user ? Message.folder(user, :unread).count : 0
+    end
+
+    def enabled_access_controllers
+      @enabled_access_controllers ||= AccessController.enabled
+    end
+
+    def ac_offline_count
+      @ac_offline_count ||= enabled_access_controllers.where(ping_status: 'failed').count
+    end
+
+    def ac_sync_failed_count
+      @ac_sync_failed_count ||= enabled_access_controllers.where(sync_status: 'failed').count
+    end
+
+    def ac_backup_failed_count
+      @ac_backup_failed_count ||= enabled_access_controllers.where(backup_status: 'failed').count
+    end
+
+    def ac_issue_count
+      ac_offline_count + ac_sync_failed_count + ac_backup_failed_count
+    end
+
+    def payment_processors_sync_unhealthy
+      @payment_processors_sync_unhealthy ||=
+        PaymentProcessor.enabled
+                        .where(sync_status: %w[degraded failing])
+                        .order(:name)
+                        .to_a
+    end
+
+    def authentik_member_source
+      return @authentik_member_source if defined?(@authentik_member_source)
+
+      @authentik_member_source = MemberSource.find_by(key: 'authentik')
+    end
+
+    def authentik_api_urgent?
+      !AuthentikConfig.api_ready? && (AuthentikConfig.enabled_for_login? || authentik_member_source&.enabled?)
+    end
+
+    def authentik_sync_issue
+      return unless authentik_member_source&.enabled? &&
+                    authentik_member_source.sync_status.in?(%w[degraded failing])
+
+      authentik_member_source
+    end
+
+    def ai_ollama_profiles
+      @ai_ollama_profiles ||= AiOllamaProfile.ordered.to_a
+    end
+
+    def ai_ollama_urgent?
+      unhealthy_ai_ollama_profiles.any?
+    end
+
+    def unhealthy_ai_ollama_profiles
+      @unhealthy_ai_ollama_profiles ||= ai_ollama_profiles.select(&:urgent_health_issue?)
+    end
+
+    def printers
+      @printers ||= Printer.ordered.to_a
+    end
+
+    def unhealthy_printers
+      @unhealthy_printers ||= printers.select(&:urgent_health_issue?)
+    end
+
+    def ai_ollama_item
+      return nil if unhealthy_ai_ollama_profiles.empty?
+
+      item(
+        :ai_ollama,
+        "AI Services: #{unhealthy_ai_ollama_profiles.size} " \
+        "unhealthy #{'service'.pluralize(unhealthy_ai_ollama_profiles.size)}",
+        unhealthy_ai_ollama_profiles.map { |profile| "#{profile.name}: #{profile.last_health_error}" }
+                                   .join('; ')
+                                   .truncate(300),
+        ai_ollama_profiles_path
       )
     end
 
