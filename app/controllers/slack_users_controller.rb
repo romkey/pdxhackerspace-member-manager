@@ -14,8 +14,9 @@ class SlackUsersController < AdminController
     @owner_count = all_slack_users.where(is_owner: true).count
     @bot_count = all_slack_users.where(is_bot: true).count
     @human_count = all_slack_users.where(is_bot: false).count
-    @active_count = all_slack_users.where(deleted: false).count
-    @deactivated_count = all_slack_users.where(deleted: true).count
+    @active_count = all_slack_users.active.count
+    @inactive_count = all_slack_users.inactive.count
+    @deactivated_count = all_slack_users.deactivated.count
 
     # Build filtered query using shared method (with eager loading for display)
     @slack_users = build_filtered_query.includes(:user)
@@ -280,8 +281,9 @@ class SlackUsersController < AdminController
     query = query.where(is_bot: false) if params[:is_bot] == 'no'
 
     # Apply status filter
-    query = query.where(deleted: false) if params[:status] == 'active'
-    query = query.where(deleted: true) if params[:status] == 'deactivated'
+    query = query.active if params[:status] == 'active'
+    query = query.inactive if params[:status] == 'inactive'
+    query = query.deactivated if params[:status] == 'deactivated'
 
     # Apply sorting — use Arel nodes to avoid string interpolation (CodeQL SQL injection rule)
     sort_column = SORTABLE_COLUMNS.include?(params[:sort]) ? params[:sort] : 'display_name'

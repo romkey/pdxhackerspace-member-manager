@@ -25,6 +25,25 @@ class SlackUsersControllerTest < ActionDispatch::IntegrationTest
     assert_match 'Unlinked', response.body
   end
 
+  test 'index status filters split active inactive and deactivated accounts' do
+    recent = SlackUser.create!(slack_id: 'URECENTFILTER', display_name: 'Recent Slack', last_active_at: 1.month.ago)
+    inactive = SlackUser.create!(slack_id: 'UINACTIVEFILTER', display_name: 'Dormant Slack', last_active_at: nil)
+    deactivated = SlackUser.create!(slack_id: 'UDEACTIVATEDFILTER', display_name: 'Disabled Slack', deleted: true,
+                                    last_active_at: 1.month.ago)
+
+    get slack_users_path(status: 'active')
+    assert_response :success
+    assert_match recent.display_name, response.body
+    assert_no_match inactive.display_name, response.body
+    assert_no_match deactivated.display_name, response.body
+
+    get slack_users_path(status: 'inactive')
+    assert_response :success
+    assert_match inactive.display_name, response.body
+    assert_no_match recent.display_name, response.body
+    assert_no_match deactivated.display_name, response.body
+  end
+
   # ─── Link User ─────────────────────────────────────────────────────
 
   test 'link_user links slack user to a member' do

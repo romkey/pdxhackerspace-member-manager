@@ -11,7 +11,7 @@ class DashboardController < AdminController
     @legacy_user_count = User.legacy.count
     @last_synced_at = User.maximum(:last_synced_at)
     @sheet_entry_count = SheetEntry.count
-    @active_slack_user_count = SlackUser.active.count
+    @active_slack_user_count = SlackUser.human.active.count
     @slack_user_count = SlackUser.count
     @paypal_payment_count = PaypalPayment.count
     @recharge_payment_count = RechargePayment.count
@@ -152,9 +152,7 @@ class DashboardController < AdminController
                                      .count
 
     # Housekeeping: Slack users inactive for over a year
-    @slack_inactive_count = SlackUser.active
-                                     .where('last_active_at < ? OR last_active_at IS NULL', 1.year.ago)
-                                     .count
+    @slack_inactive_count = SlackUser.human.inactive.count
 
     # Housekeeping: Active members with no email
     @active_no_email_count = User.where(active: true)

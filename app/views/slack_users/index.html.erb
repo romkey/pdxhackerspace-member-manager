@@ -86,10 +86,13 @@
     
     <h2 class="h6 mb-3">Status</h2>
     <div class="d-flex flex-wrap gap-2">
-      <%= link_to slack_users_path(status: 'active'), class: "badge text-bg-success text-decoration-none #{'border border-dark border-2' if params[:status] == 'active'}" do %>
+      <%= link_to slack_users_path(status: 'active'), class: "badge text-bg-success-subtle text-decoration-none #{'border border-dark border-2' if params[:status] == 'active'}" do %>
         Active: <strong><%= @active_count %></strong>
       <% end %>
-      <%= link_to slack_users_path(status: 'deactivated'), class: "badge text-bg-danger text-decoration-none #{'border border-dark border-2' if params[:status] == 'deactivated'}" do %>
+      <%= link_to slack_users_path(status: 'inactive'), class: "badge text-bg-warning-subtle text-decoration-none #{'border border-dark border-2' if params[:status] == 'inactive'}" do %>
+        Inactive: <strong><%= @inactive_count %></strong>
+      <% end %>
+      <%= link_to slack_users_path(status: 'deactivated'), class: "badge text-bg-danger-subtle text-decoration-none #{'border border-dark border-2' if params[:status] == 'deactivated'}" do %>
         Deactivated: <strong><%= @deactivated_count %></strong>
       <% end %>
     </div>
@@ -187,7 +190,7 @@
                 slack_user.is_admin? ? "admin yes" : "admin no",
                 slack_user.is_owner? ? "owner yes" : "owner no",
                 slack_user.is_bot? ? "bot" : "human",
-                slack_user.deleted? ? "disabled deactivated" : "active",
+                slack_user.deleted? ? "disabled deactivated" : (slack_user.inactive? ? "inactive" : "active"),
                 slack_user.dont_link? ? "dont link" : nil
               ].compact.join(' ').downcase %>">
             <td>
@@ -233,8 +236,22 @@
               </span>
             </td>
             <td>
-              <span class="badge text-bg-<%= slack_user.deleted? ? 'danger' : 'success' %>">
-                <%= slack_user.deleted? ? "Deactivated" : "Active" %>
+              <% status_label = if slack_user.deleted?
+                                  "Deactivated"
+                                elsif slack_user.inactive?
+                                  "Inactive"
+                                else
+                                  "Active"
+                                end %>
+              <% status_class = if slack_user.deleted?
+                                  "danger-subtle"
+                                elsif slack_user.inactive?
+                                  "warning-subtle"
+                                else
+                                  "success-subtle"
+                                end %>
+              <span class="badge text-bg-<%= status_class %>">
+                <%= status_label %>
               </span>
             </td>
             <td class="text-end text-nowrap">

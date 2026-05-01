@@ -9,7 +9,15 @@ class SlackUser < ApplicationRecord
               allow_blank: true
             }
 
-  scope :active, -> { where(deleted: false, is_bot: false) }
+  ACTIVE_WINDOW = 1.year
+
+  scope :human, -> { where(is_bot: false) }
+  scope :deactivated, -> { where(deleted: true) }
+  scope :not_deactivated, -> { where(deleted: false) }
+  scope :inactive, lambda {
+    not_deactivated.where('last_active_at < ? OR last_active_at IS NULL', inactive_cutoff)
+  }
+  scope :active, -> { not_deactivated.where(last_active_at: inactive_cutoff..) }
   scope :with_attribute, ->(key, value) { where('raw_attributes ->> ? = ?', key.to_s, value.to_s) }
 
   # When a SlackUser is linked to a User, notify the User to sync data
@@ -18,6 +26,18 @@ class SlackUser < ApplicationRecord
   def display_name
     display_name = self[:display_name].presence || real_name.presence || username.presence
     display_name || slack_id
+  end
+
+  def self.inactive_cutoff
+    ACTIVE_WINDOW.ago
+  end
+
+  def inactive?
+    !deleted? && (last_active_at.blank? || last_active_at < self.class.inactive_cutoff)
+  end
+
+  def active?
+    !deleted? && !inactive?
   end
 
   private
