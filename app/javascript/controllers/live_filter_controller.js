@@ -24,10 +24,20 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["input", "item", "clearButton", "resultsContainer", "noResults"]
-  static values  = { minLength: { type: Number, default: 0 } }
+  static values  = {
+    minLength: { type: Number, default: 0 },
+    server: { type: Boolean, default: false },
+    delay: { type: Number, default: 300 }
+  }
 
   filter() {
     const term = this.inputTarget.value.toLowerCase().trim()
+
+    if (this.serverValue) {
+      this._updateClearButton(term)
+      this._scheduleServerSearch(term)
+      return
+    }
 
     // Pattern B: below minimum length — hide everything
     if (term.length < this.minLengthValue) {
@@ -72,6 +82,13 @@ export default class extends Controller {
 
   clear() {
     this.inputTarget.value = ""
+    if (this.serverValue) {
+      this._updateClearButton("")
+      this._navigateWithSearch("")
+      this.inputTarget.focus()
+      return
+    }
+
     this.filter()
     this.inputTarget.focus()
   }
@@ -79,6 +96,11 @@ export default class extends Controller {
   // Run the filter on connect so a pre-filled search value (e.g. from params)
   // is applied immediately on page load.
   connect() {
+    if (this.serverValue) {
+      this._updateClearButton(this.inputTarget.value.toLowerCase().trim())
+      return
+    }
+
     if (this.inputTarget.value) {
       this.filter()
     }
@@ -87,5 +109,33 @@ export default class extends Controller {
   _updateClearButton(term) {
     if (!this.hasClearButtonTarget) return
     this.clearButtonTarget.classList.toggle("d-none", term === "")
+  }
+
+  _scheduleServerSearch(term) {
+    clearTimeout(this.searchTimeout)
+    this.searchTimeout = setTimeout(() => this._navigateWithSearch(term), this.delayValue)
+  }
+
+  _navigateWithSearch(term) {
+    const url = new URL(window.location.href)
+    const paramName = this.inputTarget.name || "q"
+
+    if (term === "") {
+      url.searchParams.delete(paramName)
+    } else {
+      url.searchParams.set(paramName, term)
+    }
+
+    // A new search should start at the first page of the filtered result set.
+    url.searchParams.delete("page")
+
+    const nextUrl = `${url.pathname}${url.search}${url.hash}`
+    if (nextUrl === `${window.location.pathname}${window.location.search}${window.location.hash}`) return
+
+    if (window.Turbo) {
+      window.Turbo.visit(nextUrl)
+    } else {
+      window.location.assign(nextUrl)
+    }
   }
 }

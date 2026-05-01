@@ -30,6 +30,8 @@ class PaypalPaymentsController < AdminController
       @payments = @payments.where(dont_link: true)
     end
 
+    @payments = @payments.search(params[:q]) if params[:q].present?
+
     @payments = @payments.ordered
     @payment_count = @payments.count
     @total_amount = @payments.sum(:amount)
@@ -37,7 +39,7 @@ class PaypalPaymentsController < AdminController
     @pagy, @payments = pagy(@payments.includes(:user), limit: 100)
 
     # Track filter state
-    @filter_active = params[:linked].present?
+    @filter_active = params[:linked].present? || params[:q].present?
   end
 
   def unmatched_subjects

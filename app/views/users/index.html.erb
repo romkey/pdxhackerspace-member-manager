@@ -30,6 +30,7 @@
     filter_labels << "Membership: #{params[:membership_status].humanize}" if params[:membership_status].present?
     filter_labels << "Payment: #{params[:payment_type].humanize}" if params[:payment_type].present?
     filter_labels << "Dues: #{params[:dues_status].humanize}" if params[:dues_status].present?
+    filter_labels << "Search: #{params[:q]}" if params[:q].present?
     if params[:membership_plan_id].present?
       plan_name = params[:membership_plan_id] == 'none' ? 'No Plan' : MembershipPlan.find_by(id: params[:membership_plan_id])&.name || 'Unknown'
       filter_labels << "Plan: #{plan_name}"
@@ -184,17 +185,24 @@
   </div>
 </div>
 
-<div data-controller="live-filter">
-<div class="card shadow-sm border-0 mb-4">
-  <div class="card-body">
-    <div class="d-flex gap-2">
-      <input type="text" class="form-control form-control-sm" placeholder="Search by name, email, or Authentik ID…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" value="<%= params[:q] %>"
-             data-live-filter-target="input" data-action="input->live-filter#filter">
-      <button type="button" class="btn btn-outline-secondary <%= 'd-none' unless params[:q].present? %>"
-              data-live-filter-target="clearButton" data-action="click->live-filter#clear">Clear</button>
+<%= form_with url: users_path, method: :get, local: true,
+              data: { controller: "live-filter", live_filter_server_value: true } do |form| %>
+  <% request.query_parameters.except('q', 'page').each do |key, value| %>
+    <%= hidden_field_tag key, value %>
+  <% end %>
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <div class="d-flex gap-2">
+        <%= form.text_field :q, value: params[:q], class: "form-control form-control-sm",
+                            placeholder: "Search by name, email, or Authentik ID…",
+                            autocomplete: "off", autocorrect: "off", autocapitalize: "off", spellcheck: "false",
+                            data: { live_filter_target: "input", action: "input->live-filter#filter" } %>
+        <button type="button" class="btn btn-outline-secondary <%= 'd-none' unless params[:q].present? %>"
+                data-live-filter-target="clearButton" data-action="click->live-filter#clear">Clear</button>
+      </div>
     </div>
   </div>
-</div>
+<% end %>
 
 <% if @recent_members.any? && !@filter_active && !@include_legacy %>
   <div class="card shadow-sm border-0 mb-4">
@@ -326,5 +334,4 @@
     </div>
   </div>
 <% end %>
-</div><%# /data-controller="live-filter" %>
 

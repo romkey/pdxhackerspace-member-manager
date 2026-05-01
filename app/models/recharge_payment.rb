@@ -10,6 +10,18 @@ class RechargePayment < ApplicationRecord
 
   scope :ordered, -> { order(processed_at: :desc, created_at: :desc) }
   scope :for_user, ->(user) { where(user_id: user.id) }
+  scope :search, lambda { |term|
+    pattern = "%#{term.to_s.downcase}%"
+    left_joins(:user).where(
+      "LOWER(COALESCE(recharge_payments.recharge_id, '')) LIKE :q " \
+      "OR LOWER(COALESCE(recharge_payments.customer_name, '')) LIKE :q " \
+      "OR LOWER(COALESCE(recharge_payments.customer_email, '')) LIKE :q " \
+      "OR LOWER(COALESCE(recharge_payments.status, '')) LIKE :q " \
+      "OR LOWER(COALESCE(users.full_name, '')) LIKE :q " \
+      "OR LOWER(COALESCE(users.email, '')) LIKE :q",
+      q: pattern
+    )
+  }
 
   # Unmatched payments - no user with matching recharge_customer_id
   scope :unmatched, lambda {

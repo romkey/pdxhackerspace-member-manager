@@ -24,12 +24,14 @@ class RechargePaymentsController < AdminController
       @payments = @payments.where(dont_link: true)
     end
 
+    @payments = @payments.search(params[:q]) if params[:q].present?
+
     @payments = @payments.includes(:user).ordered
     @payment_count = @payments.count
     @total_amount = @payments.sum(:amount)
 
     # Track filter state
-    @filter_active = params[:linked].present?
+    @filter_active = params[:linked].present? || params[:q].present?
 
     @pagy, @payments = pagy(@payments, limit: 100)
   end

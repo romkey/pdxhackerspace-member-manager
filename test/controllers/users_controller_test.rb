@@ -147,6 +147,44 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_select ".alert a[href='#{user_path(@user)}']", text: @user.display_name
   end
 
+  test 'live search is rendered as server search without retaining pagination' do
+    get users_path(page: 2, q: 'pagination target')
+
+    assert_response :success
+    assert_select 'form[action=?][method=get]', users_path do
+      assert_select 'input[name=q][value=?]', 'pagination target'
+      assert_select 'input[name=page]', count: 0
+    end
+  end
+
+  test 'member search paginates the filtered result set' do
+    105.times do |index|
+      User.create!(
+        authentik_id: "pagination-filler-#{index}",
+        full_name: "Pagination Filler #{index.to_s.rjust(3, '0')}",
+        username: "paginationfiller#{index}",
+        email: "pagination-filler-#{index}@example.com",
+        active: true
+      )
+    end
+    target = User.create!(
+      authentik_id: 'pagination-target',
+      full_name: 'Zzz Live Search Pagination Target',
+      username: 'livesearchpaginationtarget',
+      email: 'live-search-pagination-target@example.com',
+      active: true
+    )
+    target.update_columns(created_at: 2.weeks.ago, updated_at: 2.weeks.ago)
+
+    get users_path
+    assert_response :success
+    assert_no_match target.full_name, response.body
+
+    get users_path(q: 'Live Search Pagination Target')
+    assert_response :success
+    assert_match target.full_name, response.body
+  end
+
   private
 
   def sign_in_as_local_admin

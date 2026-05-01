@@ -40,6 +40,7 @@ class UsersController < AuthenticatedController
     if params[:emergency_active_override].present?
       @filter_params[:emergency_active_override] = params[:emergency_active_override]
     end
+    @filter_params[:q] = params[:q] if params[:q].present?
     @filter_params[:sort] = params[:sort] if params[:sort].present?
     @filter_params[:direction] = params[:direction] if params[:direction].present?
 
@@ -140,7 +141,7 @@ class UsersController < AuthenticatedController
     @filter_active = params[:membership_status].present? || params[:payment_type].present? ||
                      params[:dues_status].present? || params[:active].present? ||
                      params[:missing].present? || params[:account_type].present? ||
-                     params[:membership_plan_id].present? ||
+                     params[:membership_plan_id].present? || params[:q].present? ||
                      params[:emergency_active_override].present?
     @filtered_count = @users.count if @filter_active || @include_legacy
 

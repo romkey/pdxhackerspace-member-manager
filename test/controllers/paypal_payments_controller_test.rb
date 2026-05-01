@@ -35,6 +35,53 @@ class PaypalPaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to paypal_payments_path
   end
 
+  test 'live search is rendered as server search without retaining pagination' do
+    get paypal_payments_path(page: 2, q: 'pagination target')
+
+    assert_response :success
+    assert_select 'form[action=?][method=get]', paypal_payments_path do
+      assert_select 'input[name=q][value=?]', 'pagination target'
+      assert_select 'input[name=page]', count: 0
+    end
+  end
+
+  test 'payment search paginates the filtered result set' do
+    105.times do |index|
+      PaypalPayment.create!(
+        paypal_id: "PAY-PAGE-FILLER-#{index}",
+        status: 'COMPLETED',
+        amount: 42.50,
+        currency: 'USD',
+        transaction_time: Time.current - index.minutes,
+        transaction_type: 'T0001',
+        payer_email: "paypal-filler-#{index}@example.com",
+        payer_name: "PayPal Filler #{index}",
+        payer_id: "PAYER-FILLER-#{index}",
+        matches_plan: true
+      )
+    end
+    target = PaypalPayment.create!(
+      paypal_id: 'PAY-LIVE-SEARCH-TARGET',
+      status: 'COMPLETED',
+      amount: 42.50,
+      currency: 'USD',
+      transaction_time: 1.year.ago,
+      transaction_type: 'T0001',
+      payer_email: 'paypal-live-search-target@example.com',
+      payer_name: 'PayPal Live Search Pagination Target',
+      payer_id: 'PAYER-LIVE-SEARCH-TARGET',
+      matches_plan: true
+    )
+
+    get paypal_payments_path
+    assert_response :success
+    assert_no_match target.paypal_id, response.body
+
+    get paypal_payments_path(q: 'Live Search Pagination Target')
+    assert_response :success
+    assert_match target.paypal_id, response.body
+  end
+
   private
 
   def sign_in_as_local_admin
