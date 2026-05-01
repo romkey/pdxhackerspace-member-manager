@@ -86,6 +86,14 @@ Sidekiq.configure_server do |config|
     active_job: true
   )
 
+  # Membership Application Nags - Daily at 9am
+  Sidekiq::Cron::Job.create(
+    name: 'Membership Application Nags - Daily at 9am',
+    cron: '0 9 * * *',
+    class: 'MembershipApplicationNagJob',
+    active_job: true
+  )
+
   # Message Trash Cleanup - Daily at 5am
   Sidekiq::Cron::Job.create(
     name: 'Message Trash Cleanup - Daily at 5am',

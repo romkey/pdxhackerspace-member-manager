@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_01_160000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_01_170000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -528,6 +528,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_01_160000) do
 
   create_table "membership_applications", force: :cascade do |t|
     t.text "admin_notes"
+    t.datetime "application_nag_sent_at"
     t.boolean "ai_feedback_garbage", default: false, null: false
     t.text "ai_feedback_garbage_reason"
     t.text "ai_feedback_last_error"
@@ -546,6 +547,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_01_160000) do
     t.datetime "updated_at", null: false
     t.bigint "user_id"
     t.index ["ai_feedback_processed_at"], name: "index_membership_applications_on_ai_feedback_processed_at"
+    t.index ["application_nag_sent_at"], name: "index_membership_applications_on_application_nag_sent_at"
     t.index ["email"], name: "index_membership_applications_on_email"
     t.index ["reviewed_by_id"], name: "index_membership_applications_on_reviewed_by_id"
     t.index ["status"], name: "index_membership_applications_on_status"

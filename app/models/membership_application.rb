@@ -3,11 +3,13 @@ class MembershipApplication < ApplicationRecord
 
   # Training topic name (TrainingTopic.name) — viewers with this training see applicant PII without masking.
   EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME = 'Executive Director'.freeze
+  ASSOCIATE_EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME = 'Associate Executive Director'.freeze
   ASSISTANT_EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME = 'Assistant Executive Director'.freeze
 
-  # Names must match +TrainingTopic.name+ exactly. Used to notify staff when an application is submitted.
+  # Names must match +TrainingTopic.name+ exactly. Used to notify staff when applications need attention.
   STAFF_APPLICATION_ALERT_TRAINING_TOPIC_NAMES = [
     EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME,
+    ASSOCIATE_EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME,
     ASSISTANT_EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME
   ].freeze
 
@@ -44,6 +46,11 @@ class MembershipApplication < ApplicationRecord
   scope :rejected, -> { where(status: 'rejected') }
   # Applications awaiting a final decision (Open or Under Review).
   scope :pending, -> { where(status: %w[submitted under_review]) }
+  scope :awaiting_admin_nag, lambda { |cutoff = 1.week.ago|
+    pending
+      .where(application_nag_sent_at: nil)
+      .where('COALESCE(membership_applications.submitted_at, membership_applications.created_at) <= ?', cutoff)
+  }
   # Newest by when the application was submitted (or created if not yet submitted); tie-break on id for stable ordering.
   scope :newest_first, lambda {
     reorder(
@@ -100,6 +107,10 @@ class MembershipApplication < ApplicationRecord
 
   def rejected?
     status == 'rejected'
+  end
+
+  def pending?
+    submitted? || under_review?
   end
 
   def submit!

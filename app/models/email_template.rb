@@ -16,6 +16,8 @@ class EmailTemplate < ApplicationRecord
     '{{invitation_type_details}}' => 'Description of what the membership type includes (invitation emails only)',
     '{{application_url}}' => 'Direct link to the membership application ' \
                              '(admin new application & staff alert templates)',
+    '{{application_age_days}}' => 'How many days a membership application has been pending',
+    '{{submitted_at}}' => 'Date the membership application was submitted',
     '{{requester_name}}' => 'Name of the member who requested training',
     '{{requester_email}}' => 'Email address of the member requesting training (if shared)',
     '{{requester_slack}}' => 'Slack handle of the member requesting training (if shared)',
@@ -309,7 +311,7 @@ class EmailTemplate < ApplicationRecord
     },
     'staff_new_application' => {
       name: 'Staff: New Application (immediate)',
-      description: 'Immediate alert to ED / Assistant ED trained staff when an application is submitted',
+      description: 'Immediate alert to executive application review staff when an application is submitted',
       subject: '{{organization_name}}: New application needs review — {{member_name}}',
       body_html: <<~HTML,
         <h1>New membership application</h1>
@@ -343,6 +345,47 @@ class EmailTemplate < ApplicationRecord
         Username: {{member_username}}
 
         Open in Member Manager: {{application_url}}
+      TEXT
+    },
+    'staff_application_nag' => {
+      name: 'Staff: Application Reminder',
+      description: 'Reminder to ED / Associate ED trained staff when an application is pending after one week',
+      subject: '{{organization_name}}: Application overdue for review - {{member_name}}',
+      body_html: <<~HTML,
+        <h1>Membership application needs review</h1>
+        <p>This membership application has been pending for {{application_age_days}} days.</p>
+        <h2>Applicant</h2>
+        <table style="border-collapse: collapse; width: 100%;">
+          <tr>
+            <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Name:</strong></td>
+            <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{member_name}}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Email:</strong></td>
+            <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{member_email}}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Submitted:</strong></td>
+            <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{submitted_at}}</td>
+          </tr>
+        </table>
+        <p style="margin-top: 20px;"><a href="{{application_url}}">Open this application in Member Manager</a></p>
+        <p>Please accept, reject, or move this application along.</p>
+      HTML
+      body_text: <<~TEXT
+        Membership application needs review
+
+        This membership application has been pending for {{application_age_days}} days.
+
+        Applicant
+        ---------
+        Name: {{member_name}}
+        Email: {{member_email}}
+        Submitted: {{submitted_at}}
+
+        Open in Member Manager: {{application_url}}
+
+        Please accept, reject, or move this application along.
       TEXT
     },
     'training_requested' => {
@@ -533,6 +576,8 @@ class EmailTemplate < ApplicationRecord
       invitation_type: 'Sponsored Member',
       invitation_type_details: 'Sponsored membership — full access including building access, no dues required.',
       application_url: "#{ENV.fetch('APP_BASE_URL', 'http://localhost:3000')}/membership_applications/1",
+      application_age_days: '8',
+      submitted_at: 8.days.ago.to_date.to_fs(:long),
       requester_name: 'Alex Example',
       requester_email: 'alex@example.com',
       requester_slack: '@alex',

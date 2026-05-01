@@ -1,0 +1,13 @@
+Membership application needs review
+
+This membership application has been pending for <%= @application_age_days %> days.
+
+Applicant
+---------
+Name: <%= @user.display_name %>
+Email: <%= @user.email %>
+Submitted: <%= @submitted_at.to_date.to_fs(:long) %>
+
+Open in Member Manager: <%= @application_url %>
+
+Please accept, reject, or move this application along.

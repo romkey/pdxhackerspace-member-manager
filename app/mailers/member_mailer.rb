@@ -284,6 +284,31 @@ class MemberMailer < ApplicationMailer
     end
   end
 
+  # Remind ED / Associate ED trained staff about stale pending applications.
+  def staff_application_nag(application, staff_email)
+    applicant = QueuedMail.applicant_recipient_for(application)
+    @user = applicant
+    @organization = organization_name
+    @application_url = membership_application_url(application)
+    @application_age_days = application_age_days(application)
+    @submitted_at = application.submitted_at || application.created_at
+
+    extra_vars = {
+      application_url: @application_url,
+      application_age_days: @application_age_days.to_s,
+      submitted_at: @submitted_at.to_date.to_fs(:long)
+    }
+
+    if send_from_template('staff_application_nag', applicant, extra_vars, to: staff_email)
+      # Email sent from database template
+    else
+      mail(
+        to: staff_email,
+        subject: "#{@organization}: Application overdue for review - #{applicant.display_name}"
+      )
+    end
+  end
+
   def message_received(message)
     @message = message
     @sender = message.sender
@@ -430,6 +455,11 @@ class MemberMailer < ApplicationMailer
   rescue ArgumentError, ActionController::UrlGenerationError
     base = ENV.fetch('APP_BASE_URL', 'http://localhost:3000').chomp('/')
     "#{base}/membership_applications"
+  end
+
+  def application_age_days(application)
+    start_at = application.submitted_at || application.created_at
+    ((Time.current - start_at) / 1.day).floor
   end
 
   def send_parking_notice_mail(template_key, user, opts = {})
