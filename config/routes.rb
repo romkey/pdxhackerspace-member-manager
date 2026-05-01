@@ -423,6 +423,10 @@ Rails.application.routes.draw do
   end
 
   resources :printers, path: 'settings/printers' do
+    collection do
+      post :check_health_now
+    end
+
     member do
       post :test_print
     end

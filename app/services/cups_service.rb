@@ -3,6 +3,8 @@ require 'open3'
 class CupsService
   class PrintError < StandardError; end
 
+  HealthResult = Data.define(:ok, :message)
+
   # Returns an array of hashes with CUPS printer info from lpstat.
   # Each hash: { name: "Printer_Name", description: "...", status: "idle" }
   def self.available_printers
@@ -52,16 +54,25 @@ class CupsService
 
   # Send a test page to the printer.
   def self.test_print(cups_printer_name, cups_printer_server: nil)
-    args = print_command_args(cups_printer_name, cups_printer_server: cups_printer_server)
-    args.push('-o', 'raw', '/usr/share/cups/data/testprint')
+    print_data(
+      test_print_data(cups_printer_name, cups_printer_server),
+      cups_printer_name,
+      cups_printer_server: cups_printer_server,
+      filename: 'member_manager_test_print.txt'
+    )
+  end
 
-    output = run_command(*args)
-    job_id = output[/request id is (\S+)/, 1]
-    raise PrintError, "Test print failed: #{output}" unless job_id
+  def self.printer_health(cups_printer_name, cups_printer_server: nil)
+    output = [
+      run_command(*printer_status_args(cups_printer_name, cups_printer_server: cups_printer_server)),
+      run_command(*printer_accepting_args(cups_printer_name, cups_printer_server: cups_printer_server))
+    ].join("\n")
 
-    job_id
-  rescue Errno::ENOENT => e
-    raise PrintError, "CUPS test page not found: #{e.message}"
+    health_from_lpstat_output(output)
+  rescue Errno::ENOENT
+    HealthResult.new(ok: false, message: 'CUPS lpstat command is not installed')
+  rescue PrintError => e
+    HealthResult.new(ok: false, message: e.message)
   end
 
   def self.print_command_args(cups_printer_name, cups_printer_server: nil)
@@ -71,6 +82,22 @@ class CupsService
     args
   end
   private_class_method :print_command_args
+
+  def self.printer_status_args(cups_printer_name, cups_printer_server: nil)
+    args = ['lpstat']
+    args.push('-h', cups_printer_server) if cups_printer_server.present?
+    args.push('-p', cups_printer_name)
+    args
+  end
+  private_class_method :printer_status_args
+
+  def self.printer_accepting_args(cups_printer_name, cups_printer_server: nil)
+    args = ['lpstat']
+    args.push('-h', cups_printer_server) if cups_printer_server.present?
+    args.push('-a', cups_printer_name)
+    args
+  end
+  private_class_method :printer_accepting_args
 
   def self.run_command(*args)
     stdout, stderr, status = Open3.capture3(*args)
@@ -86,6 +113,25 @@ class CupsService
     "#{cups_printer_server}/#{cups_printer_name}"
   end
   private_class_method :cups_destination
+
+  def self.test_print_data(cups_printer_name, cups_printer_server)
+    <<~TEXT
+      MemberManager test print
+
+      Destination: #{cups_destination(cups_printer_name, cups_printer_server)}
+      Sent at: #{Time.current}
+    TEXT
+  end
+  private_class_method :test_print_data
+
+  def self.health_from_lpstat_output(output)
+    if output.match?(/\b(disabled|rejecting|not accepting)\b/i)
+      HealthResult.new(ok: false, message: output.squish.truncate(500))
+    else
+      HealthResult.new(ok: true, message: 'Printer is reachable and accepting jobs')
+    end
+  end
+  private_class_method :health_from_lpstat_output
 
   def self.parse_lpstat(output)
     printers = []
