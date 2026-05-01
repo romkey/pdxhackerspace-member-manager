@@ -3,6 +3,7 @@ class PrintersController < AdminController
 
   def index
     @printers = Printer.ordered
+    @local_cups_printers_configured = @printers.any? { |printer| printer.cups_printer_server.blank? }
     @cups_printers = CupsService.available_printers
   end
 

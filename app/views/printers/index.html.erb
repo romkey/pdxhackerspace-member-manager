@@ -105,10 +105,10 @@
       </table>
     </div>
   </div>
-<% elsif @printers.any? %>
+<% elsif @local_cups_printers_configured %>
   <div class="alert alert-warning mt-4">
     <i class="bi bi-exclamation-triangle me-1"></i>
-    CUPS is not reachable or no printers are detected. Ensure <code>cups-client</code> is installed and the CUPS server is accessible.
+    Local/default CUPS is not reachable or no local printers are detected. Server-backed printers are checked individually above.
   </div>
 <% end %>
 
