@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_01_172000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_02_143000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -721,6 +721,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_01_172000) do
     t.string "last_health_error"
     t.string "name", null: false
     t.integer "position", default: 0, null: false
+    t.integer "thermal_roll_width_mm"
     t.datetime "updated_at", null: false
     t.index ["cups_printer_server", "cups_printer_name"], name: "index_printers_on_cups_printer_server_and_cups_printer_name", unique: true
     t.index ["health_status"], name: "index_printers_on_health_status"

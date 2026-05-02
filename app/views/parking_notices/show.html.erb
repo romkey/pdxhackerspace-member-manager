@@ -56,6 +56,13 @@
   </div>
 </div>
 
+<% if @printers.any? %>
+  <p class="text-12 text-secondary mb-3">
+    Parking print jobs use each printer's receipt paper setting
+    (<%= link_to 'Printers', printers_path %>). Choose the thermal roll width there so receipts fill the roll instead of shrinking.
+  </p>
+<% end %>
+
 <div class="card shadow-sm border-<%= @parking_notice.badge_color %> mb-4">
   <div class="card-body">
     <div class="row">

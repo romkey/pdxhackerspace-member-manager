@@ -88,12 +88,27 @@ class ParkingNoticesController < AdminController
     printer = Printer.find(params[:printer_id])
     cookies[:last_printer_id] = { value: printer.id.to_s, expires: 1.year.from_now }
 
-    pdf = ParkingNoticeReceiptPdf.new(@parking_notice)
+    force_letter = params[:layout].to_s.in?(%w[letter full_page])
+
+    pdf, cups_options = if !force_letter && printer.thermal_receipt_printer?
+                            [
+                              ParkingNoticeReceiptPdf.new(
+                                @parking_notice,
+                                layout: :thermal,
+                                thermal_width_mm: printer.thermal_roll_width_mm
+                              ),
+                              CupsService::THERMAL_PDF_OPTIONS
+                            ]
+                          else
+                            [ParkingNoticeReceiptPdf.new(@parking_notice, layout: :full_page), {}]
+                          end
+
     job_id = CupsService.print_data(
       pdf.render,
       printer.cups_printer_name,
       cups_printer_server: printer.cups_printer_server,
-      filename: "parking_notice_#{@parking_notice.id}.pdf"
+      filename: "parking_notice_#{@parking_notice.id}.pdf",
+      options: cups_options
     )
 
     redirect_to parking_notice_path(@parking_notice),

@@ -5,6 +5,11 @@ class CupsService
 
   HealthResult = Data.define(:ok, :message)
 
+  # Passed for narrow thermal PDFs so CUPS does not shrink the job to fit a wider default page.
+  THERMAL_PDF_OPTIONS = {
+    'print-scaling' => 'none'
+  }.freeze
+
   # Returns an array of hashes with CUPS printer info from lpstat.
   # Each hash: { name: "Printer_Name", description: "...", status: "idle" }
   def self.available_printers
