@@ -226,12 +226,12 @@
             <% @recent_members.each do |user| %>
               <tr>
                 <td>
-                  <%= link_to user_path(user, @list_params) do %>
+                  <%= link_to user_path(user, @list_params), data: { turbo_frame: "_top" } do %>
                     <%= render 'shared/user_avatar', user: user %>
                   <% end %>
                 </td>
-                <td class="small text-monospace text-secondary fw-semibold"><%= link_to user.username, user_path(user, @list_params), class: "text-decoration-none text-secondary" %></td>
-                <td class="fw-semibold"><%= link_to user.display_name, user_path(user, @list_params), class: "text-decoration-none" %></td>
+                <td class="small text-monospace text-secondary fw-semibold"><%= link_to user.username, user_path(user, @list_params), class: "text-decoration-none text-secondary", data: { turbo_frame: "_top" } %></td>
+                <td class="fw-semibold"><%= link_to user.display_name, user_path(user, @list_params), class: "text-decoration-none", data: { turbo_frame: "_top" } %></td>
                 <td>
                   <% if user.email.present? %>
                     <%= mail_to user.email %>
@@ -271,13 +271,13 @@
               data-live-filter-target="item"
               data-search-text="<%= [user.username, user.display_name, user.email, user.authentik_id].compact.join(' ').downcase %>">
             <td>
-              <%= link_to user_path(user, @list_params) do %>
+              <%= link_to user_path(user, @list_params), data: { turbo_frame: "_top" } do %>
                 <%= render 'shared/user_avatar', user: user %>
               <% end %>
             </td>
-            <td class="small text-monospace text-secondary fw-semibold"><%= link_to user.username, user_path(user, @list_params), class: "text-decoration-none text-secondary" %></td>
+            <td class="small text-monospace text-secondary fw-semibold"><%= link_to user.username, user_path(user, @list_params), class: "text-decoration-none text-secondary", data: { turbo_frame: "_top" } %></td>
             <td class="fw-semibold">
-              <%= link_to user.display_name, user_path(user, @list_params), class: "text-decoration-none" %>
+              <%= link_to user.display_name, user_path(user, @list_params), class: "text-decoration-none", data: { turbo_frame: "_top" } %>
               <% if user.is_sponsored? %>
                 <span class="badge text-bg-info-subtle ms-1"><i class="bi bi-heart-fill me-1"></i>Sponsored</span>
               <% end %>

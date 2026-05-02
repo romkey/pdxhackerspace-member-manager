@@ -18,6 +18,21 @@ class UsersIndexFiltersTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test 'profile links in turbo results navigate the full page' do
+    get users_path
+    assert_response :success
+
+    assert_select 'turbo-frame#users_results a[href=?][data-turbo-frame=?]', user_path(users(:one)), '_top'
+  end
+
+  test 'searched profile links in turbo results navigate the full page' do
+    get users_path(q: users(:one).display_name)
+    assert_response :success
+
+    profile_path = user_path(users(:one), q: users(:one).display_name)
+    assert_select 'turbo-frame#users_results a[href=?][data-turbo-frame=?]', profile_path, '_top'
+  end
+
   # ─── Payment Plan filtering ────────────────────────────────────────
 
   test 'index shows payment plan badges' do
