@@ -1,8 +1,8 @@
-# Manages resource links for training topics. Accessible to admins
-# and trainers who have capability for the associated topic.
+# Manages resource links for training topics. Topic setup is admin-only;
+# trainers use the Train a Member workflow without editing topic resources.
 class TrainingTopicLinksController < AuthenticatedController
+  before_action :require_admin!
   before_action :set_training_topic
-  before_action :require_trainer_or_admin_for_topic!
   before_action :set_link, only: %i[update destroy]
 
   def create
@@ -34,13 +34,6 @@ class TrainingTopicLinksController < AuthenticatedController
 
   def set_training_topic
     @training_topic = TrainingTopic.find(params[:training_topic_id])
-  end
-
-  def require_trainer_or_admin_for_topic!
-    return if current_user_admin?
-    return if current_user.training_topics.include?(@training_topic)
-
-    redirect_to root_path, alert: "You don't have permission to manage links for this training topic."
   end
 
   def set_link

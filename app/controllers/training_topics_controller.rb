@@ -1,9 +1,8 @@
-# Manages training topics. Admins have full access; trainers can manage
-# topics they are authorized to train (edit links, documents, train members).
+# Manages training topics. Admins have full access; trainers use the
+# Train a Member workflow without editing topic setup.
 class TrainingTopicsController < AuthenticatedController
-  before_action :require_admin!, only: %i[index create destroy revoke_trainer_capability]
+  before_action :require_admin!, only: %i[index create edit update destroy revoke_training revoke_trainer_capability]
   before_action :set_training_topic, only: %i[edit update revoke_training revoke_trainer_capability]
-  before_action :require_trainer_or_admin_for_topic!, only: %i[edit update revoke_training]
 
   def index
     @training_topics = TrainingTopic.order(:name)
@@ -89,13 +88,6 @@ class TrainingTopicsController < AuthenticatedController
     @trainer_users = @training_topic.trainers.order(:full_name, :email)
     @users_for_search = User.ordered_by_display_name
     @topic_documents = @training_topic.documents.ordered
-  end
-
-  def require_trainer_or_admin_for_topic!
-    return if current_user_admin?
-    return if current_user.training_topics.include?(@training_topic)
-
-    redirect_to root_path, alert: "You don't have permission to manage this training topic."
   end
 
   def training_topic_params

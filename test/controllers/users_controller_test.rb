@@ -166,6 +166,29 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_select 'a[href=?]', profile_setup_path, text: /Update your profile/
   end
 
+  test 'member dashboard shows train a member action for trainers' do
+    delete logout_path
+    trainer = sign_in_as_trainer
+    TrainerCapability.create!(user: trainer, training_topic: training_topics(:laser_cutting))
+
+    get user_path(trainer, tab: :dashboard)
+
+    assert_response :success
+    assert_select 'a[href=?]', train_member_path, text: /Train a member/
+  end
+
+  test 'member dashboard hides train a member action for non-trainers' do
+    member = users(:member_with_local_account)
+
+    delete logout_path
+    sign_in_as_regular_member
+
+    get user_path(member, tab: :dashboard)
+
+    assert_response :success
+    assert_select 'a[href=?]', train_member_path, count: 0
+  end
+
   test 'self profile hides inline edit actions and sessions field' do
     member = users(:member_with_local_account)
 
@@ -347,5 +370,16 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
         password: 'memberpassword123'
       }
     }
+  end
+
+  def sign_in_as_trainer
+    account = local_accounts(:trainer_account)
+    post local_login_path, params: {
+      session: {
+        email: account.email,
+        password: 'trainerpassword123'
+      }
+    }
+    User.find_by!(authentik_id: "local:#{account.id}")
   end
 end

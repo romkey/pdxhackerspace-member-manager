@@ -122,16 +122,16 @@ class TrainingTopicsControllerTest < ActionDispatch::IntegrationTest
 
   # ─── Trainer access ───────────────────────────────────────────────────
 
-  test 'trainer can access edit for their topic' do
+  test 'trainer cannot access edit for their topic' do
     sign_in_as_trainer
     get edit_training_topic_path(@laser_topic)
-    assert_response :success
+    assert_response :redirect
   end
 
   test 'trainer cannot access edit for a topic they do not train' do
     sign_in_as_trainer
     get edit_training_topic_path(@woodworking_topic)
-    assert_redirected_to root_path
+    assert_response :redirect
   end
 
   test 'trainer cannot access training topics index' do
@@ -160,6 +160,7 @@ class TrainingTopicsControllerTest < ActionDispatch::IntegrationTest
       training_topic: { name: 'Hacked Name' }
     }
     @laser_topic.reload
+    assert_response :redirect
     assert_equal original_name, @laser_topic.name
   end
 
@@ -182,15 +183,15 @@ class TrainingTopicsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
   end
 
-  test 'trainer can revoke training for their topic' do
+  test 'trainer cannot revoke training through training topic edit workflow' do
     trainer_user = sign_in_as_trainer
     trainee = users(:one)
     Training.create!(trainee: trainee, trainer: trainer_user, training_topic: @laser_topic, trained_at: Time.current)
 
-    assert_difference 'Training.count', -1 do
+    assert_no_difference 'Training.count' do
       delete revoke_training_training_topic_path(@laser_topic, user_id: trainee.id)
     end
-    assert_redirected_to edit_training_topic_path(@laser_topic)
+    assert_response :redirect
   end
 
   test 'trainer cannot revoke training for a topic they do not train' do
@@ -201,58 +202,7 @@ class TrainingTopicsControllerTest < ActionDispatch::IntegrationTest
     assert_no_difference 'Training.count' do
       delete revoke_training_training_topic_path(@woodworking_topic, user_id: trainee.id)
     end
-    assert_redirected_to root_path
-  end
-
-  test 'trainer edit page does not show topic rename form' do
-    sign_in_as_trainer
-    get edit_training_topic_path(@laser_topic)
-    assert_response :success
-    assert_no_match 'Topic Name', response.body
-    assert_no_match 'Update Topic', response.body
-  end
-
-  test 'trainer edit page does not show trainers list' do
-    sign_in_as_trainer
-    get edit_training_topic_path(@laser_topic)
-    assert_response :success
-    assert_no_match 'Users Who Can Train This Topic', response.body
-  end
-
-  test 'trainer edit page does not show delete button' do
-    sign_in_as_trainer
-    get edit_training_topic_path(@laser_topic)
-    assert_response :success
-    assert_no_match 'Danger Zone', response.body
-    assert_no_match 'Delete Topic', response.body
-  end
-
-  test 'trainer edit page shows links section' do
-    sign_in_as_trainer
-    get edit_training_topic_path(@laser_topic)
-    assert_response :success
-    assert_match 'Links', response.body
-  end
-
-  test 'trainer edit page shows documents section' do
-    sign_in_as_trainer
-    get edit_training_topic_path(@laser_topic)
-    assert_response :success
-    assert_match 'Documents', response.body
-  end
-
-  test 'trainer edit page shows trained users section' do
-    sign_in_as_trainer
-    get edit_training_topic_path(@laser_topic)
-    assert_response :success
-    assert_match 'Users Trained in This Topic', response.body
-  end
-
-  test 'trainer edit page shows train a member section' do
-    sign_in_as_trainer
-    get edit_training_topic_path(@laser_topic)
-    assert_response :success
-    assert_match 'Train a Member', response.body
+    assert_response :redirect
   end
 
   # ─── Regular member access ────────────────────────────────────────────

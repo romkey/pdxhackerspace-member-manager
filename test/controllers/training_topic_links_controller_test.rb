@@ -85,14 +85,14 @@ class TrainingTopicLinksControllerTest < ActionDispatch::IntegrationTest
 
   # ─── Trainer access ───────────────────────────────────────────────────
 
-  test 'trainer can create a link for their topic' do
+  test 'trainer cannot create a link for their topic' do
     sign_in_as_trainer
-    assert_difference 'TrainingTopicLink.count', 1 do
+    assert_no_difference 'TrainingTopicLink.count' do
       post training_topic_links_path(@laser_topic), params: {
         training_topic_link: { title: 'Trainer Link', url: 'https://example.com/trainer' }
       }
     end
-    assert_redirected_to edit_training_topic_path(@laser_topic)
+    assert_response :redirect
   end
 
   test 'trainer cannot create a link for a topic they do not train' do
@@ -102,17 +102,18 @@ class TrainingTopicLinksControllerTest < ActionDispatch::IntegrationTest
         training_topic_link: { title: 'Unauthorized', url: 'https://example.com/nope' }
       }
     end
-    assert_redirected_to root_path
+    assert_response :redirect
   end
 
-  test 'trainer can update a link for their topic' do
+  test 'trainer cannot update a link for their topic' do
     sign_in_as_trainer
+    original_title = @laser_link.title
     patch training_topic_link_path(@laser_topic, @laser_link), params: {
       training_topic_link: { title: 'Trainer Updated Title' }
     }
-    assert_redirected_to edit_training_topic_path(@laser_topic)
+    assert_response :redirect
     @laser_link.reload
-    assert_equal 'Trainer Updated Title', @laser_link.title
+    assert_equal original_title, @laser_link.title
   end
 
   test 'trainer cannot update a link for a topic they do not train' do
@@ -121,17 +122,17 @@ class TrainingTopicLinksControllerTest < ActionDispatch::IntegrationTest
     patch training_topic_link_path(@woodworking_topic, @woodworking_link), params: {
       training_topic_link: { title: 'Hacked Title' }
     }
-    assert_redirected_to root_path
+    assert_response :redirect
     @woodworking_link.reload
     assert_equal original_title, @woodworking_link.title
   end
 
-  test 'trainer can delete a link for their topic' do
+  test 'trainer cannot delete a link for their topic' do
     sign_in_as_trainer
-    assert_difference 'TrainingTopicLink.count', -1 do
+    assert_no_difference 'TrainingTopicLink.count' do
       delete training_topic_link_path(@laser_topic, @laser_link)
     end
-    assert_redirected_to edit_training_topic_path(@laser_topic)
+    assert_response :redirect
   end
 
   test 'trainer cannot delete a link for a topic they do not train' do
@@ -139,7 +140,7 @@ class TrainingTopicLinksControllerTest < ActionDispatch::IntegrationTest
     assert_no_difference 'TrainingTopicLink.count' do
       delete training_topic_link_path(@woodworking_topic, @woodworking_link)
     end
-    assert_redirected_to root_path
+    assert_response :redirect
   end
 
   # ─── Regular member access ────────────────────────────────────────────

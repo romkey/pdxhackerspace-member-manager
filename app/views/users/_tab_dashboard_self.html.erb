@@ -4,6 +4,7 @@
 <% unread_messages_count = @unread_messages_count.to_i %>
 <% messages_count = Message.visible_to(user).count %>
 <% messages_path_for_action = unread_messages_count.positive? ? messages_path(folder: :unread) : messages_path(folder: :all) %>
+<% can_train_members = user.training_topics.exists? %>
 
 <div class="row g-3">
   <div class="col-lg-8">
@@ -51,6 +52,14 @@
             </div>
           <% end %>
         </div>
+        <% if can_train_members %>
+          <div class="col-md-6">
+            <%= link_to train_member_path, class: "action-card" do %>
+              <div class="action-card-title"><i class="bi bi-person-check me-1"></i>Train a member</div>
+              <div class="action-card-desc">Mark members trained in topics you can teach</div>
+            <% end %>
+          </div>
+        <% end %>
         <div class="col-md-6">
           <%= link_to new_member_parking_permit_path, class: "action-card" do %>
             <div class="action-card-title"><i class="bi bi-p-circle me-1"></i>Project parking permit</div>
