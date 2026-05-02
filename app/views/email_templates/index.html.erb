@@ -25,11 +25,28 @@
 
 <!-- Filters -->
 <div class="d-flex flex-wrap gap-2 mb-3">
-  <%= link_to "All", email_templates_path, class: "filter-chip text-decoration-none #{@filter.blank? ? 'active' : ''}" %>
-  <%= link_to "Needs review", email_templates_path(filter: 'needs_review'), class: "filter-chip warning text-decoration-none #{@filter == 'needs_review' ? 'active' : ''}" %>
-  <%= link_to "Reviewed", email_templates_path(filter: 'reviewed'), class: "filter-chip text-decoration-none #{@filter == 'reviewed' ? 'active' : ''}" %>
-  <%= link_to "Enabled", email_templates_path(filter: 'enabled'), class: "filter-chip text-decoration-none #{@filter == 'enabled' ? 'active' : ''}" %>
-  <%= link_to "Disabled", email_templates_path(filter: 'disabled'), class: "filter-chip text-decoration-none #{@filter == 'disabled' ? 'active' : ''}" %>
+  <% filter_chips = [
+       { label: "All", filter: nil, count: @filter_counts[:all] },
+       { label: "Needs review", filter: "needs_review", count: @filter_counts[:needs_review], variant: "warning" },
+       { label: "Reviewed", filter: "reviewed", count: @filter_counts[:reviewed] },
+       { label: "Enabled", filter: "enabled", count: @filter_counts[:enabled] },
+       { label: "Disabled", filter: "disabled", count: @filter_counts[:disabled] },
+       { label: "Send immediately", filter: "send_immediately", count: @filter_counts[:send_immediately], variant: "warning" },
+       { label: "Immediate send blocked", filter: "immediate_send_blocked", count: @filter_counts[:immediate_send_blocked] }
+     ] %>
+  <% filter_chips.each do |chip| %>
+    <% active = chip[:filter].nil? ? @filter.blank? : @filter == chip[:filter] %>
+    <% classes = ["filter-chip", "text-decoration-none", chip[:variant], ("active" if active), ("muted" if chip[:count].zero?)].compact.join(" ") %>
+    <% if chip[:count].zero? %>
+      <span class="<%= classes %>" aria-disabled="true">
+        <%= chip[:label] %> <span class="count"><%= chip[:count] %></span>
+      </span>
+    <% else %>
+      <%= link_to email_templates_path(filter: chip[:filter]), class: classes do %>
+        <%= chip[:label] %> <span class="count"><%= chip[:count] %></span>
+      <% end %>
+    <% end %>
+  <% end %>
 </div>
 
 <% if @email_templates.any? %>
