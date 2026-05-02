@@ -6,6 +6,9 @@ class Printer < ApplicationRecord
   validates :name, presence: true, uniqueness: true
   validates :cups_printer_name, presence: true, uniqueness: { scope: :cups_printer_server }
   validates :health_status, inclusion: { in: HEALTH_STATUSES }
+  validates :thermal_roll_width_mm,
+            allow_nil: true,
+            numericality: { only_integer: true, greater_than_or_equal_to: 48, less_than_or_equal_to: 112 }
 
   scope :ordered, -> { order(:position, :name) }
   scope :default_printer, -> { where(default_printer: true) }
@@ -53,6 +56,14 @@ class Printer < ApplicationRecord
     when 'unhealthy' then 'Unhealthy'
     else 'Unknown'
     end
+  end
+
+  def thermal_receipt_printer?
+    thermal_roll_width_mm.present?
+  end
+
+  def receipt_paper_summary
+    thermal_receipt_printer? ? "#{thermal_roll_width_mm} mm thermal" : 'Letter / A4'
   end
 
   def health_status_badge_class

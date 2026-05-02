@@ -1,28 +1,45 @@
 require 'prawn'
 require 'rqrcode'
 
-# Generates a receipt-sized PDF for 80mm thermal printers.
-# 80mm ≈ 226.77pt. Printable area ~200pt with small margins.
-# Variable length — Prawn will extend the page as needed.
+# Parking notice PDF for CUPS printing.
+#
+# Layouts:
+# - +:full_page+ — US Letter with large type for office printers.
+# - +:thermal+ — Roll receipt; page width is derived from +thermal_width_mm+ (e.g. 88).
+#   PDF width must match the physical roll so CUPS does not shrink the job to a wider virtual page.
 class ParkingNoticeReceiptPdf
-  PAPER_WIDTH_PT  = 226.77 # 80mm
-  MARGIN          = 10
-  CONTENT_WIDTH   = PAPER_WIDTH_PT - (MARGIN * 2)
-  QR_SIZE         = 100
+  THERMAL_MARGIN         = 10
+  THERMAL_INITIAL_HEIGHT = 2000
 
-  # Generous initial height — Prawn auto-expands if content overflows a single page,
-  # but for receipts we want one continuous page. We start tall and trim later.
-  INITIAL_HEIGHT  = 2000
+  FULL_PAGE_SIZE   = 'LETTER'.freeze
+  FULL_PAGE_MARGIN = 48
+  FULL_PAGE_QR     = 220
 
-  def initialize(parking_notice, base_url: nil)
-    @notice   = parking_notice
+  VALID_LAYOUTS = %i[full_page thermal].freeze
+
+  def self.mm_to_pt(width_mm)
+    width_mm.to_f * 72.0 / 25.4
+  end
+
+  # parking_notice:: ParkingNotice
+  # layout:: :full_page | :thermal
+  # thermal_width_mm:: required when layout is :thermal (e.g. 80, 88)
+  def initialize(parking_notice, base_url: nil, layout: :full_page, thermal_width_mm: nil)
+    @notice = parking_notice
     @base_url = base_url || ENV.fetch('APP_BASE_URL', 'http://localhost:3000')
-    @document = Prawn::Document.new(
-      page_size: [PAPER_WIDTH_PT, INITIAL_HEIGHT],
-      margin: [MARGIN, MARGIN, MARGIN, MARGIN]
-    )
+    @layout = layout.to_sym
+    raise ArgumentError, "layout must be one of #{VALID_LAYOUTS.join(', ')}" unless VALID_LAYOUTS.include?(@layout)
+
+    if thermal?
+      raise ArgumentError, 'thermal_width_mm is required for thermal layout' if thermal_width_mm.blank?
+
+      @thermal_width_mm = thermal_width_mm.to_i
+      @thermal_width_pt = self.class.mm_to_pt(@thermal_width_mm)
+    end
+
+    @document = Prawn::Document.new(document_options)
     generate
-    trim_page
+    trim_thermal_page if thermal?
   end
 
   attr_reader :document
@@ -30,6 +47,62 @@ class ParkingNoticeReceiptPdf
   delegate :render, to: :document
 
   private
+
+  def thermal?
+    @layout == :thermal
+  end
+
+  def thermal_content_width_pt
+    @thermal_width_pt - (THERMAL_MARGIN * 2)
+  end
+
+  def document_options
+    if thermal?
+      {
+        page_size: [@thermal_width_pt, THERMAL_INITIAL_HEIGHT],
+        margin: [THERMAL_MARGIN, THERMAL_MARGIN, THERMAL_MARGIN, THERMAL_MARGIN]
+      }
+    else
+      {
+        page_size: FULL_PAGE_SIZE,
+        margin: [FULL_PAGE_MARGIN, FULL_PAGE_MARGIN, FULL_PAGE_MARGIN, FULL_PAGE_MARGIN]
+      }
+    end
+  end
+
+  def qr_pixel_size
+    if thermal?
+      (thermal_content_width_pt * 0.48).round.clamp(72, 140)
+    else
+      FULL_PAGE_QR
+    end
+  end
+
+  def photo_fit_height
+    thermal? ? 300 : 480
+  end
+
+  def thermal_font_scale
+    (@thermal_width_mm.to_f / 80.0).clamp(0.9, 1.35)
+  end
+
+  def theme
+    @theme ||= if thermal?
+                 s = thermal_font_scale
+                 {
+                   org: (8 * s).round, title: (18 * s).round, subhead: (10 * s).round,
+                   section: (8 * s).round, body: (9 * s).round,
+                   footer: (7 * s).round, field: (8 * s).round, qr_caption: (7 * s).round,
+                   header_gap: 4, block_gap: 2, sep_pad: 4
+                 }
+               else
+                 {
+                   org: 16, title: 48, subhead: 24, section: 14, body: 17,
+                   footer: 12, field: 17, qr_caption: 14,
+                   header_gap: 14, block_gap: 6, sep_pad: 12
+                 }
+               end
+  end
 
   def generate
     header_block
@@ -47,23 +120,24 @@ class ParkingNoticeReceiptPdf
   end
 
   def header_block
+    t = theme
     org = ENV.fetch('ORGANIZATION_NAME', 'Member Manager')
 
-    document.font_size(8) { document.text org, align: :center, color: '000000' }
-    document.move_down 4
+    document.font_size(t[:org]) { document.text org, align: :center, color: '000000' }
+    document.move_down t[:header_gap]
 
     title = @notice.permit? ? 'PARKING PERMIT' : 'PARKING TICKET'
-    document.font_size(18) { document.text title, align: :center, style: :bold }
-    document.move_down 2
+    document.font_size(t[:title]) { document.text title, align: :center, style: :bold }
+    document.move_down t[:block_gap]
 
-    document.font_size(10) do
+    document.font_size(t[:subhead]) do
       document.text "##{@notice.id}", align: :center, color: '444444'
     end
-    document.move_down 2
+    document.move_down t[:block_gap]
 
     badge = @notice.active? ? '[ACTIVE]' : "[#{@notice.status.upcase}]"
-    document.font_size(10) { document.text badge, align: :center, style: :bold }
-    document.move_down 4
+    document.font_size(t[:subhead]) { document.text badge, align: :center, style: :bold }
+    document.move_down thermal? ? 4 : 16
   end
 
   def metadata_block
@@ -80,32 +154,35 @@ class ParkingNoticeReceiptPdf
   end
 
   def description_block
-    document.move_down 2
-    document.font_size(8) { document.text 'DESCRIPTION', style: :bold, color: '444444' }
-    document.move_down 2
-    document.font_size(9) { document.text @notice.description, leading: 2 }
-    document.move_down 4
+    t = theme
+    document.move_down t[:block_gap]
+    document.font_size(t[:section]) { document.text 'DESCRIPTION', style: :bold, color: '444444' }
+    document.move_down t[:block_gap]
+    document.font_size(t[:body]) { document.text @notice.description, leading: thermal? ? 2 : 5 }
+    document.move_down thermal? ? 4 : 12
   end
 
   def location_block
     return unless @notice.location.present? || @notice.location_detail.present?
 
-    document.move_down 2
-    document.font_size(8) { document.text 'LOCATION', style: :bold, color: '444444' }
-    document.move_down 2
-    document.font_size(9) { document.text @notice.location_display, leading: 2 }
-    document.move_down 4
+    t = theme
+    document.move_down t[:block_gap]
+    document.font_size(t[:section]) { document.text 'LOCATION', style: :bold, color: '444444' }
+    document.move_down t[:block_gap]
+    document.font_size(t[:body]) { document.text @notice.location_display, leading: thermal? ? 2 : 5 }
+    document.move_down thermal? ? 4 : 12
   end
 
   def photos_block
-    document.move_down 2
-    document.font_size(8) { document.text 'PHOTOS', style: :bold, color: '444444' }
-    document.move_down 4
+    t = theme
+    document.move_down t[:block_gap]
+    document.font_size(t[:section]) { document.text 'PHOTOS', style: :bold, color: '444444' }
+    document.move_down thermal? ? 4 : 12
 
     photos = @notice.photos.select { |p| p.content_type.start_with?('image/') }
     photos.each do |photo|
       embed_photo(photo)
-      document.move_down 6
+      document.move_down thermal? ? 6 : 16
     end
   end
 
@@ -116,49 +193,55 @@ class ParkingNoticeReceiptPdf
     tmpfile.write(photo_data)
     tmpfile.rewind
 
-    document.image tmpfile.path, fit: [CONTENT_WIDTH, 300], position: :center
+    w = document.bounds.width
+    document.image tmpfile.path, fit: [w, photo_fit_height], position: :center
 
     tmpfile.close
     tmpfile.unlink
   rescue StandardError => e
     Rails.logger.error("ParkingNoticeReceiptPdf: Failed to embed photo #{photo.filename}: #{e.message}")
-    document.font_size(8) { document.text "(Photo: #{photo.filename})", color: '888888', align: :center }
+    document.font_size(theme[:section]) do
+      document.text "(Photo: #{photo.filename})", color: '888888', align: :center
+    end
   end
 
   def qr_block
     url = "#{@base_url}/parking_notices/#{@notice.id}"
+    size = qr_pixel_size
+    t = theme
 
-    document.move_down 2
-    x_offset = (CONTENT_WIDTH - QR_SIZE) / 2.0
-    draw_qr_code(url, x_offset, document.cursor, QR_SIZE)
-    document.move_down QR_SIZE + 4
+    document.move_down t[:block_gap]
+    x_offset = (document.bounds.width - size) / 2.0
+    draw_qr_code(url, x_offset, document.cursor, size)
+    document.move_down size + (thermal? ? 4 : 12)
 
-    document.font_size(7) do
+    document.font_size(t[:qr_caption]) do
       document.text 'Scan to view details', align: :center, color: '444444'
     end
-    document.move_down 4
+    document.move_down thermal? ? 4 : 12
   end
 
   def footer_block
-    document.font_size(7) do
+    document.font_size(theme[:footer]) do
       document.text "Printed #{Time.current.strftime('%b %d, %Y %l:%M %p')}", align: :center, color: '888888'
     end
-    document.move_down 6
+    document.move_down thermal? ? 6 : 14
   end
 
   def separator
-    document.move_down 4
+    pad = theme[:sep_pad]
+    document.move_down pad
     document.dash(2, space: 2)
     document.stroke_horizontal_rule
     document.undash
-    document.move_down 4
+    document.move_down pad
   end
 
   def field(label, value)
-    document.font_size(8) do
+    document.font_size(theme[:field]) do
       document.text "<b>#{label}:</b> #{value}", inline_format: true
     end
-    document.move_down 2
+    document.move_down thermal? ? 2 : 6
   end
 
   def draw_qr_code(url, x_pos, y_pos, size)
@@ -185,10 +268,10 @@ class ParkingNoticeReceiptPdf
     Rails.logger.error("ParkingNoticeReceiptPdf: QR code failed for #{url}: #{e.message}")
   end
 
-  # Shrink the page height to match actual content so the receipt isn't 2000pt tall.
-  def trim_page
-    used_height = INITIAL_HEIGHT - document.cursor + MARGIN
-    document.page.dictionary.data[:MediaBox] = [0, 0, PAPER_WIDTH_PT, used_height]
-    document.page.dictionary.data[:CropBox]  = [0, 0, PAPER_WIDTH_PT, used_height]
+  def trim_thermal_page
+    used_height = THERMAL_INITIAL_HEIGHT - document.cursor + THERMAL_MARGIN
+    w = @thermal_width_pt
+    document.page.dictionary.data[:MediaBox] = [0, 0, w, used_height]
+    document.page.dictionary.data[:CropBox]  = [0, 0, w, used_height]
   end
 end

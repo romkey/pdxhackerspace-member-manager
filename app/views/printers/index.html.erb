@@ -15,6 +15,7 @@
             <th>Name</th>
             <th>Server</th>
             <th>CUPS Printer</th>
+            <th>Receipts</th>
             <th>Health</th>
             <th>Description</th>
             <th>Default</th>
@@ -33,6 +34,7 @@
                 <% end %>
               </td>
               <td><code><%= printer.cups_printer_name %></code></td>
+              <td class="text-muted text-nowrap"><%= printer.receipt_paper_summary %></td>
               <td>
                 <% if printer.urgent_health_issue? %>
                   <span class="badge text-bg-danger-subtle"><%= printer.health_status_label %></span>

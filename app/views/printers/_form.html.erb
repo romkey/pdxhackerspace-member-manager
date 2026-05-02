@@ -45,6 +45,24 @@
         <%= f.text_field :description, class: "form-control",
             placeholder: "Optional description of this printer" %>
       </div>
+
+      <div class="mb-3">
+        <%= f.label :thermal_roll_width_mm, 'Parking receipt paper', class: "form-label" %>
+        <%= f.select :thermal_roll_width_mm,
+            [
+              ['Letter / A4 (full-page PDF)', ''],
+              ['58 mm thermal roll', 58],
+              ['72 mm thermal roll', 72],
+              ['80 mm thermal roll', 80],
+              ['88 mm thermal roll', 88]
+            ],
+            {},
+            class: 'form-select' %>
+        <div class="form-text">
+          For thermal receipt printers, choose the roll width so parking permits print at full width (not shrunk).
+          Leave as Letter/A4 for normal office printers.
+        </div>
+      </div>
     </div>
 
     <div class="col-md-6">

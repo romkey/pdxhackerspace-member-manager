@@ -62,6 +62,11 @@ class PrintersController < AdminController
   end
 
   def printer_params
-    params.expect(printer: %i[name cups_printer_server cups_printer_name description default_printer position])
+    printer_keys = %i[
+      name cups_printer_server cups_printer_name description default_printer position thermal_roll_width_mm
+    ]
+    permitted = params.expect(printer: printer_keys)
+    permitted[:thermal_roll_width_mm] = permitted[:thermal_roll_width_mm].presence&.to_i
+    permitted
   end
 end
