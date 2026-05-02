@@ -7,7 +7,17 @@ class EmailTemplatesController < AdminController
                 only: %i[show edit update preview toggle mark_reviewed mark_needs_review rewrite_with_ai]
 
   def index
-    @email_templates = EmailTemplate.ordered
+    templates = EmailTemplate.all
+    @filter_counts = {
+      all: templates.count,
+      needs_review: templates.needs_review.count,
+      reviewed: templates.reviewed.count,
+      enabled: templates.enabled.count,
+      disabled: templates.disabled.count,
+      send_immediately: templates.send_immediately.count,
+      immediate_send_blocked: templates.immediate_send_blocked.count
+    }
+    @email_templates = templates.ordered
     @filter = params[:filter]
 
     @email_templates = case @filter
@@ -15,6 +25,8 @@ class EmailTemplatesController < AdminController
                        when 'reviewed' then @email_templates.reviewed
                        when 'enabled' then @email_templates.enabled
                        when 'disabled' then @email_templates.disabled
+                       when 'send_immediately' then @email_templates.send_immediately
+                       when 'immediate_send_blocked' then @email_templates.immediate_send_blocked
                        else @email_templates
                        end
   end

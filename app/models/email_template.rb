@@ -567,6 +567,8 @@ class EmailTemplate < ApplicationRecord
   scope :disabled, -> { where(enabled: false) }
   scope :needs_review, -> { where(needs_review: true) }
   scope :reviewed, -> { where(needs_review: false) }
+  scope :send_immediately, -> { where(send_immediately: true) }
+  scope :immediate_send_blocked, -> { where(block_send_immediately: true) }
   scope :ordered, -> { order(:name) }
 
   # Find a template by key, returns nil if not found or disabled

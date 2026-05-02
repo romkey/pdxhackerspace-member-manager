@@ -80,6 +80,55 @@ class EmailTemplatesControllerTest < ActionDispatch::IntegrationTest
     assert_select 'span', text: 'Send immediately'
   end
 
+  test 'index shows filter chips with counts' do
+    get email_templates_path
+
+    assert_response :success
+    assert_select '.filter-chip', 7
+    assert_includes response.body, 'All <span class="count">1</span>'
+    assert_includes response.body, 'Needs review <span class="count">1</span>'
+    assert_includes response.body, 'Reviewed <span class="count">0</span>'
+    assert_includes response.body, 'Enabled <span class="count">1</span>'
+    assert_includes response.body, 'Disabled <span class="count">0</span>'
+    assert_includes response.body, 'Send immediately <span class="count">0</span>'
+    assert_includes response.body, 'Immediate send blocked <span class="count">0</span>'
+  end
+
+  test 'index disables zero count filter chips' do
+    get email_templates_path
+
+    assert_response :success
+    assert_select 'span.filter-chip.muted[aria-disabled=?]', 'true', text: /Send immediately\s+0/
+    assert_select "a[href='#{email_templates_path(filter: 'send_immediately')}']", count: 0
+  end
+
+  test 'index filters by immediate send states' do
+    @template.update!(send_immediately: true)
+    blocked_template = EmailTemplate.create!(
+      key: 'blocked_immediate_template',
+      name: 'Blocked Immediate Template',
+      subject: 'Blocked Subject',
+      body_html: '<p>Blocked HTML</p>',
+      body_text: 'Blocked text',
+      enabled: true,
+      block_send_immediately: true
+    )
+
+    get email_templates_path(filter: 'send_immediately')
+
+    assert_response :success
+    assert_select 'tbody tr', 1
+    assert_select 'td', text: /#{@template.name}/
+    assert_select 'td', text: /#{blocked_template.name}/, count: 0
+
+    get email_templates_path(filter: 'immediate_send_blocked')
+
+    assert_response :success
+    assert_select 'tbody tr', 1
+    assert_select 'td', text: /#{blocked_template.name}/
+    assert_select 'td', text: /#{@template.name}/, count: 0
+  end
+
   test 'update cannot enable send immediately while blocked' do
     patch email_template_path(@template), params: {
       email_template: {
