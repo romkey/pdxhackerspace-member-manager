@@ -261,7 +261,7 @@ class SessionsController < ApplicationController
   end
 
   def find_user_by_rfid(value)
-    normalized = value.to_s.strip.downcase
+    normalized = RfidNormalizer.call(value)&.downcase
     return if normalized.blank?
 
     # Search in the rfids table

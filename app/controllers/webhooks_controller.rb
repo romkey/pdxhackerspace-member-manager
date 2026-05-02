@@ -291,8 +291,10 @@ class WebhooksController < ApplicationController
       return
     end
 
-    RfidWebhookService.store(rfid_code.to_s.strip, pin_code.to_s.strip, reader.id, reader.name)
-    Rails.logger.info("RFID webhook received from #{reader.name}: RFID=#{rfid_code}, PIN=#{pin_code[0..1]}**")
+    RfidWebhookService.store(rfid_code, pin_code.to_s.strip, reader.id, reader.name)
+    Rails.logger.info(
+      "RFID webhook received from #{reader.name}: RFID=#{RfidNormalizer.call(rfid_code)}, PIN=#{pin_code[0..1]}**"
+    )
 
     head :ok
   end

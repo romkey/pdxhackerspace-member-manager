@@ -3,6 +3,10 @@ class Rfid < ApplicationRecord
 
   validates :rfid, presence: true, uniqueness: { scope: :user_id }
 
+  def rfid=(value)
+    super(RfidNormalizer.call(value))
+  end
+
   after_create_commit :journal_key_fob_added!
   after_destroy_commit :journal_key_fob_removed!
 

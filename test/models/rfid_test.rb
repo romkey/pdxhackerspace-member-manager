@@ -22,6 +22,15 @@ class RfidTest < ActiveSupport::TestCase
     assert_equal 'Front door fob', journal.changes_json.dig('key_fob', 'notes')
   end
 
+  test 'normalizes RFID on assign: strips whitespace and comma spacing regression' do
+    user = users(:one)
+    Current.user = users(:two)
+
+    rfid = Rfid.create!(user: user, rfid: '7001, 00456842')
+    rfid.reload
+    assert_equal '7001,456842', rfid.rfid
+  end
+
   test 'destroying a key fob creates a highlighted journal entry' do
     actor = users(:two)
     rfid = rfids(:one)

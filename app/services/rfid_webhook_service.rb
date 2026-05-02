@@ -7,6 +7,9 @@ class RfidWebhookService
   EXPIRATION_TIME = 5.minutes
 
   def self.store(rfid_code, pin_code, reader_id = nil, reader_name = nil)
+    rfid_code = RfidNormalizer.call(rfid_code)
+    return nil if rfid_code.blank?
+
     key = redis_key(rfid_code)
     data = {
       rfid: rfid_code,
@@ -93,7 +96,7 @@ class RfidWebhookService
   end
 
   def self.redis_key(rfid_code)
-    "#{REDIS_KEY_PREFIX}#{rfid_code.to_s.downcase.strip}"
+    "#{REDIS_KEY_PREFIX}#{RfidNormalizer.call(rfid_code).to_s.downcase}"
   end
 
   def self.redis

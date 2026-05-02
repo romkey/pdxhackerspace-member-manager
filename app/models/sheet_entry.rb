@@ -24,6 +24,10 @@ class SheetEntry < ApplicationRecord
 
   validates :name, presence: true
 
+  def rfid=(value)
+    super(RfidNormalizer.call(value))
+  end
+
   scope :with_email, -> { where.not(email: nil) }
 
   def access_permissions
