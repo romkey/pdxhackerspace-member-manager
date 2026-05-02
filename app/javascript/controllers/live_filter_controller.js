@@ -84,7 +84,7 @@ export default class extends Controller {
     this.inputTarget.value = ""
     if (this.serverValue) {
       this._updateClearButton("")
-      this._navigateWithSearch("")
+      this._submitServerSearch()
       this.inputTarget.focus()
       return
     }
@@ -113,29 +113,13 @@ export default class extends Controller {
 
   _scheduleServerSearch(term) {
     clearTimeout(this.searchTimeout)
-    this.searchTimeout = setTimeout(() => this._navigateWithSearch(term), this.delayValue)
+    this.searchTimeout = setTimeout(() => this._submitServerSearch(), this.delayValue)
   }
 
-  _navigateWithSearch(term) {
-    const url = new URL(window.location.href)
-    const paramName = this.inputTarget.name || "q"
+  _submitServerSearch() {
+    const form = this.inputTarget.form || this.element.closest("form")
+    if (!form) return
 
-    if (term === "") {
-      url.searchParams.delete(paramName)
-    } else {
-      url.searchParams.set(paramName, term)
-    }
-
-    // A new search should start at the first page of the filtered result set.
-    url.searchParams.delete("page")
-
-    const nextUrl = `${url.pathname}${url.search}${url.hash}`
-    if (nextUrl === `${window.location.pathname}${window.location.search}${window.location.hash}`) return
-
-    if (window.Turbo) {
-      window.Turbo.visit(nextUrl)
-    } else {
-      window.location.assign(nextUrl)
-    }
+    form.requestSubmit()
   }
 }

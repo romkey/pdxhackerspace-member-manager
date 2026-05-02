@@ -39,10 +39,11 @@ class PaypalPaymentsControllerTest < ActionDispatch::IntegrationTest
     get paypal_payments_path(page: 2, q: 'pagination target')
 
     assert_response :success
-    assert_select 'form[action=?][method=get]', paypal_payments_path do
+    assert_select 'form[action=?][method=get][data-turbo-frame=?]', paypal_payments_path, 'paypal_payments_results' do
       assert_select 'input[name=q][value=?]', 'pagination target'
       assert_select 'input[name=page]', count: 0
     end
+    assert_select 'turbo-frame[id=?]', 'paypal_payments_results'
   end
 
   test 'payment search paginates the filtered result set' do
