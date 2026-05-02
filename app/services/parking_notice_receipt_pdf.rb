@@ -11,14 +11,14 @@ class ParkingNoticeReceiptPdf
   THERMAL_MARGIN         = 10
   THERMAL_INITIAL_HEIGHT = 2000
 
-  FULL_PAGE_SIZE   = 'LETTER'
+  FULL_PAGE_SIZE   = 'LETTER'.freeze
   FULL_PAGE_MARGIN = 48
   FULL_PAGE_QR     = 220
 
   VALID_LAYOUTS = %i[full_page thermal].freeze
 
-  def self.mm_to_pt(mm)
-    mm.to_f * 72.0 / 25.4
+  def self.mm_to_pt(width_mm)
+    width_mm.to_f * 72.0 / 25.4
   end
 
   # parking_notice:: ParkingNotice
@@ -28,9 +28,7 @@ class ParkingNoticeReceiptPdf
     @notice = parking_notice
     @base_url = base_url || ENV.fetch('APP_BASE_URL', 'http://localhost:3000')
     @layout = layout.to_sym
-    unless VALID_LAYOUTS.include?(@layout)
-      raise ArgumentError, "layout must be one of #{VALID_LAYOUTS.join(', ')}"
-    end
+    raise ArgumentError, "layout must be one of #{VALID_LAYOUTS.join(', ')}" unless VALID_LAYOUTS.include?(@layout)
 
     if thermal?
       raise ArgumentError, 'thermal_width_mm is required for thermal layout' if thermal_width_mm.blank?
