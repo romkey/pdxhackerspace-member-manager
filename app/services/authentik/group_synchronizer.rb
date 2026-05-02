@@ -1,6 +1,6 @@
 module Authentik
   class GroupSynchronizer
-    def initialize(client: Client.new, logger: Rails.logger)
+    def initialize(client: nil, logger: Rails.logger)
       @client = client
       @logger = logger
     end
@@ -11,7 +11,7 @@ module Authentik
         return 0
       end
 
-      members = @client.group_members(source_group_id)
+      members = client.group_members(source_group_id)
       now = Time.current
 
       ActiveRecord::Base.transaction do
@@ -26,6 +26,10 @@ module Authentik
     end
 
     private
+
+    def client
+      @client ||= Client.new
+    end
 
     def source_group_id
       all_members_group&.authentik_group_id.presence || AuthentikConfig.settings.group_id

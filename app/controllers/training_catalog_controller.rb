@@ -22,6 +22,7 @@ class TrainingCatalogController < AuthenticatedController
                                           .pluck(:id)
                                           .to_set
     @requestable_topic_ids -= @trained_topic_ids
+    @can_record_training = current_user_admin? ? TrainingTopic.exists? : current_user.trainer_capabilities.exists?
   end
 
   def show

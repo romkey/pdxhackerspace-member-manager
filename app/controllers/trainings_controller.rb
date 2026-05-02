@@ -1,13 +1,52 @@
 class TrainingsController < AuthenticatedController
   before_action :require_trainer_or_admin
+  before_action :prepare_record_training_form, only: :record
   before_action :set_trainee,
                 only: %i[add_training remove_training add_trainer_capability remove_trainer_capability]
   before_action :set_training_topic,
                 only: %i[add_training remove_training add_trainer_capability remove_trainer_capability]
 
-  def index
-    @users_for_search = User.ordered_by_display_name
-    @trainable_topics = trainable_topics_for_current_user
+  def index = redirect_to(record_training_path)
+
+  def record; end
+
+  def create_bulk
+    training_topic = TrainingTopic.find(params[:training_topic_id])
+    unless can_train_topic?(training_topic)
+      redirect_to record_training_path, alert: "You don't have permission to train #{training_topic.name}."
+      return
+    end
+
+    trainee_ids = Array(params[:trainee_ids]).compact_blank.uniq
+    if trainee_ids.empty?
+      redirect_to record_training_path, alert: 'Add at least one member before recording training.'
+      return
+    end
+
+    trainer = selected_trainer_for_recording
+    trained_at = parsed_trained_at
+    result = TrainingRecorder.new(
+      current_user: current_user,
+      training_topic: training_topic,
+      trainee_ids: trainee_ids,
+      trainer: trainer,
+      trained_at: trained_at
+    ).call
+
+    if result.recorded_count.zero?
+      redirect_to record_training_path,
+                  alert: 'No training events were recorded. Everyone selected was already trained ' \
+                         'or could not be trained.'
+      return
+    end
+
+    skipped_message = result.skipped_count.positive? ? " #{result.skipped_count} skipped." : ''
+    event_label = 'event'.pluralize(result.recorded_count)
+    redirect_to training_catalog_path,
+                notice: "Recorded #{result.recorded_count} training #{event_label} " \
+                        "for #{training_topic.name}.#{skipped_message}"
+  rescue ActiveRecord::RecordNotFound
+    redirect_to record_training_path, alert: 'Training topic not found.'
   end
 
   def add_training
@@ -24,39 +63,20 @@ class TrainingsController < AuthenticatedController
       return
     end
 
-    training = Training.new(
-      trainee: @trainee,
-      trainer: current_user,
+    result = TrainingRecorder.new(
+      current_user: current_user,
       training_topic: @training_topic,
+      trainee_ids: [@trainee.id.to_s],
+      trainer: current_user,
       trained_at: Time.current
-    )
+    ).call
 
-    if training.save
-      # Create journal entry for the trainee
-      Journal.create!(
-        user: @trainee,
-        actor_user: current_user,
-        action: 'training_added',
-        changes_json: {
-          'training' => {
-            'topic' => @training_topic.name,
-            'trainer' => current_user.display_name,
-            'trained_at' => training.trained_at.iso8601
-          }
-        },
-        changed_at: Time.current,
-        highlight: true
-      )
-      if @trainee.email.present?
-        QueuedMail.enqueue(:training_completed, @trainee,
-                           reason: "Trained in #{@training_topic.name}",
-                           training_topic: @training_topic.name)
-      end
+    if result.recorded_count.positive?
       redirect_to redirect_back_path(user_id: @trainee.id),
                   notice: "#{@trainee.display_name} has been marked as trained in #{@training_topic.name}."
     else
       redirect_to redirect_back_path(user_id: @trainee.id),
-                  alert: "Failed to add training: #{training.errors.full_messages.join(', ')}"
+                  alert: "Failed to add training for #{@trainee.display_name}."
     end
   end
 
@@ -200,17 +220,63 @@ class TrainingsController < AuthenticatedController
   end
 
   def trainable_topics_for_current_user
-    if current_user_admin?
-      TrainingTopic.order(:name)
-    else
-      current_user.training_topics.order(:name)
-    end
+    current_user_admin? ? TrainingTopic.order(:name) : current_user.training_topics.order(:name)
   end
 
   def can_train_topic?(topic)
     return true if current_user_admin?
 
     current_user.training_topics.include?(topic)
+  end
+
+  def prepare_record_training_form
+    @trainable_topics = trainable_topics_for_current_user
+    @trainer_options = trainer_options_for_recording
+    @recording_users = recording_user_options
+    @initial_trainee_ids = Array(params[:member].presence || params[:user_id].presence).compact_blank.map(&:to_s)
+  end
+
+  def trainer_options_for_recording
+    return [current_user] unless current_user_admin?
+
+    trainer_ids = TrainerCapability.distinct.pluck(:user_id)
+    trainer_ids << current_user.id
+    User.where(id: trainer_ids.uniq).ordered_by_display_name
+  end
+
+  def recording_user_options
+    users = User.ordered_by_display_name.to_a
+    trained_topic_ids_by_user = Training.where(trainee_id: users.map(&:id))
+                                        .pluck(:trainee_id, :training_topic_id)
+                                        .each_with_object(
+                                          Hash.new { |hash, key| hash[key] = [] }
+                                        ) do |(trainee_id, topic_id), grouped|
+      grouped[trainee_id] << topic_id
+    end
+
+    users.map do |user|
+      {
+        id: user.id,
+        name: user.display_name,
+        email: user.email,
+        username: user.username,
+        active: user.active?,
+        banned: user.banned?,
+        trained_topic_ids: trained_topic_ids_by_user[user.id]
+      }
+    end
+  end
+
+  def selected_trainer_for_recording
+    return current_user unless current_user_admin?
+
+    trainer_options_for_recording.find { |trainer| trainer.id.to_s == params[:trainer_id].to_s } || current_user
+  end
+
+  def parsed_trained_at
+    Date.iso8601(params[:trained_at].presence || Date.current.iso8601).in_time_zone
+  rescue ArgumentError
+    Date.current.in_time_zone
   end
 
   def redirect_back_path(user_id: nil)
