@@ -11,4 +11,53 @@ module UsersHelper
     end
     users_path(new_params)
   end
+
+  def member_admin_status_pill(user)
+    if user.membership_status.in?(%w[banned deceased inactive]) || !user.active?
+      %w[Inactive status-pill-overdue]
+    elsif user.dues_status == 'lapsed'
+      ['Payment due', 'status-pill-attention']
+    else
+      %w[Active status-pill-active]
+    end
+  end
+
+  def member_admin_tenure(user)
+    if user.membership_start_date.present? && user.membership_ended_date.present?
+      "Member #{user.membership_start_date.strftime('%b %Y')} - #{user.membership_ended_date.strftime('%b %Y')}"
+    elsif user.membership_start_date.present?
+      "Member since #{user.membership_start_date.strftime('%b %Y')}"
+    elsif user.membership_ended_date.present?
+      "Membership ended #{user.membership_ended_date.strftime('%b %Y')}"
+    else
+      "Member record created #{user.created_at.strftime('%b %Y')}"
+    end
+  end
+
+  def member_preview_label(view_level)
+    {
+      admin: 'Admin',
+      self: 'the member',
+      members: 'other members',
+      public: 'public visitors'
+    }[view_level.to_sym] || view_level.to_s.humanize
+  end
+
+  def admin_profile_time(value, empty: 'Never')
+    return content_tag(:span, empty, class: 'profile-field-value empty') if value.blank?
+
+    content_tag(:span, class: 'profile-field-value', title: l(value, format: :long)) do
+      if value.to_date == Date.current
+        value.strftime('%-l:%M %p')
+      elsif value.to_date == Date.yesterday
+        'Yesterday'
+      elsif value.to_date > 7.days.ago.to_date
+        "#{time_ago_in_words(value)} ago"
+      elsif value.year == Date.current.year
+        value.strftime('%b %-d')
+      else
+        value.strftime('%b %-d, %Y')
+      end
+    end
+  end
 end

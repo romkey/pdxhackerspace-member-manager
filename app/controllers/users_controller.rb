@@ -614,6 +614,7 @@ class UsersController < AuthenticatedController
   def determine_effective_view_level
     # Check if user is requesting a specific view level via params
     requested_view = params[:view_as]&.to_sym
+    requested_view = :members if requested_view == :other
 
     return @natural_view_level if requested_view.blank?
 
@@ -639,10 +640,10 @@ class UsersController < AuthenticatedController
     # Don't show preview selector when impersonating - show exact user view
     @can_preview_views = !impersonating? && allowed_preview_views.length > 1
     view_labels = {
-      public: 'Public (not logged in)',
-      members: 'Other Members',
-      self: 'Profile Owner',
-      admin: 'Admin'
+      admin: 'Admin',
+      self: 'The member',
+      members: 'Other members',
+      public: 'Public'
     }.freeze
     @available_views = allowed_preview_views.map { |level| [view_labels[level], level] }
   end

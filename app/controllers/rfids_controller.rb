@@ -2,7 +2,7 @@ class RfidsController < AdminController
   before_action :set_rfid, only: %i[destroy sync_prompt]
 
   def new
-    @rfid = Rfid.new
+    @rfid = Rfid.new(user_id: params.dig(:rfid, :user_id))
     prepare_form_data
   end
 

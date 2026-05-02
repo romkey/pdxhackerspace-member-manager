@@ -40,6 +40,43 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_select 'a[href=?]', membership_application_path(app), text: /Application ##{app.id}/
   end
 
+  test 'admin profile uses shared member layout with admin actions' do
+    get user_path(@user, tab: :profile)
+
+    assert_response :success
+    assert_select '.h-page-title', text: @user.display_name
+    assert_select '.status-pill'
+    assert_select '.dropdown-menu', text: /Ban/
+    assert_select '.profile-section-header', text: /Identity/
+    assert_select '.profile-section-header', text: /Training & access/
+    assert_select '.profile-section-header', text: /System/
+    assert_select '.card-membership', text: /Membership/
+    assert_select '.override-banner', count: 0
+  end
+
+  test 'admin profile shows active override banner only when override is active' do
+    @user.update_columns(emergency_active_override: true, active: true, dues_status: 'lapsed')
+
+    get user_path(@user, tab: :profile)
+
+    assert_response :success
+    assert_select '.override-banner', text: /Active override applied/
+    assert_select 'form[action=?]', clear_emergency_active_override_user_path(@user)
+  end
+
+  test 'admin preview hides admin-only profile affordances' do
+    @user.update_columns(emergency_active_override: true, active: true, dues_status: 'lapsed')
+
+    get user_path(@user, view_as: :self, tab: :profile)
+
+    assert_response :success
+    assert_select '.preview-banner', text: /Previewing as/
+    assert_select '.override-banner', count: 0
+    assert_select '.dropdown-menu', text: /Ban/, count: 0
+    assert_select '.profile-section-header', text: /System/, count: 0
+    assert_no_match(/Disassociate/, response.body)
+  end
+
   test 'member profile does not show membership application links' do
     member = users(:member_with_local_account)
     app = MembershipApplication.create!(

@@ -255,7 +255,7 @@ class UserProfileVisibilityTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     # Should see preview selector
-    assert_match(/Preview profile as/i, response.body)
+    assert_match(/View as:/i, response.body)
     assert_match(/Previewing/, response.body)
 
     # Should NOT see admin-only info
@@ -298,7 +298,7 @@ class UserProfileVisibilityTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     # Should see preview selector
-    assert_match(/Preview profile as/i, response.body)
+    assert_match(/View as:/i, response.body)
 
     # Should see minimal public info
     assert_no_match(/Trained on/i, response.body)
@@ -334,7 +334,7 @@ class UserProfileVisibilityTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     # Should not see preview selector (they're not admin or owner)
-    assert_no_match(/Preview profile as/i, response.body)
+    assert_no_match(/View as:/i, response.body)
   end
 
   private

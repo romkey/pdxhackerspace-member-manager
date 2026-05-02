@@ -1,161 +1,177 @@
-<%# View Preview Selector - for admins and profile owners %>
-<% if @can_preview_views %>
-  <div class="card border-info mb-4">
-    <div class="card-body py-2">
-      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-        <div class="d-flex align-items-center gap-2">
-          <i class="bi bi-eye text-info"></i>
-          <span class="text-muted small">Preview profile as:</span>
-          <%= form_with url: user_path(@user), method: :get, local: true, class: "d-inline-flex align-items-center gap-2" do %>
-            <%= select_tag :view_as, 
-                options_for_select(@available_views, @view_level), 
-                class: "form-select form-select-sm", 
-                style: "width: auto;",
-                onchange: "this.form.submit();" %>
+<%
+  image_url = if @user.avatar.present?
+    @user.avatar
+  elsif @user.email.present?
+    gravatar_url(@user.email, size: 192)
+  elsif @user.slack_user&.raw_attributes&.dig("profile", "image_192").present?
+    @user.slack_user.raw_attributes.dig("profile", "image_192")
+  end
+%>
+
+<% if true_user_admin? || @can_preview_views %>
+  <div class="d-flex align-items-center justify-content-between mb-3 small text-secondary flex-wrap gap-2">
+    <span>
+      <% if true_user_admin? %>
+        <%= link_to "‹ Members", users_path(@nav_params || {}), class: "text-info-emphasis text-decoration-none" %>
+        / <%= @user.username %>
+      <% else %>
+        Profile preview
+      <% end %>
+    </span>
+
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+      <% if true_user_admin? && @view_level == :admin && !impersonating? %>
+        <% if @previous_user %>
+          <%= link_to "‹ Prev", user_path(@previous_user, @nav_params), class: "btn btn-sm btn-outline-secondary", title: "Previous: #{@previous_user.display_name}" %>
+        <% else %>
+          <span class="btn btn-sm btn-outline-secondary disabled" title="First member">‹ Prev</span>
+        <% end %>
+
+        <% if @next_user %>
+          <%= link_to "Next ›", user_path(@next_user, @nav_params), class: "btn btn-sm btn-outline-secondary", title: "Next: #{@next_user.display_name}" %>
+        <% else %>
+          <span class="btn btn-sm btn-outline-secondary disabled" title="Last member">Next ›</span>
+        <% end %>
+
+        <span class="mx-1 text-secondary opacity-50">|</span>
+      <% end %>
+
+      <% if @can_preview_views %>
+        <span class="text-12">View as:</span>
+        <%= form_with url: user_path(@user), method: :get, local: true, class: "d-inline-flex align-items-center" do %>
+          <%= select_tag :view_as,
+              options_for_select(@available_views, @view_level),
+              class: "form-select form-select-sm view-as-picker",
+              onchange: "this.form.submit();" %>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+<% end %>
+
+<% if @view_level != @natural_view_level %>
+  <div class="preview-banner">
+    <span class="text-12">
+      Previewing as <strong><%= member_preview_label(@view_level) %></strong> -
+      you're seeing the <%= member_preview_label(@view_level) %> view.
+    </span>
+    <%= link_to "Return to admin view ›", user_path(@user), class: "text-12 text-info-emphasis" %>
+  </div>
+<% end %>
+
+<% if @view_level == :admin && @user.emergency_active_override? %>
+  <div class="override-banner mb-3">
+    <div class="d-flex align-items-center gap-2 small">
+      <i class="bi bi-lightning-charge text-warning" aria-hidden="true"></i>
+      <span>
+        <strong>Active override applied</strong> -
+        membership shows as Active despite <%= @user.dues_status.to_s.humanize.downcase %> dues.
+        <span class="text-secondary">See Journal for audit details.</span>
+      </span>
+    </div>
+    <%= button_to "Clear override", clear_emergency_active_override_user_path(@user), method: :post,
+        class: "btn btn-sm btn-outline-warning",
+        form: { data: { turbo: false } } %>
+  </div>
+<% end %>
+
+<% if @view_level == :admin %>
+  <% status_label, status_class = member_admin_status_pill(@user) %>
+  <div class="d-flex align-items-start justify-content-between mb-3 gap-3 flex-wrap">
+    <div class="d-flex align-items-center gap-3">
+      <% if image_url.present? %>
+        <img src="<%= image_url %>" alt="<%= @user.display_name %>" class="rounded-circle" style="width: 56px; height: 56px; object-fit: cover;">
+      <% else %>
+        <div class="avatar-initial avatar-initial-md"><%= @user.display_name.to_s.first.to_s.upcase %></div>
+      <% end %>
+
+      <div>
+        <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+          <h1 class="h-page-title mb-0"><%= @user.display_name %></h1>
+          <span class="status-pill <%= status_class %>">
+            <span class="dot">●</span> <%= status_label %>
+          </span>
+          <% if @user.dues_status == 'lapsed' %>
+            <span class="badge text-bg-warning-subtle small fw-normal">Lapsed dues</span>
+          <% end %>
+          <% if @user.is_sponsored? %>
+            <span class="badge text-bg-info-subtle small fw-normal">Sponsored</span>
           <% end %>
         </div>
-        <% if @view_level != @natural_view_level %>
-          <div class="d-flex align-items-center gap-2">
-            <span class="badge bg-info">Previewing</span>
-            <%= link_to "Exit Preview", user_path(@user), class: "btn btn-outline-info btn-sm" %>
-          </div>
-        <% end %>
+
+        <div class="text-12 text-secondary">
+          <% if @user.pronouns.present? || @user.bio.present? %>
+            <span><%= truncate([@user.pronouns, strip_tags(@user.bio)].compact_blank.join(" - "), length: 40) %></span> ·
+          <% end %>
+          <span>@<%= @user.username %></span>
+          <% if @user.email.present? %>
+            · <span><%= @user.email %></span>
+          <% end %>
+        </div>
+
+        <div class="text-12 text-tertiary mt-1"><%= member_admin_tenure(@user) %></div>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2 align-items-center">
+      <%= link_to "Edit", edit_user_path(@user), class: "btn btn-primary btn-sm" %>
+      <% unless impersonating? || @user == true_user %>
+        <%= button_to "Impersonate", impersonate_user_path(@user), method: :post,
+            class: "btn btn-outline-secondary btn-sm",
+            form: { data: { turbo: false } },
+            data: { confirm_message: "View the site as #{@user.display_name}? You can stop impersonating at any time." },
+            onclick: "return confirm(this.dataset.confirmMessage);" %>
+      <% end %>
+
+      <div class="dropdown">
+        <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="dropdown" title="More actions" style="line-height: 1;">⋯</button>
+        <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark">
+          <li><h6 class="dropdown-header">Status changes</h6></li>
+          <% if @user.service_account? %>
+            <% if @user.active? %>
+              <li><%= button_to "Deactivate", deactivate_user_path(@user), method: :post, class: "dropdown-item", form: { data: { turbo: false } } %></li>
+            <% else %>
+              <li><%= button_to "Activate", activate_user_path(@user), method: :post, class: "dropdown-item", form: { data: { turbo: false } } %></li>
+            <% end %>
+          <% elsif @user.emergency_active_override? %>
+            <li><%= button_to "Clear active override", clear_emergency_active_override_user_path(@user), method: :post, class: "dropdown-item", form: { data: { turbo: false } } %></li>
+          <% elsif !@user.active? && !@user.membership_status.in?(%w[banned deceased]) %>
+            <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#applyOverrideModal">Apply active override...</button></li>
+          <% end %>
+          <% unless @user.service_account? %>
+            <% if @user.is_sponsored? %>
+              <li><%= button_to "Remove Sponsorship", unmark_sponsored_user_path(@user), method: :post, class: "dropdown-item", form: { data: { turbo: false } } %></li>
+            <% else %>
+              <li><%= button_to "Sponsor...", mark_sponsored_user_path(@user), method: :post, class: "dropdown-item", form: { data: { turbo: false } } %></li>
+            <% end %>
+            <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#deceasedModal">Mark as deceased...</button></li>
+          <% end %>
+          <li><hr class="dropdown-divider"></li>
+          <li><h6 class="dropdown-header">Sync</h6></li>
+          <% if @user.authentik_id.present? && MemberSource.enabled?('member_manager') %>
+            <li><%= button_to "Push to Authentik", sync_to_authentik_user_path(@user), method: :post, class: "dropdown-item", form: { data: { turbo: false } } %></li>
+          <% else %>
+            <li><span class="dropdown-item disabled">Push to Authentik</span></li>
+          <% end %>
+          <% if @user.authentik_id.present? && MemberSource.enabled?('authentik') %>
+            <li><%= button_to "Pull from Authentik", sync_from_authentik_user_path(@user), method: :post, class: "dropdown-item", form: { data: { turbo: false } } %></li>
+          <% else %>
+            <li><span class="dropdown-item disabled">Pull from Authentik</span></li>
+          <% end %>
+          <li><hr class="dropdown-divider"></li>
+          <% unless @user.service_account? %>
+            <li><button type="button" class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#banModal">Ban...</button></li>
+          <% end %>
+          <li><button type="button" class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteMemberModal">Delete member...</button></li>
+        </ul>
       </div>
     </div>
   </div>
+
+  <%= render "users/admin_member_action_modals", user: @user %>
 <% end %>
 
-<%# Admin Toolbar - shown to admins but NOT when impersonating (to see exact user view) %>
-<% if true_user_admin? && !impersonating? %>
-  <% if @nav_params.present? %>
-    <div class="alert alert-info py-2 mb-3 d-flex justify-content-between align-items-center">
-      <small>
-        <i class="bi bi-funnel me-1"></i> Browsing filtered list
-        <% if @nav_params[:membership_status].present? %>
-          — Membership: <strong><%= @nav_params[:membership_status].humanize %></strong>
-        <% end %>
-        <% if @nav_params[:payment_type].present? %>
-          — Payment: <strong><%= @nav_params[:payment_type].humanize %></strong>
-        <% end %>
-        <% if @nav_params[:dues_status].present? %>
-          — Dues: <strong><%= @nav_params[:dues_status].humanize %></strong>
-        <% end %>
-        <% if @nav_params[:active].present? %>
-          — <%= @nav_params[:active] == 'true' ? 'Active only' : 'Inactive only' %>
-        <% end %>
-        <% if @nav_params[:emergency_active_override].present? %>
-          — Active override
-        <% end %>
-      </small>
-      <%= link_to "Clear filter", user_path(@user), class: "btn btn-outline-secondary btn-sm" %>
-    </div>
-  <% end %>
-  <div class="mb-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <div class="d-flex gap-2 align-items-center">
-        <% if @previous_user %>
-          <%= link_to user_path(@previous_user, @nav_params), class: "btn btn-outline-secondary", title: "Previous: #{@previous_user.display_name}" do %>
-            <i class="bi bi-chevron-left"></i> Previous
-          <% end %>
-        <% else %>
-          <span class="btn btn-outline-secondary disabled" title="First user">
-            <i class="bi bi-chevron-left"></i> Previous
-          </span>
-        <% end %>
-        
-        <% if @next_user %>
-          <%= link_to user_path(@next_user, @nav_params), class: "btn btn-outline-secondary", title: "Next: #{@next_user.display_name}" do %>
-            Next <i class="bi bi-chevron-right"></i>
-          <% end %>
-        <% else %>
-          <span class="btn btn-outline-secondary disabled" title="Last user">
-            Next <i class="bi bi-chevron-right"></i>
-          </span>
-        <% end %>
-        
-        <%= link_to "Edit member", edit_user_path(@user), class: "btn btn-outline-secondary" %>
-        <% unless impersonating? || @user == true_user %>
-          <%= button_to impersonate_user_path(@user), method: :post, class: "btn btn-outline-info", 
-              data: { turbo: false, confirm_message: "View the site as #{@user.display_name}? You can stop impersonating at any time." },
-              onclick: "return confirm(this.dataset.confirmMessage);" do %>
-            <i class="bi bi-person-badge me-1"></i> Impersonate
-          <% end %>
-        <% end %>
-      </div>
-      
-      <div>
-        <%= link_to "&larr; Back to members".html_safe, users_path(@nav_params), class: "text-decoration-none" %>
-      </div>
-    </div>
-    
-    <div class="d-flex gap-2 justify-content-center">
-      <% if @user.service_account? %>
-        <% if @user.active? %>
-          <%= button_to "Deactivate", deactivate_user_path(@user), method: :post, class: "btn btn-outline-warning", 
-              data: { turbo: false, confirm_message: "Are you sure you want to deactivate #{@user.display_name}?" },
-              onclick: "return confirm(this.dataset.confirmMessage);" %>
-        <% else %>
-          <%= button_to "Activate", activate_user_path(@user), method: :post, class: "btn btn-outline-success", 
-              data: { turbo: false, confirm_message: "Are you sure you want to activate #{@user.display_name}?" },
-              onclick: "return confirm(this.dataset.confirmMessage);" %>
-        <% end %>
-      <% end %>
-      
-      <% unless @user.service_account? %>
-        <% if @user.emergency_active_override? %>
-          <span class="badge text-bg-warning me-2 align-middle">Active override</span>
-          <%= button_to "Clear active override", clear_emergency_active_override_user_path(@user), method: :post, class: "btn btn-outline-warning",
-              data: { turbo: false, confirm_message: "Clear the override? Active status will be recalculated from membership and dues." },
-              onclick: "return confirm(this.dataset.confirmMessage);" %>
-        <% elsif !@user.active? && !@user.membership_status.in?(%w[banned deceased]) %>
-          <%= button_to "Active override", enable_emergency_active_override_user_path(@user), method: :post, class: "btn btn-outline-warning",
-              data: { turbo: false, confirm_message: "Enable active override? This member will stay active until you clear the override." },
-              onclick: "return confirm(this.dataset.confirmMessage);" %>
-        <% end %>
-
-        <% if @user.is_sponsored? %>
-          <%= button_to "Remove Sponsorship", unmark_sponsored_user_path(@user), method: :post, class: "btn btn-outline-warning",
-              data: { turbo: false, confirm_message: "Are you sure you want to remove sponsorship from #{@user.display_name}?" },
-              onclick: "return confirm(this.dataset.confirmMessage);" %>
-        <% else %>
-          <%= button_to "Sponsor", mark_sponsored_user_path(@user), method: :post, class: "btn btn-outline-primary",
-              data: { turbo: false, confirm_message: "Are you sure you want to mark #{@user.display_name} as sponsored?" },
-              onclick: "return confirm(this.dataset.confirmMessage);" %>
-        <% end %>
-
-        <%= button_to "Ban", ban_user_path(@user), method: :post, class: "btn btn-outline-danger", 
-            data: { turbo: false, confirm_message: "Are you sure you want to ban #{@user.display_name}?" },
-            onclick: "return confirm(this.dataset.confirmMessage);" %>
-        
-        <%= button_to "Deceased", mark_deceased_user_path(@user), method: :post, class: "btn btn-outline-secondary", 
-            data: { turbo: false, confirm_message: "Are you sure you want to mark #{@user.display_name} as deceased?" },
-            onclick: "return confirm(this.dataset.confirmMessage);" %>
-      <% end %>
-      
-      <span class="ms-4"></span>
-      
-      <%= button_to "Delete", user_path(@user), method: :delete, class: "btn btn-outline-danger", 
-          data: { turbo: false, confirm_message: "WARNING: This will permanently delete #{@user.display_name}. Are you sure?" },
-          onclick: "return confirm(this.dataset.confirmMessage);" %>
-
-      <% if @user.authentik_id.present? %>
-        <span class="ms-4"></span>
-        <% if MemberSource.enabled?('member_manager') %>
-          <%= button_to sync_to_authentik_user_path(@user), method: :post, class: "btn btn-outline-primary",
-              title: "Push local changes to Authentik", data: { turbo: false } do %>
-            <i class="bi bi-cloud-upload"></i> Push to Authentik
-          <% end %>
-        <% else %>
-          <button class="btn btn-outline-secondary" disabled title="Member Manager source is disabled">
-            <i class="bi bi-cloud-upload"></i> Push to Authentik
-          </button>
-        <% end %>
-      <% end %>
-    </div>
-  </div>
-<% end %>
-
-<% unless @view_level == :self %>
+<% unless @view_level.in?(%i[self admin]) %>
   <% if @view_level == :members %>
     <div class="mb-4">
       <h1 class="h5 mb-0">Member Profile</h1>
@@ -209,12 +225,12 @@
 
 <% if @view_level == :admin %>
   <%# ===== ADMIN VIEW WITH TABS ===== %>
-  <ul class="nav nav-tabs mb-4" role="tablist">
+  <ul class="nav nav-tabs mb-3 small" role="tablist">
     <li class="nav-item" role="presentation">
       <%= link_to user_path(@user, tab: :profile, view_as: params[:view_as]), 
           class: "nav-link #{'active' if @active_tab == :profile}", 
           role: "tab" do %>
-        <i class="bi bi-person me-1"></i> Profile
+        Profile
       <% end %>
     </li>
     <% unless @user.service_account? %>
@@ -222,9 +238,9 @@
         <%= link_to user_path(@user, tab: :payments, view_as: params[:view_as]), 
             class: "nav-link #{'active' if @active_tab == :payments}", 
             role: "tab" do %>
-          <i class="bi bi-credit-card me-1"></i> Payments
+          Payments
           <% if @payments_count.to_i > 0 %>
-            <span class="badge bg-secondary ms-1"><%= @payments_count %></span>
+            <span class="text-secondary small ms-1"><%= @payments_count %></span>
           <% end %>
         <% end %>
       </li>
@@ -233,9 +249,20 @@
       <%= link_to user_path(@user, tab: :access, view_as: params[:view_as]), 
           class: "nav-link #{'active' if @active_tab == :access}", 
           role: "tab" do %>
-        <i class="bi bi-door-open me-1"></i> Access
+        Access
         <% if @access_count.to_i > 0 %>
-          <span class="badge bg-secondary ms-1"><%= @access_count %></span>
+          <span class="text-secondary small ms-1"><%= @access_count %></span>
+        <% end %>
+      <% end %>
+    </li>
+    <li class="nav-item" role="presentation">
+      <%= link_to user_path(@user, tab: :profile, anchor: "training-access-section", view_as: params[:view_as]),
+          class: "nav-link",
+          role: "tab" do %>
+        Training
+        <% training_count = @user.trainings_as_trainee.count %>
+        <% if training_count.positive? %>
+          <span class="text-secondary small ms-1"><%= training_count %></span>
         <% end %>
       <% end %>
     </li>
@@ -244,8 +271,7 @@
         <%= link_to user_path(@user, tab: :incidents, view_as: params[:view_as]), 
             class: "nav-link #{'active' if @active_tab == :incidents}", 
             role: "tab" do %>
-          <i class="bi bi-exclamation-triangle me-1"></i> Incidents
-          <span class="badge bg-warning text-dark ms-1"><%= @incidents_count %></span>
+          Incidents <span class="text-warning small ms-1"><%= @incidents_count %></span>
         <% end %>
       </li>
     <% end %>
@@ -254,8 +280,7 @@
         <%= link_to user_path(@user, tab: :parking, view_as: params[:view_as]),
             class: "nav-link #{'active' if @active_tab == :parking}",
             role: "tab" do %>
-          <i class="bi bi-car-front me-1"></i> Parking
-          <span class="badge bg-secondary ms-1"><%= @parking_notices_count %></span>
+          Parking <span class="text-secondary small ms-1"><%= @parking_notices_count %></span>
         <% end %>
       </li>
     <% end %>
@@ -263,9 +288,9 @@
       <%= link_to user_path(@user, tab: :journal, view_as: params[:view_as]), 
           class: "nav-link #{'active' if @active_tab == :journal}", 
           role: "tab" do %>
-        <i class="bi bi-journal-text me-1"></i> Journal
+        Journal
         <% if @journals_count.to_i > 0 %>
-          <span class="badge bg-secondary ms-1"><%= @journals_count %></span>
+          <span class="text-secondary small ms-1"><%= @journals_count %></span>
         <% end %>
       <% end %>
     </li>
@@ -273,9 +298,9 @@
       <%= link_to user_path(@user, tab: :mail, view_as: params[:view_as]), 
           class: "nav-link #{'active' if @active_tab == :mail}", 
           role: "tab" do %>
-        <i class="bi bi-envelope me-1"></i> Mail
+        Mail
         <% if @mail_count.to_i > 0 %>
-          <span class="badge bg-secondary ms-1"><%= @mail_count %></span>
+          <span class="text-secondary small ms-1"><%= @mail_count %></span>
         <% end %>
       <% end %>
     </li>
@@ -283,9 +308,9 @@
       <%= link_to user_path(@user, tab: :messages, view_as: params[:view_as]),
           class: "nav-link #{'active' if @active_tab == :messages}",
           role: "tab" do %>
-        <i class="bi bi-chat-dots me-1"></i> Messages
+        Messages
         <% if @unread_messages_count.to_i > 0 %>
-          <span class="badge bg-danger ms-1"><%= @unread_messages_count %></span>
+          <span class="text-warning small ms-1"><%= @unread_messages_count %></span>
         <% end %>
       <% end %>
     </li>

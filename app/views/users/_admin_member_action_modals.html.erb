@@ -1,0 +1,127 @@
+<%# locals: user %>
+
+<div class="modal fade" id="banModal" tabindex="-1" aria-labelledby="banModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <%= form_with url: ban_user_path(user), method: :post, local: true do %>
+        <div class="modal-header">
+          <h5 class="modal-title" id="banModalLabel">Ban <%= user.display_name %>?</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-13">This will:</p>
+          <ul class="text-13 text-secondary">
+            <li>Mark the member as banned</li>
+            <li>Make the account inactive</li>
+            <li>Keep <%= pluralize(user.rfids.count, "RFID key") %> visible for follow-up removal</li>
+            <li>Queue the membership banned email if the member has an email address</li>
+          </ul>
+          <div class="mb-3">
+            <label class="form-label small" for="ban_reason">Reason (optional, recorded in audit context)</label>
+            <%= text_area_tag :reason, nil, id: "ban_reason", class: "form-control form-control-sm", rows: 2 %>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger">Ban member</button>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="deceasedModal" tabindex="-1" aria-labelledby="deceasedModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <%= form_with url: mark_deceased_user_path(user), method: :post, local: true do %>
+        <div class="modal-header">
+          <h5 class="modal-title" id="deceasedModalLabel">Mark <%= user.display_name %> as deceased?</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-13">This will:</p>
+          <ul class="text-13 text-secondary">
+            <li>Set membership status to deceased</li>
+            <li>Make the account inactive</li>
+            <li>Stop treating payment or dues state as actionable</li>
+          </ul>
+          <div class="mb-3">
+            <label class="form-label small" for="deceased_reason">Reason (optional, recorded in audit context)</label>
+            <%= text_area_tag :reason, nil, id: "deceased_reason", class: "form-control form-control-sm", rows: 2 %>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger">Mark deceased</button>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="deleteMemberModal" tabindex="-1" aria-labelledby="deleteMemberModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <%= form_with url: user_path(user), method: :delete, local: true do %>
+        <div class="modal-header">
+          <h5 class="modal-title" id="deleteMemberModalLabel">Delete <%= user.display_name %>?</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-13">This will:</p>
+          <ul class="text-13 text-secondary">
+            <li>Permanently remove the member record</li>
+            <li>Remove dependent key fobs, profile links, and member-only records</li>
+            <li>Leave external systems unchanged until they are synced separately</li>
+          </ul>
+          <div class="mb-3">
+            <label class="form-label small" for="delete_reason">Reason (optional, recorded before deletion when supported)</label>
+            <%= text_area_tag :reason, nil, id: "delete_reason", class: "form-control form-control-sm", rows: 2 %>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger">Delete member</button>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="applyOverrideModal" tabindex="-1" aria-labelledby="applyOverrideModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <%= form_with url: enable_emergency_active_override_user_path(user), method: :post, local: true do %>
+        <div class="modal-header">
+          <h5 class="modal-title" id="applyOverrideModalLabel">Apply active override</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-13 text-secondary">
+            This will mark <%= user.display_name %> as active despite their current membership or dues state.
+            The override is visible to other admins.
+          </p>
+          <div class="mb-3">
+            <label class="form-label small" for="override_expires">Expires</label>
+            <select class="form-select form-select-sm" id="override_expires" name="expires">
+              <option>30 days</option>
+              <option>60 days</option>
+              <option>90 days</option>
+              <option>End of next month</option>
+              <option>Never (manual clear required)</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small" for="override_reason">Reason</label>
+            <%= text_area_tag :reason, nil, id: "override_reason", class: "form-control form-control-sm", rows: 2,
+                placeholder: "e.g., Working through payment issue, sponsorship pending..." %>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Apply override</button>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

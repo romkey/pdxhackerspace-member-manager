@@ -114,6 +114,8 @@ Apply these rules to any HTML/template/CSS Cursor writes for this project. The s
 
 Member-facing views (member viewing their own account) differ from admin-facing views:
 
+- Admin and member views share architecture, with admin-only additions. When designing both views of the same entity (member, application, payment, etc.), the admin view should layer admin-only affordances on top of the member view's structure rather than using a different page. Hero, tab strip, field groupings, and sidebar cards stay in the same positions. Admin-only elements include override banners, expanded action buttons, per-field destructive actions, and the System section at the bottom of fields. Status pills in the admin hero may stack to surface multiple dimensions of state at once.
+
 - Use friendly second-person voice: "Your profile", "You're trained on", "Resources for you".
 - Hide all admin-only affordances: sync controls, internal IDs, audit timestamps, Login Link, Impersonate, Sponsor/Ban/Delete.
 - Empty fields use inviting placeholder text ("Tell others a bit about yourself"), not "Not provided" or "None".

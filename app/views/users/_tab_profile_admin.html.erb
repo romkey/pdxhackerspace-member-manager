@@ -1,247 +1,295 @@
 <%# Admin Profile Tab %>
-<div class="card shadow-sm border-0">
-  <div class="card-body">
-    <div class="row">
-      <div class="col-md-8">
-        <dl class="row mb-0">
-          <dt class="col-sm-3 text-secondary">Username</dt>
-          <dd class="col-sm-9 text-monospace text-secondary"><%= user.username.presence || content_tag(:span, "Not provided", class: "text-muted fst-italic") %></dd>
+<% visibility_label = { 'public' => 'Public', 'members' => 'Other members', 'private' => 'Private' }[user.profile_visibility] || user.profile_visibility.humanize %>
+<% trained_topics = user.trainings_as_trainee.map(&:training_topic).uniq.sort_by(&:name) %>
+<% documents = Document.ordered %>
 
-          <dt class="col-sm-3 text-secondary">Authentik ID</dt>
-          <dd class="col-sm-9">
-            <% if user.authentik_id.present? %>
-              <div class="d-flex align-items-center gap-2 flex-wrap">
-                <% if user.authentik_user.present? %>
-                  <%= link_to user.authentik_id, authentik_user_path(user.authentik_user), class: "text-decoration-none font-monospace" %>
-                <% else %>
-                  <code><%= user.authentik_id %></code>
-                <% end %>
-                <%= button_to "Disassociate", unlink_authentik_user_path(user), method: :post,
-                    class: "btn btn-sm btn-outline-secondary",
-                    data: { turbo: false, turbo_confirm: "Disassociate this Authentik account from #{user.display_name}?" } %>
-              </div>
-            <% else %>
-              <span class="text-muted fst-italic">Not linked</span>
-            <% end %>
-          </dd>
-
-          <dt class="col-sm-3 text-secondary">Email</dt>
-          <dd class="col-sm-9">
-            <% if user.email.present? %>
-              <%= mail_to user.email %>
-            <% else %>
-              <span class="text-muted fst-italic">Not provided</span>
-            <% end %>
-          </dd>
-
-          <dt class="col-sm-3 text-secondary">Extra emails</dt>
-          <dd class="col-sm-9">
-            <% if user.extra_emails.present? && user.extra_emails.any? %>
-              <% user.extra_emails.each do |email| %>
-                <%= mail_to email %><br>
-              <% end %>
-            <% else %>
-              <span class="text-muted fst-italic">None</span>
-            <% end %>
-          </dd>
-
-          <dt class="col-sm-3 text-secondary">Full name</dt>
-          <dd class="col-sm-9"><%= user.full_name.presence || content_tag(:span, "Not provided", class: "text-muted fst-italic") %></dd>
-
-          <dt class="col-sm-3 text-secondary">Aliases</dt>
-          <dd class="col-sm-9">
-            <% if user.aliases.present? && user.aliases.any? %>
-              <% user.aliases.each do |a| %>
-                <span class="badge bg-secondary bg-opacity-25 text-body me-1 mb-1"><%= a %></span>
-              <% end %>
-            <% else %>
-              <span class="text-muted fst-italic">None</span>
-            <% end %>
-          </dd>
-
-          <dt class="col-sm-3 text-secondary">About</dt>
-          <dd class="col-sm-9">
-            <% if user.bio.present? %>
-              <div class="small"><%= sanitize(user.bio, tags: %w[p br strong b em i u s ul ol li a h1 h2 h3 h4 h5 h6 span div], attributes: %w[href target style]) %></div>
-            <% else %>
-              <span class="text-muted fst-italic">Not provided</span>
-            <% end %>
-          </dd>
-
-          <dt class="col-sm-3 text-secondary">Links</dt>
-          <dd class="col-sm-9">
-            <% if user.user_links.any? %>
-              <div class="d-flex flex-wrap gap-2">
-                <% user.user_links.ordered.each do |link| %>
-                  <%= link_to sanitize_url(link.url), target: '_blank', rel: 'noopener', class: 'btn btn-sm btn-outline-secondary' do %>
-                    <i class="bi <%= link.icon_class %> me-1"></i><%= link.title %>
-                  <% end %>
-                <% end %>
-              </div>
-            <% else %>
-              <span class="text-muted fst-italic">None</span>
-            <% end %>
-          </dd>
-
-          <dt class="col-sm-3 text-secondary">Profile Visibility</dt>
-          <dd class="col-sm-9">
-            <% visibility_label = { 'public' => 'Public', 'members' => 'Other Members', 'private' => 'Private' }[user.profile_visibility] || user.profile_visibility.humanize %>
-            <%= visibility_label %>
-          </dd>
-
-          <dt class="col-sm-3 text-secondary">Sheet Entry</dt>
-          <dd class="col-sm-9">
-            <% if user.sheet_entry.present? %>
-              <div class="d-flex align-items-center gap-2 flex-wrap">
-                <%= link_to user.sheet_entry.name, sheet_entry_path(user.sheet_entry), class: "text-decoration-none" %>
-                <%= button_to "Disassociate", unlink_sheet_user_path(user), method: :post,
-                    class: "btn btn-sm btn-outline-secondary",
-                    data: { turbo: false, turbo_confirm: "Disassociate this sheet entry from #{user.display_name}?" } %>
-              </div>
-            <% else %>
-              <span class="text-muted fst-italic">Not linked</span>
-            <% end %>
-          </dd>
-
-          <dt class="col-sm-3 text-secondary">Membership application</dt>
-          <dd class="col-sm-9">
-            <% if user.membership_applications.any? %>
-              <ul class="list-unstyled mb-0">
-                <% user.membership_applications.each do |app| %>
-                  <% status_class = { 'draft' => 'text-bg-secondary', 'submitted' => 'text-bg-warning text-dark',
-                                      'under_review' => 'text-bg-warning text-dark',
-                                      'approved' => 'text-bg-success', 'rejected' => 'text-bg-danger' }[app.status] || 'text-bg-secondary' %>
-                  <li class="mb-1">
-                    <%= link_to membership_application_path(app), class: "text-decoration-none" do %>
-                      <span class="me-1">Application #<%= app.id %></span>
-                      <span class="badge <%= status_class %>"><%= app.status.titleize %></span>
-                    <% end %>
-                    <span class="text-muted small ms-1"><%= l(app.created_at, format: :long) %></span>
-                  </li>
-                <% end %>
-              </ul>
-            <% else %>
-              <span class="text-muted fst-italic">None linked</span>
-            <% end %>
-          </dd>
-
-          <dt class="col-sm-3 text-secondary">Slack</dt>
-          <dd class="col-sm-9">
-            <% if user.slack_user.present? || user.slack_handle.present? || user.slack_id.present? %>
-              <div class="d-flex align-items-center gap-2 flex-wrap">
-                <span>
-                  <% if user.slack_id.present? && user.slack_user&.team_id.present? %>
-                    <% slack_url = "slack://user?team=#{user.slack_user.team_id}&id=#{user.slack_id}" %>
-                    <% if user.slack_handle.present? %>
-                      <%= link_to "@#{user.slack_handle}", slack_url, target: "_blank", rel: "noopener", class: "text-decoration-none" %>
-                      <span class="text-muted small ms-2">(ID: <%= link_to user.slack_id, slack_url, class: "text-decoration-none" %>)</span>
-                    <% else %>
-                      <%= link_to user.slack_id, slack_url, target: "_blank", rel: "noopener", class: "text-decoration-none" %>
-                    <% end %>
-                  <% else %>
-                    <span><%= user.slack_handle.present? ? "@#{user.slack_handle}" : user.slack_user&.display_name %></span>
-                    <% if user.slack_id.present? %>
-                      <span class="text-muted small ms-2">(ID: <%= user.slack_id %>)</span>
-                    <% end %>
-                  <% end %>
-                </span>
-                <% if user.slack_user.present? %>
-                  <%= link_to "Slack record", slack_user_path(user.slack_user), class: "btn btn-sm btn-outline-secondary" %>
-                <% else %>
-                  <span class="text-muted small">No Slack record linked</span>
-                <% end %>
-                <%= button_to "Disassociate", unlink_slack_user_path(user), method: :post,
-                    class: "btn btn-sm btn-outline-secondary",
-                    data: { turbo: false, turbo_confirm: "Disassociate this Slack account from #{user.display_name}?" } %>
-              </div>
-            <% else %>
-              <span class="text-muted fst-italic">Not linked</span>
-            <% end %>
-          </dd>
-
-          <dt class="col-sm-3 text-secondary">Trained on</dt>
-          <dd class="col-sm-9">
-            <% trained_topics = user.trainings_as_trainee.map(&:training_topic).uniq.sort_by(&:name) %>
-            <% if trained_topics.any? %>
-              <% trained_topics.each do |topic| %>
-                <span class="badge text-bg-primary me-1 mb-1"><%= topic.name %></span>
-              <% end %>
-            <% else %>
-              <span class="text-muted fst-italic">None recorded</span>
-            <% end %>
-          </dd>
-
-          <dt class="col-sm-3 text-secondary">Can train</dt>
-          <dd class="col-sm-9">
-            <% if user.training_topics.any? %>
-              <% user.training_topics.order(:name).each do |topic| %>
-                <span class="badge text-bg-success me-1 mb-1"><%= topic.name %></span>
-              <% end %>
-            <% else %>
-              <span class="text-muted fst-italic">None</span>
-            <% end %>
-          </dd>
-
-          <dt class="col-sm-3 text-secondary">Last synced</dt>
-          <dd class="col-sm-9"><%= user.last_synced_at ? l(user.last_synced_at, format: :long) : content_tag(:span, "Never", class: "text-muted fst-italic") %></dd>
-
-          <dt class="col-sm-3 text-secondary">Last login</dt>
-          <dd class="col-sm-9"><%= user.last_login_at ? l(user.last_login_at, format: :long) : content_tag(:span, "Never", class: "text-muted fst-italic") %></dd>
-
-          <dt class="col-sm-3 text-secondary">Last access</dt>
-          <dd class="col-sm-9">
-            <% if most_recent_access&.logged_at.present? %>
-              <%= l(most_recent_access.logged_at, format: :long) %>
-              <% if most_recent_access.location.present? %>
-                <span class="text-muted small ms-2">(<%= most_recent_access.location %>)</span>
-              <% end %>
-            <% else %>
-              <span class="text-muted fst-italic">Never</span>
-            <% end %>
-          </dd>
-
-          <dt class="col-sm-3 text-secondary">Created</dt>
-          <dd class="col-sm-9"><%= l(user.created_at, format: :long) %></dd>
-
-          <dt class="col-sm-3 text-secondary">Updated</dt>
-          <dd class="col-sm-9"><%= l(user.updated_at, format: :long) %></dd>
-
-          <dt class="col-sm-3 text-secondary">Notes</dt>
-          <dd class="col-sm-9">
-            <% if user.notes.present? %>
-              <%= simple_format(user.notes) %>
-            <% else %>
-              <span class="text-muted fst-italic">None</span>
-            <% end %>
-          </dd>
-
-          <dt class="col-sm-3 text-secondary">RFID Keys</dt>
-          <dd class="col-sm-9">
-            <% if user.rfids.any? %>
-              <div class="d-flex flex-column gap-2">
-                <% user.rfids.each do |rfid_record| %>
-                  <div class="d-flex align-items-center">
-                    <code class="bg-body-secondary px-2 py-1 rounded me-2"><%= rfid_record.rfid %></code>
-                    <% if rfid_record.notes.present? %>
-                      <span class="text-muted small me-2"><%= rfid_record.notes %></span>
-                    <% end %>
-                    <%= button_to rfid_path(rfid_record), method: :delete,
-                        class: "btn btn-outline-danger btn-sm",
-                        data: { turbo_confirm: "Remove key fob #{rfid_record.rfid} from #{user.display_name}?" } do %>
-                      <i class="bi bi-trash"></i> Remove
-                    <% end %>
-                  </div>
-                <% end %>
-              </div>
-            <% else %>
-              <span class="text-muted fst-italic">None</span>
-            <% end %>
-          </dd>
-        </dl>
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="mb-4">
+      <div class="profile-section-header">
+        <span class="h-section-label">Identity</span>
       </div>
-      <div class="col-md-4">
-        <%= render 'users/status_panel', user: user, show_dues: true %>
+      <div class="profile-field-group">
+        <div class="profile-field-row">
+          <span class="profile-field-label">Username</span>
+          <span class="profile-field-value"><%= user.username.presence || content_tag(:span, "Not provided", class: "empty") %></span>
+        </div>
+
+        <div class="profile-field-row">
+          <span class="profile-field-label">Full name</span>
+          <span class="profile-field-value"><%= user.full_name.presence || content_tag(:span, "Not provided", class: "empty") %></span>
+        </div>
+
+        <div class="profile-field-row">
+          <span class="profile-field-label">Aliases</span>
+          <span class="profile-field-value">
+            <% if user.aliases.present? && user.aliases.any? %>
+              <% user.aliases.each do |aliaz| %>
+                <span class="cert-pill me-1"><%= aliaz %></span>
+              <% end %>
+            <% else %>
+              <span class="empty">None</span>
+            <% end %>
+          </span>
+        </div>
+
+        <div class="profile-field-row">
+          <span class="profile-field-label">Email</span>
+          <span class="profile-field-value"><%= user.email.present? ? mail_to(user.email) : content_tag(:span, "Not provided", class: "empty") %></span>
+        </div>
+
+        <div class="profile-field-row">
+          <span class="profile-field-label">Extra emails</span>
+          <span class="profile-field-value">
+            <% if user.extra_emails.present? && user.extra_emails.any? %>
+              <%= safe_join(user.extra_emails.map { |email| mail_to(email) }, tag.br) %>
+            <% else %>
+              <span class="empty">None</span>
+            <% end %>
+          </span>
+        </div>
+
+        <div class="profile-field-row">
+          <span class="profile-field-label">Slack</span>
+          <span class="profile-field-value">
+            <% if user.slack_user.present? || user.slack_handle.present? || user.slack_id.present? %>
+              <% if user.slack_id.present? && user.slack_user&.team_id.present? %>
+                <% slack_url = "slack://user?team=#{user.slack_user.team_id}&id=#{user.slack_id}" %>
+                <%= link_to(user.slack_handle.present? ? "@#{user.slack_handle}" : user.slack_id, slack_url, target: "_blank", rel: "noopener", class: "text-info-emphasis text-decoration-none") %>
+              <% else %>
+                <%= user.slack_handle.present? ? "@#{user.slack_handle}" : user.slack_user&.display_name %>
+              <% end %>
+              <% if user.slack_user.present? %>
+                <%= link_to "Slack record", slack_user_path(user.slack_user), class: "text-12 text-info-emphasis ms-2" %>
+              <% end %>
+            <% else %>
+              <span class="empty">Not linked</span>
+            <% end %>
+          </span>
+        </div>
       </div>
     </div>
+
+    <div class="mb-4">
+      <div class="profile-section-header">
+        <span class="h-section-label">Profile</span>
+      </div>
+      <div class="profile-field-group">
+        <div class="profile-field-row">
+          <span class="profile-field-label">About</span>
+          <span class="profile-field-value">
+            <% if user.bio.present? %>
+              <%= sanitize(user.bio, tags: %w[p br strong b em i u s ul ol li a h1 h2 h3 h4 h5 h6 span div], attributes: %w[href target style]) %>
+            <% else %>
+              <span class="empty">Not provided</span>
+            <% end %>
+          </span>
+        </div>
+
+        <div class="profile-field-row">
+          <span class="profile-field-label">Links</span>
+          <span class="profile-field-value">
+            <% if user.user_links.any? %>
+              <% user.user_links.ordered.each do |link| %>
+                <%= link_to sanitize_url(link.url), target: "_blank", rel: "noopener", class: "resource-link me-2" do %>
+                  <i class="bi <%= link.icon_class %> me-1"></i><%= link.title %>
+                <% end %>
+              <% end %>
+            <% else %>
+              <span class="empty">None</span>
+            <% end %>
+          </span>
+        </div>
+
+        <div class="profile-field-row">
+          <span class="profile-field-label">Visibility</span>
+          <span class="profile-field-value"><%= visibility_label %></span>
+        </div>
+
+        <div class="profile-field-row">
+          <span class="profile-field-label">Notes</span>
+          <span class="profile-field-value">
+            <% if user.notes.present? %>
+              <%= simple_format(user.notes, class: "mb-0") %>
+            <% else %>
+              <span class="empty">None</span>
+            <% end %>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-4" id="training-access-section">
+      <div class="profile-section-header">
+        <span class="h-section-label">Training & access</span>
+      </div>
+      <div class="profile-field-group">
+        <div class="profile-field-row">
+          <span class="profile-field-label">Trained on</span>
+          <span class="profile-field-value">
+            <% if trained_topics.any? %>
+              <% trained_topics.each do |topic| %>
+                <span class="cert-pill me-1"><%= topic.name %></span>
+              <% end %>
+            <% else %>
+              <span class="empty">None recorded</span>
+            <% end %>
+          </span>
+        </div>
+
+        <div class="profile-field-row">
+          <span class="profile-field-label">Can train</span>
+          <span class="profile-field-value">
+            <% if user.training_topics.any? %>
+              <% user.training_topics.order(:name).each do |topic| %>
+                <span class="cert-pill me-1"><%= topic.name %></span>
+              <% end %>
+            <% else %>
+              <span class="empty">None</span>
+            <% end %>
+          </span>
+        </div>
+
+        <div class="profile-field-row">
+          <span class="profile-field-label">Application</span>
+          <span class="profile-field-value">
+            <% if user.membership_applications.any? %>
+              <% user.membership_applications.each do |app| %>
+                <%= link_to "Application ##{app.id}", membership_application_path(app), class: "text-info-emphasis text-decoration-none me-2" %>
+                <span class="badge text-bg-secondary-subtle small fw-normal me-1"><%= app.status.titleize %></span>
+              <% end %>
+            <% else %>
+              <span class="empty">None linked</span>
+            <% end %>
+          </span>
+        </div>
+
+        <div class="profile-field-row admin-rfid-row">
+          <span class="profile-field-label">RFID keys</span>
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <% if user.rfids.any? %>
+              <% user.rfids.each do |rfid_record| %>
+                <span class="rfid-key">
+                  <span class="font-monospace"><%= rfid_record.rfid %></span>
+                  <%= button_to "Remove", rfid_path(rfid_record), method: :delete,
+                      class: "btn-link-danger ms-1",
+                      form: { data: { turbo: false, turbo_confirm: "Remove key fob #{rfid_record.rfid} from #{user.display_name}?" } } %>
+                </span>
+              <% end %>
+            <% else %>
+              <span class="profile-field-value empty">None</span>
+            <% end %>
+            <%= link_to "+ Add key", new_rfid_path(rfid: { user_id: user.id }), class: "btn-link-add ms-auto" %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-4">
+      <div class="profile-section-header">
+        <span class="h-section-label">System</span>
+      </div>
+      <div class="profile-field-group profile-field-group-compact">
+        <div class="profile-field-row profile-field-row-system">
+          <span class="profile-field-label">Authentik ID</span>
+          <span class="profile-field-value">
+            <% if user.authentik_id.present? %>
+              <% if user.authentik_user.present? %>
+                <%= link_to user.authentik_id, authentik_user_path(user.authentik_user), class: "font-monospace text-info-emphasis text-decoration-none" %>
+              <% else %>
+                <span class="font-monospace"><%= user.authentik_id %></span>
+              <% end %>
+            <% else %>
+              <span class="empty">Not linked</span>
+            <% end %>
+          </span>
+          <% if user.authentik_id.present? %>
+            <%= button_to "Disassociate", unlink_authentik_user_path(user), method: :post,
+                class: "btn-link-danger",
+                form: { data: { turbo: false, turbo_confirm: "Disassociate this Authentik account from #{user.display_name}?" } } %>
+          <% else %>
+            <span></span>
+          <% end %>
+        </div>
+
+        <div class="profile-field-row profile-field-row-system">
+          <span class="profile-field-label">Sheet entry</span>
+          <span class="profile-field-value">
+            <% if user.sheet_entry.present? %>
+              <%= link_to user.sheet_entry.name, sheet_entry_path(user.sheet_entry), class: "text-info-emphasis text-decoration-none" %>
+            <% else %>
+              <span class="empty">Not linked</span>
+            <% end %>
+          </span>
+          <% if user.sheet_entry.present? %>
+            <%= button_to "Disassociate", unlink_sheet_user_path(user), method: :post,
+                class: "btn-link-danger",
+                form: { data: { turbo: false, turbo_confirm: "Disassociate this sheet entry from #{user.display_name}?" } } %>
+          <% else %>
+            <span></span>
+          <% end %>
+        </div>
+
+        <div class="profile-field-row profile-field-row-system">
+          <span class="profile-field-label">Last access</span>
+          <% if most_recent_access&.logged_at.present? %>
+            <span class="profile-field-value" title="<%= l(most_recent_access.logged_at, format: :long) %>">
+              <%= admin_profile_time(most_recent_access.logged_at) %>
+              <% if most_recent_access.location.present? %>
+                <span class="text-secondary">at <%= most_recent_access.location %></span>
+              <% end %>
+            </span>
+          <% else %>
+            <span class="profile-field-value empty">Never</span>
+          <% end %>
+          <span></span>
+        </div>
+
+        <div class="profile-field-row profile-field-row-system">
+          <span class="profile-field-label">Last login</span>
+          <%= admin_profile_time(user.last_login_at) %>
+          <span></span>
+        </div>
+
+        <div class="profile-field-row profile-field-row-system">
+          <span class="profile-field-label">Last synced</span>
+          <%= admin_profile_time(user.last_synced_at) %>
+          <span></span>
+        </div>
+
+        <div class="profile-field-row profile-field-row-system">
+          <span class="profile-field-label">Created</span>
+          <%= admin_profile_time(user.created_at) %>
+          <span></span>
+        </div>
+
+        <div class="profile-field-row profile-field-row-system">
+          <span class="profile-field-label">Updated</span>
+          <%= admin_profile_time(user.updated_at) %>
+          <span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <%= render 'users/member_membership_card', user: user %>
+
+    <div class="sidebar-card mb-2">
+      <div class="h-section-label mb-2">Documents</div>
+      <% if documents.any? %>
+        <div class="d-flex flex-column gap-1">
+          <% documents.each do |document| %>
+            <%= link_to download_document_path(document), class: "resource-link" do %>
+              &darr; <%= document.title %>
+            <% end %>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="text-12 text-secondary">No documents published.</div>
+      <% end %>
+    </div>
+
+    <%= render 'users/member_training_card', user: user, show_request_link: false %>
   </div>
 </div>
