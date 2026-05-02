@@ -1,0 +1,428 @@
+<div id="record-training-page"
+     class="d-flex flex-column"
+     data-initial-trainee-ids="<%= @initial_trainee_ids.join(',') %>">
+  <div class="text-12 text-secondary mb-2">
+    <%= link_to "&lsaquo; Dashboard".html_safe, root_path, class: "text-decoration-none" %>
+  </div>
+
+  <div class="mb-3">
+    <h1 class="h-page-title mb-0">Record training</h1>
+    <div class="text-13 text-secondary mt-1">
+      Add one member or a whole class. Already-trained or inactive members are skipped automatically.
+    </div>
+  </div>
+
+  <% if @trainable_topics.empty? %>
+    <div class="alert alert-warning text-13">
+      No training topics are available for you to record.
+    </div>
+  <% else %>
+    <%= form_with url: record_training_path, method: :post, local: true, id: "record-training-form" do %>
+      <%= hidden_field_tag :training_topic_id, nil, id: "record-training-topic-id" %>
+
+      <div class="form-section mb-2" id="record-topic-picker">
+        <div class="form-section-header">
+          <span class="h-section-label">Topic</span>
+          <span class="text-12 text-secondary">Pick a topic to record training in</span>
+        </div>
+
+        <div class="mb-2">
+          <div class="text-11 text-secondary text-uppercase mb-1">Topics you can train</div>
+          <div class="d-flex flex-wrap gap-1">
+            <% @trainable_topics.each do |topic| %>
+              <button type="button"
+                      class="topic-chip"
+                      data-topic-id="<%= topic.id %>"
+                      data-topic-name="<%= topic.name %>">
+                <%= topic.name %>
+              </button>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section mb-2 d-none" id="record-topic-selected">
+        <div class="form-section-header">
+          <span class="h-section-label">Topic</span>
+          <span class="text-12 text-success">Selected</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="topic-chip-selected" id="record-selected-topic-name"></span>
+          <span class="text-12 text-secondary">Training topic</span>
+          <button type="button" class="btn btn-link btn-sm text-12 ms-auto p-0" id="record-change-topic">Change</button>
+        </div>
+      </div>
+
+      <div class="form-section mb-2">
+        <div class="form-section-header">
+          <span class="h-section-label">Details</span>
+        </div>
+        <div class="row g-2">
+          <div class="col-md-6">
+            <label for="record-trained-at" class="text-12 text-secondary mb-1">Date</label>
+            <%= date_field_tag :trained_at, Date.current, class: "form-control form-control-sm", id: "record-trained-at" %>
+            <div class="text-11 text-warning mt-1 d-none" id="record-backdate-warning">
+              Recording training over 30 days old. Make sure this is correct.
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label for="record-trainer-id" class="text-12 text-secondary mb-1">Trainer</label>
+            <%= select_tag :trainer_id,
+                           options_from_collection_for_select(@trainer_options, :id, :display_name, current_user.id),
+                           class: "form-select form-select-sm",
+                           id: "record-trainer-id" %>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section mb-3">
+        <div class="form-section-header">
+          <span class="h-section-label">Members trained</span>
+          <span class="text-12 text-body"><span class="text-success" id="record-added-count">0</span> added</span>
+        </div>
+
+        <div class="member-search-input mb-2">
+          <i class="bi bi-search search-icon"></i>
+          <input type="text"
+                 id="record-member-search"
+                 placeholder="Pick a topic first"
+                 autocomplete="off"
+                 autocorrect="off"
+                 autocapitalize="off"
+                 spellcheck="false"
+                 disabled>
+          <a href="#"
+             class="paste-list-link"
+             id="record-open-paste"
+             data-bs-toggle="modal"
+             data-bs-target="#pasteListModal">Paste list</a>
+        </div>
+
+        <div id="record-search-results"
+             class="list-group position-absolute shadow-sm d-none"
+             style="z-index: 1000; max-height: 280px; overflow-y: auto;"></div>
+
+        <div id="record-unresolved-entries" class="alert alert-warning py-2 px-3 text-12 d-none"></div>
+        <div id="record-trainee-list" class="d-flex flex-column gap-1">
+          <div class="text-13 text-secondary py-3" id="record-empty-members">
+            No members added yet. Search above to add.
+          </div>
+        </div>
+      </div>
+
+      <div class="form-action-bar" id="record-action-bar">
+        <div>
+          <div class="form-action-bar-summary" id="record-action-summary">
+            Pick a topic to start adding members.
+          </div>
+          <div class="form-action-bar-detail d-none" id="record-action-detail"></div>
+        </div>
+        <div class="d-flex gap-2">
+          <%= link_to "Cancel", training_catalog_path, class: "btn btn-outline-secondary btn-sm" %>
+          <button type="submit" class="btn btn-primary btn-sm fw-medium" id="record-submit" disabled>
+            Record training
+          </button>
+        </div>
+      </div>
+    <% end %>
+  <% end %>
+</div>
+
+<div class="modal fade" id="pasteListModal" tabindex="-1" aria-labelledby="pasteListModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="pasteListModalLabel">Paste list of members</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-13 text-secondary">
+          Paste names, emails, or usernames. Use one per line, or separate entries with commas.
+        </p>
+        <textarea class="form-control" rows="6" id="pasteListInput"
+                  placeholder="annaroan&#10;kevin@example.com&#10;@liamwatson"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="record-process-paste">Add to list</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="application/json" id="record-training-users-data"><%= raw json_escape(@recording_users.to_json) %></script>
+
+<script>
+  (function() {
+    function initRecordTraining() {
+      var root = document.getElementById('record-training-page');
+      if (!root || root.dataset.initialized === 'true') return;
+      root.dataset.initialized = 'true';
+
+      var usersData = document.getElementById('record-training-users-data');
+      var users = usersData ? JSON.parse(usersData.textContent) : [];
+      var usersById = {};
+      users.forEach(function(user) { usersById[String(user.id)] = user; });
+
+      var selectedTopicId = null;
+      var selectedTopicName = null;
+      var selectedMembers = new Map();
+
+      var form = document.getElementById('record-training-form');
+      var topicInput = document.getElementById('record-training-topic-id');
+      var topicPicker = document.getElementById('record-topic-picker');
+      var topicSelected = document.getElementById('record-topic-selected');
+      var selectedTopicNameEl = document.getElementById('record-selected-topic-name');
+      var changeTopicButton = document.getElementById('record-change-topic');
+      var searchInput = document.getElementById('record-member-search');
+      var searchResults = document.getElementById('record-search-results');
+      var traineeList = document.getElementById('record-trainee-list');
+      var addedCount = document.getElementById('record-added-count');
+      var summary = document.getElementById('record-action-summary');
+      var detail = document.getElementById('record-action-detail');
+      var submit = document.getElementById('record-submit');
+      var trainedAtInput = document.getElementById('record-trained-at');
+      var backdateWarning = document.getElementById('record-backdate-warning');
+      var pasteInput = document.getElementById('pasteListInput');
+      var unresolvedEntries = document.getElementById('record-unresolved-entries');
+
+      function userLabel(user) {
+        var parts = [user.name];
+        if (user.username) parts.push('@' + user.username);
+        if (user.email) parts.push(user.email);
+        return parts.filter(Boolean).join(' ');
+      }
+
+      function memberStatus(user) {
+        if (!selectedTopicId) return { key: 'skip', text: 'Pick topic first' };
+        if ((user.trained_topic_ids || []).map(String).indexOf(String(selectedTopicId)) !== -1) {
+          return { key: 'skip', text: 'Already trained - skip' };
+        }
+        if (user.banned || !user.active) {
+          return { key: 'skip', text: 'Cannot train - inactive' };
+        }
+        return { key: 'add', text: 'Will be trained' };
+      }
+
+      function hideResults() {
+        searchResults.classList.add('d-none');
+        searchResults.innerHTML = '';
+      }
+
+      function setTopic(id, name) {
+        selectedTopicId = String(id);
+        selectedTopicName = name;
+        topicInput.value = selectedTopicId;
+        selectedTopicNameEl.textContent = name;
+        topicPicker.classList.add('d-none');
+        topicSelected.classList.remove('d-none');
+        searchInput.disabled = false;
+        searchInput.placeholder = 'Add by name, email, or username';
+        renderMembers();
+        searchInput.focus();
+      }
+
+      function clearTopic() {
+        selectedTopicId = null;
+        selectedTopicName = null;
+        topicInput.value = '';
+        topicPicker.classList.remove('d-none');
+        topicSelected.classList.add('d-none');
+        searchInput.disabled = true;
+        searchInput.value = '';
+        searchInput.placeholder = 'Pick a topic first';
+        hideResults();
+        renderMembers();
+      }
+
+      function addMember(user) {
+        selectedMembers.set(String(user.id), user);
+        searchInput.value = '';
+        hideResults();
+        renderMembers();
+      }
+
+      function removeMember(id) {
+        selectedMembers.delete(String(id));
+        renderMembers();
+      }
+
+      function renderMembers() {
+        traineeList.innerHTML = '';
+        var effectiveCount = 0;
+        var skipCount = 0;
+
+        selectedMembers.forEach(function(user) {
+          var status = memberStatus(user);
+          if (status.key === 'add') {
+            effectiveCount += 1;
+          } else {
+            skipCount += 1;
+          }
+
+          var row = document.createElement('div');
+          row.className = 'trainee-row' + (status.key === 'skip' ? ' trainee-row-warning' : '');
+
+          var hiddenInput = document.createElement('input');
+          hiddenInput.type = 'hidden';
+          hiddenInput.name = 'trainee_ids[]';
+          hiddenInput.value = user.id;
+          row.appendChild(hiddenInput);
+
+          var avatar = document.createElement('div');
+          avatar.className = 'trainee-avatar';
+          avatar.textContent = (user.name || '?').slice(0, 1).toUpperCase();
+          row.appendChild(avatar);
+
+          var info = document.createElement('div');
+          info.className = 'trainee-info';
+          var name = document.createElement('div');
+          name.className = 'trainee-name';
+          name.textContent = user.name;
+          var meta = document.createElement('div');
+          meta.className = 'trainee-meta';
+          meta.textContent = user.username ? '@' + user.username : (user.email || '');
+          info.appendChild(name);
+          info.appendChild(meta);
+          row.appendChild(info);
+
+          var statusEl = document.createElement('span');
+          statusEl.className = 'trainee-status status-' + status.key;
+          statusEl.textContent = status.text;
+          row.appendChild(statusEl);
+
+          var removeButton = document.createElement('button');
+          removeButton.type = 'button';
+          removeButton.className = 'trainee-remove';
+          removeButton.innerHTML = '&times;';
+          removeButton.addEventListener('click', function() { removeMember(user.id); });
+          row.appendChild(removeButton);
+
+          traineeList.appendChild(row);
+        });
+
+        if (selectedMembers.size === 0) {
+          var empty = document.createElement('div');
+          empty.className = 'text-13 text-secondary py-3';
+          empty.textContent = 'No members added yet. Search above to add.';
+          traineeList.appendChild(empty);
+        }
+
+        addedCount.textContent = selectedMembers.size;
+        submit.disabled = effectiveCount === 0;
+
+        if (!selectedTopicId) {
+          summary.textContent = 'Pick a topic to start adding members.';
+          detail.classList.add('d-none');
+        } else if (selectedMembers.size === 0) {
+          summary.textContent = 'Add members trained in ' + selectedTopicName + '.';
+          detail.classList.add('d-none');
+        } else if (effectiveCount === 0) {
+          summary.textContent = 'All selected members will be skipped.';
+          detail.textContent = skipCount + ' already-trained or inactive ' + (skipCount === 1 ? 'member' : 'members') + ' selected.';
+          detail.classList.remove('d-none');
+        } else {
+          summary.innerHTML = 'Record <strong>' + effectiveCount + ' training ' + (effectiveCount === 1 ? 'event' : 'events') + '</strong> for <strong>' + selectedTopicName + '</strong>.';
+          if (skipCount > 0) {
+            detail.textContent = skipCount + ' already-trained or inactive ' + (skipCount === 1 ? 'member' : 'members') + ' will be skipped.';
+            detail.classList.remove('d-none');
+          } else {
+            detail.classList.add('d-none');
+          }
+        }
+      }
+
+      function renderSearchResults() {
+        var term = searchInput.value.trim().toLowerCase();
+        hideResults();
+        if (term.length < 2 || !selectedTopicId) return;
+
+        users.filter(function(user) {
+          return userLabel(user).toLowerCase().indexOf(term) !== -1;
+        }).slice(0, 12).forEach(function(user) {
+          var item = document.createElement('button');
+          item.type = 'button';
+          item.className = 'list-group-item list-group-item-action text-start';
+          if (selectedMembers.has(String(user.id))) item.disabled = true;
+
+          var title = document.createElement('div');
+          title.className = 'fw-medium text-13';
+          title.textContent = user.name + (selectedMembers.has(String(user.id)) ? ' (already in list)' : '');
+          var meta = document.createElement('div');
+          meta.className = 'text-11 text-secondary';
+          meta.textContent = [user.username ? '@' + user.username : null, user.email].filter(Boolean).join(' - ');
+          item.appendChild(title);
+          item.appendChild(meta);
+          item.addEventListener('click', function() { addMember(user); });
+          searchResults.appendChild(item);
+        });
+
+        searchResults.classList.toggle('d-none', searchResults.children.length === 0);
+      }
+
+      function processPasteList() {
+        var entries = (pasteInput.value || '').split(/[\n,]+/).map(function(entry) {
+          return entry.trim();
+        }).filter(Boolean);
+        var unresolved = [];
+
+        entries.forEach(function(entry) {
+          var normalized = entry.toLowerCase().replace(/^@/, '');
+          var match = users.find(function(user) {
+            return (user.username || '').toLowerCase() === normalized ||
+                   (user.email || '').toLowerCase() === normalized ||
+                   (user.name || '').toLowerCase() === normalized;
+          });
+
+          if (match) {
+            selectedMembers.set(String(match.id), match);
+          } else {
+            unresolved.push(entry);
+          }
+        });
+
+        if (unresolved.length > 0) {
+          unresolvedEntries.textContent = unresolved.length + " entries couldn't be matched: " + unresolved.join(', ');
+          unresolvedEntries.classList.remove('d-none');
+        } else {
+          unresolvedEntries.classList.add('d-none');
+        }
+
+        pasteInput.value = '';
+        renderMembers();
+      }
+
+      function updateBackdateWarning() {
+        var selectedDate = new Date(trainedAtInput.value + 'T00:00:00');
+        var now = new Date();
+        var daysOld = (now - selectedDate) / (1000 * 60 * 60 * 24);
+        backdateWarning.classList.toggle('d-none', !(daysOld > 30));
+      }
+
+      document.querySelectorAll('.topic-chip').forEach(function(button) {
+        button.addEventListener('click', function() {
+          setTopic(button.dataset.topicId, button.dataset.topicName);
+        });
+      });
+      changeTopicButton.addEventListener('click', clearTopic);
+      searchInput.addEventListener('input', renderSearchResults);
+      trainedAtInput.addEventListener('change', updateBackdateWarning);
+      document.getElementById('record-process-paste').addEventListener('click', processPasteList);
+      document.addEventListener('click', function(event) {
+        if (!event.target.closest('#record-search-results, #record-member-search')) hideResults();
+      });
+      form.addEventListener('submit', function(event) {
+        if (!selectedTopicId || submit.disabled) event.preventDefault();
+      });
+
+      root.dataset.initialTraineeIds.split(',').filter(Boolean).forEach(function(id) {
+        if (usersById[id]) selectedMembers.set(id, usersById[id]);
+      });
+      renderMembers();
+      updateBackdateWarning();
+    }
+
+    document.addEventListener('DOMContentLoaded', initRecordTraining);
+    document.addEventListener('turbo:load', initRecordTraining);
+  })();
+</script>
