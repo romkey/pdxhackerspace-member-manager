@@ -59,6 +59,128 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_select 'a[href=?]', membership_application_path(app), count: 0
   end
 
+  test 'self messages tab badge only shows unread count' do
+    member = users(:member_with_local_account)
+    Message.where(recipient: member).destroy_all
+    Message.create!(
+      sender: users(:one),
+      recipient: member,
+      subject: 'Read message',
+      body: 'Already read',
+      read_at: Time.current
+    )
+
+    delete logout_path
+    sign_in_as_regular_member
+
+    get user_path(member, tab: :dashboard)
+
+    assert_response :success
+    assert_select 'a.nav-link', text: /Messages\s*1/, count: 0
+  end
+
+  test 'self messages tab badge shows unread count' do
+    member = users(:member_with_local_account)
+    Message.where(recipient: member).destroy_all
+    Message.create!(
+      sender: users(:one),
+      recipient: member,
+      subject: 'Unread message',
+      body: 'Please read',
+      read_at: nil
+    )
+
+    delete logout_path
+    sign_in_as_regular_member
+
+    get user_path(member, tab: :dashboard)
+
+    assert_response :success
+    assert_select 'a.nav-link', text: /Messages\s*1/
+  end
+
+  test 'member dashboard disables view messages action when there are no messages' do
+    member = users(:member_with_local_account)
+    Message.where(recipient: member).destroy_all
+    Message.where(sender: member).destroy_all
+
+    delete logout_path
+    sign_in_as_regular_member
+
+    get user_path(member, tab: :dashboard)
+
+    assert_response :success
+    assert_select 'a[href=?]', messages_path, count: 0
+    assert_select '.action-card.disabled', text: /View messages/
+  end
+
+  test 'member dashboard enables view messages action for sent messages' do
+    member = users(:member_with_local_account)
+    Message.where(recipient: member).destroy_all
+    Message.where(sender: member).destroy_all
+    Message.create!(
+      sender: member,
+      recipient: users(:one),
+      subject: 'Sent message',
+      body: 'Already sent'
+    )
+
+    delete logout_path
+    sign_in_as_regular_member
+
+    get user_path(member, tab: :dashboard)
+
+    assert_response :success
+    assert_select 'a[href=?]', messages_path(folder: :all), text: /View messages/
+    assert_select '.action-card.disabled', count: 0
+  end
+
+  test 'member dashboard profile action opens setup wizard' do
+    member = users(:member_with_local_account)
+
+    delete logout_path
+    sign_in_as_regular_member
+
+    get user_path(member, tab: :dashboard)
+
+    assert_response :success
+    assert_select 'a[href=?]', profile_setup_path, text: /Update your profile/
+  end
+
+  test 'self profile hides inline edit actions and sessions field' do
+    member = users(:member_with_local_account)
+
+    delete logout_path
+    sign_in_as_regular_member
+
+    get user_path(member, tab: :profile)
+
+    assert_response :success
+    assert_select '.profile-field-edit', count: 0
+    assert_no_match(/Sessions/, response.body)
+  end
+
+  test 'self profile shows the same member resources as dashboard' do
+    member = users(:member_with_local_account)
+    topic = training_topics(:laser_cutting)
+    Training.create!(trainee: member, trainer: users(:one), training_topic: topic, trained_at: Time.current)
+
+    delete logout_path
+    sign_in_as_regular_member
+
+    get user_path(member, tab: :dashboard)
+
+    assert_response :success
+    assert_select '.sidebar-card', text: /Resources for you/
+    assert_select 'a.resource-link[href=?]', 'https://example.com/laser-safety', text: /Laser Safety Guide/
+
+    get user_path(member, tab: :profile)
+
+    assert_response :success
+    assert_select '.sidebar-card', text: /Resources for you/
+    assert_select 'a.resource-link[href=?]', 'https://example.com/laser-safety', text: /Laser Safety Guide/
+  end
+
   # ─── Disabled Source Guards ──────────────────────────────────────
 
   test 'sync from authentik redirects with alert when authentik source is disabled' do

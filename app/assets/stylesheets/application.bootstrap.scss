@@ -335,6 +335,15 @@
   text-decoration: none;
   color: inherit;
 }
+.action-card.disabled {
+  background: rgba(255,255,255,0.01);
+  border-color: rgba(255,255,255,0.05);
+  cursor: not-allowed;
+}
+.action-card.disabled:hover {
+  background: rgba(255,255,255,0.01);
+  border-color: rgba(255,255,255,0.05);
+}
 .action-card-title {
   font-size: 14px;
   font-weight: 500;

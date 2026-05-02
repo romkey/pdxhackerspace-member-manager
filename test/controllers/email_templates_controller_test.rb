@@ -63,8 +63,12 @@ class EmailTemplatesControllerTest < ActionDispatch::IntegrationTest
     get edit_email_template_path(@template)
 
     assert_response :success
-    assert_select 'input[name=?]', 'email_template[send_immediately]'
-    assert_select 'input[name=?]', 'email_template[block_send_immediately]'
+    assert_select 'input[name=?][data-email-template-rewrite-target=?]',
+                  'email_template[send_immediately]', 'sendImmediately'
+    assert_select 'input[name=?][data-email-template-rewrite-target=?][data-action=?]',
+                  'email_template[block_send_immediately]',
+                  'blockSendImmediately',
+                  'change->email-template-rewrite#syncImmediateSendControls'
   end
 
   test 'index shows immediate send flags' do

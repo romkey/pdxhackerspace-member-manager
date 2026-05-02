@@ -9,13 +9,16 @@ export default class extends Controller {
     "rewriteButton",
     "undoButton",
     "spinner",
-    "status"
+    "status",
+    "sendImmediately",
+    "blockSendImmediately"
   ]
   static values = { url: String }
 
   connect() {
     this.previousState = null
     this.loading = false
+    this.syncImmediateSendControls()
   }
 
   async rewrite(event) {
@@ -91,6 +94,17 @@ export default class extends Controller {
 
   syncBodyTextBeforeSubmit() {
     this.syncBodyTextFromHtml()
+  }
+
+  syncImmediateSendControls() {
+    if (!this.hasSendImmediatelyTarget || !this.hasBlockSendImmediatelyTarget) return
+
+    if (this.blockSendImmediatelyTarget.checked) {
+      this.sendImmediatelyTarget.checked = false
+      this.sendImmediatelyTarget.disabled = true
+    } else {
+      this.sendImmediatelyTarget.disabled = false
+    }
   }
 
   setLoading(isLoading) {

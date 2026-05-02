@@ -1,6 +1,9 @@
 <% attention_items = @member_dashboard_attention_items || [] %>
 <% training_request_count = (@trainer_training_requests_by_topic || {}).values.sum(&:size) %>
 <% requestable_training = @member_requestable_topics&.any? %>
+<% unread_messages_count = @unread_messages_count.to_i %>
+<% messages_count = Message.visible_to(user).count %>
+<% messages_path_for_action = unread_messages_count.positive? ? messages_path(folder: :unread) : messages_path(folder: :all) %>
 
 <div class="row g-3">
   <div class="col-lg-8">
@@ -55,13 +58,20 @@
           <% end %>
         </div>
         <div class="col-md-6">
-          <%= link_to messages_path, class: "action-card" do %>
-            <div class="action-card-title"><i class="bi bi-chat-dots me-1"></i>View messages</div>
-            <div class="action-card-desc">Read messages from admins or the board</div>
+          <% if messages_count.positive? %>
+            <%= link_to messages_path_for_action, class: "action-card" do %>
+              <div class="action-card-title"><i class="bi bi-chat-dots me-1"></i>View messages</div>
+              <div class="action-card-desc">Read messages from admins or the board</div>
+            <% end %>
+          <% else %>
+            <div class="action-card disabled text-secondary" aria-disabled="true">
+              <div class="action-card-title text-secondary"><i class="bi bi-chat-dots me-1"></i>View messages</div>
+              <div class="action-card-desc">You do not have any messages yet</div>
+            </div>
           <% end %>
         </div>
         <div class="col-md-6">
-          <%= link_to user_path(user, tab: :profile, view_as: params[:view_as]), class: "action-card" do %>
+          <%= link_to profile_setup_path, class: "action-card" do %>
             <div class="action-card-title"><i class="bi bi-person me-1"></i>Update your profile</div>
             <div class="action-card-desc">Add links, interests, and contact details</div>
           <% end %>

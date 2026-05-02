@@ -372,8 +372,6 @@
         Messages
         <% if @unread_messages_count.to_i > 0 %>
           <span class="text-warning small ms-1"><%= @unread_messages_count %></span>
-        <% elsif @messages_count.to_i > 0 %>
-          <span class="text-secondary small ms-1"><%= @messages_count %></span>
         <% end %>
       <% end %>
     </li>

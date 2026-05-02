@@ -87,5 +87,47 @@ module Authentik
 
       assert_equal ['all-members-authentik-group'], client.requested_group_ids
     end
+
+    test 'deletes local authentik users missing from authentik sync results' do
+      linked_user = users(:one)
+      stale_authentik_user = AuthentikUser.create!(
+        authentik_id: 'stale-authentik-id',
+        username: 'stale',
+        email: 'stale@example.com',
+        full_name: 'Stale Authentik User',
+        user: linked_user
+      )
+      linked_user.update_columns(authentik_id: stale_authentik_user.authentik_id, authentik_dirty: true)
+
+      current_authentik_user = AuthentikUser.create!(
+        authentik_id: 'current-authentik-id',
+        username: 'current',
+        email: 'current@example.com',
+        full_name: 'Current Authentik User'
+      )
+
+      client = Class.new do
+        def group_members(_group_id = nil)
+          [
+            {
+              authentik_id: 'current-authentik-id',
+              email: 'current@example.com',
+              full_name: 'Current Authentik User',
+              username: 'current',
+              active: true,
+              attributes: {}
+            }
+          ]
+        end
+      end.new
+
+      Authentik::GroupSynchronizer.new(client: client).call
+
+      assert_nil AuthentikUser.find_by(authentik_id: stale_authentik_user.authentik_id)
+      assert AuthentikUser.exists?(id: current_authentik_user.id)
+      linked_user.reload
+      assert_nil linked_user.authentik_id
+      assert_not linked_user.authentik_dirty?
+    end
   end
 end

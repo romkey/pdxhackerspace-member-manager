@@ -16,6 +16,7 @@ module Authentik
 
       ActiveRecord::Base.transaction do
         upsert_members(members, now)
+        prune_removed_authentik_users(members)
       end
 
       # Record sync in member source
@@ -42,6 +43,27 @@ module Authentik
       rescue ActiveRecord::RecordInvalid => e
         @logger.error("Failed to sync Authentik user #{attrs.inspect}: #{e.message}")
       end
+    end
+
+    def prune_removed_authentik_users(members)
+      synced_ids = members.filter_map { |attrs| attrs[:authentik_id].to_s.presence }
+      removed_records = AuthentikUser.where.not(authentik_id: synced_ids)
+      removed_count = removed_records.count
+      return if removed_count.zero?
+
+      removed_records.find_each do |authentik_user|
+        unlink_member_from_removed_authentik_user!(authentik_user)
+        authentik_user.destroy!
+      end
+
+      @logger.info("Deleted #{removed_count} local Authentik user(s) no longer present in Authentik.")
+    end
+
+    def unlink_member_from_removed_authentik_user!(authentik_user)
+      user = authentik_user.user
+      return unless user&.authentik_id == authentik_user.authentik_id
+
+      user.update_columns(authentik_id: nil, authentik_dirty: false, updated_at: Time.current)
     end
 
     def find_matching_user(attrs)
