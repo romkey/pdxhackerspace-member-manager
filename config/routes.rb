@@ -65,6 +65,8 @@ Rails.application.routes.draw do
 
   # Member-facing catalog of training topics
   get '/training',      to: 'training_catalog#index', as: :training_catalog
+  get '/training/record', to: 'trainings#record', as: :record_training
+  post '/training/record', to: 'trainings#create_bulk'
   get '/training/:id',  to: 'training_catalog#show',  as: :training_catalog_topic, constraints: { id: /\d+/ }
   resources :member_parking_permits, only: %i[new create]
 
@@ -223,7 +225,7 @@ Rails.application.routes.draw do
   resources :journals, only: [:index]
 
   # Training members
-  get "/train", to: "trainings#index", as: :train_member
+  get '/train', to: redirect('/training/record'), as: :train_member
   post "/train/:user_id/add/:topic_id", to: "trainings#add_training", as: :add_training
   delete "/train/:user_id/remove/:topic_id", to: "trainings#remove_training", as: :remove_training
   post "/train/:user_id/trainer/:topic_id", to: "trainings#add_trainer_capability", as: :add_trainer_capability

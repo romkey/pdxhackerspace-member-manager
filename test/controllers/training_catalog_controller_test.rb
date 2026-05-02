@@ -83,6 +83,23 @@ class TrainingCatalogControllerTest < ActionDispatch::IntegrationTest
     assert_match(/Offered/i, response.body)
   end
 
+  test 'admin index links to record training' do
+    sign_in_as_admin
+    get training_catalog_path
+
+    assert_response :success
+    assert_match(/Record training/i, response.body)
+    assert_match record_training_path, response.body
+  end
+
+  test 'member index does not link to record training' do
+    sign_in_as_member
+    get training_catalog_path
+
+    assert_response :success
+    assert_no_match record_training_path, response.body
+  end
+
   # Show
 
   test 'member can view a topic that is offered to members' do
