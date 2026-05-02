@@ -94,10 +94,34 @@ class EmailTemplatesControllerTest < ActionDispatch::IntegrationTest
       }
     }
 
-    assert_redirected_to email_templates_path
+    assert_redirected_to email_template_path(@template)
     @template.reload
     assert @template.block_send_immediately?
     assert_not @template.send_immediately?
+  end
+
+  test 'update redirects back to template view' do
+    patch email_template_path(@template), params: {
+      email_template: {
+        name: @template.name,
+        description: @template.description,
+        subject: 'Updated Subject',
+        body_html: '<p>Replacement HTML</p>',
+        body_text: 'Replacement text',
+        enabled: '1'
+      }
+    }
+
+    assert_redirected_to email_template_path(@template)
+  end
+
+  test 'mark reviewed redirects back to template view' do
+    @template.update!(needs_review: true)
+
+    post mark_reviewed_email_template_path(@template)
+
+    assert_redirected_to email_template_path(@template)
+    assert_not @template.reload.needs_review?
   end
 
   test 'show wraps html body in high contrast preview container' do
@@ -120,7 +144,7 @@ class EmailTemplatesControllerTest < ActionDispatch::IntegrationTest
       }
     }
 
-    assert_redirected_to email_templates_path
+    assert_redirected_to email_template_path(@template)
     @template.reload
     assert_equal '<h1>Welcome</h1><p>Hello <strong>{{member_name}}</strong><br>Line two</p>', @template.body_html
     assert_equal "Welcome\nHello {{member_name}}\nLine two", @template.body_text
@@ -145,7 +169,7 @@ class EmailTemplatesControllerTest < ActionDispatch::IntegrationTest
       }
     }
 
-    assert_redirected_to email_templates_path
+    assert_redirected_to email_template_path(@template)
     @template.reload
     assert_equal <<~TEXT.strip, @template.body_text
       Visit the getting started guide and your application.
@@ -169,7 +193,7 @@ class EmailTemplatesControllerTest < ActionDispatch::IntegrationTest
       }
     }
 
-    assert_redirected_to email_templates_path
+    assert_redirected_to email_template_path(@template)
     @template.reload
     assert_equal '<p>Replacement HTML</p>', @template.body_html
     assert_equal 'Custom plain text', @template.body_text

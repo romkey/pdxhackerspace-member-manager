@@ -25,7 +25,8 @@ class EmailTemplatesController < AdminController
 
   def update
     if @email_template.update(email_template_update_params)
-      redirect_to email_templates_path, notice: "Email template '#{@email_template.name}' was successfully updated."
+      redirect_to email_template_path(@email_template),
+                  notice: "Email template '#{@email_template.name}' was successfully updated."
     else
       render :edit, status: :unprocessable_content
     end

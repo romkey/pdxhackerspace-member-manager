@@ -79,6 +79,25 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_select 'a.nav-link', text: /Messages\s*1/, count: 0
   end
 
+  test 'admin user messages tab badge only shows unread count' do
+    member = users(:member_with_local_account)
+    Message.where(recipient: member).destroy_all
+    Message.create!(
+      sender: users(:one),
+      recipient: member,
+      subject: 'Read admin-visible message',
+      body: 'Already read',
+      read_at: Time.current
+    )
+
+    get user_path(member, tab: :profile)
+
+    assert_response :success
+    assert_select 'a.nav-link[href=?]', user_path(member, tab: :messages) do
+      assert_select '.badge', count: 0
+    end
+  end
+
   test 'self messages tab badge shows unread count' do
     member = users(:member_with_local_account)
     Message.where(recipient: member).destroy_all
