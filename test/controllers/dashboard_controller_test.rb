@@ -43,6 +43,25 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_match(/Request training/i, response.body)
   end
 
+  test 'home messages nav badge only shows unread count' do
+    admin_user = User.find_by!(email: local_accounts(:active_admin).email)
+    Message.where(recipient: admin_user).destroy_all
+    Message.create!(
+      sender: users(:one),
+      recipient: admin_user,
+      subject: 'Read home message',
+      body: 'Already read',
+      read_at: Time.current
+    )
+
+    get root_path
+
+    assert_response :success
+    assert_select 'a.nav-link[href=?]', messages_path(folder: :unread) do
+      assert_select '.badge', count: 0
+    end
+  end
+
   test 'admin dashboard urgent items come from shared urgent snapshot' do
     snapshot = AdminDashboard::UrgentItems::Snapshot.new(
       [],
