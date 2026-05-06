@@ -36,6 +36,15 @@ class AccessLogsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test 'link modal can search members by email and username' do
+    user = users(:one)
+
+    get access_logs_path
+    assert_response :success
+
+    assert_select '.link-user-item[data-user-email=?][data-username=?]', user.email, user.username
+  end
+
   # ─── Link User ─────────────────────────────────────────────────────
 
   test 'link_user links access log to a member' do

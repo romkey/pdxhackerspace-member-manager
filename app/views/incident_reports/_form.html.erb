@@ -62,6 +62,8 @@
         <div class="member-result p-2 border-bottom" 
              data-user-id="<%= user.id %>" 
              data-user-name="<%= user.display_name.downcase %>"
+             data-user-email="<%= user.email.to_s.downcase %>"
+             data-username="<%= user.username.to_s.downcase %>"
              data-user-display="<%= user.display_name %>"
              style="cursor: pointer;">
           <span class="member-name"><%= user.display_name %></span>
@@ -215,11 +217,14 @@
       }
 
       results.forEach(function(result) {
-        const name = result.getAttribute('data-user-name');
+        const name = result.getAttribute('data-user-name') || '';
+        const email = result.getAttribute('data-user-email') || '';
+        const username = result.getAttribute('data-username') || '';
+        const haystack = name + ' ' + email + ' ' + username;
         const userId = result.getAttribute('data-user-id');
         const isSelected = selectedIds.has(userId);
         
-        if (!isSelected && name && name.includes(searchTerm)) {
+        if (!isSelected && haystack.includes(searchTerm)) {
           result.style.display = '';
           visibleCount++;
         } else {
