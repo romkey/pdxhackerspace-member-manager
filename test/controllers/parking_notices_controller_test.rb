@@ -46,6 +46,16 @@ class ParkingNoticesControllerTest < ActionDispatch::IntegrationTest
     assert_select 'input[name="parking_notice[notice_type]"][value="permit"]'
   end
 
+  test 'member search includes email and username fields' do
+    user = users(:one)
+
+    get new_parking_notice_url(type: 'permit')
+    assert_response :success
+
+    assert_select '.pn-member-item[data-user-id=?][data-user-email=?][data-username=?]',
+                  user.id.to_s, user.email, user.username
+  end
+
   test 'new renders ticket form' do
     get new_parking_notice_url(type: 'ticket')
     assert_response :success

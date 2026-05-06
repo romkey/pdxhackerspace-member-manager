@@ -47,6 +47,46 @@ class RechargePaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_select 'turbo-frame[id=?]', 'recharge_payments_results'
   end
 
+  test 'payment result links navigate outside turbo search frame' do
+    unlinked = RechargePayment.create!(
+      recharge_id: 'RC-UNLINKED-FRAME',
+      status: 'success',
+      amount: 30.00,
+      currency: 'USD',
+      processed_at: Time.current,
+      customer_id: 'recharge-frame-customer',
+      customer_email: 'frame@example.com',
+      customer_name: 'Frame Customer'
+    )
+
+    get recharge_payments_path(q: 'RC-UNLINKED-FRAME')
+    assert_response :success
+
+    assert_select 'turbo-frame#recharge_payments_results a[href=?][data-turbo-frame=?]',
+                  recharge_payment_path(unlinked), '_top'
+  end
+
+  test 'link member modal can search by member email and username' do
+    unlinked = RechargePayment.create!(
+      recharge_id: 'RC-LINK-MODAL-SEARCH',
+      status: 'success',
+      amount: 30.00,
+      currency: 'USD',
+      processed_at: Time.current,
+      customer_id: 'recharge-link-modal-customer',
+      customer_email: 'modal@example.com',
+      customer_name: 'Modal Customer'
+    )
+    user = users(:one)
+
+    get recharge_payment_path(unlinked)
+    assert_response :success
+
+    assert_select '.user-item[data-user-id=?]', user.id.to_s
+    assert_match %(data-user-email="#{user.email}"), response.body
+    assert_match %(data-username="#{user.username}"), response.body
+  end
+
   test 'payment search paginates the filtered result set' do
     105.times do |index|
       RechargePayment.create!(

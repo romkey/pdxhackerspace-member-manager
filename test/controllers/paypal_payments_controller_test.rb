@@ -46,6 +46,27 @@ class PaypalPaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_select 'turbo-frame[id=?]', 'paypal_payments_results'
   end
 
+  test 'payment result links navigate outside turbo search frame' do
+    payment = PaypalPayment.create!(
+      paypal_id: 'PAY-FRAME-TARGET',
+      status: 'COMPLETED',
+      amount: 42.50,
+      currency: 'USD',
+      transaction_time: Time.current,
+      transaction_type: 'T0001',
+      payer_email: 'paypal-frame@example.com',
+      payer_name: 'PayPal Frame Target',
+      payer_id: 'PAYER-FRAME-TARGET',
+      matches_plan: true
+    )
+
+    get paypal_payments_path(q: 'PAY-FRAME-TARGET')
+    assert_response :success
+
+    assert_select 'turbo-frame#paypal_payments_results a[href=?][data-turbo-frame=?]',
+                  paypal_payment_path(payment), '_top'
+  end
+
   test 'payment search paginates the filtered result set' do
     105.times do |index|
       PaypalPayment.create!(

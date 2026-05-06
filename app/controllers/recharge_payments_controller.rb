@@ -39,7 +39,7 @@ class RechargePaymentsController < AdminController
   def show
     @payment = RechargePayment.find(params[:id])
 
-    @customer_id = extract_customer_id(@payment)
+    @customer_id = @payment.customer_id || extract_customer_id(@payment)
     @user_by_customer_id = nil
     @user_by_customer_id = User.where(recharge_customer_id: @customer_id.to_s).first if @customer_id.present?
 

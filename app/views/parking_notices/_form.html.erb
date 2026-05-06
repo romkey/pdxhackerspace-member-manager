@@ -45,6 +45,7 @@
                    data-user-id="<%= user.id %>"
                    data-user-name="<%= user.display_name.downcase %>"
                    data-user-email="<%= user.email.to_s.downcase %>"
+                   data-username="<%= user.username.to_s.downcase %>"
                    data-user-display="<%= user.display_name %>"
                    role="button" style="cursor: pointer;">
                 <%= user.display_name %>
@@ -200,7 +201,9 @@
           items.forEach(function(item) {
             var name = item.getAttribute('data-user-name') || '';
             var email = item.getAttribute('data-user-email') || '';
-            if (name.includes(term) || email.includes(term)) {
+            var username = item.getAttribute('data-username') || '';
+            var haystack = name + ' ' + email + ' ' + username;
+            if (haystack.includes(term)) {
               item.style.display = '';
               visibleCount++;
             } else {

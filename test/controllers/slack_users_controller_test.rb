@@ -25,6 +25,16 @@ class SlackUsersControllerTest < ActionDispatch::IntegrationTest
     assert_match 'Unlinked', response.body
   end
 
+  test 'index link modal can search members by email and username' do
+    user = users(:one)
+
+    get slack_users_path
+    assert_response :success
+
+    assert_select '.slack-link-user-item[data-user-id=?][data-user-email=?][data-username=?]',
+                  user.id.to_s, user.email, user.username
+  end
+
   test 'index status filters split active inactive and deactivated accounts' do
     recent = SlackUser.create!(slack_id: 'URECENTFILTER', display_name: 'Recent Slack', last_active_at: 1.month.ago)
     inactive = SlackUser.create!(slack_id: 'UINACTIVEFILTER', display_name: 'Dormant Slack', last_active_at: nil)
