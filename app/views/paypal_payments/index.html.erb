@@ -140,7 +140,7 @@
                 payment.user&.display_name,
                 payment.user_id.present? ? "linked" : "unlinked"
               ].compact.join(' ').downcase %>">
-            <td class="fw-semibold"><%= link_to payment.paypal_id, paypal_payment_path(payment) %></td>
+            <td class="fw-semibold"><%= link_to payment.paypal_id, paypal_payment_path(payment), data: { turbo_frame: "_top" } %></td>
             <td><span class="badge text-bg-secondary"><%= payment.status.presence || "Unknown" %></span></td>
             <td><%= payment.amount_with_currency || "—" %></td>
             <td>
@@ -153,7 +153,7 @@
             </td>
             <td>
               <% if payment.user.present? %>
-                <%= link_to payment.user.display_name, user_path(payment.user), class: "text-decoration-none" %>
+                <%= link_to payment.user.display_name, user_path(payment.user), class: "text-decoration-none", data: { turbo_frame: "_top" } %>
               <% else %>
                 <span class="text-muted fst-italic">Not linked</span>
               <% end %>

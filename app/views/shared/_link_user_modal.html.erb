@@ -24,7 +24,12 @@
             <label class="form-label">Select Member</label>
             <div id="user_list" class="border rounded" style="max-height: 300px; overflow-y: auto;">
               <% users.each do |user| %>
-                <div class="user-item p-2 border-bottom" data-user-id="<%= user.id %>" data-user-name="<%= user.display_name.downcase %>" role="button">
+                <div class="user-item p-2 border-bottom"
+                     data-user-id="<%= user.id %>"
+                     data-user-name="<%= user.display_name.downcase %>"
+                     data-user-email="<%= user.email.to_s.downcase %>"
+                     data-username="<%= user.username.to_s.downcase %>"
+                     role="button">
                   <input type="radio" name="user_id" id="user_<%= user.id %>" value="<%= user.id %>" class="form-check-input me-2" required>
                   <label for="user_<%= user.id %>" class="form-check-label mb-0" role="button">
                     <%= user.display_name %>
@@ -67,8 +72,11 @@
       let visibleCount = 0;
 
       userItems.forEach(function(item) {
-        const userName = item.getAttribute('data-user-name');
-        if (userName && userName.includes(searchTerm)) {
+        const name = item.getAttribute('data-user-name') || '';
+        const email = item.getAttribute('data-user-email') || '';
+        const username = item.getAttribute('data-username') || '';
+        const haystack = name + ' ' + email + ' ' + username;
+        if (haystack.includes(searchTerm)) {
           item.style.display = '';
           visibleCount++;
         } else {

@@ -135,7 +135,7 @@
                 payment.user&.display_name,
                 payment.user_id.present? ? "linked" : "unlinked"
               ].compact.join(' ').downcase %>">
-            <td class="font-monospace text-12"><%= link_to payment.recharge_id, recharge_payment_path(payment), class: "text-info text-decoration-none" %></td>
+            <td class="font-monospace text-12"><%= link_to payment.recharge_id, recharge_payment_path(payment), class: "text-info text-decoration-none", data: { turbo_frame: "_top" } %></td>
             <td>
               <% if payment.status.to_s.casecmp("success").zero? %>
                 <span class="status-dot status-success" title="Success"></span>
@@ -164,9 +164,9 @@
             </td>
             <td>
               <% if payment.user.present? %>
-                <%= link_to payment.user.display_name, user_path(payment.user), class: "text-decoration-none" %>
+                <%= link_to payment.user.display_name, user_path(payment.user), class: "text-decoration-none", data: { turbo_frame: "_top" } %>
               <% elsif unlinked %>
-                <%= link_to "Link member...", recharge_payment_path(payment), class: "btn btn-sm btn-warning" %>
+                <%= link_to "Link member...", recharge_payment_path(payment), class: "btn btn-sm btn-warning", data: { turbo_frame: "_top" } %>
               <% else %>
                 <span class="text-muted fst-italic">Not linked</span>
               <% end %>
